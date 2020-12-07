@@ -1,3 +1,5 @@
+from visualCIME.visualCIME.CompliancesVC import CompliancesVC
+
 c_base = int("1F534",base=16)
 
 class ConfigVar:
