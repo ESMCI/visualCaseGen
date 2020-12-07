@@ -9,7 +9,6 @@ from CIME.XML.files                 import Files
 from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
-from CIME.XML.compliances           import Compliances
 
 from visualCIME.visualCIME.ConfigVar import ConfigVar
 
@@ -27,6 +26,9 @@ def determine_CIME_basics():
 
 def get_comp_classes():
     return comp_classes 
+
+def get_files():
+    return files
 
 def read_CIME_xml():
 
