@@ -75,7 +75,8 @@ def read_CIME_xml():
             desc_nodes = compobj.get_children("desc", root=rootnode)
             for node in desc_nodes:
                 option = compobj.get(node, 'option')
-                if option is not None:
-                    cv_model_desc.options.add(option)
+                if option is not None and option not in cv_model_desc.options:
+                    cv_model_desc.options.append(option)
 
-            cv_comp.options.add(model)
+            if model not in cv_comp.options: 
+                cv_comp.options.append(model)
