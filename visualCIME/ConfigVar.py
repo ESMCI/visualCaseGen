@@ -17,6 +17,7 @@ class ConfigVar:
         self.options = []
         self.widget = None
         self.relations = []
+        self.errMsgs = []
         ConfigVar.vdict[name] = self
 
     def get_value(self, strip_stat=False):
@@ -40,6 +41,7 @@ class ConfigVar:
         old_value_index = self.get_value_index()
 
         new_widget_options = []
+        self.errMsgs = []
         with get_output_widget():
             for i in range(len(self.options)):
                 option = self.options[i]
@@ -55,8 +57,9 @@ class ConfigVar:
                     status, errMsg = ConfigVar.compliances.check_relation(relation, instance_val_getter)
                     if status==False:
                         break
-
+                self.errMsgs.append(errMsg)
                 new_widget_options.append('{}  {}'.format(chr(c_base+status), option))
+
             self.widget.options = new_widget_options
             self.widget.value = None # this is needed here to prevent a weird behavior:
                                      # in absence of this, widget selection clears for
@@ -64,18 +67,16 @@ class ConfigVar:
             self.widget.value = self.widget.options[old_value_index]
 
     def update_states(self, change):
-        print("updating state", self.name)
         self.assign_states(change)
 
-    #def check_selection_validity(self, change):
-
-    #    with get_output_widget():
-    #        print("Checking selection validity", change)
-    #        new_index = change['new']['index']
-    #        new_val = self.widget.options[new_index]
-    #        if new_val.split()[0] == chr(int("1F534",base=16)):
-    #            print("\t",self.name)
-    #            print("\t",change)
-    #            old_index = change['old']['index']
-    #            self.widget.value = self.widget.options[old_index]
+    def check_selection_validity(self, change):
+        with get_output_widget():
+            if 'index' in change['new']:
+                new_index = change['new']['index']
+                new_val = self.widget.options[new_index]
+                if new_val.split()[0] == chr(int("1F534",base=16)):
+                    print("ERROR: invalid ",self.name)
+                    print("\t",self.errMsgs[new_index])
+                else:
+                    get_output_widget().clear_output()
 

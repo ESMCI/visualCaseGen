@@ -25,7 +25,7 @@ def determine_CIME_basics():
     comp_classes = [c for c in comp_classes if c not in ['CPL', 'ESP']]
 
 def get_comp_classes():
-    return comp_classes 
+    return comp_classes
 
 def get_files():
     return files
@@ -49,13 +49,13 @@ def read_CIME_xml():
 
         # config var COMP_XXX
         cv_comp = ConfigVar('COMP_'+str(comp_class))
-    
+
         for model in models:
 
             if model[0]=='x':
                 continue # skip dead components for now
 
-            # config var 
+            # config var
             cv_model_desc = ConfigVar(model+'_desc')
 
             compatt = {"component":model}
@@ -78,5 +78,5 @@ def read_CIME_xml():
                 if option is not None and option not in cv_model_desc.options:
                     cv_model_desc.options.append(option)
 
-            if model not in cv_comp.options: 
+            if model not in cv_comp.options:
                 cv_comp.options.append(model)
