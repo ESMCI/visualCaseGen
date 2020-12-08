@@ -9,11 +9,15 @@ class CompliancesHandler():
 
     def __init__(self, compliances):
         self.compliances = compliances
+        ConfigVar.compliances = compliances
 
     def check_compliances(self):   
         relations = self.compliances.get_children()
         for relation in relations:
-            self.compliances.check_relation(relation, lambda cvName: ConfigVar.vdict[cvName].get_value())
+            status, errMsg = self.compliances.check_relation(relation, lambda cvName: ConfigVar.vdict[cvName].get_value(strip_stat=True))
+            if status==False:
+                print("Compliance violation:", errMsg)
+                return
 
         print("done. no compliance violation.")
 

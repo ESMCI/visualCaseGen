@@ -9,7 +9,7 @@ class CompliancesVC(Compliances):
     def __init__(self, files):
         Compliances.__init__(self, files=files)
 
-    def check_relation(self, relation, get_instance_value):
+    def check_relation(self, relation, instance_val_getter):
         relate_vars = self.get(relation,"vars").split('->')
         assert len(relate_vars)>=2, "The following relation has less than two xml variables (to be split by ->):"+relate_vars
 
@@ -23,17 +23,16 @@ class CompliancesVC(Compliances):
             print("rule_vals:", rule_vals)
             rule_relevant = True
             for i in range(len(relate_vars)-1):
-                instance_val = get_instance_value(relate_vars[i])
+                instance_val = instance_val_getter(relate_vars[i])
                 if not re.search(rule_vals[i],instance_val):
                     rule_relevant = False
                     break
             if rule_relevant:
                 errMsg = self.get(assertion,"errMsg")
-                instance_val = get_instance_value(relate_vars[-1])
+                instance_val = instance_val_getter(relate_vars[-1])
                 if not re.search(rule_vals[-1],instance_val):
                     return False, errMsg
 
-        '''
         rejections = self.get_children("reject",root=relation)
         for rejection in rejections:
             rule = self.text(rejection)
@@ -42,13 +41,14 @@ class CompliancesVC(Compliances):
 
             rule_relevant = True
             for i in range(len(relate_vars)-1):
-                instance_val = get_xml_val(relate_vars[i],relation)
+                instance_val = instance_val_getter(relate_vars[i])
                 if not re.search(rule_vals[i],instance_val):
                     rule_relevant = False
                     break
             if rule_relevant:
                 errMsg = self.get(rejection,"errMsg")
-                instance_val = get_xml_val(relate_vars[-1],relation)
-                expect(not re.search(rule_vals[-1],instance_val),errMsg)
-        '''
-        return True,
+                instance_val = instance_val_getter(relate_vars[-1])
+                if re.search(rule_vals[-1],instance_val):
+                    return False, errMsg
+
+        return True, ''
