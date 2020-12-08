@@ -52,6 +52,9 @@ def read_CIME_xml():
     
         for model in models:
 
+            if model[0]=='x':
+                continue # skip dead components for now
+
             # config var 
             cv_model_desc = ConfigVar(model+'_desc')
 
