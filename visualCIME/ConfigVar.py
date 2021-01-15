@@ -1,5 +1,4 @@
 import time
-from visualCIME.visualCIME.CompliancesVC import CompliancesVC
 from visualCIME.visualCIME.OutputVC import get_output_widget
 
 c_base = int("1F534",base=16)
@@ -16,7 +15,6 @@ class ConfigVar:
         self.name = name
         self.options = []
         self.widget = None
-        self.relations = []
         self.errMsgs = []
         ConfigVar.vdict[name] = self
 
@@ -53,9 +51,15 @@ class ConfigVar:
                         return ConfigVar.vdict[cvName].get_value(strip_stat=True)
 
                 status, errMsg = True, ''
-                for relation in self.relations:
-                    status, errMsg = ConfigVar.compliances.check_relation(relation, instance_val_getter)
-                    if status==False:
+                for implication in self.compliances.implications(self.name):
+                    try:
+                        self.compliances.check_implication(
+                            implication,
+                            instance_val_getter
+                            )
+                    except AssertionError as e:
+                        errMsg = e
+                        status = False
                         break
                 self.errMsgs.append(errMsg)
                 new_widget_options.append('{}  {}'.format(chr(c_base+status), option))
@@ -67,6 +71,8 @@ class ConfigVar:
             self.widget.value = self.widget.options[old_value_index]
 
     def update_states(self, change):
+        with get_output_widget():
+            print("updating states")
         self.assign_states(change)
 
     def check_selection_validity(self, change):
