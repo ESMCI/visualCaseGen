@@ -11,6 +11,9 @@ from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
 
 from visualCIME.visualCIME.ConfigVar import ConfigVar
+import ipywidgets as widgets
+import logging
+logger = logging.getLogger(__name__)
 
 files = None
 comp_classes = None
@@ -30,6 +33,29 @@ def get_comp_classes():
 def get_files():
     return files
 
+
+def get_comp_desc(comp_class, model, files):
+    compatt = {"component": model}
+    comp_config_file =  files.get_value('CONFIG_{}_FILE'.format(comp_class), compatt)
+    compobj = Component(comp_config_file, comp_class)
+    rootnode = compobj.get_child("description")
+    desc_nodes = compobj.get_children("desc", root=rootnode)
+    comp_modes = []
+    comp_options = []
+    for node in desc_nodes:
+        option = compobj.get(node, 'option')
+        comp = compobj.get(node, comp_class.lower())
+        if comp:
+            comp_new = comp
+            if '[%' in comp_new:
+                comp_new = comp.split('[%')[0]
+            if len(comp_new)>0:
+                comp_modes.append(comp_new)
+        elif option:
+            comp_options.append(option)
+
+    return comp_modes, comp_options
+
 def read_CIME_xml():
 
     determine_CIME_basics()
@@ -48,15 +74,17 @@ def read_CIME_xml():
         assert (models is not None) and (None not in models),"Unable to find list of supported components"
 
         # config var COMP_XXX
-        cv_comp = ConfigVar('COMP_'+str(comp_class))
+        cv_comp = ConfigVar('COMP_'+str(comp_class)); cv_comp_options = []
+        cv_comp_mode = ConfigVar('COMP_{}_MODE'.format(comp_class)); cp_comp_mode_options = []
+        cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class)); cp_comp_option_options = []
 
         for model in models:
 
-            if model[0]=='x':
-                continue # skip dead components for now
+            logger.debug("Reading CIME XML for model {}...".format(model))
 
-            # config var
-            cv_model_desc = ConfigVar(model+'_desc')
+            if model[0]=='x':
+                logger.debug("Skipping the dead component {}.".format(model))
+                continue
 
             compatt = {"component":model}
             comp_root_dir = files.get_value(root_dir_node_name, compatt, resolved=True)
@@ -66,17 +94,20 @@ def read_CIME_xml():
             comp_config_file =  files.get_value(node_name, compatt)
 
             if not( comp_config_file is not None and os.path.isfile(comp_config_file) ):
-                print("Warning: Config file {} for component {} not found.".format(comp_config_file, model))
+                logger.warning("Config file {} for component {} not found.".format(comp_config_file, model))
                 continue
 
-            compobj = Component(comp_config_file, comp_class)
+            if model not in cv_comp_options:
+                cv_comp_options.append(model)
 
-            rootnode = compobj.get_child("description")
-            desc_nodes = compobj.get_children("desc", root=rootnode)
-            for node in desc_nodes:
-                option = compobj.get(node, 'option')
-                if option is not None and option not in cv_model_desc.options:
-                    cv_model_desc.options.append(option)
+            cv_comp_mode_options, cv_comp_option_options = get_comp_desc(comp_class, model, files)
 
-            if model not in cv_comp.options:
-                cv_comp.options.append(model)
+        # cv_comp_widget
+        cv_comp.widget = widgets.Select(
+                options=cv_comp_options,
+                value=None,
+                description=comp_class+':',
+                disabled=False,
+                layout=widgets.Layout(width='140px', height='105px')
+            )
+        cv_comp.widget.style.description_width = '50px'
