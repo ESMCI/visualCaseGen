@@ -37,9 +37,9 @@ class ConfigVar:
         else:
             raise RuntimeError("Corrupt value passed to value_is_valid(): {}".format(val))
 
-    def get_value(self, strip_stat=False):
+    def get_value(self):
         assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if strip_stat and self.widget.value != None:
+        if self.widget.value!=None and self.widget.value.split()[0] in [chr(c_base_red), chr(c_base_red+True)]:
             return self.widget.value[1:].strip()
         else:
             return self.widget.value
@@ -53,18 +53,18 @@ class ConfigVar:
             raise RuntimeError("ERROR: couldn't find value in options list")
 
     def observe_value_validity(self):
-        with get_output_widget():
-            logger.debug("Observing value validity for ConfigVar {}".format(self.name))
         if len(self.compliances.implications(self.name))>0:
+            with get_output_widget():
+                logger.debug("Observing value validity for ConfigVar {}".format(self.name))
             self.widget.observe(
                 self.check_selection_validity,
                 names='value',
                 type='change')
 
     def observe_relations(self):
-        with get_output_widget():
-            logger.debug("Observing relations for ConfigVar {}".format(self.name))
         for implication in self.compliances.implications(self.name):
+            with get_output_widget():
+                logger.debug("Observing relations for ConfigVar {}".format(self.name))
             if all([var in ConfigVar.vdict for var in implication.variables]):
                 for var_other in set(implication.variables)-{self.name}:
                     ConfigVar.vdict[var_other].widget.observe(
@@ -107,7 +107,7 @@ class ConfigVar:
                     if cvName==self.name:
                         return option
                     else:
-                        val = ConfigVar.vdict[cvName].get_value(strip_stat=True)
+                        val = ConfigVar.vdict[cvName].get_value()
                         if val == None:
                             val = "None"
                         return val
