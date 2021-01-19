@@ -61,6 +61,16 @@ class ConfigVar:
                 names='value',
                 type='change')
 
+    def unobserve_value_validity(self):
+        if len(self.compliances.implications(self.name))>0:
+            with get_output_widget():
+                logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
+            self.widget.unobserve(
+                self.check_selection_validity,
+                names='value',
+                type='change')
+
+
     def observe_relations(self):
         for implication in self.compliances.implications(self.name):
             with get_output_widget():
@@ -91,6 +101,8 @@ class ConfigVar:
                 with get_output_widget():
                     logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
                 return
+
+        self.unobserve_value_validity()
 
         old_value = self.widget.value
         if old_value != None:
@@ -134,6 +146,7 @@ class ConfigVar:
         if old_value != None:
             self.widget.value = self.widget.options[old_value_index]
 
+        self.observe_value_validity()
 
     def update_states(self, change=None):
         with get_output_widget():
@@ -157,20 +170,26 @@ class ConfigVar:
                     #get_output_widget().clear_output()
                     logger.critical("ERROR: Invalid selection for {}".format(self.name))
                     logger.critical(self.errMsgs[new_index])
-                #from IPython.display import display, Javascript
-                #display(Javascript("""
-                #require(
-                #    ["base/js/dialog"],
-                #    function(dialog) {
-                #        dialog.modal({
-                #            title: 'Invalid """+self.name+""" selection',
-                #            body: '"""+self.errMsgs[new_index]+"""',
-                #            buttons: {
-                #                'OK': {}
-                #            }
-                #        });
-                #    })
-                #""" ))
+                    from IPython.display import display, HTML, Javascript
+                    js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format( 
+                        self.name,
+                        self.errMsgs[new_index]
+                    )
+                    display(HTML(js))
+                    #from IPython.display import display, Javascript
+                    #display(Javascript("""
+                    #require(
+                    #    ["base/js/dialog"],
+                    #    function(dialog) {
+                    #        dialog.modal({
+                    #            title: 'Invalid """+self.name+""" selection',
+                    #            body: '"""+self.errMsgs[new_index]+"""',
+                    #            buttons: {
+                    #                'OK': {}
+                    #            }
+                    #        });
+                    #    })
+                    #""" ))
                 self.widget.value = change['old']
             else:
                 with get_output_widget():
