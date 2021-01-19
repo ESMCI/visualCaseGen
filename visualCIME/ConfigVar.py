@@ -26,6 +26,8 @@ class ConfigVar:
 
     @staticmethod
     def value_is_valid(val):
+        if val == None:
+            return True
         val_split = val.split()
         if len(val_split)>=2:
             if val_split[0] == chr(c_base_red):
@@ -34,18 +36,45 @@ class ConfigVar:
                 return True
         else:
             raise RuntimeError("Corrupt value passed to value_is_valid(): {}".format(val))
+
     def get_value(self, strip_stat=False):
         assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if strip_stat:
+        if strip_stat and self.widget.value != None:
             return self.widget.value[1:].strip()
         else:
             return self.widget.value
 
     def get_value_index(self):
+        if self.widget.value == None:
+            return None
         try:
             return self.widget.options.index(self.widget.value)
         except:
             raise RuntimeError("ERROR: couldn't find value in options list")
+
+    def observe_value_validity(self):
+        with get_output_widget():
+            logger.debug("Observing value validity for ConfigVar {}".format(self.name))
+        if len(self.compliances.implications(self.name))>0:
+            self.widget.observe(
+                self.check_selection_validity,
+                names='value',
+                type='change')
+
+    def observe_relations(self):
+        with get_output_widget():
+            logger.debug("Observing relations for ConfigVar {}".format(self.name))
+        for implication in self.compliances.implications(self.name):
+            if all([var in ConfigVar.vdict for var in implication.variables]):
+                for var_other in set(implication.variables)-{self.name}:
+                    ConfigVar.vdict[var_other].widget.observe(
+                        self.update_states,
+                        #names='value',
+                        names='_property_lock',
+                        type='change'
+                    )
+                    with get_output_widget():
+                        logger.debug("Added relational observance of {} for {}".format(var_other,self.name))
 
     def _assign_states_select_widget(self, change=None):
 
@@ -63,10 +92,12 @@ class ConfigVar:
                     logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
                 return
 
-        old_value_index = self.get_value_index()
+        old_value = self.widget.value
+        if old_value != None:
+            old_value_index = self.get_value_index()
+
         new_widget_options = []
         self.errMsgs = []
-
         with get_output_widget():
             for i in range(len(self.options)):
                 option = self.options[i]
@@ -76,7 +107,10 @@ class ConfigVar:
                     if cvName==self.name:
                         return option
                     else:
-                        return ConfigVar.vdict[cvName].get_value(strip_stat=True)
+                        val = ConfigVar.vdict[cvName].get_value(strip_stat=True)
+                        if val == None:
+                            val = "None"
+                        return val
 
                 status, errMsg = True, ''
                 for implication in self.compliances.implications(self.name):
@@ -86,7 +120,7 @@ class ConfigVar:
                             instance_val_getter
                             )
                     except AssertionError as e:
-                        errMsg = e
+                        errMsg = "{}".format(e)
                         status = False
                         break
                 self.errMsgs.append(errMsg)
@@ -97,7 +131,9 @@ class ConfigVar:
         self.widget.value = None # this is needed here to prevent a weird behavior:
                                  # in absence of this, widget selection clears for
                                  # some reason
-        self.widget.value = self.widget.options[old_value_index]
+        if old_value != None:
+            self.widget.value = self.widget.options[old_value_index]
+
 
     def update_states(self, change=None):
         with get_output_widget():
@@ -121,7 +157,24 @@ class ConfigVar:
                     #get_output_widget().clear_output()
                     logger.critical("ERROR: Invalid selection for {}".format(self.name))
                     logger.critical(self.errMsgs[new_index])
+                #from IPython.display import display, Javascript
+                #display(Javascript("""
+                #require(
+                #    ["base/js/dialog"],
+                #    function(dialog) {
+                #        dialog.modal({
+                #            title: 'Invalid """+self.name+""" selection',
+                #            body: '"""+self.errMsgs[new_index]+"""',
+                #            buttons: {
+                #                'OK': {}
+                #            }
+                #        });
+                #    })
+                #""" ))
                 self.widget.value = change['old']
+            else:
+                with get_output_widget():
+                    logger.debug("ConfigVar {} value is valid: {}".format(self.name, self.widget.value))
         else:
             raise NotImplementedError
 
