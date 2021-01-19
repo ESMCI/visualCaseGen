@@ -18,7 +18,6 @@ class ConfigVar:
         if name in ConfigVar.vdict:
             logger.warning("ConfigVar {} already created.".format(name))
         self.name = name
-        self.options = []
         self.widget = None
         self.errMsgs = []
         ConfigVar.vdict[name] = self
@@ -36,6 +35,13 @@ class ConfigVar:
                 return True
         else:
             raise RuntimeError("Corrupt value passed to value_is_valid(): {}".format(val))
+
+    @staticmethod
+    def strip_option_status(option):
+        if option.split()[0] in [chr(c_base_red), chr(c_base_red+True)]:
+            return option[1:].strip()
+        else:
+            return option
 
     def get_value(self):
         assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
@@ -111,13 +117,13 @@ class ConfigVar:
         new_widget_options = []
         self.errMsgs = []
         with get_output_widget():
-            for i in range(len(self.options)):
-                option = self.options[i]
+            for i in range(len(self.widget.options)):
+                option_stripped = ConfigVar.strip_option_status(self.widget.options[i])
 
-                logger.debug("Assigning the state of ConfigVar {} option: {}".format(self.name, option))
+                logger.debug("Assigning the state of ConfigVar {} option: {}".format(self.name, option_stripped))
                 def instance_val_getter(cvName):
                     if cvName==self.name:
-                        return option
+                        return option_stripped
                     else:
                         val = ConfigVar.vdict[cvName].get_value()
                         if val == None:
@@ -136,8 +142,8 @@ class ConfigVar:
                         status = False
                         break
                 self.errMsgs.append(errMsg)
-                new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option))
-                logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option, status))
+                new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
+                logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
 
         self.widget.options = new_widget_options
         self.widget.value = None # this is needed here to prevent a weird behavior:
