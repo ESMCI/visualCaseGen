@@ -52,7 +52,7 @@ def get_comp_desc(comp_class, model, files):
             if len(comp_new)>0:
                 comp_modes.append(comp_new)
         elif option:
-            comp_options.append(option)
+            comp_options.append(option.strip())
 
     return comp_modes, comp_options
 
@@ -102,12 +102,32 @@ def read_CIME_xml():
 
             cv_comp_mode_options, cv_comp_option_options = get_comp_desc(comp_class, model, files)
 
-        # cv_comp_widget
+        # COMP_{} widget
         cv_comp.widget = widgets.Select(
                 options=cv_comp_options,
                 value=None,
                 description=comp_class+':',
                 disabled=False,
-                layout=widgets.Layout(width='140px', height='105px')
+                layout=widgets.Layout(width='145px', height='105px')
             )
         cv_comp.widget.style.description_width = '50px'
+
+        # COMP_{}_MODE widget
+        cv_comp_mode.widget = widgets.Select(
+                options=[],
+                value=None,
+                description=comp_class+':',
+                disabled=False,
+                layout=widgets.Layout(width='145px', height='105px')
+            )
+        cv_comp_mode.widget.style.description_width = '50px'
+
+        # COMP_{}_OPTION widget
+        cv_comp_option.widget = widgets.Select(
+                options=[],
+                value=None,
+                description=comp_class+':',
+                disabled=False,
+                layout=widgets.Layout(width='145px', height='105px')
+            )
+        cv_comp_option.widget.style.description_width = '50px'

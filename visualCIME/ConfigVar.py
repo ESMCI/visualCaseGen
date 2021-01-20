@@ -63,7 +63,7 @@ class ConfigVar:
             with get_output_widget():
                 logger.debug("Observing value validity for ConfigVar {}".format(self.name))
             self.widget.observe(
-                self.check_selection_validity,
+                self._check_selection_validity,
                 names='value',
                 type='change')
 
@@ -72,7 +72,7 @@ class ConfigVar:
             with get_output_widget():
                 logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
             self.widget.unobserve(
-                self.check_selection_validity,
+                self._check_selection_validity,
                 names='value',
                 type='change')
 
@@ -162,7 +162,7 @@ class ConfigVar:
         else:
             raise NotImplementedError
 
-    def check_selection_validity(self, change):
+    def _check_selection_validity(self, change):
 
         with get_output_widget():
             logger.debug("Checking the validity for ConfigVar {} with value={}".format(self.name, self.widget.value))
@@ -177,29 +177,29 @@ class ConfigVar:
                     logger.critical("ERROR: Invalid selection for {}".format(self.name))
                     logger.critical(self.errMsgs[new_index])
                     from IPython.display import display, HTML, Javascript
-                    js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format( 
+                    js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
                         self.name,
                         self.errMsgs[new_index]
                     )
                     display(HTML(js))
-                    #from IPython.display import display, Javascript
-                    #display(Javascript("""
-                    #require(
-                    #    ["base/js/dialog"],
-                    #    function(dialog) {
-                    #        dialog.modal({
-                    #            title: 'Invalid """+self.name+""" selection',
-                    #            body: '"""+self.errMsgs[new_index]+"""',
-                    #            buttons: {
-                    #                'OK': {}
-                    #            }
-                    #        });
-                    #    })
-                    #""" ))
                 self.widget.value = change['old']
             else:
                 with get_output_widget():
                     logger.debug("ConfigVar {} value is valid: {}".format(self.name, self.widget.value))
+
+                    #todo: improve below block that handles COMP_MODE and COMP_OPTION widget options
+                    if self.name.startswith('COMP') and len(self.name)==8:
+                        comp_class = self.name[5:8]
+                        model = ConfigVar.strip_option_status(self.widget.value)
+                        from CIME.XML.files import Files
+                        from visualCIME.visualCIME.CIME_interface import get_comp_desc
+                        files = Files(comp_interface="nuopc")
+                        comp_modes, comp_options = get_comp_desc(comp_class, model, files)
+                        if comp_class and model and len(comp_class)>0 and len(model)>0:
+                            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = [chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
+                            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
+                            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
+                            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
         else:
             raise NotImplementedError
 
