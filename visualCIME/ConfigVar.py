@@ -1,6 +1,6 @@
 import logging
-from visualCIME.visualCIME.OutputVC import get_output_widget
 import ipywidgets as widgets
+from visualCIME.visualCIME.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
@@ -58,29 +58,29 @@ class ConfigVar:
         except:
             raise RuntimeError("ERROR: couldn't find value in options list")
 
+    @owh.out.capture()
     def observe_value_validity(self):
         if len(self.compliances.implications(self.name))>0:
-            with get_output_widget():
-                logger.debug("Observing value validity for ConfigVar {}".format(self.name))
+            logger.debug("Observing value validity for ConfigVar {}".format(self.name))
             self.widget.observe(
                 self._check_selection_validity,
                 names='value',
                 type='change')
 
+    @owh.out.capture()
     def unobserve_value_validity(self):
         if len(self.compliances.implications(self.name))>0:
-            with get_output_widget():
-                logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
+            logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
             self.widget.unobserve(
                 self._check_selection_validity,
                 names='value',
                 type='change')
 
 
+    @owh.out.capture()
     def observe_relations(self):
         for implication in self.compliances.implications(self.name):
-            with get_output_widget():
-                logger.debug("Observing relations for ConfigVar {}".format(self.name))
+            logger.debug("Observing relations for ConfigVar {}".format(self.name))
             if all([var in ConfigVar.vdict for var in implication.variables]):
                 for var_other in set(implication.variables)-{self.name}:
                     ConfigVar.vdict[var_other].widget.observe(
@@ -89,23 +89,20 @@ class ConfigVar:
                         names='_property_lock',
                         type='change'
                     )
-                    with get_output_widget():
-                        logger.debug("Added relational observance of {} for {}".format(var_other,self.name))
+                    logger.debug("Added relational observance of {} for {}".format(var_other,self.name))
 
+    @owh.out.capture()
     def _assign_states_select_widget(self, change=None):
 
-        with get_output_widget():
-            logger.debug("Assigning the states of options for ConfigVar {}".format(self.name))
-            logger.debug("change: {}".format(change))
+        logger.debug("Assigning the states of options for ConfigVar {}".format(self.name))
+        logger.debug("change: {}".format(change))
         if change != None:
             assert isinstance(change['owner'], widgets.Select)
             if not ConfigVar.value_is_valid(change['owner'].value):
-                with get_output_widget():
-                    logger.debug("Invalid selection from owner. Do nothing for ConfigVar {}".format(self.name))
+                logger.debug("Invalid selection from owner. Do nothing for ConfigVar {}".format(self.name))
                 return
             elif change['old'] == {}:
-                with get_output_widget():
-                    logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
+                logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
                 return
 
         self.unobserve_value_validity()
@@ -116,34 +113,33 @@ class ConfigVar:
 
         new_widget_options = []
         self.errMsgs = []
-        with get_output_widget():
-            for i in range(len(self.widget.options)):
-                option_stripped = ConfigVar.strip_option_status(self.widget.options[i])
+        for i in range(len(self.widget.options)):
+            option_stripped = ConfigVar.strip_option_status(self.widget.options[i])
 
-                logger.debug("Assigning the state of ConfigVar {} option: {}".format(self.name, option_stripped))
-                def instance_val_getter(cvName):
-                    if cvName==self.name:
-                        return option_stripped
-                    else:
-                        val = ConfigVar.vdict[cvName].get_value()
-                        if val == None:
-                            val = "None"
-                        return val
+            logger.debug("Assigning the state of ConfigVar {} option: {}".format(self.name, option_stripped))
+            def instance_val_getter(cvName):
+                if cvName==self.name:
+                    return option_stripped
+                else:
+                    val = ConfigVar.vdict[cvName].get_value()
+                    if val == None:
+                        val = "None"
+                    return val
 
-                status, errMsg = True, ''
-                for implication in self.compliances.implications(self.name):
-                    try:
-                        self.compliances.check_implication(
-                            implication,
-                            instance_val_getter
-                            )
-                    except AssertionError as e:
-                        errMsg = "{}".format(e)
-                        status = False
-                        break
-                self.errMsgs.append(errMsg)
-                new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
-                logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
+            status, errMsg = True, ''
+            for implication in self.compliances.implications(self.name):
+                try:
+                    self.compliances.check_implication(
+                        implication,
+                        instance_val_getter
+                        )
+                except AssertionError as e:
+                    errMsg = "{}".format(e)
+                    status = False
+                    break
+            self.errMsgs.append(errMsg)
+            new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
+            logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
 
         self.widget.options = new_widget_options
         self.widget.value = None # this is needed here to prevent a weird behavior:
@@ -154,52 +150,49 @@ class ConfigVar:
 
         self.observe_value_validity()
 
+    @owh.out.capture()
     def update_states(self, change=None):
-        with get_output_widget():
-            logger.debug("Updating the states of options for ConfigVar {}".format(self.name))
+        logger.debug("Updating the states of options for ConfigVar {}".format(self.name))
         if isinstance(self.widget, widgets.Select):
             self._assign_states_select_widget(change)
         else:
             raise NotImplementedError
 
+    @owh.out.capture()
     def _check_selection_validity(self, change):
 
-        with get_output_widget():
-            logger.debug("Checking the validity for ConfigVar {} with value={}".format(self.name, self.widget.value))
+        logger.debug("Checking the validity for ConfigVar {} with value={}".format(self.name, self.widget.value))
 
         if change != None:
             assert change['name'] == 'value'
             new_val = change['new']
             if new_val != None and not ConfigVar.value_is_valid(new_val):
-                with get_output_widget():
-                    new_index = self.get_value_index()
-                    #get_output_widget().clear_output()
-                    logger.critical("ERROR: Invalid selection for {}".format(self.name))
-                    logger.critical(self.errMsgs[new_index])
-                    from IPython.display import display, HTML, Javascript
-                    js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
-                        self.name,
-                        self.errMsgs[new_index]
-                    )
-                    display(HTML(js))
+                new_index = self.get_value_index()
+                logger.critical("ERROR: Invalid selection for {}".format(self.name))
+                logger.critical(self.errMsgs[new_index])
+                from IPython.display import display, HTML, Javascript
+                js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
+                    self.name,
+                    self.errMsgs[new_index]
+                )
+                display(HTML(js))
                 self.widget.value = change['old']
             else:
-                with get_output_widget():
-                    logger.debug("ConfigVar {} value is valid: {}".format(self.name, self.widget.value))
+                logger.debug("ConfigVar {} value is valid: {}".format(self.name, self.widget.value))
 
-                    #todo: improve below block that handles COMP_MODE and COMP_OPTION widget options
-                    if self.name.startswith('COMP') and len(self.name)==8:
-                        comp_class = self.name[5:8]
-                        model = ConfigVar.strip_option_status(self.widget.value)
-                        from CIME.XML.files import Files
-                        from visualCIME.visualCIME.CIME_interface import get_comp_desc
-                        files = Files(comp_interface="nuopc")
-                        comp_modes, comp_options = get_comp_desc(comp_class, model, files)
-                        if comp_class and model and len(comp_class)>0 and len(model)>0:
-                            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = [chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
-                            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
-                            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
-                            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
+                #todo: improve below block that handles COMP_MODE and COMP_OPTION widget options
+                if self.name.startswith('COMP') and len(self.name)==8:
+                    comp_class = self.name[5:8]
+                    model = ConfigVar.strip_option_status(self.widget.value)
+                    from CIME.XML.files import Files
+                    from visualCIME.visualCIME.CIME_interface import get_comp_desc
+                    files = Files(comp_interface="nuopc")
+                    comp_modes, comp_options = get_comp_desc(comp_class, model, files)
+                    if comp_class and model and len(comp_class)>0 and len(model)>0:
+                        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = [chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
+                        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
+                        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
+                        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
         else:
             raise NotImplementedError
 

@@ -6,7 +6,7 @@ class OutHandler(logging.Handler):
     """ Custom logging handler sending logs to an output widget """
 
     def __init__(self, *args, **kwargs):
-        super(OutputWidgetHandler, self).__init__(*args, **kwargs)
+        super(OutHandler, self).__init__(*args, **kwargs)
         layout = {
             #'width': '100%',
             #'height': '160px',
@@ -35,7 +35,7 @@ class OutHandler(logging.Handler):
 logging.basicConfig(#format='%(asctime)s %(levelname)s:%(message)s',
                     level=logging.DEBUG, 
                     datefmt='%I:%M:%S')
-handler = OutputWidgetHandler()
+handler = OutHandler()
 #handler.setFormatter(logging.Formatter('%(asctime)s  - [%(levelname)s] %(message)s'))
 logger.addHandler(handler)
 for module in ['CIME.XML', 'CIME.utils']:
