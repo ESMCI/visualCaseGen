@@ -2,7 +2,7 @@ import ipywidgets as widgets
 import logging
 logger = logging.getLogger(__name__)
 
-class OutputWidgetHandler(logging.Handler):
+class OutHandler(logging.Handler):
     """ Custom logging handler sending logs to an output widget """
 
     def __init__(self, *args, **kwargs):
