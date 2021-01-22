@@ -179,39 +179,5 @@ class ConfigVar:
                 self.widget.value = change['old']
             else:
                 logger.debug("ConfigVar {} value is valid: {}".format(self.name, self.widget.value))
-
-                #todo: improve below block that handles COMP_MODE and COMP_OPTION widget options
-                if self.name.startswith('COMP') and len(self.name)==8:
-                    comp_class = self.name[5:8]
-                    model = ConfigVar.strip_option_status(self.widget.value)
-                    from CIME.XML.files import Files
-                    from visualCIME.visualCIME.CIME_interface import get_comp_desc
-                    files = Files(comp_interface="nuopc")
-                    comp_modes, comp_options = get_comp_desc(comp_class, model, files)
-                    if comp_class and model and len(comp_class)>0 and len(model)>0:
-                        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = [chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
-                        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
-                        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
-                        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
         else:
             raise NotImplementedError
-
-                #new_index = change['new']['index']
-                #new_val = self.widget.options[new_index]
-                #logger.debug("New option val: {}".format(new_val))
-                #if new_val.split()[0] == chr(int("1F534",base=16)):
-                    #logger.critical("ERROR: Invalid selection for {}".format(self.name))
-                    #logger.critical(self.errMsgs[new_index])
-                    #selection_valid = False
-                #else:
-                    #get_output_widget().clear_output()
-        #if not selection_valid:
-            #old_index = self.get_value_index()
-            #with get_output_widget():
-                #logger.debug("setting ConfigVar {} value to {}".format(self.name, self.widget.options[old_index]))
-            #self.widget.value = None
-            #self.widget.value = self.widget.options[old_index]
-            #with get_output_widget():
-                #print("dbg:", self.widget.value)
-
-
