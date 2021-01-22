@@ -1,4 +1,5 @@
 import os
+import re
 
 from CIME.case import Case
 from CIME.nmlgen import NamelistGenerator
@@ -10,6 +11,7 @@ from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
 
+from visualCIME.visualCIME.OutHandler import handler as owh
 from visualCIME.visualCIME.ConfigVar import ConfigVar
 import ipywidgets as widgets
 import logging
@@ -56,6 +58,7 @@ def get_comp_desc(comp_class, model, files):
 
     return comp_modes, comp_options
 
+@owh.out.capture()
 def read_CIME_xml():
 
     determine_CIME_basics()
@@ -131,3 +134,54 @@ def read_CIME_xml():
                 layout=widgets.Layout(width='145px', height='105px')
             )
         cv_comp_option.widget.style.description_width = '50px'
+
+
+@owh.out.capture()
+def update_comp_modes_and_options(change=None):
+    if change != None:
+        print(change)
+        if change['new'] == None:
+            return
+        comp_class = change['owner'].description[0:3]
+        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+        logger.debug("Updating the modes and options of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
+        assert change['name'] == 'value'
+        new_val = change['new']
+        if new_val == None or ConfigVar.value_is_valid(new_val):
+            assert re.search("COMP_...", cv_comp.name)
+            comp_modes, comp_options = [], []
+            if cv_comp.widget.value != None:
+                model = ConfigVar.strip_option_status(cv_comp.widget.value)
+                files = Files(comp_interface="nuopc")
+                comp_modes, comp_options = get_comp_desc(comp_class, model, files)
+            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = comp_modes#[chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
+            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
+            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
+            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
+    else:
+        raise NotImplementedError
+
+
+def construct_all_widget_observances(compliances):
+
+    # Build validity observances:
+    ConfigVar.compliances = compliances
+    for varname, var in ConfigVar.vdict.items():
+        var.observe_value_validity()
+
+    # Build relational observances:
+    for varname, var in ConfigVar.vdict.items():
+        var.observe_relations()
+
+    # Build options observances for comp_mode and comp_option
+    for comp_class in get_comp_classes():
+        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+        cv_comp.update_states()
+        cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
+        #cv_comp_mode.update_states()
+        cv_comp_option = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
+        #cv_comp_option.update_states()
+        cv_comp.widget.observe(
+            update_comp_modes_and_options,
+            names='value',
+            type='change')
