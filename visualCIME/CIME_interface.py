@@ -116,22 +116,22 @@ def read_CIME_xml():
         cv_comp.widget.style.description_width = '50px'
 
         # COMP_{}_MODE widget
-        cv_comp_mode.widget = widgets.Select(
+        cv_comp_mode.widget = widgets.Dropdown(
                 options=[],
                 value=None,
                 description=comp_class+':',
                 disabled=False,
-                layout=widgets.Layout(width='145px', height='105px')
+                layout=widgets.Layout(width='145px')
             )
         cv_comp_mode.widget.style.description_width = '50px'
 
         # COMP_{}_OPTION widget
-        cv_comp_option.widget = widgets.Select(
+        cv_comp_option.widget = widgets.Dropdown(
                 options=[],
                 value=None,
                 description=comp_class+':',
                 disabled=False,
-                layout=widgets.Layout(width='145px', height='105px')
+                layout=widgets.Layout(width='145px')
             )
         cv_comp_option.widget.style.description_width = '50px'
 
@@ -153,6 +153,7 @@ def update_comp_modes_and_options(change=None):
             model = ConfigVar.strip_option_status(cv_comp.widget.value)
             files = Files(comp_interface="nuopc")
             comp_modes, comp_options = get_comp_desc(comp_class, model, files)
+        comp_options = ['(none)'] + comp_options
         ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = comp_modes#[chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
         ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
         ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options

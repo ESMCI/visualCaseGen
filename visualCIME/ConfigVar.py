@@ -97,7 +97,7 @@ class ConfigVar:
         logger.debug("Assigning the states of options for ConfigVar {}".format(self.name))
         logger.debug("change: {}".format(change))
         if change != None:
-            assert isinstance(change['owner'], widgets.Select)
+            assert isinstance(change['owner'], widgets.Select) or isinstance(change['owner'], widgets.Dropdown)
             if not ConfigVar.value_is_valid(change['owner'].value):
                 logger.debug("Invalid selection from owner. Do nothing for ConfigVar {}".format(self.name))
                 return
@@ -140,7 +140,7 @@ class ConfigVar:
             self.errMsgs.append(errMsg)
             new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
             logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
-            
+
         new_widget_options = tuple(new_widget_options)
         if new_widget_options != self.widget.options:
             logger.debug("State changes in the options of ConfigVar {}".format(self.name))
@@ -158,7 +158,7 @@ class ConfigVar:
     @owh.out.capture()
     def update_states(self, change=None):
         logger.debug("Updating the states of options for ConfigVar {}".format(self.name))
-        if isinstance(self.widget, widgets.Select):
+        if isinstance(self.widget, widgets.Select) or isinstance(self.widget, widgets.Dropdown):
             self._assign_states_select_widget(change)
         else:
             raise NotImplementedError
