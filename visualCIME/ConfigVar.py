@@ -140,13 +140,18 @@ class ConfigVar:
             self.errMsgs.append(errMsg)
             new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
             logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
-
-        self.widget.options = new_widget_options
-        self.widget.value = None # this is needed here to prevent a weird behavior:
-                                 # in absence of this, widget selection clears for
-                                 # some reason
-        if old_value != None:
-            self.widget.value = self.widget.options[old_value_index]
+            
+        new_widget_options = tuple(new_widget_options)
+        if new_widget_options != self.widget.options:
+            logger.debug("State changes in the options of ConfigVar {}".format(self.name))
+            self.widget.options = new_widget_options
+            self.widget.value = None # this is needed here to prevent a weird behavior:
+                                     # in absence of this, widget selection clears for
+                                     # some reason
+            if old_value != None:
+                self.widget.value = self.widget.options[old_value_index]
+        else:
+            logger.debug("No state changes in the options of ConfigVar {}".format(self.name))
 
         self.observe_value_validity()
 

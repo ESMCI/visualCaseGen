@@ -139,25 +139,24 @@ def read_CIME_xml():
 @owh.out.capture()
 def update_comp_modes_and_options(change=None):
     if change != None:
-        print(change)
-        if change['new'] == None:
-            return
+        new_val = change['owner'].value
         comp_class = change['owner'].description[0:3]
         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+        assert re.search("COMP_...", cv_comp.name)
+        if (not ConfigVar.value_is_valid(new_val)) or change['old'] == {}:
+            logger.debug("No need to update comp modes and options for {}".format(cv_comp.name))
+            return
+
         logger.debug("Updating the modes and options of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
-        assert change['name'] == 'value'
-        new_val = change['new']
-        if new_val == None or ConfigVar.value_is_valid(new_val):
-            assert re.search("COMP_...", cv_comp.name)
-            comp_modes, comp_options = [], []
-            if cv_comp.widget.value != None:
-                model = ConfigVar.strip_option_status(cv_comp.widget.value)
-                files = Files(comp_interface="nuopc")
-                comp_modes, comp_options = get_comp_desc(comp_class, model, files)
-            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = comp_modes#[chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
-            ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
-            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
-            ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
+        comp_modes, comp_options = [], []
+        if cv_comp.widget.value != None:
+            model = ConfigVar.strip_option_status(cv_comp.widget.value)
+            files = Files(comp_interface="nuopc")
+            comp_modes, comp_options = get_comp_desc(comp_class, model, files)
+        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = comp_modes#[chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
+        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
+        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
+        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
     else:
         raise NotImplementedError
 
@@ -183,5 +182,5 @@ def construct_all_widget_observances(compliances):
         #cv_comp_option.update_states()
         cv_comp.widget.observe(
             update_comp_modes_and_options,
-            names='value',
+            names='_property_lock',
             type='change')
