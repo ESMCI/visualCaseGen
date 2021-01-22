@@ -61,7 +61,11 @@ def get_comp_desc(comp_class, model, files):
 @owh.out.capture()
 def read_CIME_xml():
 
+    cv_compset = ConfigVar('COMPSET')
+    cv_inittime = ConfigVar('INITTIME')
+
     determine_CIME_basics()
+
     for comp_class in comp_classes:
 
         # Find list of models for component class
@@ -80,7 +84,6 @@ def read_CIME_xml():
         cv_comp = ConfigVar('COMP_'+str(comp_class)); cv_comp_options = []
         cv_comp_mode = ConfigVar('COMP_{}_MODE'.format(comp_class)); cp_comp_mode_options = []
         cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class)); cp_comp_option_options = []
-
         for model in models:
 
             logger.debug("Reading CIME XML for model {}...".format(model))
@@ -116,7 +119,7 @@ def read_CIME_xml():
         cv_comp.widget.style.description_width = '50px'
 
         # COMP_{}_MODE widget
-        cv_comp_mode.widget = widgets.Dropdown(
+        cv_comp_mode.widget = widgets.Select(
                 options=[],
                 value=None,
                 description=comp_class+':',
@@ -135,6 +138,16 @@ def read_CIME_xml():
             )
         cv_comp_option.widget.style.description_width = '50px'
 
+        cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
+
+        cv_inittime.widget = widgets.RadioButtons(
+                options=['1850', '2000', 'HIST'],
+                value='2000',
+                #layout={'width': 'max-content'}, # If the items' names are long
+                description='Initialization Time:',
+                disabled=False
+        )
+        cv_inittime.widget.style.description_width = '140px'
 
 @owh.out.capture()
 def update_comp_modes_and_options(change=None):
@@ -153,19 +166,45 @@ def update_comp_modes_and_options(change=None):
             model = ConfigVar.strip_option_status(cv_comp.widget.value)
             files = Files(comp_interface="nuopc")
             comp_modes, comp_options = get_comp_desc(comp_class, model, files)
+
+        if len(comp_modes)==0:
+            comp_modes = [cv_comp.widget.value.upper()]
         comp_options = ['(none)'] + comp_options
-        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].widget.options = comp_modes#[chr(c_base_red+True)+' {}'.format(mode) for mode in comp_modes]
-        ConfigVar.vdict["COMP_{}_MODE".format(comp_class)].update_states()
-        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].widget.options = comp_options
-        ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)].update_states()
+
+        cv_comp_mode = ConfigVar.vdict["COMP_{}_MODE".format(comp_class)]
+        cv_comp_mode.update_states(change=None, new_options=comp_modes)
+
+        cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
+        cv_comp_option.update_states(change=None, new_options=comp_options)
     else:
         raise NotImplementedError
+
+@owh.out.capture()
+def update_compset(change=None):
+    cv_compset = ConfigVar.vdict['COMPSET']
+    compset_text = ConfigVar.vdict['INITTIME'].get_value()
+    for comp_class in get_comp_classes():
+        cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
+        cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
+        comp_mode_val = cv_comp_mode.get_value()
+        comp_option_val = cv_comp_option.get_value()
+        if comp_mode_val != None:
+            compset_text += '_'+comp_mode_val
+            if comp_option_val != None and comp_option_val != '(none)':
+                compset_text += '%'+comp_option_val
+        else:
+            cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
+            return
+    cv_compset.widget.value = compset_text
+    cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{compset_text}</b></p>"
 
 
 def construct_all_widget_observances(compliances):
 
-    # Build validity observances:
+    # Assign the compliances property of all ConfigVar instsances:
     ConfigVar.compliances = compliances
+
+    # Build validity observances:
     for varname, var in ConfigVar.vdict.items():
         var.observe_value_validity()
 
@@ -173,15 +212,38 @@ def construct_all_widget_observances(compliances):
     for varname, var in ConfigVar.vdict.items():
         var.observe_relations()
 
-    # Build options observances for comp_mode and comp_option
+    # Update COMP_{} states
     for comp_class in get_comp_classes():
         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
         cv_comp.update_states()
-        cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
-        #cv_comp_mode.update_states()
-        cv_comp_option = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
-        #cv_comp_option.update_states()
+
+    # Build options observances for comp_mode and comp_option
+    for comp_class in get_comp_classes():
+        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
         cv_comp.widget.observe(
             update_comp_modes_and_options,
+            names='_property_lock',
+            type='change')
+
+    cv_inittime = ConfigVar.vdict['INITTIME']
+    cv_inittime.widget.observe(
+        update_compset,
+        names='_property_lock',
+        type='change'
+    )
+    for comp_class in get_comp_classes():
+        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+        cv_comp.widget.observe(
+            update_compset,
+            names='_property_lock',
+            type='change')
+        cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
+        cv_comp_mode.widget.observe(
+            update_compset,
+            names='_property_lock',
+            type='change')
+        cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
+        cv_comp_option.widget.observe(
+            update_compset,
             names='_property_lock',
             type='change')

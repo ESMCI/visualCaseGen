@@ -92,7 +92,7 @@ class ConfigVar:
                     logger.debug("Added relational observance of {} for {}".format(var_other,self.name))
 
     @owh.out.capture()
-    def _assign_states_select_widget(self, change=None):
+    def _assign_states_select_widget(self, change=None, new_options=None):
 
         logger.debug("Assigning the states of options for ConfigVar {}".format(self.name))
         logger.debug("change: {}".format(change))
@@ -111,10 +111,12 @@ class ConfigVar:
         if old_value != None:
             old_value_index = self.get_value_index()
 
-        new_widget_options = []
+        if new_options == None:
+            new_options = self.widget.options
+        new_options_w_states = []
         self.errMsgs = []
-        for i in range(len(self.widget.options)):
-            option_stripped = ConfigVar.strip_option_status(self.widget.options[i])
+        for i in range(len(new_options)):
+            option_stripped = ConfigVar.strip_option_status(new_options[i])
 
             logger.debug("Assigning the state of ConfigVar {} option: {}".format(self.name, option_stripped))
             def instance_val_getter(cvName):
@@ -138,28 +140,38 @@ class ConfigVar:
                     status = False
                     break
             self.errMsgs.append(errMsg)
-            new_widget_options.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
+            new_options_w_states.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
             logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
 
-        new_widget_options = tuple(new_widget_options)
-        if new_widget_options != self.widget.options:
+        new_options_w_states = tuple(new_options_w_states)
+        if new_options_w_states != self.widget.options:
             logger.debug("State changes in the options of ConfigVar {}".format(self.name))
-            self.widget.options = new_widget_options
+            self.widget.options = new_options_w_states
             self.widget.value = None # this is needed here to prevent a weird behavior:
                                      # in absence of this, widget selection clears for
                                      # some reason
             if old_value != None:
                 self.widget.value = self.widget.options[old_value_index]
+            elif len(self.widget.options)==1:
+                option_split = self.widget.options[0].split()
+                if len(option_split)>0 and option_split[0] == chr(c_base_red+True):
+                    self.widget.value = self.widget.options[0]
+            elif isinstance(self.widget, widgets.Dropdown):
+                for option in self.widget.options:
+                    option_split = option.split()
+                    if len(option_split)>0 and option_split[0] == chr(c_base_red+True):
+                        self.widget.value = option
+                        break
         else:
             logger.debug("No state changes in the options of ConfigVar {}".format(self.name))
 
         self.observe_value_validity()
 
     @owh.out.capture()
-    def update_states(self, change=None):
+    def update_states(self, change=None, new_options=None):
         logger.debug("Updating the states of options for ConfigVar {}".format(self.name))
         if isinstance(self.widget, widgets.Select) or isinstance(self.widget, widgets.Dropdown):
-            self._assign_states_select_widget(change)
+            self._assign_states_select_widget(change, new_options)
         else:
             raise NotImplementedError
 
