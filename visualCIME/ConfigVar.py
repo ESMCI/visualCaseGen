@@ -150,7 +150,7 @@ class ConfigVar:
             self.widget.value = None # this is needed here to prevent a weird behavior:
                                      # in absence of this, widget selection clears for
                                      # some reason
-            if old_value != None:
+            if old_value != None and len(self.widget.options) > old_value_index:
                 self.widget.value = self.widget.options[old_value_index]
             elif len(self.widget.options)==1:
                 option_split = self.widget.options[0].split()
