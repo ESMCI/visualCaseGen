@@ -4,9 +4,17 @@ from visualCIME.visualCIME.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
-c_base_red = int("1F534",base=16)
+invalid_opt_icon = chr(int("1F534",base=16))        # red circle
+valid_opt_icon = chr(int("1F534",base=16)+True)     # blue circle
+
+# it is assumed in this module that icons lenghts are one char.
+assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
 
 class ConfigVar:
+
+    """
+    CESM Configuration variable, e.g., COMP_OCN xml variable.
+    """
 
     # a collective dictionary of ConfigVars
     vdict = dict()
@@ -24,28 +32,39 @@ class ConfigVar:
         logger.debug("ConfigVar {} created.".format(self.name))
 
     @staticmethod
+    def _opt_prefixed_with_status(option):
+        """ Returns true if a given option str is prefixed with a status icon.
+
+        Parameters
+        ----------
+        option: str
+            A widget option/value.
+        """
+        return len(option)>0 and option.split()[0] in [invalid_opt_icon, valid_opt_icon]
+
+    @staticmethod
     def value_is_valid(val):
         if val == None:
             return True
         val_split = val.split()
         if len(val_split)>=2:
-            if val_split[0] == chr(c_base_red):
+            if val_split[0] == invalid_opt_icon:
                 return False
-            elif val_split[0] == chr(c_base_red+True):
+            elif val_split[0] == valid_opt_icon:
                 return True
         else:
             raise RuntimeError("Corrupt value passed to value_is_valid(): {}".format(val))
 
     @staticmethod
     def strip_option_status(option):
-        if option.split()[0] in [chr(c_base_red), chr(c_base_red+True)]:
+        if ConfigVar._opt_prefixed_with_status(option):
             return option[1:].strip()
         else:
             return option
 
     def get_value(self):
         assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if self.widget.value!=None and self.widget.value.split()[0] in [chr(c_base_red), chr(c_base_red+True)]:
+        if self.widget.value!=None and ConfigVar._opt_prefixed_with_status(self.widget.value):
             return self.widget.value[1:].strip()
         else:
             return self.widget.value
@@ -140,7 +159,10 @@ class ConfigVar:
                     status = False
                     break
             self.errMsgs.append(errMsg)
-            new_options_w_states.append('{}  {}'.format(chr(c_base_red+status), option_stripped))
+            if status == True:
+                new_options_w_states.append('{}  {}'.format(valid_opt_icon, option_stripped))
+            else:
+                new_options_w_states.append('{}  {}'.format(invalid_opt_icon, option_stripped))
             logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
 
         new_options_w_states = tuple(new_options_w_states)
@@ -154,12 +176,12 @@ class ConfigVar:
                 self.widget.value = self.widget.options[old_value_index]
             elif len(self.widget.options)==1:
                 option_split = self.widget.options[0].split()
-                if len(option_split)>0 and option_split[0] == chr(c_base_red+True):
+                if len(option_split)>0 and option_split[0] == valid_opt_icon:
                     self.widget.value = self.widget.options[0]
             elif isinstance(self.widget, widgets.Dropdown):
                 for option in self.widget.options:
                     option_split = option.split()
-                    if len(option_split)>0 and option_split[0] == chr(c_base_red+True):
+                    if len(option_split)>0 and option_split[0] == valid_opt_icon:
                         self.widget.value = option
                         break
         else:
