@@ -119,8 +119,7 @@ def init_configvars():
         cv_comp_mode = ConfigVar('COMP_{}_MODE'.format(comp_class)); cp_comp_mode_options = []
         cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class)); cp_comp_option_options = []
 
-        models = ci.retrieve_models(comp_class)
-        for model in models:
+        for model in ci.models[comp_class]:
 
             if model[0]=='x':
                 logger.debug("Skipping the dead component {}.".format(model))
@@ -178,7 +177,7 @@ def update_comp_modes_and_options(change=None):
         comp_modes, comp_options = [], []
         if cv_comp.widget.value != None:
             model = ConfigVar.strip_option_status(cv_comp.widget.value)
-            comp_modes, comp_options = ci.retrieve_comp_phys_opt(comp_class, model)
+            comp_modes, comp_options = ci.phys_opt[model]
 
         if len(comp_modes)==0 and cv_comp.widget.value != None:
             comp_modes = [cv_comp.widget.value.upper()]
