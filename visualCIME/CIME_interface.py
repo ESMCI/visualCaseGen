@@ -1,6 +1,16 @@
-import os
+"""CIME_interface
+
+This module interfaces VisualCIME with the conventional CIME.
+"""
+
+import os, sys
 import re
 
+# import CIME -----------------------------------------------------------
+CIMEROOT = "/glade/work/altuntas/cesm.sandboxes/cesm2.2.0_simple/cime"
+sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
 from CIME.case import Case
 from CIME.nmlgen import NamelistGenerator
 from CIME.utils import expect
@@ -10,240 +20,113 @@ from CIME.XML.files                 import Files
 from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
+from CIME.YML.compliances           import Compliances
 
-from visualCIME.visualCIME.OutHandler import handler as owh
-from visualCIME.visualCIME.ConfigVar import ConfigVar
-import ipywidgets as widgets
 import logging
 logger = logging.getLogger(__name__)
 
-files = None
-comp_classes = None
+class CIME_interface():
+    
+    def __init__(self):
+        self.driver = None
+        self.files = None
+        self.comp_classes = None
+        self.compliances = Compliances.from_cime()
+        self.compliances.unfold_implications()
+        self._retrieve_CIME_basics()
+        self._comp_phys_opt = dict()
 
-def determine_CIME_basics():
-    global files, comp_classes
-    driver = 'nuopc'
-    files = Files(comp_interface=driver)
-    drv_config_file = files.get_value("CONFIG_CPL_FILE")
-    drv_comp = Component(drv_config_file, "CPL")
-    comp_classes = drv_comp.get_valid_model_components()
-    comp_classes = [c for c in comp_classes if c not in ['CPL', 'ESP']]
+    def _retrieve_CIME_basics(self):
+        """ Determine basic CIME variables and properties, including:
+            - driver: 'nuopc' or 'mct'.
+            - files: CIME.XML.files instance containing XML files of CIME.
+            - comp_classes: The list of component classes, e.g., ATM, OCN, ICE, etc.,
+                excluding CPL and ESP.
 
-def get_comp_classes():
-    return comp_classes
+            Notes
+            -----
+                CIME basics variables (driver, files, etc.) are defined as CIME_interface module variables
+        """
 
-def get_files():
-    return files
+        self.driver = 'nuopc'
+        self.files = Files(comp_interface=self.driver)
+        drv_config_file = self.files.get_value("CONFIG_CPL_FILE")
+        drv_comp = Component(drv_config_file, "CPL")
+        self.comp_classes = drv_comp.get_valid_model_components()
+        self.comp_classes = [c for c in self.comp_classes if c not in ['CPL', 'ESP']]
 
+    def retrieve_comp_phys_opt(self, comp_class, model):
+        """ Retrieves component physics (CAM60, CICE6, etc.) and options (%SCAM, %ECO, etc) from  config_component.xml file
+        of a given comp_class and a given model ("cam", "cice", etc).
 
-def get_comp_desc(comp_class, model, files):
-    compatt = {"component": model}
-    comp_config_file =  files.get_value('CONFIG_{}_FILE'.format(comp_class), compatt)
-    compobj = Component(comp_config_file, comp_class)
-    rootnode = compobj.get_child("description")
-    desc_nodes = compobj.get_children("desc", root=rootnode)
-    comp_modes = []
-    comp_options = []
-    for node in desc_nodes:
-        option = compobj.get(node, 'option')
-        comp = compobj.get(node, comp_class.lower())
-        if comp:
-            comp_new = comp
-            if '[%' in comp_new:
-                comp_new = comp.split('[%')[0]
-            if len(comp_new)>0:
-                comp_modes.append(comp_new)
-        elif option:
-            comp_options.append(option.strip())
+        Parameters
+        ----------
+        comp_class : str
+            component class, e.g., "ATM", "ICE", etc.
+        model : str
+            model name excluding version number, e.g., "cam", "cice", "mom", etc.
 
-    return comp_modes, comp_options
+        Returns
+        -------
+        comp_physics : list of strings
+            List of physics for the given component model, e.g., "CAM40", "CAM50", "CAM60", etc.
+        comp_options : list of strings
+            List of options (modifiers) for the given components model, e.g., %SCAM, %ECO, etc.
+        """
 
-@owh.out.capture()
-def read_CIME_xml():
+        if (comp_class, model) in self._comp_phys_opt:
+            pass
+        else:
+            compatt = {"component": model}
+            comp_config_file =  self.files.get_value('CONFIG_{}_FILE'.format(comp_class), compatt)
+            compobj = Component(comp_config_file, comp_class)
+            rootnode = compobj.get_child("description")
+            desc_nodes = compobj.get_children("desc", root=rootnode)
 
-    cv_compset = ConfigVar('COMPSET')
-    cv_inittime = ConfigVar('INITTIME')
+            comp_physics = [] # e.g., CAM60, CICE6, etc.
+            comp_options = [] # e.g., %SCAM, %ECO, etc.
 
-    determine_CIME_basics()
+            # Go through description entries in config_component.xml nd extract component physics and options:
+            for node in desc_nodes:
+                physics = compobj.get(node, comp_class.lower()) 
+                option = compobj.get(node, 'option') 
+                if physics:
+                    comp_phys = physics
+                    if '[%' in comp_phys:
+                        comp_phys = physics.split('[%')[0]
+                    if len(comp_phys)>0:
+                        comp_physics.append(comp_phys)
+                elif option:
+                    comp_options.append(option.strip())
 
-    for comp_class in comp_classes:
+            self._comp_phys_opt[(comp_class,model)] = comp_physics, comp_options
+
+        return self._comp_phys_opt[(comp_class,model)] 
+
+    def retrieve_models(self, comp_class):
 
         # Find list of models for component class
         # List can be in different locations, check CONFIG_XXX_FILE
-        node_name = 'CONFIG_{}_FILE'.format(comp_class)
-        models = files.get_components(node_name)
+        comp_config_filename = 'CONFIG_{}_FILE'.format(comp_class)
+        models = self.files.get_components(comp_config_filename)
 
         # Backup, check COMP_ROOT_DIR_XXX
         root_dir_node_name = 'COMP_ROOT_DIR_' + comp_class
         if (models is None) or (None in models):
-            models = files.get_components(root_dir_node_name)
+            models = self.files.get_components(root_dir_node_name)
 
+        # sanity checks
         assert (models is not None) and (None not in models),"Unable to find list of supported components"
 
-        # config var COMP_XXX
-        cv_comp = ConfigVar('COMP_'+str(comp_class)); cv_comp_options = []
-        cv_comp_mode = ConfigVar('COMP_{}_MODE'.format(comp_class)); cp_comp_mode_options = []
-        cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class)); cp_comp_option_options = []
+        # sanity checks, contd.
         for model in models:
-
-            logger.debug("Reading CIME XML for model {}...".format(model))
-
-            if model[0]=='x':
-                logger.debug("Skipping the dead component {}.".format(model))
-                continue
-
             compatt = {"component":model}
-            comp_root_dir = files.get_value(root_dir_node_name, compatt, resolved=True)
-
-            comp_config_file = files.get_value(node_name, compatt, resolved=False)
+            logger.debug("Reading CIME XML for model {}...".format(model))
+            comp_config_file = self.files.get_value(comp_config_filename, compatt, resolved=False)
             assert comp_config_file is not None,"No component {} found for class {}".format(model, comp_class)
-            comp_config_file =  files.get_value(node_name, compatt)
-
+            comp_config_file =  self.files.get_value(comp_config_filename, compatt)
             if not( comp_config_file is not None and os.path.isfile(comp_config_file) ):
                 logger.warning("Config file {} for component {} not found.".format(comp_config_file, model))
                 continue
 
-            if model not in cv_comp_options:
-                cv_comp_options.append(model)
-
-            cv_comp_mode_options, cv_comp_option_options = get_comp_desc(comp_class, model, files)
-
-        # COMP_{} widget
-        cv_comp.widget = widgets.Select(
-                options=cv_comp_options,
-                value=None,
-                description=comp_class+':',
-                disabled=False,
-                layout=widgets.Layout(width='145px', height='105px')
-            )
-        cv_comp.widget.style.description_width = '50px'
-
-        # COMP_{}_MODE widget
-        cv_comp_mode.widget = widgets.Select(
-                options=[],
-                value=None,
-                description=comp_class+':',
-                disabled=False,
-                layout=widgets.Layout(width='145px')
-            )
-        cv_comp_mode.widget.style.description_width = '50px'
-
-        # COMP_{}_OPTION widget
-        cv_comp_option.widget = widgets.Dropdown(
-                options=[],
-                value=None,
-                description=comp_class+':',
-                disabled=False,
-                layout=widgets.Layout(width='145px')
-            )
-        cv_comp_option.widget.style.description_width = '50px'
-
-        cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
-
-        cv_inittime.widget = widgets.RadioButtons(
-                options=['1850', '2000', 'HIST'],
-                value='2000',
-                #layout={'width': 'max-content'}, # If the items' names are long
-                description='Initialization Time:',
-                disabled=False
-        )
-        cv_inittime.widget.style.description_width = '140px'
-
-@owh.out.capture()
-def update_comp_modes_and_options(change=None):
-    if change != None:
-        new_val = change['owner'].value
-        comp_class = change['owner'].description[0:3]
-        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-        assert re.search("COMP_...", cv_comp.name)
-        if (not ConfigVar.value_is_valid(new_val)) or change['old'] == {}:
-            logger.debug("No need to update comp modes and options for {}".format(cv_comp.name))
-            return
-
-        logger.debug("Updating the modes and options of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
-        comp_modes, comp_options = [], []
-        if cv_comp.widget.value != None:
-            model = ConfigVar.strip_option_status(cv_comp.widget.value)
-            files = Files(comp_interface="nuopc")
-            comp_modes, comp_options = get_comp_desc(comp_class, model, files)
-
-        if len(comp_modes)==0:
-            comp_modes = [cv_comp.widget.value.upper()]
-        comp_options = ['(none)'] + comp_options
-
-        cv_comp_mode = ConfigVar.vdict["COMP_{}_MODE".format(comp_class)]
-        cv_comp_mode.update_states(change=None, new_options=comp_modes)
-
-        cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-        cv_comp_option.update_states(change=None, new_options=comp_options)
-    else:
-        raise NotImplementedError
-
-@owh.out.capture()
-def update_compset(change=None):
-    cv_compset = ConfigVar.vdict['COMPSET']
-    compset_text = ConfigVar.vdict['INITTIME'].get_value()
-    for comp_class in get_comp_classes():
-        cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
-        cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
-        comp_mode_val = cv_comp_mode.get_value()
-        comp_option_val = cv_comp_option.get_value()
-        if comp_mode_val != None:
-            compset_text += '_'+comp_mode_val
-            if comp_option_val != None and comp_option_val != '(none)':
-                compset_text += '%'+comp_option_val
-        else:
-            cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
-            return
-    cv_compset.widget.value = compset_text
-    cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{compset_text}</b></p>"
-
-
-def construct_all_widget_observances(compliances):
-
-    # Assign the compliances property of all ConfigVar instsances:
-    ConfigVar.compliances = compliances
-
-    # Build validity observances:
-    for varname, var in ConfigVar.vdict.items():
-        var.observe_value_validity()
-
-    # Build relational observances:
-    for varname, var in ConfigVar.vdict.items():
-        var.observe_relations()
-
-    # Update COMP_{} states
-    for comp_class in get_comp_classes():
-        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-        cv_comp.update_states()
-
-    # Build options observances for comp_mode and comp_option
-    for comp_class in get_comp_classes():
-        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-        cv_comp.widget.observe(
-            update_comp_modes_and_options,
-            names='_property_lock',
-            type='change')
-
-    cv_inittime = ConfigVar.vdict['INITTIME']
-    cv_inittime.widget.observe(
-        update_compset,
-        names='_property_lock',
-        type='change'
-    )
-    for comp_class in get_comp_classes():
-        cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-        cv_comp.widget.observe(
-            update_compset,
-            names='_property_lock',
-            type='change')
-        cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
-        cv_comp_mode.widget.observe(
-            update_compset,
-            names='_property_lock',
-            type='change')
-        cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
-        cv_comp_option.widget.observe(
-            update_compset,
-            names='_property_lock',
-            type='change')
+        return models
