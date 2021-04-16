@@ -16,19 +16,15 @@ def init_configvars():
     """
     logger.debug("Initializing ConfigVars...")
 
-    # Basics
-    cv_driver = ConfigVar('DRIVER')
-    cv_support = ConfigVar('SUPPORT')
+    # Create Case
     cv_inittime = ConfigVar('INITTIME')
-
-    # Components, physics, options
     for comp_class in ci.comp_classes:
         cv_comp = ConfigVar('COMP_'+str(comp_class))
         cv_comp_phys = ConfigVar('COMP_{}_PHYS'.format(comp_class))
         cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class))
     cv_compset = ConfigVar('COMPSET')
 
-def init_configvar_widgets():
+def init_prelim_configvar_widgets():
 
     # Basics: --------------------------------------
 
@@ -42,27 +38,51 @@ def init_configvar_widgets():
     )
     
     cv_support = ConfigVar.vdict['SUPPORT']
-    cv_support.widget = widgets.RadioButtons(
-        options=['scientific', 'tested', 'unsupported'],
+    cv_support.widget = widgets.ToggleButtons(
+        options=['scientific', 'unsupported'],
+        tooltips=['Select from scientifically supported configurations predefined within CESM.',
+                  'Allows maximum flexibility. For advanced users and breakthrough applications.'],
         value='unsupported',
         #layout={'width': 'max-content'}, # If the items' names are long
         description='Support Level:',
         disabled=False
     )
+    cv_support.widget.style.button_width='80px'
     cv_support.widget.style.description_width = '140px'
 
+    cv_confirm_prelim = ConfigVar.vdict['CONFIRM_PRELIM']
+    cv_confirm_prelim.widget = widgets.Button(
+        description='Confirm',
+        disabled=False,
+        button_style='', # 'success', 'info', 'warning', 'danger' or ''
+        tooltip='Confirm',
+        layout = {'width':'100px'},
+    )
+
+    cv_reset_prelim = ConfigVar.vdict['RESET_PRELIM']
+    cv_reset_prelim.widget = widgets.Button(
+        description='Reset',
+        disabled=True,
+        button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
+        tooltip='Reset',
+        layout = {'width':'100px'},
+    )
+    
+def init_configvar_widgets():
+    # Create Case: --------------------------------------
+
     cv_inittime = ConfigVar.vdict['INITTIME']
-    cv_inittime.widget = widgets.RadioButtons(
+    cv_inittime.widget = widgets.ToggleButtons(
         options=['1850', '2000', 'HIST'],
+        tooltips=['Pre-industrial', 'Present day', 'Historical'],
         value='2000',
-        #layout={'width': 'max-content'}, # If the items' names are long
+        layout={'width': 'max-content'}, # If the items' names are long
         description='Initialization Time:',
         disabled=False
     )
+    cv_inittime.widget.style.button_width='50px'
     cv_inittime.widget.style.description_width = '140px'
     
-    # Components: --------------------------------------
-
     for comp_class in ci.comp_classes:
 
         # Get references to ConfigVars whose widgets are to be initialized
@@ -213,20 +233,24 @@ def construct_all_widget_observances():
             type='change')
 
 
-def GUI_layout():
+def GUI_preliminaries():
 
-    ## BEGIN -- functions to determine the GUI layout
-    def _constr_hbx_basics():
-    
-        cv_driver = ConfigVar.vdict['DRIVER']
-        cv_support = ConfigVar.vdict['SUPPORT']
-        cv_init = ConfigVar.vdict['INITTIME']
-    
-        hbx_basics = widgets.HBox([cv_driver.widget, cv_support.widget, cv_init.widget])
-        hbx_basics.layout.border = '2px dotted lightgray'
-    
-        return hbx_basics
-    
+    cv_driver = ConfigVar.vdict['DRIVER']
+    cv_support = ConfigVar.vdict['SUPPORT']
+    cv_confirm_prelim = ConfigVar.vdict['CONFIRM_PRELIM']
+    cv_reset_prelim = ConfigVar.vdict['RESET_PRELIM']
+    hbx_basics = widgets.VBox([
+        widgets.HBox([cv_driver.widget, cv_support.widget]),
+        widgets.VBox([
+            widgets.HBox([cv_confirm_prelim.widget, cv_reset_prelim.widget])],
+            layout={'align_items':'flex-end'})
+    ])
+    #hbx_basics.layout.border = '2px dotted lightgray'
+
+    return hbx_basics
+
+def GUI_create_advanced():
+
     def _constr_hbx_components():
         hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)].widget for comp_class in ci.comp_classes])
         hbx_components.layout.border = '2px dotted lightgray'
@@ -300,8 +324,7 @@ def GUI_layout():
     ## END -- functions to determine the GUI layout
 
     vbx_create_case = widgets.VBox([
-        widgets.Label(value="Basics:"),
-        _constr_hbx_basics(),
+        ConfigVar.vdict['INITTIME'].widget,
         widgets.Label(value="Components:"),
         _constr_hbx_components(),
         widgets.Label(value="Component Physics:"),
@@ -315,25 +338,43 @@ def GUI_layout():
         _constr_hbx_case()
     ])
 
-    vCIME = widgets.Accordion(
-        children=[vbx_create_case,
-                  widgets.IntSlider(), 
-                  widgets.Text()], 
-        titles=('Slider', 'Text'))
-
-    vCIME.set_title(0,'Create Case')
-    vCIME.set_title(1,'Customize')
-    vCIME.set_title(2,'Batch')
-
-    return vCIME
+    return vbx_create_case
 
 def GUI():
 
-    global ci
-    ci = CIME_interface()
-    init_configvars()
-    init_configvar_widgets()
-    construct_all_widget_observances()
+    # Preliminary ConfigVars
+    cv_driver = ConfigVar('DRIVER')
+    cv_support = ConfigVar('SUPPORT')
+    cv_confirm_prelim= ConfigVar('CONFIRM_PRELIM')
+    cv_reset_prelim= ConfigVar('RESET_PRELIM')
+    init_prelim_configvar_widgets()
 
-    return GUI_layout()
+    label = widgets.Label("a")
+    cv_create_tab = ConfigVar('CREATE_TAB')
+    cv_create_tab.widget = widgets.HBox()
+    cv_create_tab.widget.children = (widgets.Label("Confirm preliminaries first."),)
+
+    tab2 = widgets.HBox([label,])
+
+    vCIME = widgets.Accordion(
+        children=[GUI_preliminaries(), cv_create_tab.widget],
+        titles=('Slider', 'Text')
+    )
+
+    output = widgets.Output()
+    def on_button_clicked(b):
+        cv_create_tab.widget.children = [widgets.Label("Loading..."),]
+        vCIME.selected_index=1
+        global ci
+        ci = CIME_interface()
+        init_configvars()
+        init_configvar_widgets()
+        construct_all_widget_observances()
+        cv_create_tab.widget.children = [GUI_create_advanced(),]
+    cv_confirm_prelim.widget.on_click(on_button_clicked)
+    
+    vCIME.set_title(0,'Step 1: Preliminaries')
+    vCIME.set_title(1,'Step 2: Create Case')
+
+    return vCIME
 
