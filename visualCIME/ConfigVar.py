@@ -4,8 +4,11 @@ from visualCIME.visualCIME.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
-invalid_opt_icon = chr(int("1F534",base=16))        # red circle
-valid_opt_icon = chr(int("1F534",base=16)+True)     # blue circle
+#invalid_opt_icon = chr(int("1F534",base=16))        # red circle
+#valid_opt_icon = chr(int("1F534",base=16)+True)     # blue circle
+invalid_opt_icon = chr(int("2612",base=16)) # Ballot Box with X
+chosen_opt_icon = chr(int("2611",base=16))  # Ballot Box with check
+valid_opt_icon = chr(int("2610",base=16))   # Ballot Box
 
 # it is assumed in this module that icons lenghts are one char.
 assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
@@ -31,6 +34,10 @@ class ConfigVar:
         ConfigVar.vdict[name] = self
         logger.debug("ConfigVar {} created.".format(self.name))
 
+    def reset():
+        logger.debug("Resetting ConfigVar vdict.")
+        ConfigVar.vdict = dict()
+
     @staticmethod
     def _opt_prefixed_with_status(option):
         """ Returns true if a given option str is prefixed with a status icon.
@@ -39,6 +46,10 @@ class ConfigVar:
         ----------
         option: str
             A widget option/value.
+
+        Returns
+        -------
+        True or False
         """
         return len(option)>0 and option.split()[0] in [invalid_opt_icon, valid_opt_icon]
 
@@ -160,9 +171,9 @@ class ConfigVar:
                     break
             self.errMsgs.append(errMsg)
             if status == True:
-                new_options_w_states.append('{}  {}'.format(valid_opt_icon, option_stripped))
+                new_options_w_states.append('{} {}'.format(valid_opt_icon, option_stripped))
             else:
-                new_options_w_states.append('{}  {}'.format(invalid_opt_icon, option_stripped))
+                new_options_w_states.append('{} {}'.format(invalid_opt_icon, option_stripped))
             logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
 
         new_options_w_states = tuple(new_options_w_states)
