@@ -61,34 +61,37 @@ class GUI_create_advanced():
                     cv_comp_models.append(model)
 
             # COMP_{} widget
-            cv_comp.widget = widgets.Select(
+            cv_comp.widget = widgets.ToggleButtons(
                     options=cv_comp_models,
                     value=None,
                     description=comp_class+':',
                     disabled=False,
-                    layout=widgets.Layout(width='145px', height='105px')
+                    layout=widgets.Layout(width='110px', max_height='120px')
                 )
-            cv_comp.widget.style.description_width = '50px'
+            cv_comp.widget.style.button_width = '90px'
+            cv_comp.widget.style.description_width = '1px'
 
             # COMP_{}_PHYS widget
-            cv_comp_phys.widget = widgets.Select(
+            cv_comp_phys.widget = widgets.ToggleButtons(
                     options=[],
                     value=None,
                     description=comp_class+':',
                     disabled=False,
-                    layout=widgets.Layout(width='145px')
+                    layout=widgets.Layout(width='110px', max_height='100px')
                 )
-            cv_comp_phys.widget.style.description_width = '50px'
+            cv_comp_phys.widget.style.button_width = '90px'
+            cv_comp_phys.widget.style.description_width = '1px'
 
             # COMP_{}_OPTION widget
-            cv_comp_option.widget = widgets.Dropdown(
+            cv_comp_option.widget = widgets.ToggleButtons(
                     options=[],
                     value=None,
                     description=comp_class+':',
                     disabled=False,
-                    layout=widgets.Layout(width='145px')
+                    layout=widgets.Layout(width='110px', max_height='100px')
                 )
-            cv_comp_option.widget.style.description_width = '50px'
+            cv_comp_option.widget.style.button_width = '90px'
+            cv_comp_option.widget.style.description_width = '1px'
 
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
@@ -197,6 +200,7 @@ class GUI_create_advanced():
         def _constr_hbx_components():
             hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)].widget for comp_class in self.ci.comp_classes])
             hbx_components.layout.border = '2px dotted lightgray'
+            hbx_components.layout.width = '850px'
             return hbx_components
 
         def _constr_hbx_comp_phys():
