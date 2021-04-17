@@ -33,7 +33,7 @@ class OutHandler(logging.Handler):
         self.out.clear_output()
 
 logging.basicConfig(#format='%(asctime)s %(levelname)s:%(message)s',
-                    level=logging.DEBUG, 
+                    level=logging.INFO,
                     datefmt='%I:%M:%S')
 handler = OutHandler()
 #handler.setFormatter(logging.Formatter('%(asctime)s  - [%(levelname)s] %(message)s'))

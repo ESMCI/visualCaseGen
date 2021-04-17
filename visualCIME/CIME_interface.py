@@ -42,9 +42,9 @@ class CIME_interface():
         config variables.
     """
     
-    def __init__(self):
+    def __init__(self, driver):
         # data members
-        self.driver = None        # nuopc or mct
+        self.driver = driver        # nuopc or mct
         self.comp_classes = None  # ATM, ICE, etc.
         self.models = dict()      # cam, cice, etc.
         self.phys_opt = dict()    # component physics (CAM50, CAM60, etc.) and options(4xCO2, 1PCT, etc.)
@@ -73,7 +73,6 @@ class CIME_interface():
                 CIME basics variables (driver, files, etc.) are defined as CIME_interface module variables
         """
 
-        self.driver = 'nuopc'
         self._files = Files(comp_interface=self.driver)
         drv_config_file = self._files.get_value("CONFIG_CPL_FILE")
         drv_comp = Component(drv_config_file, "CPL")

@@ -26,14 +26,27 @@ class GUI_preliminaries():
             disabled=False
         )
         self.support_widget.style.button_width='80px'
-        self.support_widget.style.description_width = '140px'
+        self.support_widget.style.description_width = '130px'
+
+        self.debug_widget = widgets.ToggleButtons(
+            options=['On (slow)', 'Off'],
+            tooltips=['Turn on the debug mode to get detailed logs. This significantly slows down the GUI.',
+                      '(Default) Turn off the debug mode to get minimal logs. This improves the responsiveness of the GUI.'],
+            value='Off',
+            #layout={'width': 'max-content'}, # If the items' names are long
+            description='Debug:',
+            disabled=False
+        )
+        self.debug_widget.style.button_width='60px'
+        self.debug_widget.style.description_width = '100px'
 
         self.confirm_prelim_widget = widgets.Button(
             description='Confirm',
             disabled=False,
             button_style='', # 'success', 'info', 'warning', 'danger' or ''
             tooltip='Confirm',
-            layout = {'width':'90px'},
+            icon='check',
+            layout = {'width':'100px'},
         )
 
         self.reset_prelim_widget = widgets.Button(
@@ -41,13 +54,15 @@ class GUI_preliminaries():
             disabled=True,
             button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
             tooltip='Reset',
-            layout = {'width':'90px'},
+            icon='undo',
+            layout = {'width':'100px'},
         )
 
     def construct(self):
 
         hbx_basics = widgets.VBox([
-            widgets.HBox([self.driver_widget, self.support_widget]),
+            widgets.HBox([self.driver_widget, self.support_widget, self.debug_widget]),
+            widgets.HBox([widgets.Label('')]), # empty
             widgets.VBox([
                 widgets.HBox([self.confirm_prelim_widget, self.reset_prelim_widget])],
                 layout={'align_items':'flex-end'})
