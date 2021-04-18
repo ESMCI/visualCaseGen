@@ -109,20 +109,22 @@ class GUI_create_advanced():
                 return
 
             logger.debug("Updating the physics and options of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
-            comp_phys, comp_options = [], []
+            comp_phys, comp_options, comp_phys_desc, comp_options_desc = [], [], [], []
             if cv_comp.widget.value != None:
                 model = ConfigVar.strip_option_status(cv_comp.widget.value)
-                comp_phys, comp_options = self.ci.phys_opt[model]
+                comp_phys, comp_options, comp_phys_desc, comp_options_desc = self.ci.phys_opt[model]
 
             if len(comp_phys)==0 and cv_comp.widget.value != None:
                 comp_phys = [cv_comp.widget.value.upper()]
+                comp_phys_desc = comp_phys
             comp_options = ['(none)'] + comp_options
+            comp_options_desc = ['(none)'] + comp_options_desc
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
-            cv_comp_phys.update_states(change=None, new_options=comp_phys)
+            cv_comp_phys.update_states(change=None, new_options=comp_phys, tooltips=comp_phys_desc)
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-            cv_comp_option.update_states(change=None, new_options=comp_options)
+            cv_comp_option.update_states(change=None, new_options=comp_options, tooltips=comp_options_desc)
         else:
             raise NotImplementedError
 

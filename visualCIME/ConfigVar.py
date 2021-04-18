@@ -203,12 +203,15 @@ class ConfigVar:
         self.observe_value_validity()
 
     @owh.out.capture()
-    def update_states(self, change=None, new_options=None):
+    def update_states(self, change=None, new_options=None, tooltips=None):
         logger.debug("Updating the states of options for ConfigVar {}".format(self.name))
         if isinstance(self.widget, widgets.Select) or\
-            isinstance(self.widget, widgets.Dropdown) or\
-            isinstance(self.widget, widgets.ToggleButtons):
+            isinstance(self.widget, widgets.Dropdown):
             self._assign_states_select_widget(change, new_options)
+        elif isinstance(self.widget, widgets.ToggleButtons):
+            self._assign_states_select_widget(change, new_options)
+            if tooltips:
+                self.widget.tooltips = tooltips
         else:
             raise NotImplementedError
 
