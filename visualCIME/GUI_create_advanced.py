@@ -27,6 +27,7 @@ class GUI_create_advanced():
             cv_comp_phys = ConfigVar('COMP_{}_PHYS'.format(comp_class))
             cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
+        cv_grid = ConfigVar('GRID')
 
     def init_configvar_widgets(self):
         # Create Case: --------------------------------------
@@ -52,7 +53,7 @@ class GUI_create_advanced():
 
             # Determine the list of available models for a given component class. Available physics and options are to be
             # determined right after the model is selected by the user.
-            cv_comp_models = [] 
+            cv_comp_models = []
             for model in self.ci.models[comp_class]:
                 if model[0]=='x':
                     logger.debug("Skipping the dead component {}.".format(model))
@@ -69,7 +70,7 @@ class GUI_create_advanced():
                     layout=widgets.Layout(width='110px', max_height='120px')
                 )
             cv_comp.widget.style.button_width = '90px'
-            cv_comp.widget.style.description_width = '1px'
+            cv_comp.widget.style.description_width = '0px'
 
             # COMP_{}_PHYS widget
             cv_comp_phys.widget = widgets.ToggleButtons(
@@ -80,7 +81,7 @@ class GUI_create_advanced():
                     layout=widgets.Layout(width='110px', max_height='100px')
                 )
             cv_comp_phys.widget.style.button_width = '90px'
-            cv_comp_phys.widget.style.description_width = '1px'
+            cv_comp_phys.widget.style.description_width = '0px'
 
             # COMP_{}_OPTION widget
             cv_comp_option.widget = widgets.ToggleButtons(
@@ -91,11 +92,47 @@ class GUI_create_advanced():
                     layout=widgets.Layout(width='110px', max_height='100px')
                 )
             cv_comp_option.widget.style.button_width = '90px'
-            cv_comp_option.widget.style.description_width = '1px'
+            cv_comp_option.widget.style.description_width = '0px'
 
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
 
+        cv_grid = ConfigVar.vdict['GRID']
+        cv_grid.widget = widgets.Combobox(
+             options=[],
+             placeholder = '(Finalize Compset First.)',
+             description='Compatible Grids:',
+             disabled=True,
+             layout=widgets.Layout(width='500px')
+        )
+        cv_grid.widget.style.description_width = '150px'
+
+    def _update_grid_widget(self, compset_text=None):
+
+        cv_grid = ConfigVar.vdict['GRID']
+        if compset_text==None:
+            cv_grid.widget.disabled = True
+            cv_grid.widget.description = 'Compatible Grids:'
+            cv_grid.widget.placeholder = '(Finalize Compset First.)'
+        else:
+            compatible_grids = []
+            for alias, compset_attr, not_compset_attr in self.ci.model_grids:
+                if compset_attr and not re.search(compset_attr, compset_text):
+                    continue
+                if not_compset_attr and re.search(not_compset_attr, compset_text):
+                    continue
+                compatible_grids.append(alias)
+
+            if len(compatible_grids)==0:
+                cv_grid.widget.disabled = True
+                cv_grid.widget.description = 'Compatible Grids:'
+                cv_grid.widget.placeholder = 'No compatible grids. Change COMPSET.'
+            else:
+                cv_grid.widget.disabled = False
+                cv_grid.widget.description = 'Compatible Grids:'
+                cv_grid.widget.placeholder = 'Select from {} compatible grids'.format(len(compatible_grids))
+                cv_grid.widget.value = ''
+                cv_grid.widget.options = compatible_grids
 
     @owh.out.capture()
     def update_comp_phys_and_options(self,change=None):
@@ -131,6 +168,7 @@ class GUI_create_advanced():
     @owh.out.capture()
     def update_compset(self,change=None):
         cv_compset = ConfigVar.vdict['COMPSET']
+        cv_grid = ConfigVar.vdict['GRID']
         compset_text = ConfigVar.vdict['INITTIME'].get_value()
         for comp_class in self.ci.comp_classes:
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
@@ -143,9 +181,11 @@ class GUI_create_advanced():
                     compset_text += '%'+comp_option_val
             else:
                 cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
+                self._update_grid_widget()
                 return
         cv_compset.widget.value = compset_text
         cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{compset_text}</b></p>"
+        self._update_grid_widget(compset_text)
 
 
     def construct_all_widget_observances(self):
@@ -218,7 +258,7 @@ class GUI_create_advanced():
             return hbx_comp_options
 
         def _constr_hbx_grids():
-            hbx_grids = widgets.HBox([widgets.Label(value="Grids options will be displayed here.")])
+            hbx_grids = widgets.HBox([ConfigVar.vdict['GRID'].widget])
             hbx_grids.layout.border = '2px dotted lightgray'
             return hbx_grids
 
@@ -277,7 +317,7 @@ class GUI_create_advanced():
             widgets.Label(value="Components:"),
             _constr_hbx_components(),
             widgets.Label(value="Component Physics:"),
-            _constr_hbx_comp_phys(),                                
+            _constr_hbx_comp_phys(),
             widgets.Label(value="Component Options:"),
             _constr_hbx_comp_options(),
             ConfigVar.vdict['COMPSET'].widget,

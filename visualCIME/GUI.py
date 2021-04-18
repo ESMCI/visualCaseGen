@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class GUI():
 
     def construct_tab_observances(self):
+        """ Construct links between tabs: (1) Preliminaries, (2) Create Case, ...
+        """
 
         @owh.out.capture()
         def confirm_prelim_clicked(b):

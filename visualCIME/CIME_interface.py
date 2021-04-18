@@ -34,20 +34,23 @@ class CIME_interface():
         List of available component classes, e.g., "ATM", "ICE", etc.
     models : dict of str (with str as keys)
         A mapping from component class to available models, e.g., models["ATM"] = {datm, cam, ...}
-    phys_opt : dict of pairs of str (with str keys) 
+    phys_opt : dict of pairs of str (with str keys)
         A mapping from model to pair of available (physics, options), where physics are CAM50, CAM60, etc. and options
         are 4xCO2, 1PCT, etc.
+    model_grids: list of tuples
+        List of model grids (alias, compset, not_compset)
     compliances : CIME.YML.compliances.Compliances
         An object that encapsulates CIME config variable compliances, i.e., logical constraints regarding
         config variables.
     """
-    
+
     def __init__(self, driver):
         # data members
         self.driver = driver        # nuopc or mct
         self.comp_classes = None  # ATM, ICE, etc.
         self.models = dict()      # cam, cice, etc.
         self.phys_opt = dict()    # component physics (CAM50, CAM60, etc.) and options(4xCO2, 1PCT, etc.)
+        self.model_grids = dict() # model grids (alias, compset, not_compset)
         self._files = None
 
         # Call _retrieve* methods to populate the data members defined above
@@ -56,7 +59,8 @@ class CIME_interface():
             self._retrieve_models(comp_class)
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class,model)
-            
+        self._retrieve_model_grids()
+
         # Initialize the compliances instance
         self.compliances = Compliances.from_cime()
         self.compliances.unfold_implications()
@@ -107,8 +111,8 @@ class CIME_interface():
 
         # Go through description entries in config_component.xml nd extract component physics and options:
         for node in desc_nodes:
-            physics = compobj.get(node, comp_class.lower()) 
-            option = compobj.get(node, 'option') 
+            physics = compobj.get(node, comp_class.lower())
+            option = compobj.get(node, 'option')
             description = compobj.text(node)
             if description[-1]==':':
                 description = description[:-1]
@@ -161,3 +165,15 @@ class CIME_interface():
                 continue
             else:
                 self.models[comp_class].append(model)
+
+    def _retrieve_model_grids(self):
+        g = Grids()
+        grids = g.get_child("grids")
+        model_grids_xml = g.get_children("model_grid", root=grids)
+
+        self.model_grids = []
+        for model_grid in model_grids_xml:
+            alias = g.get(model_grid,"alias")
+            compset = g.get(model_grid,"compset")
+            not_compset = g.get(model_grid,"not_compset")
+            self.model_grids.append((alias, compset, not_compset))
