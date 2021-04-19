@@ -1,5 +1,6 @@
 import os, sys, re
 import ipywidgets as widgets
+import subprocess
 
 from visualCIME.visualCIME.ConfigVar import ConfigVar
 from visualCIME.visualCIME.OutHandler import handler as owh
@@ -11,11 +12,11 @@ class GUI_create_advanced():
 
     def __init__(self, ci):
         self.ci = ci
-        self.init_configvars()
-        self.init_configvar_widgets()
-        self.construct_all_widget_observances()
+        self._init_configvars()
+        self._init_widgets()
+        self._construct_all_widget_observances()
 
-    def init_configvars(self):
+    def _init_configvars(self):
         """ Initialize the ConfigVar instances to be displayed on the GUI as configurable case variables.
         """
         logger.debug("Initializing ConfigVars...")
@@ -28,8 +29,9 @@ class GUI_create_advanced():
             cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVar('GRID')
+        cv_casename = ConfigVar('CASENAME')
 
-    def init_configvar_widgets(self):
+    def _init_widgets(self):
         # Create Case: --------------------------------------
 
         cv_inittime = ConfigVar.vdict['INITTIME']
@@ -107,6 +109,50 @@ class GUI_create_advanced():
         )
         cv_grid.widget.style.description_width = '150px'
 
+        cv_casename = ConfigVar.vdict['CASENAME']
+        cv_casename.widget = widgets.Textarea(
+            value='',
+            placeholder='Type case name',
+            description='Case name:',
+            disabled=True,
+            layout=widgets.Layout(height='30px', width='400px')
+        )
+
+        #Create Case:
+        self.btn_create = widgets.Button(
+            value=False,
+            description='Create new case',
+            disabled=True,
+            button_style='', # 'success', 'info', 'warning', 'danger' or ''
+            tooltip='Description',
+            icon='check',
+            layout=widgets.Layout(height='30px')
+        )
+        self.btn_setup = widgets.Button(
+            value=False,
+            description='setup',
+            disabled=True,
+            button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
+            tooltip='Description',
+            layout=widgets.Layout(height='30px', width='80px')
+        )
+        self.btn_build = widgets.Button(
+            value=False,
+            description='build',
+            disabled=True,
+            button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
+            tooltip='Description',
+            layout=widgets.Layout(height='30px', width='80px')
+        )
+        self.btn_submit = widgets.Button(
+            value=False,
+            description='submit',
+            disabled=True,
+            button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
+            tooltip='Description',
+            layout=widgets.Layout(height='30px', width='80px')
+        )
+
     def _update_grid_widget(self, compset_text=None):
 
         cv_grid = ConfigVar.vdict['GRID']
@@ -135,7 +181,7 @@ class GUI_create_advanced():
                 cv_grid.widget.options = compatible_grids
 
     @owh.out.capture()
-    def update_comp_phys_and_options(self,change=None):
+    def _update_comp_phys_and_options(self,change=None):
         if change != None:
             new_val = change['owner'].value
             comp_class = change['owner'].description[0:3]
@@ -166,7 +212,7 @@ class GUI_create_advanced():
             raise NotImplementedError
 
     @owh.out.capture()
-    def update_compset(self,change=None):
+    def _update_compset(self,change=None):
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_grid = ConfigVar.vdict['GRID']
         compset_text = ConfigVar.vdict['INITTIME'].get_value()
@@ -186,9 +232,44 @@ class GUI_create_advanced():
         cv_compset.widget.value = compset_text
         cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{compset_text}</b></p>"
         self._update_grid_widget(compset_text)
+        self.compset_text = compset_text
+
+    def _update_case_create(self,change):
+        cv_casename = ConfigVar.vdict['CASENAME']
+        if 'new' in change:
+            if 'value' in change['new']:
+                value = change['new']['value']
+                if isinstance(value,str) and len(value)>0:
+                    cv_casename.widget.disabled = False
+                    self.btn_create.disabled = False
+            else:
+                return
+        else:
+            cv_casename.widget.value = ''
+            cv_casename.widget.disabled = True
+            self.btn_create.disabled = True
+
+    def _create_case(self, b):
+
+        cv_grid = ConfigVar.vdict["GRID"]
+        cv_casename = ConfigVar.vdict["CASENAME"]
+        runout = subprocess.run("{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
+            self.ci.cimeroot,
+            cv_grid.widget.value,
+            self.compset_text,
+            cv_casename.widget.value
+            ),
+            shell=True, capture_output=True
+        )
+
+        if runout.returncode == 0:
+            logger.info("".format(runout.stdout))
+            logger.info("SUCCESS: case created at {} ".format(cv_casename.widget.value))
+        else:
+            logger.critical("ERROR: {} ".format(runout.stderr))
 
 
-    def construct_all_widget_observances(self):
+    def _construct_all_widget_observances(self):
 
         # Assign the compliances property of all ConfigVar instsances:
         ConfigVar.compliances = self.ci.compliances
@@ -210,32 +291,41 @@ class GUI_create_advanced():
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             cv_comp.widget.observe(
-                self.update_comp_phys_and_options,
+                self._update_comp_phys_and_options,
                 names='_property_lock',
                 type='change')
 
         cv_inittime = ConfigVar.vdict['INITTIME']
         cv_inittime.widget.observe(
-            self.update_compset,
+            self._update_compset,
             names='_property_lock',
             type='change'
         )
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             cv_comp.widget.observe(
-                self.update_compset,
+                self._update_compset,
                 names='_property_lock',
                 type='change')
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
             cv_comp_phys.widget.observe(
-                self.update_compset,
+                self._update_compset,
                 names='_property_lock',
                 type='change')
             cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
             cv_comp_option.widget.observe(
-                self.update_compset,
+                self._update_compset,
                 names='_property_lock',
                 type='change')
+
+        cv_grid = ConfigVar.vdict['GRID']
+        cv_grid.widget.observe(
+            self._update_case_create,
+            names='_property_lock',
+            type='change'
+        )
+
+        self.btn_create.on_click(self._create_case)
 
     def construct(self):
 
@@ -265,50 +355,11 @@ class GUI_create_advanced():
 
         def _constr_hbx_case():
             #Case Name
-            txt_casename = widgets.Textarea(
-                value='',
-                placeholder='Type case name',
-                description='Case name:',
-                disabled=False,
-                layout=widgets.Layout(height='30px', width='400px')
-            )
+            cv_casename = ConfigVar.vdict['CASENAME']
 
-            #Create Case:
-            btn_create = widgets.Button(
-                value=False,
-                description='Create new case',
-                disabled=False,
-                button_style='', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='Description',
-                icon='check',
-                layout=widgets.Layout(height='30px')
-            )
-            btn_setup = widgets.Button(
-                value=False,
-                description='setup',
-                disabled=False,
-                button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='Description',
-                layout=widgets.Layout(height='30px', width='80px')
-            )
-            btn_build = widgets.Button(
-                value=False,
-                description='build',
-                disabled=False,
-                button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='Description',
-                layout=widgets.Layout(height='30px', width='80px')
-            )
-            btn_submit = widgets.Button(
-                value=False,
-                description='submit',
-                disabled=False,
-                button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='Description',
-                layout=widgets.Layout(height='30px', width='80px')
-            )
             #Component options:
-            hbx_case = widgets.HBox([txt_casename, btn_create, btn_setup, btn_build, btn_submit])
+            hbx_case = widgets.HBox([cv_casename.widget, self.btn_create, self.btn_setup, self.btn_build,
+                                    self.btn_submit])
             return hbx_case
         ## END -- functions to determine the GUI layout
 

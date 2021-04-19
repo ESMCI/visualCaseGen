@@ -52,6 +52,7 @@ class CIME_interface():
         self.phys_opt = dict()    # component physics (CAM50, CAM60, etc.) and options(4xCO2, 1PCT, etc.)
         self.model_grids = dict() # model grids (alias, compset, not_compset)
         self._files = None
+        self.cimeroot = CIMEROOT
 
         # Call _retrieve* methods to populate the data members defined above
         self._retrieve_CIME_basics()
