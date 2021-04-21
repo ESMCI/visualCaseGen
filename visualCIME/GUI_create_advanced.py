@@ -204,10 +204,10 @@ class GUI_create_advanced():
             comp_options_desc = ['(none)'] + comp_options_desc
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
-            cv_comp_phys.update_states(change=None, new_options=comp_phys, tooltips=comp_phys_desc)
+            cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc)
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-            cv_comp_option.update_states(change=None, new_options=comp_options, tooltips=comp_options_desc)
+            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
         else:
             raise NotImplementedError
 
@@ -269,6 +269,20 @@ class GUI_create_advanced():
             logger.critical("ERROR: {} ".format(runout.stderr))
 
 
+    @owh.out.capture()
+    def observe_relations(self, cv):
+        for implication in self.ci.compliances.implications(cv.name):
+            logger.debug("Observing relations for ConfigVar {}".format(cv.name))
+            if all([var in ConfigVar.vdict for var in implication.variables]):
+                for var_other in set(implication.variables)-{cv.name}:
+                    ConfigVar.vdict[var_other].widget.observe(
+                        cv.update_options_validity,
+                        #names='value',
+                        names='_property_lock',
+                        type='change'
+                    )
+                    logger.debug("Added relational observance of {} for {}".format(var_other,cv.name))
+
     def _construct_all_widget_observances(self):
 
         # Assign the compliances property of all ConfigVar instsances:
@@ -280,12 +294,12 @@ class GUI_create_advanced():
 
         # Build relational observances:
         for varname, var in ConfigVar.vdict.items():
-            var.observe_relations()
+            self.observe_relations(var)
 
         # Update COMP_{} states
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.update_states()
+            cv_comp.update_options_validity()
 
         # Build options observances for comp_phys and comp_option
         for comp_class in self.ci.comp_classes:

@@ -4,11 +4,8 @@ from visualCIME.visualCIME.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
-#invalid_opt_icon = chr(int("1F534",base=16))        # red circle
-#valid_opt_icon = chr(int("1F534",base=16)+True)     # blue circle
-invalid_opt_icon = chr(int("2612",base=16)) # Ballot Box with X
-chosen_opt_icon = chr(int("2611",base=16))  # Ballot Box with check
-valid_opt_icon = chr(int("2610",base=16))   # Ballot Box
+invalid_opt_icon = chr(int("2718",base=16)) # Ballot Box with X
+valid_opt_icon = chr(int("2713",base=16)) # Ballot Box with X
 
 # it is assumed in this module that icons lenghts are one char.
 assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
@@ -30,7 +27,8 @@ class ConfigVar:
             logger.warning("ConfigVar {} already created.".format(name))
         self.name = name
         self.widget = None
-        self.errMsgs = []
+        self.options_validity = []
+        self.error_msgs = []
         ConfigVar.vdict[name] = self
         logger.debug("ConfigVar {} created.".format(self.name))
 
@@ -53,6 +51,11 @@ class ConfigVar:
         """
         return len(option)>0 and option.split()[0] in [invalid_opt_icon, valid_opt_icon]
 
+    @owh.out.capture()
+    def options_sans_validity(self):
+        return [option[1:].strip() if option.split()[0] in [invalid_opt_icon, valid_opt_icon] else option \
+                for option in self.widget.options]
+
     @staticmethod
     def value_is_valid(val):
         if val == None:
@@ -72,6 +75,15 @@ class ConfigVar:
             return option[1:].strip()
         else:
             return option
+
+    def is_supported_widget(self):
+        return isinstance(self.widget, widgets.ToggleButtons) or \
+            isinstance(self.widget, widgets.Select) or \
+            isinstance(self.widget, widgets.Dropdown)
+
+    @owh.out.capture()
+    def get_options_validity_icons(self):
+        return [valid_opt_icon if valid else invalid_opt_icon for valid in self.options_validity]
 
     def get_value(self):
         assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
@@ -108,112 +120,101 @@ class ConfigVar:
 
 
     @owh.out.capture()
-    def observe_relations(self):
-        for implication in self.compliances.implications(self.name):
-            logger.debug("Observing relations for ConfigVar {}".format(self.name))
-            if all([var in ConfigVar.vdict for var in implication.variables]):
-                for var_other in set(implication.variables)-{self.name}:
-                    ConfigVar.vdict[var_other].widget.observe(
-                        self.update_states,
-                        #names='value',
-                        names='_property_lock',
-                        type='change'
-                    )
-                    logger.debug("Added relational observance of {} for {}".format(var_other,self.name))
+    def update_options_validity(self, change=None):
+        """Re-evaluates the validity of widget options and updates option validity icons """
 
-    @owh.out.capture()
-    def _assign_states_select_widget(self, change=None, new_options=None):
+        logger.debug("Updating option validities of ConfigVar {}".format(self.name))
 
-        logger.debug("Assigning the states of options for ConfigVar {}".format(self.name))
-        logger.debug("change: {}".format(change))
+        # If this method is called due to a change in an observed widget,
+        # check if the options of this ConfigVar need to be updated yet.
         if change != None:
-            assert isinstance(change['owner'], widgets.Select) or\
-                isinstance(change['owner'], widgets.Dropdown) or\
-                isinstance(change['owner'], widgets.ToggleButtons)
+            logger.debug("change: {}".format(change))
             if not ConfigVar.value_is_valid(change['owner'].value):
-                logger.debug("Invalid selection from owner. Do nothing for ConfigVar {}".format(self.name))
+                logger.debug("Invalid selection at change owner. Do nothing for observing ConfigVar {}"\
+                    .format(self.name))
                 return
             elif change['old'] == {}:
                 logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
                 return
 
-        self.unobserve_value_validity()
+        assert self.is_supported_widget(), "ConfigVar {} widget is not supported yet.".format(self.name)
 
-        old_value = self.widget.value
-        if old_value != None:
-            old_value_index = self.get_value_index()
+        self.options_validity = [True]*len(self.widget.options)
+        self.error_msgs = ['']*len(self.widget.options)
 
-        if new_options == None:
-            new_options = self.widget.options
-        new_options_w_states = []
-        self.errMsgs = []
-        for i in range(len(new_options)):
-            option_stripped = ConfigVar.strip_option_status(new_options[i])
+        options_sans_validity = self.options_sans_validity()
 
-            logger.debug("Assigning the state of ConfigVar {} option: {}".format(self.name, option_stripped))
-            def instance_val_getter(cvName):
-                if cvName==self.name:
-                    return option_stripped
-                else:
-                    val = ConfigVar.vdict[cvName].get_value()
-                    if val == None:
-                        val = "None"
-                    return val
+        for i in range(len(options_sans_validity)):
+            option = options_sans_validity[i]
+            assert option.split()[0] not in [valid_opt_icon, invalid_opt_icon]
+
+            def _instance_val_getter(cvName):
+                if cvName == self.name:
+                    return option
+                val = ConfigVar.vdict[cvName].get_value()
+                if val == None:
+                    val = "None"
+                return val
 
             status, errMsg = True, ''
             for implication in self.compliances.implications(self.name):
                 try:
                     self.compliances.check_implication(
                         implication,
-                        instance_val_getter
-                        )
+                        _instance_val_getter
+                    )
                 except AssertionError as e:
-                    errMsg = "{}".format(e)
-                    status = False
+                    self.options_validity[i] = False
+                    self.error_msgs[i] = "{}".format(e)
                     break
-            self.errMsgs.append(errMsg)
-            if status == True:
-                new_options_w_states.append('{} {}'.format(valid_opt_icon, option_stripped))
-            else:
-                new_options_w_states.append('{} {}'.format(invalid_opt_icon, option_stripped))
-            logger.debug("ConfigVar {} option: {}, status: {}".format(self.name, option_stripped, status))
 
-        new_options_w_states = tuple(new_options_w_states)
-        if new_options_w_states != self.widget.options:
-            logger.debug("State changes in the options of ConfigVar {}".format(self.name))
-            self.widget.options = new_options_w_states
-            self.widget.value = None # this is needed here to prevent a weird behavior:
-                                     # in absence of this, widget selection clears for
-                                     # some reason
-            if old_value != None and len(self.widget.options) > old_value_index:
-                self.widget.value = self.widget.options[old_value_index]
-            elif len(self.widget.options)==1:
-                option_split = self.widget.options[0].split()
-                if len(option_split)>0 and option_split[0] == valid_opt_icon:
-                    self.widget.value = self.widget.options[0]
-            elif isinstance(self.widget, widgets.Dropdown):
-                for option in self.widget.options:
-                    option_split = option.split()
-                    if len(option_split)>0 and option_split[0] == valid_opt_icon:
-                        self.widget.value = option
-                        break
+        options_validity_icons = self.get_options_validity_icons()
+        new_widget_options = \
+            ['{} {}'.format(options_validity_icons[i], options_sans_validity[i]) \
+                for i in range(len(options_sans_validity))]
+
+        if self.widget.options == new_widget_options:
+            logger.debug("No validity changes in {}".format(self.name))
+            return # no change in options validity
         else:
-            logger.debug("No state changes in the options of ConfigVar {}".format(self.name))
+            logger.debug("Validity changes in the options of ConfigVar {}".format(self.name))
 
-        self.observe_value_validity()
+            old_val = self.widget.value
+            if old_val:
+               old_val_idx = self.get_value_index()
+
+            self.unobserve_value_validity()
+            self.widget.options = new_widget_options
+            self.widget.value = None # this is needed here to prevent a weird behavior:
+                         # in absence of this, widget selection clears for
+                         # some reason
+
+            if old_val != None and options_validity_icons[old_val_idx] != invalid_opt_icon:
+                self.widget.value = self.widget.options[old_val_idx]
+            self.observe_value_validity()
+            logger.debug("Options validity updated for {}".format(self.name))
 
     @owh.out.capture()
-    def update_states(self, change=None, new_options=None, tooltips=None):
-        logger.debug("Updating the states of options for ConfigVar {}".format(self.name))
-        if isinstance(self.widget, widgets.Select) or\
-            isinstance(self.widget, widgets.Dropdown):
-            self._assign_states_select_widget(change, new_options)
-        elif isinstance(self.widget, widgets.ToggleButtons):
-            self._assign_states_select_widget(change, new_options)
-            if tooltips:
+    def update_options(self, new_options=None, tooltips=None):
+        """Assigns the options displayed in the widget."""
+
+        logger.debug("Updating the options of ConfigVar {}".format(self.name))
+
+        # First, update to new options
+        self.unobserve_value_validity()
+        self.widget.options = new_options
+        self.widget.value = None
+        self.observe_value_validity()
+
+        # Second, update options validities
+        self.update_options_validity()
+
+        # Finally, update tooltips
+        if tooltips:
+            if isinstance(self.widget, widgets.ToggleButtons):
                 self.widget.tooltips = tooltips
-        else:
-            raise NotImplementedError
+            else:
+                raise NotImplementedError
 
     @owh.out.capture()
     def _check_selection_validity(self, change):
@@ -226,11 +227,11 @@ class ConfigVar:
             if new_val != None and not ConfigVar.value_is_valid(new_val):
                 new_index = self.get_value_index()
                 logger.critical("ERROR: Invalid selection for {}".format(self.name))
-                logger.critical(self.errMsgs[new_index])
+                logger.critical(self.error_msgs[new_index])
                 from IPython.display import display, HTML, Javascript
                 js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
                     self.name,
-                    self.errMsgs[new_index]
+                    self.error_msgs[new_index]
                 )
                 display(HTML(js))
                 self.widget.value = change['old']
