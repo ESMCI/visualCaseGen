@@ -1,5 +1,6 @@
 import os, sys, re
 import ipywidgets as widgets
+import subprocess
 
 from visualCIME.visualCIME.ConfigVar import ConfigVar
 from visualCIME.visualCIME.OutHandler import handler as owh
@@ -110,6 +111,29 @@ class GUI_create_novice():
         )
         cv_grid.widget.style.description_width = '120px'
 
+        cv_casename = ConfigVar.vdict['CASENAME']
+        cv_casename.widget = widgets.Textarea(
+            value='',
+            placeholder='Type case name',
+            description='Case name:',
+            disabled=True,
+            layout=widgets.Layout(height='30px', width='400px')
+        )
+        cv_casename.widget.style.description_width = '120px'
+
+        self.btn_create = widgets.Button(
+            description='Create new case',
+            disabled=True,
+            button_style='', # 'success', 'info', 'warning', 'danger' or ''
+            tooltip='Description',
+            icon='check',
+            layout=widgets.Layout(height='30px')
+        )
+
+        self.create_case_out = widgets.Output(
+            layout={'border': '1px solid black'}
+        )
+
     def _update_compsets(self, b):
 
         available_compsets = []
@@ -142,6 +166,25 @@ class GUI_create_novice():
         cv_compset.widget.placeholder = 'Select from {} available compsets'.format(len(cv_compset.widget.options))
         cv_compset.widget.disabled = False
 
+    def _update_case_create(self, change):
+
+        cv_casename = ConfigVar.vdict['CASENAME']
+        cv_casename.widget.value = ""
+        cv_casename.widget.disabled = True
+        self.btn_create.disabled = True
+        if change == None:
+            return
+        else:
+            if change['old'] == {}:
+                # Change in owner not finalized yet. Do nothing for now.
+                return
+            else:
+                new_grid = change['old']['value']
+                if new_grid and len(new_grid)>0:
+                    cv_casename.widget.disabled = False
+                    self.btn_create.disabled = False
+
+
     def _update_grid_widget(self, change):
 
         new_compset_lname = None
@@ -153,6 +196,8 @@ class GUI_create_novice():
                 return
             else:
                 new_compset = change['old']['value']
+                if len(new_compset)==0 or ':' not in new_compset:
+                    return
                 new_compset_lname = new_compset.split(':')[1].strip()
 
         cv_grid = ConfigVar.vdict['GRID']
@@ -178,6 +223,28 @@ class GUI_create_novice():
                 cv_grid.widget.options = compatible_grids
 
 
+    def _create_case(self, b):
+
+        cv_grid = ConfigVar.vdict["GRID"]
+        cv_casename = ConfigVar.vdict["CASENAME"]
+        cv_compset = ConfigVar.vdict['COMPSET']
+        compset_alias = cv_compset.widget.value.split(':')[0]
+        self.create_case_out.clear_output()
+        with self.create_case_out:
+            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
+                self.ci.cimeroot,
+                cv_grid.widget.value,
+                compset_alias,
+                cv_casename.widget.value)
+            print("Running cmd: {}".format(cmd))
+            runout = subprocess.run(cmd, shell=True, capture_output=True)
+            if runout.returncode == 0:
+                print("".format(runout.stdout))
+                print("SUCCESS: case created at {} ".format(cv_casename.widget.value))
+            else:
+                print(runout.stdout)
+                print("ERROR: {} ".format(runout.stderr))
+
     def _construct_all_widget_observances(self):
 
         self.search_widget.on_click(self._update_compsets)
@@ -188,6 +255,15 @@ class GUI_create_novice():
             names='_property_lock',
             type='change'
         )
+
+        cv_grid = ConfigVar.vdict['GRID']
+        cv_grid.widget.observe(
+            self._update_case_create,
+            names='_property_lock',
+            type='change'
+        )
+
+        self.btn_create.on_click(self._create_case)
 
     def construct(self):
 
@@ -206,7 +282,13 @@ class GUI_create_novice():
                 widgets.HBox([self.search_widget])],
                 layout={'align_items':'flex-end'}),
             ConfigVar.vdict['COMPSET'].widget,
-            ConfigVar.vdict['GRID'].widget
+            ConfigVar.vdict['GRID'].widget,
+            ConfigVar.vdict['CASENAME'].widget,
+            widgets.VBox([
+                widgets.Label(''),
+                widgets.HBox([self.btn_create])],
+                layout={'align_items':'flex-end'}),
+            self.create_case_out
         ])
 
         return vbx_create_case
