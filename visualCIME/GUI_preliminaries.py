@@ -16,17 +16,17 @@ class GUI_preliminaries():
             disabled=False,
         )
 
-        self.support_widget = widgets.ToggleButtons(
-            options=['scientific', 'unsupported'],
-            tooltips=['Select from scientifically supported configurations predefined within CESM.',
+        self.config_mode = widgets.ToggleButtons(
+            options=['predefined', 'custom'],
+            tooltips=['Select from configurations predefined within CESM.',
                       'Allows maximum flexibility. For advanced users and breakthrough applications.'],
-            value='unsupported',
+            value='predefined',
             #layout={'width': 'max-content'}, # If the items' names are long
-            description='Support Level:',
+            description='Config Mode:',
             disabled=False
         )
-        self.support_widget.style.button_width='80px'
-        self.support_widget.style.description_width = '130px'
+        self.config_mode.style.button_width='80px'
+        self.config_mode.style.description_width = '130px'
 
         self.debug_widget = widgets.ToggleButtons(
             options=['On (slow)', 'Off'],
@@ -61,7 +61,7 @@ class GUI_preliminaries():
     def construct(self):
 
         hbx_basics = widgets.VBox([
-            widgets.HBox([self.driver_widget, self.support_widget, self.debug_widget]),
+            widgets.HBox([self.driver_widget, self.config_mode, self.debug_widget]),
             widgets.HBox([widgets.Label('')]), # empty
             widgets.VBox([
                 widgets.HBox([self.confirm_prelim_widget, self.reset_prelim_widget])],
