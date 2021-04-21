@@ -149,6 +149,11 @@ class ConfigVar:
             assert option.split()[0] not in [valid_opt_icon, invalid_opt_icon]
 
             def _instance_val_getter(cvName):
+                val = ConfigVar.vdict[cvName].get_value()
+                if val == None:
+                    val = "None"
+                return val
+            def _instance_val_getter_opt(cvName):
                 if cvName == self.name:
                     return option
                 val = ConfigVar.vdict[cvName].get_value()
@@ -156,12 +161,14 @@ class ConfigVar:
                     val = "None"
                 return val
 
+
             status, errMsg = True, ''
             for implication in self.compliances.implications(self.name):
                 try:
                     self.compliances.check_implication(
                         implication,
-                        _instance_val_getter
+                        _instance_val_getter,
+                        _instance_val_getter_opt,
                     )
                 except AssertionError as e:
                     self.options_validity[i] = False
@@ -195,7 +202,7 @@ class ConfigVar:
             logger.debug("Options validity updated for {}".format(self.name))
 
     @owh.out.capture()
-    def update_options(self, new_options=None, tooltips=None):
+    def update_options(self, new_options=None, tooltips=None, init_value=False):
         """Assigns the options displayed in the widget."""
 
         logger.debug("Updating the options of ConfigVar {}".format(self.name))
@@ -208,6 +215,13 @@ class ConfigVar:
 
         # Second, update options validities
         self.update_options_validity()
+
+        # If requested, pick the first valid value:
+        if init_value==True and self.widget.value==None:
+            for option in self.widget.options:
+                if ConfigVar.value_is_valid(option):
+                    self.widget.value = option
+                    break
 
         # Finally, update tooltips
         if tooltips:

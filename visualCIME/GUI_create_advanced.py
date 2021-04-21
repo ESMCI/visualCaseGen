@@ -204,10 +204,10 @@ class GUI_create_advanced():
             comp_options_desc = ['(none)'] + comp_options_desc
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
-            cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc)
+            cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc, init_value=True)
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
+            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc, init_value=True)
         else:
             raise NotImplementedError
 
