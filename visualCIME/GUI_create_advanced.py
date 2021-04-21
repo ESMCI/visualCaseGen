@@ -34,6 +34,16 @@ class GUI_create_advanced():
     def _init_widgets(self):
         # Create Case: --------------------------------------
 
+        self.comp_labels = []
+        for comp_class in self.ci.comp_classes:
+            self.comp_labels.append(
+                widgets.Label(
+                    value = '{} {} {}'.format(
+                        chr(int("2000",base=16)), chr(int("25BC",base=16)), comp_class),
+                    layout = widgets.Layout(width='110px',display='flex',justify_content='center')
+                )
+            )
+
         cv_inittime = ConfigVar.vdict['INITTIME']
         cv_inittime.widget = widgets.ToggleButtons(
             options=['1850', '2000', 'HIST'],
@@ -343,11 +353,12 @@ class GUI_create_advanced():
 
     def construct(self):
 
-        def _constr_hbx_components():
+        def _constr_vbx_components():
             hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)].widget for comp_class in self.ci.comp_classes])
-            hbx_components.layout.border = '2px dotted lightgray'
-            hbx_components.layout.width = '850px'
-            return hbx_components
+            vbx_components = widgets.VBox([widgets.HBox(self.comp_labels), hbx_components])
+            vbx_components.layout.border = '2px dotted lightgray'
+            vbx_components.layout.width = '850px'
+            return vbx_components
 
         def _constr_hbx_comp_phys():
             #Component phys:
@@ -380,7 +391,7 @@ class GUI_create_advanced():
         vbx_create_case = widgets.VBox([
             ConfigVar.vdict['INITTIME'].widget,
             widgets.Label(value="Components:"),
-            _constr_hbx_components(),
+            _constr_vbx_components(),
             widgets.Label(value="Component Physics:"),
             _constr_hbx_comp_phys(),
             widgets.Label(value="Component Options:"),
