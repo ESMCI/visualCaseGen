@@ -96,10 +96,19 @@ class GUI_create_novice():
             placeholder = '(Hit Search button)',
             description='Defined compsets:',
             disabled=True,
-            layout=widgets.Layout(width='700px')
+            layout=widgets.Layout(width='650px')
         )
         cv_compset.widget.style.description_width = '120px'
 
+        cv_grid = ConfigVar.vdict['GRID']
+        cv_grid.widget = widgets.Combobox(
+             options=[],
+             placeholder = '(Finalize Compset First.)',
+             description='Compatible Grids:',
+             disabled=True,
+             layout=widgets.Layout(width='650px')
+        )
+        cv_grid.widget.style.description_width = '120px'
 
     def _update_compsets(self, b):
 
@@ -133,10 +142,52 @@ class GUI_create_novice():
         cv_compset.widget.placeholder = 'Select from {} available compsets'.format(len(cv_compset.widget.options))
         cv_compset.widget.disabled = False
 
+    def _update_grid_widget(self, change):
+
+        new_compset_lname = None
+        if change == None:
+            return
+        else:
+            if change['old'] == {}:
+                # Change in owner not finalized yet. Do nothing for now.
+                return
+            else:
+                new_compset = change['old']['value']
+                new_compset_lname = new_compset.split(':')[1].strip()
+
+        cv_grid = ConfigVar.vdict['GRID']
+        if new_compset_lname==None:
+            cv_grid.widget.disabled = True
+            cv_grid.widget.placeholder = '(Finalize Compset First.)'
+        else:
+            compatible_grids = []
+            for alias, compset_attr, not_compset_attr in self.ci.model_grids:
+                if compset_attr and not re.search(compset_attr, new_compset_lname):
+                    continue
+                if not_compset_attr and re.search(not_compset_attr, new_compset_lname):
+                    continue
+                compatible_grids.append(alias)
+
+            if len(compatible_grids)==0:
+                cv_grid.widget.disabled = True
+                cv_grid.widget.placeholder = 'No compatible grids. Change COMPSET.'
+            else:
+                cv_grid.widget.disabled = False
+                cv_grid.widget.placeholder = 'Select from {} compatible grids'.format(len(compatible_grids))
+                cv_grid.widget.value = ''
+                cv_grid.widget.options = compatible_grids
+
+
     def _construct_all_widget_observances(self):
 
         self.search_widget.on_click(self._update_compsets)
 
+        cv_compset = ConfigVar.vdict['COMPSET']
+        cv_compset.widget.observe(
+            self._update_grid_widget,
+            names='_property_lock',
+            type='change'
+        )
 
     def construct(self):
 
@@ -154,7 +205,8 @@ class GUI_create_novice():
                 widgets.Label(''),
                 widgets.HBox([self.search_widget])],
                 layout={'align_items':'flex-end'}),
-            ConfigVar.vdict['COMPSET'].widget
+            ConfigVar.vdict['COMPSET'].widget,
+            ConfigVar.vdict['GRID'].widget
         ])
 
         return vbx_create_case
