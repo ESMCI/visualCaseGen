@@ -46,11 +46,12 @@ class CIME_interface():
 
     def __init__(self, driver):
         # data members
-        self.driver = driver        # nuopc or mct
-        self.comp_classes = None  # ATM, ICE, etc.
-        self.models = dict()      # cam, cice, etc.
-        self.phys_opt = dict()    # component physics (CAM50, CAM60, etc.) and options(4xCO2, 1PCT, etc.)
-        self.model_grids = dict() # model grids (alias, compset, not_compset)
+        self.driver = driver            # nuopc or mct
+        self.comp_classes = None        # ATM, ICE, etc.
+        self.models = dict()            # cam, cice, etc.
+        self.phys_opt = dict()          # component physics (CAM50, CAM60, etc.) and options(4xCO2, 1PCT, etc.)
+        self.model_grids = dict()       # model grids (alias, compset, not_compset)
+        self.compsets = dict()          # compsets defined at each component
         self._files = None
         self.cimeroot = CIMEROOT
 
@@ -61,6 +62,8 @@ class CIME_interface():
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class,model)
         self._retrieve_model_grids()
+
+        self._retrieve_compsets()
 
         # Initialize the compliances instance
         self.compliances = Compliances.from_cime()
@@ -178,3 +181,19 @@ class CIME_interface():
             compset = g.get(model_grid,"compset")
             not_compset = g.get(model_grid,"not_compset")
             self.model_grids.append((alias, compset, not_compset))
+
+    def _retrieve_compsets(self):
+        cc = self._files.get_components("COMPSETS_SPEC_FILE")
+
+        for component in cc:
+            compsets_filename = self._files.get_value("COMPSETS_SPEC_FILE", {"component":component})
+
+            # Check if COMPSET spec file exists
+            if (os.path.isfile(compsets_filename)):
+                self.compsets[component] = []
+                c = Compsets(compsets_filename)
+                compsets_xml = c.get_children("compset")
+                for compset in compsets_xml:
+                    alias  = c.text(c.get_child("alias", root=compset))
+                    lname  = c.text(c.get_child("lname", root=compset))
+                    self.compsets[component].append((alias,lname))
