@@ -23,14 +23,14 @@ class GUI():
             self.create_tab.children = [widgets.Label("Loading..."),]
             self.vCIME.selected_index=1
             self.prelim_tab.driver_widget.disabled = True
-            self.prelim_tab.support_widget.disabled = True
+            self.prelim_tab.config_mode.disabled = True
             self.prelim_tab.debug_widget.disabled = True
             self.prelim_tab.confirm_prelim_widget.disabled = True
             self.prelim_tab.reset_prelim_widget.disabled = False
             ConfigVar.reset()
 
             driver = self.prelim_tab.driver_widget.value
-            support = self.prelim_tab.support_widget.value
+            config_mode = self.prelim_tab.config_mode.value
             debug = self.prelim_tab.debug_widget.value
 
             OutHandler.handler.out.clear_output()
@@ -41,11 +41,11 @@ class GUI():
                 logger.info("Debug Mode Off")
                 logging.getLogger().setLevel(logging.INFO)
 
-            if support=='scientific':
+            if config_mode=='predefined':
                 ci = CIME_interface(driver)
                 w = GUI_create_novice(ci)
                 self.create_tab.children = [w.construct(),]
-            elif support=='unsupported':
+            elif config_mode=='custom':
                 ci = CIME_interface(driver)
                 w = GUI_create_advanced(ci)
                 self.create_tab.children = [w.construct(),]
@@ -53,7 +53,7 @@ class GUI():
 
         def reset_prelim_clicked(b):
             self.prelim_tab.driver_widget.disabled = False
-            self.prelim_tab.support_widget.disabled = False
+            self.prelim_tab.config_mode.disabled = False
             self.prelim_tab.debug_widget.disabled = False
             self.prelim_tab.confirm_prelim_widget.disabled = False
             self.prelim_tab.reset_prelim_widget.disabled = True
