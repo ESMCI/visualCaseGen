@@ -163,6 +163,10 @@ class GUI_create_advanced():
             layout=widgets.Layout(height='30px', width='80px')
         )
 
+        self.create_case_out = widgets.Output(
+            layout={'border': '1px solid black'}
+        )
+
     def _update_grid_widget(self, compset_text=None):
 
         cv_grid = ConfigVar.vdict['GRID']
@@ -263,20 +267,21 @@ class GUI_create_advanced():
 
         cv_grid = ConfigVar.vdict["GRID"]
         cv_casename = ConfigVar.vdict["CASENAME"]
-        runout = subprocess.run("{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
-            self.ci.cimeroot,
-            cv_grid.widget.value,
-            self.compset_text,
-            cv_casename.widget.value
-            ),
-            shell=True, capture_output=True
-        )
-
-        if runout.returncode == 0:
-            logger.info("".format(runout.stdout))
-            logger.info("SUCCESS: case created at {} ".format(cv_casename.widget.value))
-        else:
-            logger.critical("ERROR: {} ".format(runout.stderr))
+        self.create_case_out.clear_output()
+        with self.create_case_out:
+            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
+                self.ci.cimeroot,
+                cv_grid.widget.value,
+                self.compset_text,
+                cv_casename.widget.value)
+            print("Running cmd: {}".format(cmd))
+            runout = subprocess.run(cmd, shell=True, capture_output=True)
+            if runout.returncode == 0:
+                print("".format(runout.stdout))
+                print("SUCCESS: case created at {} ".format(cv_casename.widget.value))
+            else:
+                print(runout.stdout)
+                print("ERROR: {} ".format(runout.stderr))
 
 
     @owh.out.capture()
@@ -400,7 +405,8 @@ class GUI_create_advanced():
             widgets.Label(value="Grids:"),
             _constr_hbx_grids(),
             widgets.Label(value=""),
-            _constr_hbx_case()
+            _constr_hbx_case(),
+            self.create_case_out
         ])
 
         return vbx_create_case
