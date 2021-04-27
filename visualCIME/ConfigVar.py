@@ -4,7 +4,7 @@ from visualCIME.visualCIME.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
-invalid_opt_icon = chr(int("2718",base=16)) # Ballot Box with X
+invalid_opt_icon = chr(int("274C",base=16)) # Ballot Box with X
 valid_opt_icon = chr(int("2713",base=16)) # Ballot Box with X
 
 # it is assumed in this module that icons lenghts are one char.
@@ -177,7 +177,7 @@ class ConfigVar:
 
         options_validity_icons = self.get_options_validity_icons()
         new_widget_options = \
-            ['{} {}'.format(options_validity_icons[i], options_sans_validity[i]) \
+            ['{}  {}'.format(options_validity_icons[i], options_sans_validity[i]) \
                 for i in range(len(options_sans_validity))]
 
         if self.widget.options == new_widget_options:
