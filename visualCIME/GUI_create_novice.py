@@ -15,11 +15,12 @@ class GUI_create_novice():
         self._init_configvars()
         self._init_widgets()
         self._construct_all_widget_observances()
+        self._update_compsets(None)
 
     def _init_configvars(self):
 
         for comp_class in self.ci.comp_classes:
-            cv_comp_mode = ConfigVar('COMP_{}_MODE'.format(comp_class))
+            cv_comp = ConfigVar('COMP_{}'.format(comp_class))
 
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVar('GRID')
@@ -40,32 +41,37 @@ class GUI_create_novice():
         self.support_level_widget.style.button_width='80px'
         self.support_level_widget.style.description_width = '140px'
 
-        self.defined_by_widget = widgets.Dropdown(
-            options=['all']+list(self.ci.compsets.keys()),
-            value='all',
-            description='Compsets defined by:',
-        )
-        self.defined_by_widget.style.description_width = '160px'
-
         self.comp_labels = []
         for comp_class in self.ci.comp_classes:
             self.comp_labels.append(
                 widgets.Label(
                     value = '{} {} {}'.format(
                         chr(int("2000",base=16)), chr(int("25BC",base=16)), comp_class),
-                    layout = widgets.Layout(width='110px',display='flex')
+                    layout = widgets.Layout(width='100px',display='flex',justify_content='center')
                 )
             )
 
         for comp_class in self.ci.comp_classes:
-            cv_comp_mode = ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)]
-            cv_comp_mode.widget = widgets.RadioButtons(
-                options = ['all', 'active', 'data', 'stub'],
+            cv_comp_models = ['any']
+            for model in self.ci.models[comp_class]:
+                if model[0]=='x':
+                    logger.debug("Skipping the dead component {}.".format(model))
+                    continue
+                elif model.upper() == 'D'+comp_class.strip() or model.upper() == 'S'+comp_class:
+                    continue # will add to end
+                if model not in cv_comp_models:
+                    cv_comp_models.append(model)
+            cv_comp_models += ['data', 'none']
+
+            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            cv_comp.widget = widgets.ToggleButtons(
+                options = cv_comp_models,
                 description=comp_class,
                 disabled=False,
-                layout=widgets.Layout(width='110px', max_height='120px')
+                layout=widgets.Layout(width='100px', max_height='120px')
             )
-            cv_comp_mode.widget.style.description_width = '0px'
+            cv_comp.widget.style.button_width = '80px'
+            cv_comp.widget.style.description_width = '0px'
 
         self.keywords_widget = widgets.Textarea(
             value = '',
@@ -137,11 +143,32 @@ class GUI_create_novice():
     def _update_compsets(self, b):
 
         available_compsets = []
-        if self.defined_by_widget.value == 'all':
-            for component in self.ci.compsets:
-                available_compsets += self.ci.compsets[component]
-        else:
-            available_compsets = self.ci.compsets[self.defined_by_widget.value]
+        for component in self.ci.compsets:
+            available_compsets += self.ci.compsets[component]
+
+        filter_compsets = []
+        for comp_class in self.ci.comp_classes:
+            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            filter_compsets.append((comp_class,cv_comp.widget.value))
+
+
+        new_available_compsets = []
+        for compset in available_compsets:
+            compset_lname = compset[1]
+            filter_compset = False
+            for comp_class, model in filter_compsets:
+                if model == "any":
+                    pass
+                elif (model == "none" and 'S'+comp_class not in compset_lname) or\
+                     (model == "data" and 'D'+comp_class not in compset_lname) or\
+                     (model not in ["none", "data"] and model.upper() not in compset_lname):
+                    filter_compset = True
+                    break
+
+            if not filter_compset:
+                new_available_compsets.append(compset)
+        available_compsets = new_available_compsets
+
 
         if self.keywords_widget.value != '':
             keywords = self.keywords_widget.value.split(',')
@@ -265,22 +292,40 @@ class GUI_create_novice():
 
         self.btn_create.on_click(self._create_case)
 
+        for comp_class in self.ci.comp_classes:
+            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            cv_comp.widget.observe(
+                self._update_compsets,
+                names='_property_lock',
+                type='change'
+            )
+
+        self.keywords_widget.observe(
+            self._update_compsets,
+            names='_property_lock',
+            type='change'
+        )
+
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
-        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}_MODE'.format(comp_class)].widget for comp_class in self.ci.comp_classes])
+        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)].widget for comp_class in self.ci.comp_classes])
+        hbx_comp_modes.layout.width = '850px'
+        hbx_comp_modes.layout.height = '180px'
+
+        vbx_filter = widgets.VBox([
+            hbx_comp_labels,
+            hbx_comp_modes,
+            self.keywords_widget
+        ])
+        vbx_filter.layout.border = '2px dotted lightgray'
+
         vbx_create_case = widgets.VBox([
             self.support_level_widget,
             widgets.Label(''),
-            self.defined_by_widget,
+            widgets.Label(value="Filter Compsets:"),
+            vbx_filter,
             widgets.Label(''),
-            hbx_comp_labels,
-            hbx_comp_modes,
-            self.keywords_widget,
-            widgets.VBox([
-                widgets.Label(''),
-                widgets.HBox([self.search_widget])],
-                layout={'align_items':'flex-end'}),
             ConfigVar.vdict['COMPSET'].widget,
             ConfigVar.vdict['GRID'].widget,
             ConfigVar.vdict['CASENAME'].widget,
