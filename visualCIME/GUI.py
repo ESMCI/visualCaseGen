@@ -62,12 +62,25 @@ class GUI():
         self.prelim_tab.reset_prelim_widget.on_click(reset_prelim_clicked)
 
     def help_tab_construct(self):
+        self.clear_log_button = widgets.Button(
+            description='Clear Log',
+            disabled=False,
+            button_style='warning',
+            icon='broom',
+            layout = {'width':'100px'}
+        )
+
+        def clear_log(b):
+            OutHandler.handler.out.clear_output()
+        self.clear_log_button.on_click(clear_log)
+
         return widgets.VBox([
             widgets.Label("To report a bug or to request help:"),
             widgets.Label(" (1) Start over and turn on the debug mode (slow)"),
             widgets.Label(" (2) Repeat the steps that led to the error."),
             widgets.Label(" (3) Send the description of the eror with the generated log below to: altuntas@ucar.edu"),
             widgets.Label("Logs:"),
+            widgets.VBox([self.clear_log_button],layout={'align_items':'flex-end'}),
             OutHandler.handler.out
         ])
 
