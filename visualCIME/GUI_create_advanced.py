@@ -25,8 +25,8 @@ class GUI_create_advanced():
         cv_inittime = ConfigVar('INITTIME')
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar('COMP_'+str(comp_class))
-            cv_comp_phys = ConfigVar('COMP_{}_PHYS'.format(comp_class))
-            cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class))
+            cv_comp_phys = ConfigVar('COMP_{}_PHYS'.format(comp_class), never_unset=True)
+            cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class), never_unset=True)
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVar('GRID')
         cv_casename = ConfigVar('CASENAME')
@@ -218,10 +218,10 @@ class GUI_create_advanced():
             comp_options_desc = ['(none)'] + comp_options_desc
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
-            cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc, init_value=True)
+            cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc)
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc, init_value=True)
+            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
         else:
             raise NotImplementedError
 

@@ -22,13 +22,14 @@ class ConfigVar:
     # to be set by CompliancesHandler constructor
     compliances = None
 
-    def __init__(self, name):
+    def __init__(self, name, never_unset=False):
         if name in ConfigVar.vdict:
             logger.warning("ConfigVar {} already created.".format(name))
         self.name = name
         self.widget = None
         self.options_validity = []
         self.error_msgs = []
+        self.never_unset = never_unset # once the widget value is set, don't unset it
         ConfigVar.vdict[name] = self
         logger.debug("ConfigVar {} created.".format(self.name))
 
@@ -100,6 +101,14 @@ class ConfigVar:
         except:
             raise RuntimeError("ERROR: couldn't find value in options list")
 
+
+    def set_value_to_first_valid_opt(self):
+        for option in self.widget.options:
+            if ConfigVar.value_is_valid(option):
+                self.widget.value = option
+                return
+        logger.error("Couldn't find any valid option for {}".format(self.name))
+
     @owh.out.capture()
     def observe_value_validity(self):
         if len(self.compliances.implications(self.name))>0:
@@ -128,13 +137,13 @@ class ConfigVar:
         # If this method is called due to a change in an observed widget,
         # check if the options of this ConfigVar need to be updated yet.
         if change != None:
+            if change['old'] == {}:
+                logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
+                return
             logger.debug("change: {}".format(change))
             if not ConfigVar.value_is_valid(change['owner'].value):
                 logger.debug("Invalid selection at change owner. Do nothing for observing ConfigVar {}"\
                     .format(self.name))
-                return
-            elif change['old'] == {}:
-                logger.debug("Change in owner not finalized yet. Do nothing for ConfigVar {}".format(self.name))
                 return
 
         assert self.is_supported_widget(), "ConfigVar {} widget is not supported yet.".format(self.name)
@@ -198,11 +207,14 @@ class ConfigVar:
 
             if old_val != None and options_validity_icons[old_val_idx] != invalid_opt_icon:
                 self.widget.value = self.widget.options[old_val_idx]
+            if self.widget.value == None and self.never_unset:
+                self.set_value_to_first_valid_opt()
+
             self.observe_value_validity()
             logger.debug("Options validity updated for {}".format(self.name))
 
     @owh.out.capture()
-    def update_options(self, new_options=None, tooltips=None, init_value=False):
+    def update_options(self, new_options=None, tooltips=None):
         """Assigns the options displayed in the widget."""
 
         logger.debug("Updating the options of ConfigVar {}".format(self.name))
@@ -217,11 +229,8 @@ class ConfigVar:
         self.update_options_validity()
 
         # If requested, pick the first valid value:
-        if init_value==True and self.widget.value==None:
-            for option in self.widget.options:
-                if ConfigVar.value_is_valid(option):
-                    self.widget.value = option
-                    break
+        if self.never_unset==True and self.widget.value==None:
+            self.set_value_to_first_valid_opt()
 
         # Finally, update tooltips
         if tooltips:
