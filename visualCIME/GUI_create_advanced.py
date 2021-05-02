@@ -286,10 +286,10 @@ class GUI_create_advanced():
 
     @owh.out.capture()
     def observe_relations(self, cv):
-        for implication in self.ci.compliances.implications(cv.name):
+        for assertion in self.ci.compliances.assertions(cv.name):
             logger.debug("Observing relations for ConfigVar {}".format(cv.name))
-            if all([var in ConfigVar.vdict for var in implication.variables]):
-                for var_other in set(implication.variables)-{cv.name}:
+            if all([var in ConfigVar.vdict for var in assertion.variables]):
+                for var_other in set(assertion.variables)-{cv.name}:
                     ConfigVar.vdict[var_other].widget.observe(
                         cv.update_options_validity,
                         #names='value',

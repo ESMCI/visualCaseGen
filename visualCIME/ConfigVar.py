@@ -107,15 +107,15 @@ class ConfigVar:
             if ConfigVar.value_is_valid(option):
                 self.widget.value = option
                 if inform_related_vars:
-                    for implication in self.compliances.implications(self.name):
-                        for var_other in set(implication.variables)-{self.name}:
+                    for assertion in self.compliances.assertions(self.name):
+                        for var_other in set(assertion.variables)-{self.name}:
                             ConfigVar.vdict[var_other].update_options_validity()
                 return
         logger.error("Couldn't find any valid option for {}".format(self.name))
 
     @owh.out.capture()
     def observe_value_validity(self):
-        if len(self.compliances.implications(self.name))>0:
+        if len(self.compliances.assertions(self.name))>0:
             logger.debug("Observing value validity for ConfigVar {}".format(self.name))
             self.widget.observe(
                 self._check_selection_validity,
@@ -124,7 +124,7 @@ class ConfigVar:
 
     @owh.out.capture()
     def unobserve_value_validity(self):
-        if len(self.compliances.implications(self.name))>0:
+        if len(self.compliances.assertions(self.name))>0:
             logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
             self.widget.unobserve(
                 self._check_selection_validity,
@@ -176,10 +176,10 @@ class ConfigVar:
 
 
             status, errMsg = True, ''
-            for implication in self.compliances.implications(self.name):
+            for assertion in self.compliances.assertions(self.name):
                 try:
-                    self.compliances.check_implication(
-                        implication,
+                    self.compliances.check_assertion(
+                        assertion,
                         _instance_val_getter,
                         _instance_val_getter_opt,
                     )

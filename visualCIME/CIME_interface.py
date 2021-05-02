@@ -67,7 +67,7 @@ class CIME_interface():
 
         # Initialize the compliances instance
         self.compliances = Compliances.from_cime()
-        self.compliances.unfold_implications()
+        self.compliances.unfold_compliances()
 
     def _retrieve_CIME_basics(self):
         """ Determine basic CIME variables and properties, including:
