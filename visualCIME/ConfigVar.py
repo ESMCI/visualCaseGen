@@ -102,10 +102,14 @@ class ConfigVar:
             raise RuntimeError("ERROR: couldn't find value in options list")
 
 
-    def set_value_to_first_valid_opt(self):
+    def set_value_to_first_valid_opt(self, inform_related_vars=True):
         for option in self.widget.options:
             if ConfigVar.value_is_valid(option):
                 self.widget.value = option
+                if inform_related_vars:
+                    for implication in self.compliances.implications(self.name):
+                        for var_other in set(implication.variables)-{self.name}:
+                            ConfigVar.vdict[var_other].update_options_validity()
                 return
         logger.error("Couldn't find any valid option for {}".format(self.name))
 
