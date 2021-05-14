@@ -1,5 +1,6 @@
 import logging
 import ipywidgets as widgets
+from visualCIME.visualCIME.DummyWidget import DummyWidget
 from visualCIME.visualCIME.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
@@ -78,9 +79,7 @@ class ConfigVar:
             return option
 
     def is_supported_widget(self):
-        return isinstance(self.widget, widgets.ToggleButtons) or \
-            isinstance(self.widget, widgets.Select) or \
-            isinstance(self.widget, widgets.Dropdown)
+        return isinstance(self.widget, (widgets.ToggleButtons, widgets.Select, widgets.Dropdown) )
 
     @owh.out.capture()
     def get_options_validity_icons(self):
@@ -135,6 +134,9 @@ class ConfigVar:
     @owh.out.capture()
     def update_options_validity(self, change=None):
         """Re-evaluates the validity of widget options and updates option validity icons """
+
+        if isinstance(self.widget, DummyWidget):
+            return # no validity update needed
 
         logger.debug("Updating option validities of ConfigVar {}".format(self.name))
 
