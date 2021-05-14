@@ -3,6 +3,7 @@ import ipywidgets as widgets
 import subprocess
 
 from visualCIME.visualCIME.ConfigVar import ConfigVar
+from visualCIME.visualCIME.DummyWidget import DummyWidget
 from visualCIME.visualCIME.OutHandler import handler as owh
 
 import logging
@@ -27,6 +28,7 @@ class GUI_create_advanced():
             cv_comp = ConfigVar('COMP_'+str(comp_class))
             cv_comp_phys = ConfigVar('COMP_{}_PHYS'.format(comp_class), never_unset=True)
             cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class), never_unset=True)
+            cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVar('GRID')
         cv_casename = ConfigVar('CASENAME')
@@ -62,6 +64,7 @@ class GUI_create_advanced():
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
             cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
+            cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
 
             # Determine the list of available models for a given component class. Available physics and options are to be
             # determined right after the model is selected by the user.
@@ -105,6 +108,8 @@ class GUI_create_advanced():
                 )
             cv_comp_option.widget.style.button_width = '90px'
             cv_comp_option.widget.style.description_width = '0px'
+
+            cv_comp_grid.widget = DummyWidget()
 
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
@@ -181,7 +186,41 @@ class GUI_create_advanced():
                     continue
                 if not_compset_attr and re.search(not_compset_attr, compset_text):
                     continue
-                compatible_grids.append(alias)
+
+                # temporarily set grid names:
+
+                comp_grid_dict = self.ci.retrieve_component_grids(alias, compset_text)
+                ConfigVar.vdict['ATM_GRID'].widget.value = comp_grid_dict['a%']
+                ConfigVar.vdict['LND_GRID'].widget.value = comp_grid_dict['l%']
+                ConfigVar.vdict['OCN_GRID'].widget.value = comp_grid_dict['o%']
+                ConfigVar.vdict['ICE_GRID'].widget.value = comp_grid_dict['i%']
+                ConfigVar.vdict['ROF_GRID'].widget.value = comp_grid_dict['r%']
+                ConfigVar.vdict['GLC_GRID'].widget.value = comp_grid_dict['g%']
+                ConfigVar.vdict['WAV_GRID'].widget.value = comp_grid_dict['w%']
+
+                def _instance_val_getter(cvName):
+                    val = ConfigVar.vdict[cvName].get_value()
+                    if val == None:
+                        val = "None"
+                    return val
+
+                assertions_satisfied = True
+                for comp_class in self.ci.comp_classes:
+                    cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
+                    for assertion in self.ci.compliances.assertions(cv_comp_grid.name):
+                        try:
+                            cv_comp_grid.compliances.check_assertion(
+                                assertion,
+                                _instance_val_getter,
+                                _instance_val_getter,
+                            )
+                        except AssertionError as e:
+                            assertions_satisfied = False
+                            break
+                if not assertions_satisfied:
+                    continue
+                else:
+                    compatible_grids.append(alias)
 
             if len(compatible_grids)==0:
                 cv_grid.widget.disabled = True
