@@ -171,16 +171,23 @@ class CIME_interface():
                 self.models[comp_class].append(model)
 
     def _retrieve_model_grids(self):
-        g = Grids()
-        grids = g.get_child("grids")
-        model_grids_xml = g.get_children("model_grid", root=grids)
+        self._grids_obj = Grids()
+        grids = self._grids_obj.get_child("grids")
+        model_grids_xml = self._grids_obj.get_children("model_grid", root=grids)
 
         self.model_grids = []
         for model_grid in model_grids_xml:
-            alias = g.get(model_grid,"alias")
-            compset = g.get(model_grid,"compset")
-            not_compset = g.get(model_grid,"not_compset")
+            alias = self._grids_obj.get(model_grid,"alias")
+            compset = self._grids_obj.get(model_grid,"compset")
+            not_compset = self._grids_obj.get(model_grid,"not_compset")
             self.model_grids.append((alias, compset, not_compset))
+
+    def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
+        # todo: implement atmlev and lndnlev
+        config_grids = self._grids_obj._read_config_grids(grid_alias, compset, atmnlev, lndnlev)
+        # config_grids[0] : long grid name
+        return config_grids[1] # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
+
 
     def _retrieve_compsets(self):
         cc = self._files.get_components("COMPSETS_SPEC_FILE")
