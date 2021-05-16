@@ -24,21 +24,21 @@ class GUI():
             self.vCIME.selected_index=1
             self.prelim_tab.driver_widget.disabled = True
             self.prelim_tab.config_mode.disabled = True
-            self.prelim_tab.debug_widget.disabled = True
+            self.prelim_tab.verbose_widget.disabled = True
             self.prelim_tab.confirm_prelim_widget.disabled = True
             self.prelim_tab.reset_prelim_widget.disabled = False
             ConfigVar.reset()
 
             driver = self.prelim_tab.driver_widget.value
             config_mode = self.prelim_tab.config_mode.value
-            debug = self.prelim_tab.debug_widget.value
+            verbose = self.prelim_tab.verbose_widget.value
 
             OutHandler.handler.out.clear_output()
-            if debug=='On (slow)':
-                logger.info("Debug Mode On")
+            if verbose=='On (slow)':
+                logger.info("Verbose Mode On")
                 logging.getLogger().setLevel(logging.DEBUG)
-            elif debug=='Off':
-                logger.info("Debug Mode Off")
+            elif verbose=='Off':
+                logger.info("Verbose Mode Off")
                 logging.getLogger().setLevel(logging.INFO)
 
             if config_mode=='predefined':
@@ -54,7 +54,7 @@ class GUI():
         def reset_prelim_clicked(b):
             self.prelim_tab.driver_widget.disabled = False
             self.prelim_tab.config_mode.disabled = False
-            self.prelim_tab.debug_widget.disabled = False
+            self.prelim_tab.verbose_widget.disabled = False
             self.prelim_tab.confirm_prelim_widget.disabled = False
             self.prelim_tab.reset_prelim_widget.disabled = True
             self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
@@ -76,7 +76,7 @@ class GUI():
 
         return widgets.VBox([
             widgets.Label("To report a bug or to request help:"),
-            widgets.Label(" (1) Start over and turn on the debug mode (slow)"),
+            widgets.Label(" (1) Start over and turn on verbose logging"),
             widgets.Label(" (2) Repeat the steps that led to the error."),
             widgets.Label(" (3) Send the description of the eror with the generated log below to: altuntas@ucar.edu"),
             widgets.Label("Logs:"),

@@ -28,17 +28,16 @@ class GUI_preliminaries():
         self.config_mode.style.button_width='80px'
         self.config_mode.style.description_width = '130px'
 
-        self.debug_widget = widgets.ToggleButtons(
+        self.verbose_widget = widgets.Dropdown(
             options=['On (slow)', 'Off'],
-            tooltips=['Turn on the debug mode to get detailed logs. This significantly slows down the GUI.',
-                      '(Default) Turn off the debug mode to get minimal logs. This improves the responsiveness of the GUI.'],
+            tooltips=['Turn on the verbose GUI logging. This significantly slows down the GUI.',
+                      '(Default) Minimal logging. This improves the responsiveness of the GUI.'],
             value='Off',
-            #layout={'width': 'max-content'}, # If the items' names are long
-            description='Debug:',
+            layout={'width': 'max-content'}, # If the items' names are long
+            description='Verbose GUI log:',
             disabled=False
         )
-        self.debug_widget.style.button_width='60px'
-        self.debug_widget.style.description_width = '100px'
+        self.verbose_widget.style.description_width = '150px'
 
         self.confirm_prelim_widget = widgets.Button(
             description='Confirm',
@@ -61,7 +60,7 @@ class GUI_preliminaries():
     def construct(self):
 
         hbx_basics = widgets.VBox([
-            widgets.HBox([self.driver_widget, self.config_mode, self.debug_widget]),
+            widgets.HBox([self.driver_widget, self.config_mode, self.verbose_widget]),
             widgets.HBox([widgets.Label('')]), # empty
             widgets.VBox([
                 widgets.HBox([self.confirm_prelim_widget, self.reset_prelim_widget])],
