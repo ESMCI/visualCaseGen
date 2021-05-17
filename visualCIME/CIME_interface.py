@@ -115,6 +115,7 @@ class CIME_interface():
         comp_options = [] # e.g., %SCAM, %ECO, etc.
         comp_physics_desc = []
         comp_options_desc = []
+        comp_physics_options = dict() # available options for each component physics
 
         # Go through description entries in config_component.xml nd extract component physics and options:
         for node in desc_nodes:
@@ -124,17 +125,20 @@ class CIME_interface():
             if description[-1]==':':
                 description = description[:-1]
             if physics:
+                words = re.findall( r'\b\w+\b',physics)
                 if '[%' in physics:
                     physics = physics.split('[%')[0]
                 if len(physics)>0:
                     comp_physics.append(physics)
+                    if len(words)>1:
+                        comp_physics_options[physics] = words[1:]
                 comp_physics_desc.append("{}: {}".format(physics, description))
             elif option:
                 option = option.strip()
                 comp_options.append(option)
                 comp_options_desc.append("{}: {}".format(option, description))
 
-        self.phys_opt[model] = comp_physics, comp_options, comp_physics_desc, comp_options_desc
+        self.phys_opt[model] = comp_physics, comp_options, comp_physics_desc, comp_options_desc, comp_physics_options
 
     def _retrieve_models(self, comp_class):
         """ Retrieves the available models of a given component class. Retrieved models

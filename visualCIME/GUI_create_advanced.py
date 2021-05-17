@@ -234,35 +234,66 @@ class GUI_create_advanced():
                 cv_grid.widget.options = compatible_grids
 
     @owh.out.capture()
-    def _update_comp_phys_and_options(self,change=None):
+    def _update_comp_phys(self,change=None):
         if change != None:
+            # This method must be invoked by a COMP_... change by the user
             new_val = change['owner'].value
             comp_class = change['owner'].description[0:3]
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            assert re.search("COMP_...", cv_comp.name)
             if (not ConfigVar.value_is_valid(new_val)) or change['old'] == {}:
-                logger.debug("No need to update comp physics and options for {}".format(cv_comp.name))
+                logger.debug("No need to update comp physics for {}".format(cv_comp.name))
                 return
 
-            logger.debug("Updating the physics and options of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
-            comp_phys, comp_options, comp_phys_desc, comp_options_desc = [], [], [], []
+            logger.debug("Updating the physics of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
+            comp_phys, comp_phys_desc, comp_options_desc = [], [], []
             if cv_comp.widget.value != None:
                 model = ConfigVar.strip_option_status(cv_comp.widget.value)
-                comp_phys, comp_options, comp_phys_desc, comp_options_desc = self.ci.phys_opt[model]
+                comp_phys, _, comp_phys_desc, comp_options_desc, _ = self.ci.phys_opt[model]
 
             if len(comp_phys)==0 and cv_comp.widget.value != None:
                 comp_phys = [cv_comp.widget.value.upper()]
                 comp_phys_desc = comp_phys
-            comp_options = ['(none)'] + comp_options
-            comp_options_desc = ['(none)'] + comp_options_desc
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
             cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc)
 
-            cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
+            self._update_comp_options(change=None, new_phys=cv_comp_phys.widget.value, comp_class=comp_class)
         else:
             raise NotImplementedError
+
+    @owh.out.capture()
+    def _update_comp_options(self,change=None, new_phys=None, comp_class=None):
+
+        if change != None:
+            # The method is invoked by a direct COMP_..._PHYS change by the user
+            if change['old'] == {}:
+                logger.debug("No need to update comp options for {}".format(comp_class))
+                return
+            new_phys = change['owner'].value
+            comp_class = change['owner'].description[0:3]
+        elif new_phys != None:
+            # The method is invoked by an indirect change in COMP_..._PHYS widget
+            assert comp_class!=None, "If _update_comp_options is called indirectly, comp_class arg must be provided."
+
+        if (not ConfigVar.value_is_valid(new_phys)):
+            logger.debug("No need to update comp options for {}".format(comp_class))
+            return
+
+        cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
+        logger.debug("Updating the options of {} for phys={}".format(comp_class, cv_comp_phys.widget.value))
+        comp_phys_val = ConfigVar.strip_option_status(cv_comp_phys.widget.value)
+        if comp_phys_val != None:
+            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            model = ConfigVar.strip_option_status(cv_comp.widget.value)
+            _, comp_options, _, comp_options_desc, comp_phys_options = self.ci.phys_opt[model]
+
+        comp_options = ['(none)'] + comp_options
+        #comp_options_desc = ['(none)'] + comp_options_desc
+
+        cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
+        #cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
+        cv_comp_option.update_options(new_options=comp_options)
+
 
     @owh.out.capture()
     def _update_compset(self,change=None):
@@ -355,11 +386,19 @@ class GUI_create_advanced():
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             cv_comp.update_options_validity()
 
-        # Build options observances for comp_phys and comp_option
+        # Build options observances for comp_phys
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             cv_comp.widget.observe(
-                self._update_comp_phys_and_options,
+                self._update_comp_phys,
+                names='_property_lock',
+                type='change')
+
+        # Build options observances for comp_option
+        for comp_class in self.ci.comp_classes:
+            cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
+            cv_comp_phys.widget.observe(
+                self._update_comp_options,
                 names='_property_lock',
                 type='change')
 
