@@ -16,6 +16,7 @@ class GUI_create_novice():
         self._init_widgets()
         self._construct_all_widget_observances()
         self._update_compsets(None)
+        self._available_compsets = []
 
     def _init_configvars(self):
 
@@ -28,18 +29,13 @@ class GUI_create_novice():
 
     def _init_widgets(self):
 
-        self.support_level_widget = widgets.ToggleButtons(
-            options=['Defined', 'Tested', 'Scientific'],
-            tooltips=['The component set is defined but has not been tested.',
-                      'The defined component set has been tested with a scientifically supported grid resolution.',
-                      'The tested component set has been validated scientifically.'],
-            value='Defined',
+        self.scientific_only_widget = widgets.Checkbox(
+            value=False,
             #layout={'width': 'max-content'}, # If the items' names are long
-            description='Support Level:',
-            disabled=True
+            description='Scientifically supported only',
+            disabled=False
         )
-        self.support_level_widget.style.button_width='80px'
-        self.support_level_widget.style.description_width = '140px'
+        #self.scientific_only_widget.style.description_width = '140px'
 
         self.comp_labels = []
         for comp_class in self.ci.comp_classes:
@@ -79,13 +75,6 @@ class GUI_create_novice():
             description = "Keywords:",
             disabled=False,
             layout=widgets.Layout(height='30px', width='500px')
-        )
-
-        self.search_widget = widgets.Button(
-            description='Search',
-            tooltip='Search within available compsets.',
-            icon='search',
-            layout = {'width':'100px'}
         )
 
         self.reset_widget = widgets.Button(
@@ -142,9 +131,24 @@ class GUI_create_novice():
 
     def _update_compsets(self, b):
 
-        available_compsets = []
-        for component in self.ci.compsets:
-            available_compsets += self.ci.compsets[component]
+        # First, reset both the compset and the grid widgets:
+        cv_compset = ConfigVar.vdict['COMPSET']
+        cv_compset.widget.value = ''
+        self._reset_grid_widget()
+
+        # Now, determine all available compsets
+        self._available_compsets = []
+
+        if self.scientific_only_widget.value == True:
+            # add scientifically supported compsets only
+            for component in self.ci.compsets:
+                for compset in self.ci.compsets[component]:
+                    if len(compset.sci_supported_grids)>0:
+                        self._available_compsets.append(compset)
+        else:
+            # add all compsets regardless of support level
+            for component in self.ci.compsets:
+                self._available_compsets += self.ci.compsets[component]
 
         filter_compsets = []
         for comp_class in self.ci.comp_classes:
@@ -153,27 +157,26 @@ class GUI_create_novice():
 
 
         new_available_compsets = []
-        for compset in available_compsets:
-            compset_lname = compset[1]
+        for compset in self._available_compsets:
             filter_compset = False
             for comp_class, model in filter_compsets:
                 if model == "any":
                     pass
-                elif (model == "none" and 'S'+comp_class not in compset_lname) or\
-                     (model == "data" and 'D'+comp_class not in compset_lname) or\
-                     (model not in ["none", "data"] and model.upper() not in compset_lname):
+                elif (model == "none" and 'S'+comp_class not in compset.lname) or\
+                     (model == "data" and 'D'+comp_class not in compset.lname) or\
+                     (model not in ["none", "data"] and model.upper() not in compset.lname):
                     filter_compset = True
                     break
 
             if not filter_compset:
                 new_available_compsets.append(compset)
-        available_compsets = new_available_compsets
+        self._available_compsets = new_available_compsets
 
 
         if self.keywords_widget.value != '':
             keywords = self.keywords_widget.value.split(',')
             new_available_compsets = []
-            for ac in available_compsets:
+            for ac in self._available_compsets:
                 all_keywords_found = True
                 for keyword in keywords:
                     keyword = keyword.strip()
@@ -184,21 +187,24 @@ class GUI_create_novice():
                         break
                 if all_keywords_found:
                     new_available_compsets.append(ac)
-            available_compsets = new_available_compsets
+            self._available_compsets = new_available_compsets
 
-        available_compsets_str = ['{}: {}'.format(ac[0], ac[1]) for ac in available_compsets]
+        available_compsets_str = ['{}: {}'.format(ac.alias, ac.lname) for ac in self._available_compsets]
 
-        cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget.options = available_compsets_str
         cv_compset.widget.placeholder = 'Select from {} available compsets'.format(len(cv_compset.widget.options))
         cv_compset.widget.disabled = False
 
-    def _update_case_create(self, change):
-
+    def _reset_case_create(self):
         cv_casename = ConfigVar.vdict['CASENAME']
         cv_casename.widget.value = ""
         cv_casename.widget.disabled = True
         self.btn_create.disabled = True
+
+    def _update_case_create(self, change):
+
+        cv_casename = ConfigVar.vdict['CASENAME']
+        self._reset_case_create()
         if change == None:
             return
         else:
@@ -212,9 +218,16 @@ class GUI_create_novice():
                     self.btn_create.disabled = False
 
 
+    def _reset_grid_widget(self):
+        cv_grid = ConfigVar.vdict['GRID']
+        cv_grid.widget.value = ''
+        cv_grid.widget.options = []
+        cv_grid.widget.placeholder = '(Finalize Compset First.)'
+        cv_grid.widget.disabled = True
+        self._reset_case_create()
+
     def _update_grid_widget(self, change):
 
-        new_compset_lname = None
         if change == None:
             return
         else:
@@ -225,14 +238,18 @@ class GUI_create_novice():
                 new_compset = change['old']['value']
                 if len(new_compset)==0 or ':' not in new_compset:
                     return
-                new_compset_lname = new_compset.split(':')[1].strip()
+
+        new_compset_alias = new_compset.split(':')[0].strip()
+        new_compset_lname = new_compset.split(':')[1].strip()
 
         cv_grid = ConfigVar.vdict['GRID']
-        if new_compset_lname==None:
-            cv_grid.widget.disabled = True
-            cv_grid.widget.placeholder = '(Finalize Compset First.)'
+        compatible_grids = []
+        if self.scientific_only_widget.value == True:
+            for alias, lname, sci_supported_grid in self._available_compsets:
+                if new_compset_alias == alias:
+                    compatible_grids = sci_supported_grid
+                    break
         else:
-            compatible_grids = []
             for alias, compset_attr, not_compset_attr in self.ci.model_grids:
                 if compset_attr and not re.search(compset_attr, new_compset_lname):
                     continue
@@ -240,14 +257,19 @@ class GUI_create_novice():
                     continue
                 compatible_grids.append(alias)
 
-            if len(compatible_grids)==0:
-                cv_grid.widget.disabled = True
-                cv_grid.widget.placeholder = 'No compatible grids. Change COMPSET.'
+        if len(compatible_grids)==0:
+            cv_grid.widget.disabled = True
+            cv_grid.widget.placeholder = 'No compatible grids. Change COMPSET.'
+        else:
+            ngrids = len(compatible_grids)
+            cv_grid.widget.disabled = False
+            cv_grid.widget.placeholder = 'Select from {} compatible grids'.format(ngrids)
+            cv_grid.widget.options = compatible_grids
+            if ngrids==1:
+                cv_grid.widget.value = compatible_grids[0]
+                self._update_case_create({'old':{'value':cv_grid.widget.value}})
             else:
-                cv_grid.widget.disabled = False
-                cv_grid.widget.placeholder = 'Select from {} compatible grids'.format(len(compatible_grids))
                 cv_grid.widget.value = ''
-                cv_grid.widget.options = compatible_grids
 
 
     def _create_case(self, b):
@@ -274,7 +296,10 @@ class GUI_create_novice():
 
     def _construct_all_widget_observances(self):
 
-        self.search_widget.on_click(self._update_compsets)
+        self.scientific_only_widget.observe(
+            self._update_compsets,
+            names='value'
+        )
 
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget.observe(
@@ -321,7 +346,7 @@ class GUI_create_novice():
         vbx_filter.layout.border = '2px dotted lightgray'
 
         vbx_create_case = widgets.VBox([
-            self.support_level_widget,
+            self.scientific_only_widget,
             widgets.Label(''),
             widgets.Label(value="Filter Compsets:"),
             vbx_filter,
