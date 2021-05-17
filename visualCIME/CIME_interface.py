@@ -1,5 +1,6 @@
 import os, sys
 import re
+from collections import namedtuple
 
 # import CIME -----------------------------------------------------------
 CIMEROOT = "/glade/work/altuntas/cesm.sandboxes/cesm2.2.0_simple/cime"
@@ -19,6 +20,8 @@ from CIME.YML.compliances           import Compliances
 
 import logging
 logger = logging.getLogger(__name__)
+
+Compset = namedtuple('Compset', ['alias', 'lname', 'sci_supported_grids'])
 
 class CIME_interface():
     """CIME_interface class is an interface from VisualCIME to conventional CIME.
@@ -201,6 +204,10 @@ class CIME_interface():
                 c = Compsets(compsets_filename)
                 compsets_xml = c.get_children("compset")
                 for compset in compsets_xml:
+                    sci_supported_grids = []
                     alias  = c.text(c.get_child("alias", root=compset))
                     lname  = c.text(c.get_child("lname", root=compset))
-                    self.compsets[component].append((alias,lname))
+                    science_support_nodes = c.get_children("science_support", root=compset)
+                    for snode in science_support_nodes:
+                        sci_supported_grids.append(c.get(snode,"grid"))
+                    self.compsets[component].append(Compset(alias,lname, sci_supported_grids))
