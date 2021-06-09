@@ -3,8 +3,9 @@ import re
 from collections import namedtuple
 
 # import CIME -----------------------------------------------------------
-CIMEROOT = "/glade/work/altuntas/cesm.sandboxes/cesm2.2.0_simple/cime"
-sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
+CIMEROOT = os.path.join(filepath, "../../Tools")
+sys.path.append(os.path.join(CIMEROOT))
 
 from standard_script_setup import *
 from CIME.case import Case
