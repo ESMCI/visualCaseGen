@@ -4,8 +4,8 @@ from collections import namedtuple
 
 # import CIME -----------------------------------------------------------
 filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
-CIMEROOT = os.path.join(filepath, "../../Tools")
-sys.path.append(os.path.join(CIMEROOT))
+CIMEROOT = os.path.join(filepath, "../../../")
+sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
 from CIME.case import Case
