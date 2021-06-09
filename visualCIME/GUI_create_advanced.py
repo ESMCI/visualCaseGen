@@ -245,10 +245,10 @@ class GUI_create_advanced():
                 return
 
             logger.debug("Updating the physics of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.widget.value))
-            comp_phys, comp_phys_desc, comp_options_desc = [], [], []
+            comp_phys, comp_phys_desc = [], []
             if cv_comp.widget.value != None:
                 model = ConfigVar.strip_option_status(cv_comp.widget.value)
-                comp_phys, _, comp_phys_desc, comp_options_desc, _ = self.ci.phys_opt[model]
+                comp_phys, comp_phys_desc = self.ci.comp_phys[model]
 
             if len(comp_phys)==0 and cv_comp.widget.value != None:
                 comp_phys = [cv_comp.widget.value.upper()]
@@ -281,18 +281,17 @@ class GUI_create_advanced():
 
         cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
         logger.debug("Updating the options of {} for phys={}".format(comp_class, cv_comp_phys.widget.value))
-        comp_phys_val = ConfigVar.strip_option_status(cv_comp_phys.widget.value)
-        if comp_phys_val != None:
+        new_phys_stripped = ConfigVar.strip_option_status(new_phys)
+        if new_phys_stripped != None:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             model = ConfigVar.strip_option_status(cv_comp.widget.value)
-            _, comp_options, _, comp_options_desc, comp_phys_options = self.ci.phys_opt[model]
+            comp_options, comp_options_desc = self.ci.comp_options[model][new_phys_stripped]
 
-        comp_options = ['(none)'] + comp_options
-        #comp_options_desc = ['(none)'] + comp_options_desc
+            comp_options = ['(none)'] + comp_options
+            comp_options_desc = ['(none)'] + comp_options_desc
 
-        cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-        #cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
-        cv_comp_option.update_options(new_options=comp_options)
+            cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
+            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
 
 
     @owh.out.capture()

@@ -52,7 +52,8 @@ class CIME_interface():
         self.driver = driver            # nuopc or mct
         self.comp_classes = None        # ATM, ICE, etc.
         self.models = dict()            # cam, cice, etc.
-        self.phys_opt = dict()          # component physics (CAM50, CAM60, etc.) and options(4xCO2, 1PCT, etc.)
+        self.comp_phys = dict()         # component physics (CAM50, CAM60, etc.)
+        self.comp_options = dict()      # component options(4xCO2, 1PCT, etc.)
         self.model_grids = dict()       # model grids (alias, compset, not_compset)
         self.compsets = dict()          # compsets defined at each component
         self._files = None
@@ -112,9 +113,9 @@ class CIME_interface():
         desc_nodes = compobj.get_children("desc", root=rootnode)
 
         comp_physics = [] # e.g., CAM60, CICE6, etc.
-        comp_options = [] # e.g., %SCAM, %ECO, etc.
+        comp_all_options = [] # e.g., %SCAM, %ECO, etc.
         comp_physics_desc = []
-        comp_options_desc = []
+        comp_options_desc = dict()
         comp_physics_options = dict() # available options for each component physics
 
         # Go through description entries in config_component.xml nd extract component physics and options:
@@ -125,20 +126,50 @@ class CIME_interface():
             if description[-1]==':':
                 description = description[:-1]
             if physics:
-                words = re.findall( r'\b\w+\b',physics)
+                opts = re.findall( r'\[%(.*?)\]',physics)
                 if '[%' in physics:
                     physics = physics.split('[%')[0]
                 if len(physics)>0:
                     comp_physics.append(physics)
-                    if len(words)>1:
-                        comp_physics_options[physics] = words[1:]
+                    if len(opts)>0:
+                        comp_physics_options[physics] = opts
+                if physics == "CAM[456]0%SCAM": # todo: generalize this instance and get rid of special workaround.
+                    comp_physics_options["CAM40"].append("SCAM")
+                    comp_physics_options["CAM50"].append("SCAM")
+                    comp_physics_options["CAM60"].append("SCAM")
+                    comp_options_desc["SCAM"] = description
+                if len(opts)==1:
+                    # if only one option is provided in a physics description, then store the option description.
+                    comp_options_desc[opts[0]] = description
                 comp_physics_desc.append("{}: {}".format(physics, description))
             elif option:
                 option = option.strip()
-                comp_options.append(option)
-                comp_options_desc.append("{}: {}".format(option, description))
+                comp_all_options.append(option)
+                comp_options_desc[option] = description
 
-        self.phys_opt[model] = comp_physics, comp_options, comp_physics_desc, comp_options_desc, comp_physics_options
+        # Model physics
+        self.comp_phys[model] = (comp_physics, comp_physics_desc)
+
+        # Model physics options
+        self.comp_options[model] = dict()
+        for phys in comp_physics:
+            # options are defined for this physics.
+            if phys in comp_physics_options:
+                phys_descriptions = []
+                for opt in comp_physics_options[phys]:
+                    if opt in comp_options_desc:
+                        phys_descriptions.append(comp_options_desc[opt])
+                    else:
+                        phys_descriptions.append('no description')
+                self.comp_options[model][phys] = (
+                    comp_physics_options[phys], # phys options
+                    phys_descriptions # phys options descriptions
+                )
+            else: # no options defined for this model physics, so list all model options.
+                self.comp_options[model][phys] = (
+                    comp_all_options,
+                    [comp_options_desc[opt] for opt in comp_all_options] # all option descriptions
+                )
 
     def _retrieve_models(self, comp_class):
         """ Retrieves the available models of a given component class. Retrieved models
