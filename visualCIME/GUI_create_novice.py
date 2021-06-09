@@ -203,7 +203,6 @@ class GUI_create_novice():
 
     def _update_case_create(self, change):
 
-        cv_casename = ConfigVar.vdict['CASENAME']
         self._reset_case_create()
         if change == None:
             return
@@ -214,6 +213,7 @@ class GUI_create_novice():
             else:
                 new_grid = change['old']['value']
                 if new_grid and len(new_grid)>0:
+                    cv_casename = ConfigVar.vdict['CASENAME']
                     cv_casename.widget.disabled = False
                     self.btn_create.disabled = False
 

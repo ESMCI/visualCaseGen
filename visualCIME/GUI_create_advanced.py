@@ -130,7 +130,7 @@ class GUI_create_advanced():
             placeholder='Type case name',
             description='Case name:',
             disabled=True,
-            layout=widgets.Layout(height='30px', width='400px')
+            layout=widgets.Layout(height='30px', width='500px')
         )
 
         #Create Case:
@@ -142,30 +142,6 @@ class GUI_create_advanced():
             tooltip='Description',
             icon='check',
             layout=widgets.Layout(height='30px')
-        )
-        self.btn_setup = widgets.Button(
-            value=False,
-            description='setup',
-            disabled=True,
-            button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Description',
-            layout=widgets.Layout(height='30px', width='80px')
-        )
-        self.btn_build = widgets.Button(
-            value=False,
-            description='build',
-            disabled=True,
-            button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Description',
-            layout=widgets.Layout(height='30px', width='80px')
-        )
-        self.btn_submit = widgets.Button(
-            value=False,
-            description='submit',
-            disabled=True,
-            button_style='warning', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Description',
-            layout=widgets.Layout(height='30px', width='80px')
         )
 
         self.create_case_out = widgets.Output(
@@ -224,11 +200,9 @@ class GUI_create_advanced():
 
             if len(compatible_grids)==0:
                 cv_grid.widget.disabled = True
-                cv_grid.widget.description = 'Compatible Grids:'
                 cv_grid.widget.placeholder = 'No compatible grids. Change COMPSET.'
             else:
                 cv_grid.widget.disabled = False
-                cv_grid.widget.description = 'Compatible Grids:'
                 cv_grid.widget.placeholder = 'Select from {} compatible grids'.format(len(compatible_grids))
                 cv_grid.widget.value = ''
                 cv_grid.widget.options = compatible_grids
@@ -297,18 +271,18 @@ class GUI_create_advanced():
     @owh.out.capture()
     def _update_compset(self,change=None):
         cv_compset = ConfigVar.vdict['COMPSET']
-        cv_grid = ConfigVar.vdict['GRID']
         compset_text = ConfigVar.vdict['INITTIME'].get_value()
         for comp_class in self.ci.comp_classes:
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-            cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
             comp_phys_val = cv_comp_phys.get_value()
-            comp_option_val = cv_comp_option.get_value()
             if comp_phys_val != None:
                 compset_text += '_'+comp_phys_val
+                cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
+                comp_option_val = cv_comp_option.get_value()
                 if comp_option_val != None and comp_option_val != '(none)':
                     compset_text += '%'+comp_option_val
             else:
+                # display warning
                 cv_compset.widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
                 self._update_grid_widget()
                 return
@@ -317,20 +291,22 @@ class GUI_create_advanced():
         self._update_grid_widget(compset_text)
         self.compset_text = compset_text
 
-    def _update_case_create(self,change):
+    def _reset_case_create(self):
         cv_casename = ConfigVar.vdict['CASENAME']
-        if 'new' in change:
-            if 'value' in change['new']:
-                value = change['new']['value']
-                if isinstance(value,str) and len(value)>0:
-                    cv_casename.widget.disabled = False
-                    self.btn_create.disabled = False
-            else:
-                return
-        else:
-            cv_casename.widget.value = ''
-            cv_casename.widget.disabled = True
-            self.btn_create.disabled = True
+        cv_casename.widget.value = ""
+        cv_casename.widget.disabled = True
+        self.btn_create.disabled = True
+
+    def _update_case_create(self,change):
+
+        assert change['name'] == 'value'
+        self._reset_case_create()
+        new_grid = change['new']
+        print(new_grid)
+        if new_grid and len(new_grid)>0:
+            cv_casename = ConfigVar.vdict['CASENAME']
+            cv_casename.widget.disabled = False
+            self.btn_create.disabled = False
 
     def _create_case(self, b):
 
@@ -427,7 +403,7 @@ class GUI_create_advanced():
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.widget.observe(
             self._update_case_create,
-            names='_property_lock',
+            names='value',
             type='change'
         )
 
@@ -465,8 +441,7 @@ class GUI_create_advanced():
             cv_casename = ConfigVar.vdict['CASENAME']
 
             #Component options:
-            hbx_case = widgets.HBox([cv_casename.widget, self.btn_create, self.btn_setup, self.btn_build,
-                                    self.btn_submit])
+            hbx_case = widgets.HBox([cv_casename.widget, self.btn_create])
             return hbx_case
         ## END -- functions to determine the GUI layout
 
