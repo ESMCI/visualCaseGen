@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 Compset = namedtuple('Compset', ['alias', 'lname', 'sci_supported_grids'])
 
 class CIME_interface():
-    """CIME_interface class is an interface from VisualCIME to conventional CIME.
+    """CIME_interface class is an interface from visualCaseGen to conventional CIME.
 
     CIME_interface provides several attributes (data members) as listed below. All CIME_interface methods are intended
     to be called within __init__().

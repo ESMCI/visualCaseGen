@@ -1,7 +1,7 @@
 import logging
 import ipywidgets as widgets
-from visualCIME.visualCIME.DummyWidget import DummyWidget
-from visualCIME.visualCIME.OutHandler import handler as owh
+from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
+from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 

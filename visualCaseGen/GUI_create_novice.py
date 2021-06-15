@@ -2,8 +2,8 @@ import os, sys, re
 import ipywidgets as widgets
 import subprocess
 
-from visualCIME.visualCIME.ConfigVar import ConfigVar
-from visualCIME.visualCIME.OutHandler import handler as owh
+from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
+from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
 logger = logging.getLogger(__name__)
