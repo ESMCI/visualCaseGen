@@ -1,7 +1,8 @@
 # visualCaseGen - Quickstart
 
 ## 0. Prerequisites:
-Make sure that you have Jupyter Notebook installed and CESM ported. Below instructions are for Mac/Linux users.
+Make sure that you have the following packages installed and CESM ported. Note: Below instructions are for Mac/Linux users.
+- Jupyter**Lab**, ipywidgets, PyYAML
 
 ## 1. Installation:
 Check out the specific CESM version that includes visualCaseGen by running the following commands in a terminal:
@@ -15,7 +16,7 @@ Note: To be able to run the GUI on cheyenne/casper JupyterLab, run the above com
 
 ## 2. Running the GUI
 
-- Launch Jupyter Lab and open the following notebook:
+- Launch JupyterLab and open the following notebook:
 ```cesm/cime/scripts/GUI.ipynb```
 
 - Execute the first (and only) cell in the notebook, which should look like:
