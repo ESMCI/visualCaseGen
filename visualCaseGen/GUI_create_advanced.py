@@ -302,7 +302,6 @@ class GUI_create_advanced():
         assert change['name'] == 'value'
         self._reset_case_create()
         new_grid = change['new']
-        print(new_grid)
         if new_grid and len(new_grid)>0:
             cv_casename = ConfigVar.vdict['CASENAME']
             cv_casename.widget.disabled = False
