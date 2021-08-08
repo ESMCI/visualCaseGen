@@ -116,6 +116,15 @@ class GUI_create_novice():
         )
         cv_casename.widget.style.description_width = '120px'
 
+        self.drp_machines = widgets.Dropdown(
+            options=self.ci.machines,
+            value=self.ci.machine,
+            layout={'width': 'max-content'}, # If the items' names are long
+            description='Machine name',
+            disabled= (self.ci.machine != None)  
+        )
+        self.drp_machines.style.description_width = '120px'
+
         self.btn_create = widgets.Button(
             description='Create new case',
             disabled=True,
@@ -211,12 +220,26 @@ class GUI_create_novice():
                 # Change in owner not finalized yet. Do nothing for now.
                 return
             else:
-                new_grid = change['old']['value']
-                if new_grid and len(new_grid)>0:
-                    cv_casename = ConfigVar.vdict['CASENAME']
-                    cv_casename.widget.disabled = False
-                    self.btn_create.disabled = False
+                if self.drp_machines.value:
+                    new_grid = change['old']['value']
+                    if new_grid and len(new_grid)>0:
+                        cv_casename = ConfigVar.vdict['CASENAME']
+                        cv_casename.widget.disabled = False
+                        self.btn_create.disabled = False
 
+    def _call_update_case_create(self, change):
+        cv_grid = ConfigVar.vdict['GRID']
+        if cv_grid.widget.disabled:
+            return
+        if change == None:
+            return
+        else:
+            if change['old'] == {}:
+                # Change in owner not finalized yet. Do nothing for now.
+                return
+            else:
+                self._update_case_create({'old':{'value':cv_grid.widget.value}})
+ 
 
     def _reset_grid_widget(self):
         cv_grid = ConfigVar.vdict['GRID']
@@ -280,11 +303,12 @@ class GUI_create_novice():
         compset_alias = cv_compset.widget.value.split(':')[0]
         self.create_case_out.clear_output()
         with self.create_case_out:
-            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
+            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
                 self.ci.cimeroot,
                 cv_grid.widget.value,
                 compset_alias,
-                cv_casename.widget.value)
+                cv_casename.widget.value,
+                self.drp_machines.value)
             print("Running cmd: {}".format(cmd))
             runout = subprocess.run(cmd, shell=True, capture_output=True)
             if runout.returncode == 0:
@@ -331,6 +355,12 @@ class GUI_create_novice():
             type='change'
         )
 
+        self.drp_machines.observe(
+            self._call_update_case_create,
+            names='_property_lock',
+            type='change'
+        )
+
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
@@ -354,6 +384,7 @@ class GUI_create_novice():
             ConfigVar.vdict['COMPSET'].widget,
             ConfigVar.vdict['GRID'].widget,
             ConfigVar.vdict['CASENAME'].widget,
+            self.drp_machines,
             widgets.VBox([
                 widgets.Label(''),
                 widgets.HBox([self.btn_create])],
