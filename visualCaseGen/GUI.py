@@ -20,7 +20,18 @@ class GUI():
 
         @owh.out.capture()
         def confirm_prelim_clicked(b):
-            self.create_tab.children = [widgets.Label("Loading..."),]
+
+            loadbar = widgets.FloatProgress(
+                value=0.0,
+                min=0,
+                max=10.0,
+                description='Loading',
+                bar_style='info',
+                style={'bar_color': '#00ff00'},
+                orientation='horizontal'
+            )
+
+            self.create_tab.children = [loadbar,]
             self.vCIME.selected_index=1
             self.prelim_tab.driver_widget.disabled = True
             self.prelim_tab.config_mode.disabled = True
@@ -42,11 +53,11 @@ class GUI():
                 logging.getLogger().setLevel(logging.INFO)
 
             if config_mode=='predefined':
-                ci = CIME_interface(driver)
+                ci = CIME_interface(driver, loadbar)
                 w = GUI_create_novice(ci)
                 self.create_tab.children = [w.construct(),]
             elif config_mode=='custom':
-                ci = CIME_interface(driver)
+                ci = CIME_interface(driver, loadbar)
                 w = GUI_create_advanced(ci)
                 self.create_tab.children = [w.construct(),]
         self.prelim_tab.confirm_prelim_widget.on_click(confirm_prelim_clicked)

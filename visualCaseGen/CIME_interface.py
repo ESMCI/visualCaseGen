@@ -49,7 +49,7 @@ class CIME_interface():
         config variables.
     """
 
-    def __init__(self, driver):
+    def __init__(self, driver, loadbar=None):
         # data members
         self.driver = driver            # nuopc or mct
         self.comp_classes = None        # ATM, ICE, etc.
@@ -62,18 +62,29 @@ class CIME_interface():
         self.cimeroot = CIMEROOT
 
         # Call _retrieve* methods to populate the data members defined above
+
+        if loadbar: loadbar.value = 0.0
         self._retrieve_CIME_basics()
         for comp_class in self.comp_classes:
             self._retrieve_models(comp_class)
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class,model)
+
+        if loadbar: loadbar.value = 2.0
         self._retrieve_model_grids()
+
+        if loadbar: loadbar.value = 4.0
         self._retrieve_compsets()
+
+        if loadbar: loadbar.value = 6.0
         self._retrieve_machines()
 
         # Initialize the compliances instance
+        if loadbar: loadbar.value = 8.0
         self.compliances = Compliances.from_cime()
         self.compliances.unfold_compliances()
+
+        if loadbar: loadbar.value = 10.0
 
     def _retrieve_CIME_basics(self):
         """ Determine basic CIME variables and properties, including:
