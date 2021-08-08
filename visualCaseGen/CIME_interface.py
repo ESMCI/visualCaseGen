@@ -11,6 +11,7 @@ from standard_script_setup import *
 from CIME.case import Case
 from CIME.nmlgen import NamelistGenerator
 from CIME.utils import expect
+from CIME.XML.generic_xml           import GenericXML
 from CIME.XML.machines              import Machines
 from CIME.XML.pes                   import Pes
 from CIME.XML.files                 import Files
@@ -67,8 +68,8 @@ class CIME_interface():
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class,model)
         self._retrieve_model_grids()
-
         self._retrieve_compsets()
+        self._retrieve_machines()
 
         # Initialize the compliances instance
         self.compliances = Compliances.from_cime()
@@ -247,3 +248,21 @@ class CIME_interface():
                     for snode in science_support_nodes:
                         sci_supported_grids.append(c.get(snode,"grid"))
                     self.compsets[component].append(Compset(alias,lname, sci_supported_grids))
+
+    def _retrieve_machines(self):
+        machs_file = self._files.get_value("MACHINES_SPEC_FILE")
+        self.machine = None
+        try:
+            machines_obj = Machines(machs_file)
+            self.machine = machines_obj.machine
+            self.machines = machines_obj.list_available_machines()
+        except:
+            # CIME couldn't determine the machine. Set machine to None and manually determine the list of machines
+            machines_obj = GenericXML(machs_file)
+            self.machine = None
+            # list_available_machines
+            self.machines = []
+            nodes  = machines_obj.get_children("machine")
+            for node in nodes:
+                mach = machines_obj.get(node, "MACH")
+                self.machines.append(mach)
