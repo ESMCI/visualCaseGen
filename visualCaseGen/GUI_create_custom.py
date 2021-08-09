@@ -9,7 +9,7 @@ from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 import logging
 logger = logging.getLogger(__name__)
 
-class GUI_create_advanced():
+class GUI_create_custom():
 
     def __init__(self, ci):
         self.ci = ci

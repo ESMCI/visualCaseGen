@@ -8,7 +8,7 @@ from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 import logging
 logger = logging.getLogger(__name__)
 
-class GUI_create_novice():
+class GUI_create_predefined():
 
     def __init__(self, ci):
         self.ci = ci

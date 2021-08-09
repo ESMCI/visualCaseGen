@@ -5,8 +5,8 @@ from visualCaseGen.visualCaseGen import OutHandler
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.CIME_interface import CIME_interface
-from visualCaseGen.visualCaseGen.GUI_create_advanced import GUI_create_advanced
-from visualCaseGen.visualCaseGen.GUI_create_novice import GUI_create_novice
+from visualCaseGen.visualCaseGen.GUI_create_custom import GUI_create_custom
+from visualCaseGen.visualCaseGen.GUI_create_predefined import GUI_create_predefined
 from visualCaseGen.visualCaseGen.GUI_preliminaries import GUI_preliminaries
 
 import logging
@@ -54,11 +54,11 @@ class GUI():
 
             if config_mode=='predefined':
                 ci = CIME_interface(driver, loadbar)
-                w = GUI_create_novice(ci)
+                w = GUI_create_predefined(ci)
                 self.create_tab.children = [w.construct(),]
             elif config_mode=='custom':
                 ci = CIME_interface(driver, loadbar)
-                w = GUI_create_advanced(ci)
+                w = GUI_create_custom(ci)
                 self.create_tab.children = [w.construct(),]
         self.prelim_tab.confirm_prelim_widget.on_click(confirm_prelim_clicked)
 
