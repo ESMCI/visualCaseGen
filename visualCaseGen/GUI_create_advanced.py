@@ -132,6 +132,17 @@ class GUI_create_advanced():
             disabled=True,
             layout=widgets.Layout(height='30px', width='500px')
         )
+        cv_casename.widget.style.description_width = '100px'
+
+        # Machines
+        self.drp_machines = widgets.Dropdown(
+            options=self.ci.machines,
+            value=self.ci.machine,
+            layout={'width': 'max-content'}, # If the items' names are long
+            description='Machine name:',
+            disabled= (self.ci.machine != None)
+        )
+        self.drp_machines.style.description_width = '100px'
 
         #Create Case:
         self.btn_create = widgets.Button(
@@ -301,11 +312,26 @@ class GUI_create_advanced():
 
         assert change['name'] == 'value'
         self._reset_case_create()
-        new_grid = change['new']
-        if new_grid and len(new_grid)>0:
-            cv_casename = ConfigVar.vdict['CASENAME']
-            cv_casename.widget.disabled = False
-            self.btn_create.disabled = False
+        if self.drp_machines.value:
+            new_grid = change['new']
+            if new_grid and len(new_grid)>0:
+                cv_casename = ConfigVar.vdict['CASENAME']
+                cv_casename.widget.disabled = False
+                self.btn_create.disabled = False
+
+    def _call_update_case_create(self, change):
+        cv_grid = ConfigVar.vdict['GRID']
+        if cv_grid.widget.disabled:
+            return
+        if change == None:
+            return
+        else:
+            if change['old'] == {}:
+                # Change in owner not finalized yet. Do nothing for now.
+                return
+            else:
+                self._update_case_create({'name':'value', 'new':cv_grid.widget.value})
+
 
     def _create_case(self, b):
 
@@ -406,6 +432,12 @@ class GUI_create_advanced():
             type='change'
         )
 
+        self.drp_machines.observe(
+            self._call_update_case_create,
+            names='_property_lock',
+            type='change'
+        )
+
         self.btn_create.on_click(self._create_case)
 
     def construct(self):
@@ -456,6 +488,7 @@ class GUI_create_advanced():
             widgets.Label(value="Grids:"),
             _constr_hbx_grids(),
             widgets.Label(value=""),
+            self.drp_machines,
             _constr_hbx_case(),
             self.create_case_out
         ])
