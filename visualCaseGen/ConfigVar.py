@@ -27,7 +27,7 @@ class ConfigVar:
         if name in ConfigVar.vdict:
             logger.warning("ConfigVar {} already created.".format(name))
         self.name = name
-        self.widget = None
+        self.widget = DummyWidget()
         self.options_validity = []
         self.error_msgs = []
         self.never_unset = never_unset # once the widget value is set, don't unset it
@@ -37,6 +37,28 @@ class ConfigVar:
     def reset():
         logger.debug("Resetting ConfigVar vdict.")
         ConfigVar.vdict = dict()
+
+    def exists(varname):
+        """ Check if a variable is already defined."""
+        return varname in ConfigVar.vdict
+
+    @property
+    def value(self):
+        return self.widget.value
+
+    @value.setter
+    def value(self, val):
+        if self.options != None and val not in self.options:
+            raise ValueError("{} is an invalid option for {}. Valid options: {}".format(val, self.name, self.options))
+        self.widget.value = val
+
+    @property
+    def options(self):
+        return self.widget.options
+
+    @options.setter
+    def options(self, opts):
+        self.widget.options = opts
 
     @staticmethod
     def _opt_prefixed_with_status(option):
