@@ -3,6 +3,7 @@ import argparse
 import os, sys
 import cmd
 import re
+import readline
 
 pth = os.path.dirname(os.path.dirname(os.path.dirname(os.path.join(os.path.abspath(__file__)))))
 sys.path.append(pth)
@@ -61,6 +62,13 @@ class cmdCaseGen(cmd.Cmd):
                 if val:
                     print("{}={}".format(var,val))
 
+    def completenames(self, text, *ignored):
+        complete_list = []
+        for varname in ConfigVar.vdict:
+            if varname.startswith(text.strip()):
+                complete_list.append(varname)
+        return complete_list
+
     def default(self, line):
         if re.search(r'\b\w+\b *= *\b\w+\b', line):
             # key=value pair, i.e., an assignment
@@ -96,7 +104,7 @@ class cmdCaseGen(cmd.Cmd):
         self.close()
         return True
        
-    def do_x(self, arg):
+    def do_EOF(self, arg):
         """Close the command line interface"""
         return self.do_exit(arg)
        
