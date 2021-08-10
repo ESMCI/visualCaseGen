@@ -24,7 +24,7 @@ class cmdCaseGen(cmd.Cmd):
     intro = "\nWelcome to the cmdCaseGen command shell. Type help or ? to list commands."
     prompt = "(cmd) "
     file = None
-    
+
     def __init__(self, driver):
         cmd.Cmd.__init__(self)
         self.ci = CIME_interface(driver)
@@ -53,12 +53,12 @@ class cmdCaseGen(cmd.Cmd):
         if arg in ['-a', 'a', '-all', 'all']:
             # list all variables
             for var in ConfigVar.vdict:
-                val = ConfigVar.vdict[var].value 
+                val = ConfigVar.vdict[var].value
                 print("{}={}".format(var,val))
         else:
             # list set variables only
             for var in ConfigVar.vdict:
-                val = ConfigVar.vdict[var].value 
+                val = ConfigVar.vdict[var].value
                 if val:
                     print("{}={}".format(var,val))
 
@@ -68,6 +68,19 @@ class cmdCaseGen(cmd.Cmd):
             if varname.startswith(text.strip()):
                 complete_list.append(varname)
         return complete_list
+
+    def completedefault(self, text, line, begidx, endidx):
+        if '=' in line:
+            sline = line.split('=')
+            varname = sline[0].strip()
+            if ConfigVar.exists(varname):
+                val_begin = sline[1].strip()
+                if val_begin:
+                    return [opt for opt in ConfigVar.vdict[varname].options if opt.startswith(val_begin)]
+                else:
+                    return ConfigVar.vdict[varname].options
+        return []
+
 
     def default(self, line):
         if re.search(r'\b\w+\b *= *\b\w+\b', line):
@@ -97,17 +110,21 @@ class cmdCaseGen(cmd.Cmd):
         if self.file:
             self.file.close()
             self.file = None
-            
+
     def do_exit(self, arg):
         """Close the command line interface"""
         print('Closing cmdCaseGen command shell')
         self.close()
         return True
-       
+
+    def do_x(self, arg):
+        """Close the command line interface"""
+        return self.do_exit(arg)
+
     def do_EOF(self, arg):
         """Close the command line interface"""
         return self.do_exit(arg)
-       
+
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.WARNING)
