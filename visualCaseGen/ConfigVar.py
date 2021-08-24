@@ -46,6 +46,10 @@ class ConfigVar:
     def value(self):
         return self.widget.value
 
+    @property
+    def assertions(self):
+        return self.compliances.assertions(self.name)
+
     @value.setter
     def value(self, val):
         if self.options != None and val not in self.options:
@@ -128,7 +132,7 @@ class ConfigVar:
             if ConfigVar.value_is_valid(option):
                 self.widget.value = option
                 if inform_related_vars:
-                    for assertion in self.compliances.assertions(self.name):
+                    for assertion in self.assertions:
                         for var_other in set(assertion.variables)-{self.name}:
                             ConfigVar.vdict[var_other].update_options_validity()
                 return
@@ -136,7 +140,7 @@ class ConfigVar:
 
     @owh.out.capture()
     def observe_value_validity(self):
-        if len(self.compliances.assertions(self.name))>0:
+        if len(self.assertions)>0:
             logger.debug("Observing value validity for ConfigVar {}".format(self.name))
             self.widget.observe(
                 self._check_selection_validity,
@@ -145,7 +149,7 @@ class ConfigVar:
 
     @owh.out.capture()
     def unobserve_value_validity(self):
-        if len(self.compliances.assertions(self.name))>0:
+        if len(self.assertions)>0:
             logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
             self.widget.unobserve(
                 self._check_selection_validity,
@@ -200,7 +204,7 @@ class ConfigVar:
 
 
             status, errMsg = True, ''
-            for assertion in self.compliances.assertions(self.name):
+            for assertion in self.assertions:
                 try:
                     self.compliances.check_assertion(
                         assertion,
