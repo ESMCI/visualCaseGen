@@ -33,6 +33,8 @@ class cmdCaseGen(cmd.Cmd):
 
     def _init_configvars(self):
 
+        ConfigVar.compliances = self.ci.compliances
+
         cv_inittime = ConfigVar('INITTIME')
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar('COMP_'+str(comp_class))
@@ -105,6 +107,17 @@ class cmdCaseGen(cmd.Cmd):
                 logger.error("{} is not a variable name or a command".format(varname))
         else:
             logger.error("Unknown syntax! Provide a key=value pair where key is a ConfigVar, e.g., COMP_OCN")
+
+    def do_assertions(self, line):
+        """ list the assertions of a given variable. """
+        if not re.search(r'^ *\b\w+ *$', line.strip()):
+            logger.error("Must provide a variable name.")
+            return
+        varname = line.strip()
+        if ConfigVar.exists(varname):
+            print(ConfigVar.vdict[varname].assertions)
+        else:
+            logger.error("{} not a valid variable name".format(varname))
 
     def close(self):
         if self.file:
