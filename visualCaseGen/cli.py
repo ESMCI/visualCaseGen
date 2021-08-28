@@ -25,11 +25,19 @@ class cmdCaseGen(cmd.Cmd):
     prompt = "(cmd) "
     file = None
 
-    def __init__(self, driver):
+    def __init__(self, driver, exit_on_error=False):
         cmd.Cmd.__init__(self)
+        ConfigVar.reset()
         self.ci = CIME_interface(driver)
         self._init_configvars()
         self._init_options()
+        self._exit_on_error = exit_on_error
+
+    def printError(self, msg):
+        if self._exit_on_error:
+            sys.exit("ERROR: "+msg)
+        else:
+            logger.error(msg)
 
     def _init_configvars(self):
 
@@ -46,12 +54,14 @@ class cmdCaseGen(cmd.Cmd):
         cv_casename = ConfigVar('CASENAME')
 
     def _init_options(self):
+        pass
+        #ConfigVar['INITTIME'].options = ['1850', '2000', 'HIST']
 
-        ConfigVar('INITTIME').options = ['1850', '2000', 'HIST']
 
-
-    def do_ls(self, arg):
-        """lists all ConfigVars"""
+    def do_vars(self, arg):
+        """
+        vars: list assigned ConfigVars.
+        vars -a: list all ConfigVars."""
         if arg in ['-a', 'a', '-all', 'all']:
             # list all variables
             for var in ConfigVar.vdict:
@@ -85,6 +95,8 @@ class cmdCaseGen(cmd.Cmd):
 
 
     def default(self, line):
+        """The default user input is variable assignment, i.e., key=value where key is a ConfigVar name
+        and value is a valid value for the ConfigVar."""
         if re.search(r'\b\w+\b *= *\b\w+\b', line):
             # key=value pair, i.e., an assignment
             sline = line.split('=')
@@ -94,30 +106,31 @@ class cmdCaseGen(cmd.Cmd):
                 try:
                     ConfigVar.vdict[varname].value = val
                 except Exception as e:
-                    logger.error("{}".format(e))
+                    self.printError("{}".format(e))
             else:
-                logger.error("Cannot find the variable {}. To list all variables, type: ls -a".format(varname))
+                self.printError("Cannot find the variable {}. To list all variables, type: ls -a".format(varname))
         elif re.search(r'^ *\b\w+ *$', line):
             # single word, i.e., a value inquiry
             varname = line.strip()
             if ConfigVar.exists(varname):
                 val = ConfigVar.vdict[varname].value
-                print("{} = {}".format(varname,val))
+                #print("{} = {}".format(varname,val))
+                print("{}".format(val))
             else:
-                logger.error("{} is not a variable name or a command".format(varname))
+                self.printError("{} is not a variable name or a command".format(varname))
         else:
-            logger.error("Unknown syntax! Provide a key=value pair where key is a ConfigVar, e.g., COMP_OCN")
+            self.printError("Unknown syntax! Provide a key=value pair where key is a ConfigVar, e.g., COMP_OCN")
 
     def do_assertions(self, line):
-        """ list the assertions of a given variable. """
+        """assertions [VARNAME]: list all assertions of the given variable [VARNAME]"""
         if not re.search(r'^ *\b\w+ *$', line.strip()):
-            logger.error("Must provide a variable name.")
+            self.printError("Must provide a variable name.")
             return
         varname = line.strip()
         if ConfigVar.exists(varname):
             print(ConfigVar.vdict[varname].assertions)
         else:
-            logger.error("{} not a valid variable name".format(varname))
+            self.printError("{} not a valid variable name".format(varname))
 
     def close(self):
         if self.file:
@@ -125,17 +138,17 @@ class cmdCaseGen(cmd.Cmd):
             self.file = None
 
     def do_exit(self, arg):
-        """Close the command line interface"""
+        """Close the command line interface."""
         print('Closing cmdCaseGen command shell')
         self.close()
         return True
 
     def do_x(self, arg):
-        """Close the command line interface"""
+        """Close the command line interface."""
         return self.do_exit(arg)
 
     def do_EOF(self, arg):
-        """Close the command line interface"""
+        """Close the command line interface."""
         return self.do_exit(arg)
 
 
