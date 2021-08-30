@@ -44,7 +44,11 @@ class ConfigVar:
 
     @property
     def value(self):
-        return self.widget.value
+        assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
+        if self.widget.value!=None and ConfigVar._opt_prefixed_with_status(self.widget.value):
+            return self.widget.value[1:].strip()
+        else:
+            return self.widget.value
 
     @property
     def assertions(self):
@@ -110,13 +114,6 @@ class ConfigVar:
     @owh.out.capture()
     def get_options_validity_icons(self):
         return [valid_opt_icon if valid else invalid_opt_icon for valid in self.options_validity]
-
-    def get_value(self):
-        assert self.widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if self.widget.value!=None and ConfigVar._opt_prefixed_with_status(self.widget.value):
-            return self.widget.value[1:].strip()
-        else:
-            return self.widget.value
 
     def get_value_index(self):
         if self.widget.value == None:
@@ -190,14 +187,14 @@ class ConfigVar:
             assert option.split()[0] not in [valid_opt_icon, invalid_opt_icon]
 
             def _instance_val_getter(cvName):
-                val = ConfigVar.vdict[cvName].get_value()
+                val = ConfigVar.vdict[cvName].value
                 if val == None:
                     val = "None"
                 return val
             def _instance_val_getter_opt(cvName):
                 if cvName == self.name:
                     return option
-                val = ConfigVar.vdict[cvName].get_value()
+                val = ConfigVar.vdict[cvName].value
                 if val == None:
                     val = "None"
                 return val

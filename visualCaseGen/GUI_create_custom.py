@@ -186,7 +186,7 @@ class GUI_create_custom():
                 ConfigVar.vdict['WAV_GRID'].widget.value = comp_grid_dict['w%']
 
                 def _instance_val_getter(cvName):
-                    val = ConfigVar.vdict[cvName].get_value()
+                    val = ConfigVar.vdict[cvName].value
                     if val == None:
                         val = "None"
                     return val
@@ -282,14 +282,14 @@ class GUI_create_custom():
     @owh.out.capture()
     def _update_compset(self,change=None):
         cv_compset = ConfigVar.vdict['COMPSET']
-        compset_text = ConfigVar.vdict['INITTIME'].get_value()
+        compset_text = ConfigVar.vdict['INITTIME'].value
         for comp_class in self.ci.comp_classes:
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-            comp_phys_val = cv_comp_phys.get_value()
+            comp_phys_val = cv_comp_phys.value
             if comp_phys_val != None:
                 compset_text += '_'+comp_phys_val
                 cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
-                comp_option_val = cv_comp_option.get_value()
+                comp_option_val = cv_comp_option.value
                 if comp_option_val != None and comp_option_val != '(none)':
                     compset_text += '%'+comp_option_val
             else:
