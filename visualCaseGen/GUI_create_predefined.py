@@ -2,7 +2,7 @@ import os, sys, re
 import ipywidgets as widgets
 import subprocess
 
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
+from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar, ConfigVarOpt
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
@@ -21,10 +21,10 @@ class GUI_create_predefined():
     def _init_configvars(self):
 
         for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVar('COMP_{}'.format(comp_class))
+            cv_comp = ConfigVarOpt('COMP_{}'.format(comp_class))
 
-        cv_compset = ConfigVar('COMPSET')
-        cv_grid = ConfigVar('GRID')
+        cv_compset = ConfigVarOpt('COMPSET')
+        cv_grid = ConfigVarOpt('GRID')
         cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
@@ -66,8 +66,8 @@ class GUI_create_predefined():
                 disabled=False,
                 layout=widgets.Layout(width='100px', max_height='120px')
             )
-            cv_comp.widget.style.button_width = '80px'
-            cv_comp.widget.style.description_width = '0px'
+            cv_comp.widget_style.button_width = '80px'
+            cv_comp.widget_style.description_width = '0px'
 
         self.keywords_widget = widgets.Textarea(
             value = '',
@@ -94,7 +94,7 @@ class GUI_create_predefined():
             disabled=True,
             layout=widgets.Layout(width='650px')
         )
-        cv_compset.widget.style.description_width = '120px'
+        cv_compset.widget_style.description_width = '120px'
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.widget = widgets.Combobox(
@@ -104,7 +104,7 @@ class GUI_create_predefined():
              disabled=True,
              layout=widgets.Layout(width='650px')
         )
-        cv_grid.widget.style.description_width = '120px'
+        cv_grid.widget_style.description_width = '120px'
 
         cv_casename = ConfigVar.vdict['CASENAME']
         cv_casename.widget = widgets.Textarea(
@@ -114,14 +114,14 @@ class GUI_create_predefined():
             disabled=True,
             layout=widgets.Layout(height='30px', width='400px')
         )
-        cv_casename.widget.style.description_width = '120px'
+        cv_casename.widget_style.description_width = '120px'
 
         self.drp_machines = widgets.Dropdown(
             options=self.ci.machines,
             value=self.ci.machine,
             layout={'width': 'max-content'}, # If the items' names are long
             description='Machine name',
-            disabled= (self.ci.machine != None)  
+            disabled= (self.ci.machine != None)
         )
         self.drp_machines.style.description_width = '120px'
 
@@ -142,7 +142,7 @@ class GUI_create_predefined():
 
         # First, reset both the compset and the grid widgets:
         cv_compset = ConfigVar.vdict['COMPSET']
-        cv_compset.widget.value = ''
+        cv_compset.value = ''
         self._reset_grid_widget()
 
         # Now, determine all available compsets
@@ -162,7 +162,7 @@ class GUI_create_predefined():
         filter_compsets = []
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            filter_compsets.append((comp_class,cv_comp.widget.value))
+            filter_compsets.append((comp_class,cv_comp.value))
 
 
         new_available_compsets = []
@@ -200,14 +200,15 @@ class GUI_create_predefined():
 
         available_compsets_str = ['{}: {}'.format(ac.alias, ac.lname) for ac in self._available_compsets]
 
-        cv_compset.widget.options = available_compsets_str
-        cv_compset.widget.placeholder = 'Select from {} available compsets'.format(len(cv_compset.widget.options))
-        cv_compset.widget.disabled = False
+        cv_compset.options = available_compsets_str
+        cv_compset.set_widget_properties({
+            'placeholder': 'Select from {} available compsets'.format(len(cv_compset.options)),
+            'disabled': False })
 
     def _reset_case_create(self):
         cv_casename = ConfigVar.vdict['CASENAME']
-        cv_casename.widget.value = ""
-        cv_casename.widget.disabled = True
+        cv_casename.value = ""
+        cv_casename.set_widget_properties({'disabled':True})
         self.btn_create.disabled = True
 
     def _update_case_create(self, change):
@@ -224,12 +225,12 @@ class GUI_create_predefined():
                     new_grid = change['old']['value']
                     if new_grid and len(new_grid)>0:
                         cv_casename = ConfigVar.vdict['CASENAME']
-                        cv_casename.widget.disabled = False
+                        cv_casename.set_widget_properties({'disabled':False})
                         self.btn_create.disabled = False
 
     def _call_update_case_create(self, change):
         cv_grid = ConfigVar.vdict['GRID']
-        if cv_grid.widget.disabled:
+        if cv_grid.get_widget_property('disabled') == True:
             return
         if change == None:
             return
@@ -238,15 +239,17 @@ class GUI_create_predefined():
                 # Change in owner not finalized yet. Do nothing for now.
                 return
             else:
-                self._update_case_create({'old':{'value':cv_grid.widget.value}})
- 
+                self._update_case_create({'old':{'value':cv_grid.value}})
+
 
     def _reset_grid_widget(self):
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.widget.value = ''
-        cv_grid.widget.options = []
-        cv_grid.widget.placeholder = '(Finalize Compset First.)'
-        cv_grid.widget.disabled = True
+        cv_grid.value = ''
+        cv_grid.options = []
+        cv_grid.set_widget_properties({
+            'placeholder': '(Finalize Compset First.)',
+            'disabled': True
+        })
         self._reset_case_create()
 
     def _update_grid_widget(self, change):
@@ -281,18 +284,22 @@ class GUI_create_predefined():
                 compatible_grids.append(alias)
 
         if len(compatible_grids)==0:
-            cv_grid.widget.disabled = True
-            cv_grid.widget.placeholder = 'No compatible grids. Change COMPSET.'
+            cv_grid.set_widget_properties({
+                'placeholder': 'No compatible grids. Change COMPSET.',
+                'disabled': True
+            })
         else:
             ngrids = len(compatible_grids)
-            cv_grid.widget.disabled = False
-            cv_grid.widget.placeholder = 'Select from {} compatible grids'.format(ngrids)
-            cv_grid.widget.options = compatible_grids
+            cv_grid.set_widget_properties({
+                'placeholder': 'Select from {} compatible grids'.format(ngrids),
+                'disabled': False
+            })
+            cv_grid.options = compatible_grids
             if ngrids==1:
-                cv_grid.widget.value = compatible_grids[0]
-                self._update_case_create({'old':{'value':cv_grid.widget.value}})
+                cv_grid.value = compatible_grids[0]
+                self._update_case_create({'old':{'value':cv_grid.value}})
             else:
-                cv_grid.widget.value = ''
+                cv_grid.value = ''
 
 
     def _create_case(self, b):
@@ -300,20 +307,20 @@ class GUI_create_predefined():
         cv_grid = ConfigVar.vdict["GRID"]
         cv_casename = ConfigVar.vdict["CASENAME"]
         cv_compset = ConfigVar.vdict['COMPSET']
-        compset_alias = cv_compset.widget.value.split(':')[0]
+        compset_alias = cv_compset.value.split(':')[0]
         self.create_case_out.clear_output()
         with self.create_case_out:
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
                 self.ci.cimeroot,
-                cv_grid.widget.value,
+                cv_grid.value,
                 compset_alias,
-                cv_casename.widget.value,
+                cv_casename.value,
                 self.drp_machines.value)
             print("Running cmd: {}".format(cmd))
             runout = subprocess.run(cmd, shell=True, capture_output=True)
             if runout.returncode == 0:
                 print("".format(runout.stdout))
-                print("SUCCESS: case created at {} ".format(cv_casename.widget.value))
+                print("SUCCESS: case created at {} ".format(cv_casename.value))
             else:
                 print(runout.stdout)
                 print("ERROR: {} ".format(runout.stderr))
@@ -326,14 +333,14 @@ class GUI_create_predefined():
         )
 
         cv_compset = ConfigVar.vdict['COMPSET']
-        cv_compset.widget.observe(
+        cv_compset.observe(
             self._update_grid_widget,
             names='_property_lock',
             type='change'
         )
 
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.widget.observe(
+        cv_grid.observe(
             self._update_case_create,
             names='_property_lock',
             type='change'
@@ -343,7 +350,7 @@ class GUI_create_predefined():
 
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.widget.observe(
+            cv_comp.observe(
                 self._update_compsets,
                 names='_property_lock',
                 type='change'
@@ -364,7 +371,7 @@ class GUI_create_predefined():
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
-        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)].widget for comp_class in self.ci.comp_classes])
+        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
         hbx_comp_modes.layout.width = '850px'
         hbx_comp_modes.layout.height = '180px'
 
@@ -381,9 +388,9 @@ class GUI_create_predefined():
             widgets.Label(value="Filter Compsets:"),
             vbx_filter,
             widgets.Label(''),
-            ConfigVar.vdict['COMPSET'].widget,
-            ConfigVar.vdict['GRID'].widget,
-            ConfigVar.vdict['CASENAME'].widget,
+            ConfigVar.vdict['COMPSET']._widget,
+            ConfigVar.vdict['GRID']._widget,
+            ConfigVar.vdict['CASENAME']._widget,
             self.drp_machines,
             widgets.VBox([
                 widgets.Label(''),
