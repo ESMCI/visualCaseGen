@@ -2,7 +2,8 @@ import os, sys, re
 import ipywidgets as widgets
 import subprocess
 
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar, ConfigVarOpt
+from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
+from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
@@ -265,7 +266,7 @@ class GUI_create_custom():
                 logger.debug("Invalid value, so no need to update comp options for {}".format(change['owner'].name))
                 return
             else:
-                cv_comp_phys = change['owner']
+                cv_comp_phys = change['owner'].parentCV
         elif invoker_phys != None:
             # The method is invoked by an internal change in COMP_..._PHYS widget
             if (invoker_phys.value_status == False):
@@ -275,7 +276,7 @@ class GUI_create_custom():
                 return
             cv_comp_phys = invoker_phys
 
-        comp_class = cv_comp_phys.widget_description[0:3]
+        comp_class = cv_comp_phys.description[0:3]
         logger.debug("Updating the options for phys of {}".format(comp_class))
         if cv_comp_phys.value != None:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]

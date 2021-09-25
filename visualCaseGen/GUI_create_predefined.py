@@ -2,7 +2,8 @@ import os, sys, re
 import ipywidgets as widgets
 import subprocess
 
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar, ConfigVarOpt
+from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
+from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
