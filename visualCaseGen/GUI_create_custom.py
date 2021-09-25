@@ -30,7 +30,7 @@ class GUI_create_custom():
             cv_comp_option = ConfigVarOpt('COMP_{}_OPTION'.format(comp_class), never_unset=True)
             cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
-        cv_grid = ConfigVarOpt('GRID')
+        cv_grid = ConfigVarOpt('GRID', NoneVal='')
         cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
@@ -245,7 +245,8 @@ class GUI_create_custom():
                 comp_phys_desc = comp_phys
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
-            cv_comp_phys.update_options(new_options=comp_phys, tooltips=comp_phys_desc)
+            cv_comp_phys.options = comp_phys 
+            cv_comp_phys.tooltips = comp_phys_desc
 
             self._update_comp_options(change=None, invoker_phys=cv_comp_phys)
         else:
@@ -256,6 +257,7 @@ class GUI_create_custom():
 
         cv_comp_phys = None
         if change != None:
+            # The method is invoked by a user change in COMP_..._PHYS widget
             if change['old'] == {}:
                 # Change in owner not finalized yet. Do nothing for now.
                 return
@@ -265,9 +267,11 @@ class GUI_create_custom():
             else:
                 cv_comp_phys = change['owner']
         elif invoker_phys != None:
-            # The method is invoked by an indirect change in COMP_..._PHYS _widget
+            # The method is invoked by an internal change in COMP_..._PHYS widget
             if (invoker_phys.value_status == False):
                 logger.debug("Invalid value, so no need to update comp options for {}".format(invoker_phys.name))
+                return
+            elif invoker_phys.value == None:
                 return
             cv_comp_phys = invoker_phys
 
@@ -283,7 +287,8 @@ class GUI_create_custom():
             comp_options_desc = ['(none)'] + comp_options_desc
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-            cv_comp_option.update_options(new_options=comp_options, tooltips=comp_options_desc)
+            cv_comp_option.options = comp_options
+            cv_comp_option.tooltips = comp_options_desc
 
 
     @owh.out.capture()
@@ -379,11 +384,6 @@ class GUI_create_custom():
 
         # Assign the compliances property of all ConfigVar instsances:
         ConfigVar.compliances = self.ci.compliances
-
-        # Build validity observances:
-        for varname, var in ConfigVar.vdict.items():
-            if var.has_options:
-                var.observe_value_validity()
 
         # Build relational observances:
         for varname, var in ConfigVar.vdict.items():

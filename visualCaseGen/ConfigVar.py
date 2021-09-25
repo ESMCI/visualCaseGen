@@ -41,6 +41,7 @@ class ConfigVar():
         self.name = name
         self.has_options = False
         self._widget = DummyWidget()
+        self._val_validity_obs_on = False
         ConfigVar.vdict[name] = self
         logger.debug("ConfigVar {} created.".format(self.name))
 
@@ -103,41 +104,43 @@ class ConfigVar():
 
 class ConfigVarOpt(ConfigVar):
 
-    def __init__(self, name, never_unset=False):
+    def __init__(self, name, never_unset=False, NoneVal=None):
         super().__init__(name)
         self.has_options = True
         self.options_validity = []
         self.error_msgs = []
         self.never_unset = never_unset # once the widget value is set, don't unset it
+        self._NoneVal = NoneVal
 
     @property
     def value(self):
         assert self._widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if self._widget.value!=None and ConfigVarOpt._opt_prefixed_with_status(self._widget.value):
+        if self._widget.value!=self._NoneVal and ConfigVarOpt._opt_prefixed_with_status(self._widget.value):
             return self._widget.value[1:].strip()
         else:
             return self._widget.value
 
     @value.setter
     def value(self, val):
-        if (val != None and val !='') and (val not in self.options):
+        if (val != self._NoneVal) and (val not in self.options):
             raise ValueError("{} is an invalid option for {}. Valid options: {}".format(val, self.name, self.options))
         self._widget.value = val
 
     def value_status(self):
         assert ConfigVarOpt._opt_prefixed_with_status(self._widget.value)
-        return self._widget.value == None or self._widget.value[0] == valid_opt_icon
+        return self._widget.value == self._NoneVal or self._widget.value[0] == valid_opt_icon
 
     @ConfigVar.widget.setter
     def widget(self, widget):
         orig_widget_val = widget.value
         self._widget = widget
         self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in widget.options])
-        if orig_widget_val == None:
-            self._widget.value = None
+        if orig_widget_val == self._NoneVal:
+            self._widget.value = self._NoneVal
         else:
             self._widget.value = '{} {}'.format(valid_opt_icon, orig_widget_val)
         self._widget.value_status = self.value_status
+        self._observe_value_validity()
 
     @property
     def options(self):
@@ -145,7 +148,37 @@ class ConfigVarOpt(ConfigVar):
 
     @options.setter
     def options(self, opts):
+        """Assigns the options displayed in the widget."""
+
+        logger.debug("Updating the options of ConfigVar {}".format(self.name))
+
+        # First, update to new options
+        self._unobserve_value_validity()
         self._widget.options = opts
+        self._widget.value = self._NoneVal
+        self._observe_value_validity()
+
+        # Second, update options validities
+        self.update_options_validity()
+
+        # If requested, pick the first valid value:
+        if self.never_unset==True and self._widget.value==self._NoneVal:
+            self.set_value_to_first_valid_opt()
+
+    @property
+    def tooltips(self):
+        if isinstance(self._widget, widgets.ToggleButtons):
+            return self._widget.tooltips
+        else:
+            raise NotImplementedError
+
+    @tooltips.setter
+    def tooltips(self, tooltips):
+        if isinstance(self._widget, widgets.ToggleButtons):
+            self._widget.tooltips = tooltips
+        else:
+            raise NotImplementedError
+
 
     @staticmethod
     def _opt_prefixed_with_status(option):
@@ -176,14 +209,14 @@ class ConfigVarOpt(ConfigVar):
             return option
 
     def is_supported_widget(self):
-        return isinstance(self._widget, (widgets.ToggleButtons, widgets.Select, widgets.Dropdown) )
+        return isinstance(self._widget, (widgets.ToggleButtons, widgets.Select, widgets.Dropdown, widgets.Combobox) )
 
     @owh.out.capture()
     def get_options_validity_icons(self):
         return [valid_opt_icon if valid else invalid_opt_icon for valid in self.options_validity]
 
     def get_value_index(self):
-        if self._widget.value == None:
+        if self._widget.value == self._NoneVal:
             return None
         try:
             return self._widget.options.index(self._widget.value)
@@ -204,22 +237,24 @@ class ConfigVarOpt(ConfigVar):
         logger.error("Couldn't find any valid option for {}".format(self.name))
 
     @owh.out.capture()
-    def observe_value_validity(self):
-        if len(self.assertions)>0:
+    def _observe_value_validity(self):
+        if (not self._val_validity_obs_on) and self.compliances != None and len(self.assertions)>0:
             logger.debug("Observing value validity for ConfigVar {}".format(self.name))
             self._widget.observe(
                 self._check_selection_validity,
                 names='value',
                 type='change')
+            self._val_validity_obs_on = True
 
     @owh.out.capture()
-    def unobserve_value_validity(self):
-        if len(self.assertions)>0:
+    def _unobserve_value_validity(self):
+        if self._val_validity_obs_on and self.compliances != None and len(self.assertions)>0:
             logger.debug("Unobserving value validity for ConfigVar {}".format(self.name))
             self._widget.unobserve(
                 self._check_selection_validity,
                 names='value',
                 type='change')
+            self._val_validity_obs_on = False
 
 
     @owh.out.capture()
@@ -228,6 +263,8 @@ class ConfigVarOpt(ConfigVar):
 
         if isinstance(self._widget, DummyWidget):
             return # no validity update needed
+        elif self.compliances == None:
+            return
 
         logger.debug("Updating option validities of ConfigVar {}".format(self.name))
 
@@ -293,48 +330,22 @@ class ConfigVarOpt(ConfigVar):
             logger.debug("Validity changes in the options of ConfigVar {}".format(self.name))
 
             old_val = self._widget.value
-            if old_val:
+            if old_val != self._NoneVal:
                old_val_idx = self.get_value_index()
 
-            self.unobserve_value_validity()
+            self._unobserve_value_validity()
             self._widget.options = new_widget_options
-            self._widget.value = None # this is needed here to prevent a weird behavior:
+            self._widget.value = self._NoneVal # this is needed here to prevent a weird behavior:
                          # in absence of this, widget selection clears for
                          # some reason
 
-            if old_val != None and options_validity_icons[old_val_idx] != invalid_opt_icon:
+            if old_val != self._NoneVal and options_validity_icons[old_val_idx] != invalid_opt_icon:
                 self._widget.value = self._widget.options[old_val_idx]
-            if self._widget.value == None and self.never_unset:
+            if self._widget.value == self._NoneVal and self.never_unset:
                 self.set_value_to_first_valid_opt()
 
-            self.observe_value_validity()
+            self._observe_value_validity()
             logger.debug("Options validity updated for {}".format(self.name))
-
-    @owh.out.capture()
-    def update_options(self, new_options=None, tooltips=None):
-        """Assigns the options displayed in the widget."""
-
-        logger.debug("Updating the options of ConfigVar {}".format(self.name))
-
-        # First, update to new options
-        self.unobserve_value_validity()
-        self._widget.options = new_options
-        self._widget.value = None
-        self.observe_value_validity()
-
-        # Second, update options validities
-        self.update_options_validity()
-
-        # If requested, pick the first valid value:
-        if self.never_unset==True and self._widget.value==None:
-            self.set_value_to_first_valid_opt()
-
-        # Finally, update tooltips
-        if tooltips:
-            if isinstance(self._widget, widgets.ToggleButtons):
-                self._widget.tooltips = tooltips
-            else:
-                raise NotImplementedError
 
     @owh.out.capture()
     def _check_selection_validity(self, change):

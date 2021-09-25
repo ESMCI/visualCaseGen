@@ -23,8 +23,8 @@ class GUI_create_predefined():
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVarOpt('COMP_{}'.format(comp_class))
 
-        cv_compset = ConfigVarOpt('COMPSET')
-        cv_grid = ConfigVarOpt('GRID')
+        cv_compset = ConfigVarOpt('COMPSET', NoneVal='')
+        cv_grid = ConfigVarOpt('GRID', NoneVal='')
         cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
