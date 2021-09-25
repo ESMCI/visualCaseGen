@@ -237,7 +237,7 @@ class GUI_create_custom():
             logger.debug("Updating the physics of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.value))
             comp_phys, comp_phys_desc = [], []
             if cv_comp.value != None:
-                model = ConfigVarOpt.strip_option_status(cv_comp.value)
+                model = cv_comp.value
                 comp_phys, comp_phys_desc = self.ci.comp_phys[model]
 
             if len(comp_phys)==0 and cv_comp.value != None:
@@ -276,12 +276,11 @@ class GUI_create_custom():
             cv_comp_phys = invoker_phys
 
         logger.debug("Updating the options for phys={}".format(invoker_phys.name))
-        new_phys_stripped = ConfigVarOpt.strip_option_status(cv_comp_phys.value)
         comp_class = cv_comp_phys.widget_description[0:3]
-        if new_phys_stripped != None:
+        if cv_comp_phys.value != None:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            model = ConfigVarOpt.strip_option_status(cv_comp.value)
-            comp_options, comp_options_desc = self.ci.comp_options[model][new_phys_stripped]
+            model = cv_comp.value
+            comp_options, comp_options_desc = self.ci.comp_options[model][cv_comp_phys.value]
 
             comp_options = ['(none)'] + comp_options
             comp_options_desc = ['(none)'] + comp_options_desc

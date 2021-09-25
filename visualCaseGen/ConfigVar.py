@@ -107,27 +107,33 @@ class ConfigVarOpt(ConfigVar):
     def __init__(self, name, never_unset=False, NoneVal=None):
         super().__init__(name)
         self.has_options = True
-        self.options_validity = []
+        self._options_validity = []
         self.error_msgs = []
         self.never_unset = never_unset # once the widget value is set, don't unset it
         self._NoneVal = NoneVal
 
+    def is_supported_widget(self):
+        return isinstance(self._widget, (widgets.ToggleButtons, widgets.Select, widgets.Dropdown, widgets.Combobox) )
+
     @property
     def value(self):
         assert self._widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if self._widget.value!=self._NoneVal and ConfigVarOpt._opt_prefixed_with_status(self._widget.value):
+        if self._widget.value != self._NoneVal:
             return self._widget.value[1:].strip()
         else:
             return self._widget.value
 
     @value.setter
     def value(self, val):
-        if (val != self._NoneVal) and (val not in self.options):
-            raise ValueError("{} is an invalid option for {}. Valid options: {}".format(val, self.name, self.options))
+        if (val != self._NoneVal):
+            if (val not in self.options):
+                raise ValueError("{} is an invalid option for {}. Valid options: {}".format(val, self.name, self.options))
+            else:
+                assert val.split()[0] in [invalid_opt_icon, valid_opt_icon], \
+                    "ConfigVarOpt value must always have a status icon"
         self._widget.value = val
 
     def value_status(self):
-        assert ConfigVarOpt._opt_prefixed_with_status(self._widget.value)
         return self._widget.value == self._NoneVal or self._widget.value[0] == valid_opt_icon
 
     @ConfigVar.widget.setter
@@ -179,41 +185,13 @@ class ConfigVarOpt(ConfigVar):
         else:
             raise NotImplementedError
 
-
-    @staticmethod
-    def _opt_prefixed_with_status(option):
-        """ Returns true if a given option str is prefixed with a status icon.
-
-        Parameters
-        ----------
-        option: str
-            A widget option/value.
-
-        Returns
-        -------
-        True or False
-        """
-        return len(option)>0 and option.split()[0] in [invalid_opt_icon, valid_opt_icon]
-
     @owh.out.capture()
     def options_sans_validity(self):
-        return [option[1:].strip() if option.split()[0] in [invalid_opt_icon, valid_opt_icon] else option \
-                for option in self._widget.options]
-
-
-    @staticmethod
-    def strip_option_status(option):
-        if ConfigVarOpt._opt_prefixed_with_status(option):
-            return option[1:].strip()
-        else:
-            return option
-
-    def is_supported_widget(self):
-        return isinstance(self._widget, (widgets.ToggleButtons, widgets.Select, widgets.Dropdown, widgets.Combobox) )
+        return [option[1:].strip() for option in self._widget.options]
 
     @owh.out.capture()
     def get_options_validity_icons(self):
-        return [valid_opt_icon if valid else invalid_opt_icon for valid in self.options_validity]
+        return [valid_opt_icon if valid else invalid_opt_icon for valid in self._options_validity]
 
     def get_value_index(self):
         if self._widget.value == self._NoneVal:
@@ -282,14 +260,13 @@ class ConfigVarOpt(ConfigVar):
 
         assert self.is_supported_widget(), "ConfigVar {} widget is not supported yet.".format(self.name)
 
-        self.options_validity = [True]*len(self._widget.options)
+        self._options_validity = [True]*len(self._widget.options)
         self.error_msgs = ['']*len(self._widget.options)
 
         options_sans_validity = self.options_sans_validity()
 
         for i in range(len(options_sans_validity)):
             option = options_sans_validity[i]
-            assert option.split()[0] not in [valid_opt_icon, invalid_opt_icon]
 
             def _instance_val_getter(cvName):
                 val = ConfigVar.vdict[cvName].value
@@ -304,7 +281,6 @@ class ConfigVarOpt(ConfigVar):
                     val = "None"
                 return val
 
-
             status, errMsg = True, ''
             for assertion in self.assertions:
                 try:
@@ -314,7 +290,7 @@ class ConfigVarOpt(ConfigVar):
                         _instance_val_getter_opt,
                     )
                 except AssertionError as e:
-                    self.options_validity[i] = False
+                    self._options_validity[i] = False
                     self.error_msgs[i] = "{}".format(e)
                     break
 
@@ -355,7 +331,7 @@ class ConfigVarOpt(ConfigVar):
         if change != None:
             assert change['name'] == 'value'
             new_val = change['new']
-            if new_val != None and not is_valid_option(new_val):
+            if new_val != self._NoneVal and not is_valid_option(new_val):
                 new_index = self.get_value_index()
                 logger.critical("ERROR: Invalid selection for {}".format(self.name))
                 logger.critical(self.error_msgs[new_index])
