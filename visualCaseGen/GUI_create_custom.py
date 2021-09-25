@@ -275,8 +275,8 @@ class GUI_create_custom():
                 return
             cv_comp_phys = invoker_phys
 
-        logger.debug("Updating the options for phys={}".format(invoker_phys.name))
         comp_class = cv_comp_phys.widget_description[0:3]
+        logger.debug("Updating the options for phys of {}".format(comp_class))
         if cv_comp_phys.value != None:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             model = cv_comp.value

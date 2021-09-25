@@ -138,6 +138,7 @@ class ConfigVarOpt(ConfigVar):
 
     @ConfigVar.widget.setter
     def widget(self, widget):
+        """Assigns the widget. Options of the passed in widget are assumed to be NOT preceded by status icons."""
         orig_widget_val = widget.value
         self._widget = widget
         self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in widget.options])
@@ -154,22 +155,23 @@ class ConfigVarOpt(ConfigVar):
 
     @options.setter
     def options(self, opts):
-        """Assigns the options displayed in the widget."""
+        """Assigns the options displayed in the widget. Passed in options are assumed to be NOT preceded by status
+        icons."""
 
         logger.debug("Updating the options of ConfigVar {}".format(self.name))
 
         # First, update to new options
         self._unobserve_value_validity()
-        self._widget.options = opts
+        self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in opts])
         self._widget.value = self._NoneVal
-        self._observe_value_validity()
-
         # Second, update options validities
         self.update_options_validity()
 
         # If requested, pick the first valid value:
         if self.never_unset==True and self._widget.value==self._NoneVal:
             self.set_value_to_first_valid_opt()
+
+        self._observe_value_validity()
 
     @property
     def tooltips(self):
