@@ -82,5 +82,9 @@ class ConfigVar():
     def observe(self, *args, **kwargs):
         return self._widget.observe(*args, **kwargs)
 
-    def __repr__(self):
-        return self._widget.__repr__()
+    #def display(self):
+    #    try:
+    #        return self._widget._ipython_display_()
+    #    except AttributeError:
+    #        return self._widget._repr_mimebundle_()
+

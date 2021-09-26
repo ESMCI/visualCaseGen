@@ -271,6 +271,3 @@ class ConfigVarOpt(ConfigVar):
                 logger.debug("ConfigVar {} value is valid: {}".format(self.name, self._widget.value))
         else:
             raise NotImplementedError
-
-class ConfigVarOptM(ConfigVarOpt):
-    pass
