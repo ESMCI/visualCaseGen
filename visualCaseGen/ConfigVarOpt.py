@@ -118,15 +118,6 @@ class ConfigVarOpt(ConfigVar):
     def get_options_validity_icons(self):
         return [valid_opt_icon if valid else invalid_opt_icon for valid in self._options_validity]
 
-    def get_value_index(self):
-        if self._widget.value == self._NoneVal:
-            return None
-        try:
-            return self._widget.options.index(self._widget.value)
-        except:
-            raise RuntimeError("ERROR: couldn't find value in options list")
-
-
     def set_value_to_first_valid_opt(self, inform_related_vars=True):
         for option in self._widget.options:
             if is_valid_option(option):
@@ -137,7 +128,8 @@ class ConfigVarOpt(ConfigVar):
                             if isinstance(ConfigVar.vdict[var_other], ConfigVarOpt):
                                 ConfigVar.vdict[var_other].update_options_validity()
                 return
-        logger.error("Couldn't find any valid option for {}".format(self.name))
+        if len(self._widget.options)>0:
+            logger.error("Couldn't find any valid option for {}".format(self.name))
 
     @owh.out.capture()
     def _observe_value_validity(self):
@@ -231,8 +223,9 @@ class ConfigVarOpt(ConfigVar):
             logger.debug("Validity changes in the options of ConfigVar {}".format(self.name))
 
             old_val = self._widget.value
+            old_val_idx = None
             if old_val != self._NoneVal:
-               old_val_idx = self.get_value_index()
+                old_val_idx = self._widget.index
 
             self._unobserve_value_validity()
             self._widget.options = new_widget_options
@@ -257,7 +250,7 @@ class ConfigVarOpt(ConfigVar):
             assert change['name'] == 'value'
             new_val = change['new']
             if new_val != self._NoneVal and not is_valid_option(new_val):
-                new_index = self.get_value_index()
+                new_index = self._widget.index
                 logger.critical("ERROR: Invalid selection for {}".format(self.name))
                 logger.critical(self.error_msgs[new_index])
                 from IPython.display import display, HTML, Javascript
