@@ -21,7 +21,7 @@ class ConfigVar():
         if name in ConfigVar.vdict:
             logger.warning("ConfigVar {} already created.".format(name))
         self.name = name
-        self.has_options = False
+        self._has_options = False
         self._widget = DummyWidget()
         self._val_validity_obs_on = False
         ConfigVar.vdict[name] = self
