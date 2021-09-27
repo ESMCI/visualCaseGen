@@ -14,6 +14,7 @@ class GUI_create_custom():
 
     def __init__(self, ci):
         self.ci = ci
+        self._comp_options_tabbed = True
         self._init_configvars()
         self._init_widgets()
         self._construct_all_widget_observances()
@@ -434,6 +435,16 @@ class GUI_create_custom():
                 names='_property_lock',
                 type='change')
 
+            if self._comp_options_tabbed:
+                cv_comp.observe(
+                    self._set_comp_options_tab,
+                    names='_property_lock',
+                    type='change')
+                cv_comp_phys.observe(
+                    self._set_comp_options_tab,
+                    names='_property_lock',
+                    type='change')
+
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
             self._update_case_create,
@@ -448,6 +459,12 @@ class GUI_create_custom():
         )
 
         self.btn_create.on_click(self._create_case)
+
+    def _set_comp_options_tab(self, change):
+        if change['old'] == {}:
+            return # change not finalized yet
+        comp_class = change['owner'].description[0:3]
+        self._comp_options_tab.selected_index = self.ci.comp_classes.index(comp_class)
 
     def construct(self):
 
@@ -466,9 +483,16 @@ class GUI_create_custom():
 
             #Component options:
         def _constr_hbx_comp_options():
-            hbx_comp_options = widgets.HBox([ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
-            hbx_comp_options.layout.border = '2px dotted lightgray'
-            return hbx_comp_options
+            if self._comp_options_tabbed:
+                self._comp_options_tab = widgets.Tab()
+                self._comp_options_tab.children = tuple([ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
+                for i in range(len(self.ci.comp_classes)):
+                    self._comp_options_tab.set_title(i, self.ci.comp_classes[i])
+                return self._comp_options_tab
+            else:
+                hbx_comp_options = widgets.HBox([ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
+                hbx_comp_options.layout.border = '2px dotted lightgray'
+                return hbx_comp_options
 
         def _constr_hbx_grids():
             hbx_grids = widgets.HBox([ConfigVar.vdict['GRID']._widget])
