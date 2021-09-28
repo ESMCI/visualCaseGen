@@ -1,6 +1,6 @@
 import difflib
 import ipywidgets as widgets
-from traitlets import Int, Unicode, Tuple, Any, HasTraits, observe
+from traitlets import Int, Unicode, Tuple, Any, Dict, HasTraits, observe
 from ipywidgets import trait_types
 
 class CheckboxMulti(widgets.VBox, HasTraits):
@@ -8,6 +8,9 @@ class CheckboxMulti(widgets.VBox, HasTraits):
     value = trait_types.TypedTuple(trait=Any(), help="Selected values").tag(sync=True)
     index = trait_types.TypedTuple(trait=Int(), help="Selected indices").tag(sync=True)
     options = Any((),  help="Iterable of values, (label, value) pairs, or a mapping of {label: value} pairs that the user can select.")
+    _property_lock = Dict() # the contents of this is not the same as those of the default widgets. This attribute is
+                            # introduced in CheckboxMulti to capture value/index changes invoked at the front end only,
+                            # similar to how the conventional _property_lock gets changed only via frontend changes.
     
     def __init__(self, options=None, value=None, description=''):
         super().__init__()
@@ -15,7 +18,6 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         self._options = []
         self._options_indices = dict() #keys: option names, values: option indexes
         self._options_widgets = dict() #keys: option names, values: option widgets
-        #self._options_vbox = widgets.VBox(layout={'overflow': 'scroll'})
         self._options_vbox = widgets.VBox()
         self._searchbar = widgets.Text(placeholder='Sort by keys e.g., simple, CO2, ecosystem, etc.')
         self.children = [self._searchbar, self._options_vbox]
@@ -34,11 +36,13 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         if new_val == True:
             if opt not in self.value:
                 self.value += (opt,)
+                self._property_lock = {'changed_opt':opt}
         else:
             if opt in self.value:
                 val_list = list(self.value)
                 val_list.remove(opt)
                 self.value = tuple(val_list)
+                self._property_lock = {'changed_opt':opt}
 
         self.index = tuple([self._options_indices[opt] for opt in self.value])
 
