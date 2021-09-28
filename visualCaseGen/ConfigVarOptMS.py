@@ -1,6 +1,7 @@
 import logging
 import ipywidgets as widgets
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
+from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
@@ -23,7 +24,7 @@ class ConfigVarOptMS(ConfigVar):
         self._NoneVal = NoneVal
 
     def is_supported_widget(self):
-        return isinstance(self._widget, (widgets.SelectMultiple) )
+        return isinstance(self._widget, (widgets.SelectMultiple, CheckboxMulti) )
 
     @property
     def value(self):
@@ -105,6 +106,20 @@ class ConfigVarOptMS(ConfigVar):
         else:
             assert isinstance(val, tuple), "Unknown val type for ConfigVarOptMS. Val:{}, Type:{}".format(val,type(val))
             return all([v[0] == valid_opt_icon for v in val])
+
+    @property
+    def tooltips(self):
+        if isinstance(self._widget, CheckboxMulti):
+            return self._widget.tooltips
+        else:
+            raise NotImplementedError
+
+    @tooltips.setter
+    def tooltips(self, tooltips):
+        if isinstance(self._widget, CheckboxMulti):
+            self._widget.tooltips = tooltips
+        else:
+            raise NotImplementedError
 
     @owh.out.capture()
     def _options_sans_validity(self):
