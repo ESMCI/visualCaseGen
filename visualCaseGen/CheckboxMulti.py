@@ -17,7 +17,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         self.description = description # not displayed.
         self._options = []
         self._options_indices = dict() #keys: option names, values: option indexes
-        self._options_widgets = dict() #keys: option names, values: option widgets
+        self._options_widgets = []
+        self._tooltips_widgets = []
         self._options_vbox = widgets.VBox()
         self._searchbar = widgets.Text(placeholder='Sort by keys e.g., simple, CO2, ecosystem, etc.')
         self.children = [self._searchbar, self._options_vbox]
@@ -26,7 +27,6 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             self.set_trait('options',options)
         if value:
             self.set_trait('value',value)
-        self._tooltips_widgets = dict()
 
     def update_value(self,change):
         """ changes propagate from frontend (js checkboxes) to the backend (CheckboxMulti class)"""
@@ -50,39 +50,55 @@ class CheckboxMulti(widgets.VBox, HasTraits):
     def _set_options(self, change):
         new_opts = change['new']
         self.value = ()
+
+        # check if the number of options is the same as before. If so, reuse the 
+        # existing widgets. This improves the performance a lot. (e.g., when 
+        # changes occur only in the options name such as a status update)
+         
+        reuse_widgets = False
+        if len(self._options) == len(new_opts):
+                reuse_widgets = True
+
         self._options = new_opts
         self._options_indices = {new_opts[i]:i for i in range(len(new_opts))}
-        self._construct_options_widgets()
-        #return self._options
+        self._search_list = ['{} := {}'.format(opt, '.') for opt in self._options] 
 
-    def _construct_options_widgets(self):
-
-        for opt, opt_widget in self._options_widgets.items():
+        for opt_widget in self._options_widgets:
             opt_widget.unobserve(self.update_value, names='value', type='change')
 
-        self._search_list = ['{} := {}'.format(opt, '.') for opt in self._options_indices] 
-        self._options_widgets = {opt: widgets.Checkbox(description=opt, value=False,
-                layout=widgets.Layout(width='240px', left='-40px')) for opt in self._options_indices}
-        self._tooltips_widgets = {opt: widgets.Label('',
-                layout={'width':'600px'}) for opt in self._options_indices}
+        if reuse_widgets:
+            for opt_ix in range(len(self._options)):
+                opt = self._options[opt_ix]
+                self._options_widgets[opt_ix].description = opt
+                self._options_widgets[opt_ix].value = False
+                self._tooltips_widgets[opt_ix].value = ''
+        else:
+            self._options_widgets = [widgets.Checkbox(description=opt, value=False,
+                    layout=widgets.Layout(width='240px', left='-40px')) for opt in self._options]
+            self._tooltips_widgets = [widgets.Label('',
+                    layout={'width':'600px'}) for opt in self._options]
 
-        for opt, opt_widget in self._options_widgets.items():
+        for opt_widget in self._options_widgets:
             opt_widget.observe(self.update_value, names='value', type='change')
 
-        self._display_options()
+        if not reuse_widgets:
+            self._display_options()
 
     @observe('value')
     def _propagate_value(self, change):
         """ changes propagate from the backend (CheckboxMulti) to children (i.e., actual checkboxes) """
         new_vals = change['new']
         # update checkboxes
-        for opt, widget in self._options_widgets.items():
+        for i in range(len(self._options)):
+            opt = self._options[i]
+            opt_widget = self._options_widgets[i]
+
             if opt in new_vals:
-                if widget.value!=True:
-                    widget.value = True
+                if opt_widget.value!=True:
+                    opt_widget.value = True
             else:
-                if widget.value!=False:
-                    widget.value = False
+                if opt_widget.value!=False:
+                    opt_widget.value = False
         
         new_index = tuple([self._options_indices[opt] for opt in new_vals])
         if self.index != new_index:
@@ -102,14 +118,11 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         if options_list:
             for opt in options_list:
                 opt = opt.split(':=')[0].strip()
-                #opt_ix = self._options_indices[opt]
-                opt_widget = self._options_widgets[opt]
-                rows.append(widgets.HBox([opt_widget, self._tooltips_widgets[opt]]))
+                opt_ix = self._options_indices[opt]
+                rows.append(widgets.HBox([self._options_widgets[opt_ix], self._tooltips_widgets[opt_ix]]))
             self._options_vbox.children = tuple(rows)
         else:
-            for opt, opt_widget in self._options_widgets.items():
-                #opt_ix = self._options_indices[opt]
-                rows.append(widgets.HBox([opt_widget, self._tooltips_widgets[opt]]))
+            rows = [widgets.HBox([self._options_widgets[i], self._tooltips_widgets[i]]) for i in range(len(self._options))]
             self._options_vbox.children = tuple(rows)
 
     def _sort_opts_by_relevance(self,change):
@@ -117,8 +130,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         if key == '': # display all options
             self._display_options()
         else: # display filtered options
-            #narrowed_opts = difflib.get_close_matches(key, self._options_indices.keys(), n=len(self._options_indices), cutoff=0.3)
-            narrowed_opts = difflib.get_close_matches(key, self._search_list, n=len(self._options_indices), cutoff=0.0)
+            narrowed_opts = difflib.get_close_matches(key, self._search_list, n=len(self._options), cutoff=0.0)
             self._display_options(narrowed_opts)
 
     @property
@@ -127,8 +139,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
 
     @tooltips.setter
     def tooltips(self, new_tooltips):
-        assert len(new_tooltips) == len(self._options_indices), "Tooltips length is not equal to options length."
-        self._search_list = [None]*len(self._options_indices)
-        for opt, opt_ix in self._options_indices.items():
-            self._tooltips_widgets[opt].value = new_tooltips[opt_ix]
+        assert len(new_tooltips) == len(self._options), "Tooltips length is not equal to options length."
+        for opt_ix in range(len(self._options)):
+            opt = self._options[opt_ix] 
+            self._tooltips_widgets[opt_ix].value = new_tooltips[opt_ix]
             self._search_list[opt_ix] = '{} := {}'.format(opt, new_tooltips[opt_ix])
