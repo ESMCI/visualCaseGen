@@ -9,13 +9,15 @@ class CheckboxMulti(widgets.VBox, HasTraits):
     index = trait_types.TypedTuple(trait=Int(), help="Selected indices").tag(sync=True)
     options = Any((),  help="Iterable of values, (label, value) pairs, or a mapping of {label: value} pairs that the user can select.")
     
-    def __init__(self, options=None, value=None):
+    def __init__(self, options=None, value=None, description=''):
         super().__init__()
+        self.description = description # not displayed.
         self._options = []
         self._options_indices = dict() #keys: option names, values: option indexes
         self._options_widgets = dict() #keys: option names, values: option widgets
-        self._options_vbox = widgets.VBox(layout={'overflow': 'scroll'})
-        self._searchbar = widgets.Text(placeholder='Type in search keys e.g., simple, CO2, etc.')
+        #self._options_vbox = widgets.VBox(layout={'overflow': 'scroll'})
+        self._options_vbox = widgets.VBox()
+        self._searchbar = widgets.Text(placeholder='Sort by keys e.g., simple, CO2, ecosystem, etc.')
         self.children = [self._searchbar, self._options_vbox]
         self._searchbar.observe(self._sort_opts_by_relevance, names='value')
         if options:
@@ -26,9 +28,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
 
     def update_value(self,change):
         """ changes propagate from frontend (js checkboxes) to the backend (CheckboxMulti class)"""
-        
-        print(change)
-        
+
         opt = change['owner'].description
         new_val = change['new']
         if new_val == True:
@@ -57,8 +57,10 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             opt_widget.unobserve(self.update_value, names='value', type='change')
 
         self._search_list = ['{} := {}'.format(opt, '.') for opt in self._options_indices] 
-        self._options_widgets = {opt: widgets.Checkbox(description=opt, value=False) for opt in self._options_indices}
-        self._tooltips_widgets = {opt: widgets.Label('') for opt in self._options_indices}
+        self._options_widgets = {opt: widgets.Checkbox(description=opt, value=False,
+                layout=widgets.Layout(width='240px', left='-40px')) for opt in self._options_indices}
+        self._tooltips_widgets = {opt: widgets.Label('',
+                layout={'width':'600px'}) for opt in self._options_indices}
 
         for opt, opt_widget in self._options_widgets.items():
             opt_widget.observe(self.update_value, names='value', type='change')
@@ -112,7 +114,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             self._display_options()
         else: # display filtered options
             #narrowed_opts = difflib.get_close_matches(key, self._options_indices.keys(), n=len(self._options_indices), cutoff=0.3)
-            narrowed_opts = difflib.get_close_matches(key, self._search_list, n=len(self._options_indices), cutoff=0.05)
+            narrowed_opts = difflib.get_close_matches(key, self._search_list, n=len(self._options_indices), cutoff=0.0)
             self._display_options(narrowed_opts)
 
     @property
