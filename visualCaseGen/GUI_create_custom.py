@@ -4,7 +4,9 @@ import subprocess
 
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
+from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
+from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
@@ -29,7 +31,7 @@ class GUI_create_custom():
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVarOpt('COMP_'+str(comp_class))
             cv_comp_phys = ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
-            cv_comp_option = ConfigVarOpt('COMP_{}_OPTION'.format(comp_class), never_unset=True)
+            cv_comp_option = ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), never_unset=True)
             cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVarOpt('GRID', NoneVal='')
@@ -101,15 +103,15 @@ class GUI_create_custom():
             cv_comp_phys.widget_style.description_width = '0px'
 
             # COMP_{}_OPTION widget
-            cv_comp_option.widget = widgets.ToggleButtons(
+            cv_comp_option.widget = CheckboxMulti(
                     options=[],
                     value=None,
-                    description=comp_class+':',
-                    disabled=False,
-                    layout=widgets.Layout(width='110px', max_height='100px')
+                    #todo description=comp_class+':',
+                    #todo disabled=False,
+                    #todo layout=widgets.Layout(width='110px', max_height='100px')
                 )
-            cv_comp_option.widget_style.button_width = '90px'
-            cv_comp_option.widget_style.description_width = '0px'
+            #todo cv_comp_option.widget_style.button_width = '90px'
+            #todo cv_comp_option.widget_style.description_width = '0px'
 
             cv_comp_grid.widget = DummyWidget()
 
@@ -285,7 +287,7 @@ class GUI_create_custom():
             comp_options, comp_options_desc = self.ci.comp_options[model][cv_comp_phys.value]
 
             comp_options = ['(none)'] + comp_options
-            comp_options_desc = ['(none)'] + comp_options_desc
+            comp_options_desc = ['default component configuration. (no modifiers)'] + comp_options_desc
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
             cv_comp_option.options = comp_options
@@ -432,7 +434,7 @@ class GUI_create_custom():
             cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
             cv_comp_option.observe(
                 self._update_compset,
-                names='_property_lock',
+                names='value',
                 type='change')
 
             if self._comp_options_tabbed:
@@ -472,19 +474,20 @@ class GUI_create_custom():
             hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
             vbx_components = widgets.VBox([widgets.HBox(self.comp_labels), hbx_components])
             vbx_components.layout.border = '2px dotted lightgray'
-            vbx_components.layout.width = '850px'
+            vbx_components.layout.width = '840px'
             return vbx_components
 
         def _constr_hbx_comp_phys():
             #Component phys:
             hbx_comp_phys = widgets.HBox([ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
             hbx_comp_phys.layout.border = '2px dotted lightgray'
+            hbx_comp_phys.layout.width = '840px' 
             return hbx_comp_phys
 
             #Component options:
         def _constr_hbx_comp_options():
             if self._comp_options_tabbed:
-                self._comp_options_tab = widgets.Tab()
+                self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="840px"))
                 self._comp_options_tab.children = tuple([ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
                 for i in range(len(self.ci.comp_classes)):
                     self._comp_options_tab.set_title(i, self.ci.comp_classes[i])
