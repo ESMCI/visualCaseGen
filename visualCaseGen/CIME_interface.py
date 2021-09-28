@@ -142,19 +142,19 @@ class CIME_interface():
                 opts = re.findall( r'\[%(.*?)\]',physics)
                 if '[%' in physics:
                     physics = physics.split('[%')[0]
+                if physics == "CAM[456]0%SCAM": # todo: this is special case -- generalize if possible.
+                    comp_options_desc["SCAM"] = description
+                    physics = '' # don't store.
+                if physics == "CAM":
+                    physics = "SIMPLE" 
                 if len(physics)>0:
                     comp_physics.append(physics)
                     if len(opts)>0:
                         comp_physics_options[physics] = opts
-                if physics == "CAM[456]0%SCAM": # todo: generalize this instance and get rid of special workaround.
-                    comp_physics_options["CAM40"].append("SCAM")
-                    comp_physics_options["CAM50"].append("SCAM")
-                    comp_physics_options["CAM60"].append("SCAM")
-                    comp_options_desc["SCAM"] = description
                 if len(opts)==1:
                     # if only one option is provided in a physics description, then store the option description.
                     comp_options_desc[opts[0]] = description
-                comp_physics_desc.append("{}: {}".format(physics, description))
+                comp_physics_desc.append(description)
             elif option:
                 option = option.strip()
                 comp_all_options.append(option)
