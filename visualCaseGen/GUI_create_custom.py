@@ -287,7 +287,7 @@ class GUI_create_custom():
             comp_options, comp_options_desc = self.ci.comp_options[model][cv_comp_phys.value]
 
             comp_options = ['(none)'] + comp_options
-            comp_options_desc = ['default component configuration. (no modifiers)'] + comp_options_desc
+            comp_options_desc = ['no modifiers for {}'.format(model)] + comp_options_desc
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
             cv_comp_option.options = comp_options
@@ -390,7 +390,7 @@ class GUI_create_custom():
 
         # Build relational observances:
         for varname, var in ConfigVar.vdict.items():
-            if isinstance(var, ConfigVarOpt):
+            if isinstance(var, (ConfigVarOpt, ConfigVarOptMS)):
                 self.observe_for_options_validity_update(var)
 
         # Update COMP_{} states
@@ -466,7 +466,9 @@ class GUI_create_custom():
         if change['old'] == {}:
             return # change not finalized yet
         comp_class = change['owner'].description[0:3]
-        self._comp_options_tab.selected_index = self.ci.comp_classes.index(comp_class)
+        comp_ix = self.ci.comp_classes.index(comp_class)
+        self._comp_options_tab.set_title(comp_ix, ConfigVar.vdict['COMP_{}'.format(comp_class)].value.upper())
+        self._comp_options_tab.selected_index = comp_ix
 
     def construct(self):
 

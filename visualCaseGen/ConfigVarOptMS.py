@@ -177,7 +177,7 @@ class ConfigVarOptMS(ConfigVar):
         # If this method is called due to a change in an observed widget,
         # check if the options of this ConfigVarOptMS need to be updated yet.
         if change != None:
-            if change['old'] == {}:
+            if change['old'] == {} and not isinstance(change['owner'], CheckboxMulti):
                 logger.debug("Change in owner not finalized yet. Do nothing for ConfigVarOptMS {}".format(self.name))
                 return
             logger.debug("change: {}".format(change))
