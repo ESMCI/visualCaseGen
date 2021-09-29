@@ -163,8 +163,6 @@ class ConfigVarOpt(ConfigVar):
         elif self.compliances == None:
             return
 
-        logger.debug("Updating option validities of ConfigVarOpt {}".format(self.name))
-
         # If this method is called due to a change in an observed widget,
         # check if the options of this ConfigVar need to be updated yet.
         if change != None:
@@ -178,6 +176,8 @@ class ConfigVarOpt(ConfigVar):
                 logger.debug("Invalid selection at change owner. Do nothing for observing ConfigVarOpt {}"\
                     .format(self.name))
                 return
+
+        logger.debug("Updating option validities of ConfigVarOpt {}".format(self.name))
 
         assert self.is_supported_widget(), "ConfigVarOpt {} widget is not supported yet.".format(self.name)
 

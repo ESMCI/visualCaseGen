@@ -172,12 +172,10 @@ class ConfigVarOptMS(ConfigVar):
         elif self.compliances == None:
             return
 
-        logger.debug("Updating option validities of ConfigVarOptMS {}".format(self.name))
-
         # If this method is called due to a change in an observed widget,
         # check if the options of this ConfigVarOptMS need to be updated yet.
         if change != None:
-            if change['old'] == {} and not isinstance(change['owner'], CheckboxMulti):
+            if change['old'] == {}:
                 logger.debug("Change in owner not finalized yet. Do nothing for ConfigVarOptMS {}".format(self.name))
                 return
             logger.debug("change: {}".format(change))
@@ -187,6 +185,8 @@ class ConfigVarOptMS(ConfigVar):
                 logger.debug("Invalid selection at change owner. Do nothing for observing ConfigVarOptMS {}"\
                     .format(self.name))
                 return
+
+        logger.debug("Updating option validities of ConfigVarOptMS {}".format(self.name))
 
         assert self.is_supported_widget(), "ConfigVarOptMS {} widget is not supported yet.".format(self.name)
 

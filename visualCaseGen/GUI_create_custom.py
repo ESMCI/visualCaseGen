@@ -235,7 +235,6 @@ class GUI_create_custom():
             comp_class = change['owner'].description[0:3]
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             if (change['owner'].value_status == False or change['old'] == {}):
-                logger.debug("No need to update comp physics for {}".format(cv_comp.name))
                 return
 
             logger.debug("Updating the physics of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.value))
