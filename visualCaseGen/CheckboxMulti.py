@@ -77,7 +77,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 else:
                     self.value = (opt,)
                 # let the observers know that a frontend-invoked change was made:
-                self._property_lock = {'changed_opt':opt}
+                self._property_lock = {'value':self.value}
         else:
             if opt in self.value:
                 if self._select_multiple:
@@ -87,9 +87,10 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 else:
                     self.value = ()
                 # let the observers know that a frontend-invoked change was made:
-                self._property_lock = {'changed_opt':opt}
+                self._property_lock = {'value':self.value}
 
         self.index = tuple([self._options_indices[opt] for opt in self.value])
+        self._property_lock = {}
 
     @observe('options')
     def _set_options(self, change):
@@ -101,8 +102,10 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         # changes occur only in the options name such as a status update)
 
         reuse_widgets = False
+        status_change_only = False
         if len(self._options) == len(new_opts):
                 reuse_widgets = True
+                status_change_only = [opt[1:] for opt in self._options] == [opt[1:] for opt in new_opts]
 
         self._options = new_opts
         self._options_indices = {new_opts[i]:i for i in range(len(new_opts))}
@@ -116,7 +119,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 opt = self._options[opt_ix]
                 self._options_widgets[opt_ix].description = opt
                 self._options_widgets[opt_ix].value = False
-                self._tooltips_widgets[opt_ix].value = ''
+                if not status_change_only:
+                    self._tooltips_widgets[opt_ix].value = ''
         else:
             self._options_widgets = [widgets.Checkbox(description=opt, value=False,
                     layout=widgets.Layout(width='240px', left='-40px')) for opt in self._options]
