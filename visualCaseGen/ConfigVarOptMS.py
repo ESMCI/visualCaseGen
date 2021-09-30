@@ -7,13 +7,10 @@ from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
-invalid_opt_icon = chr(int("274C",base=16)) # Ballot Box with X
-valid_opt_icon = chr(int("2713",base=16)) # Ballot Box with X
-
-# it is assumed in this module that icons lenghts are one char.
-assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
-
 class ConfigVarOptMS(ConfigVar):
+
+    invalid_opt_icon = chr(int("274C",base=16))
+    valid_opt_icon = chr(int("2713",base=16))
 
     def __init__(self, name, never_unset=False, NoneVal=()):
         super().__init__(name)
@@ -41,7 +38,7 @@ class ConfigVarOptMS(ConfigVar):
                 if (val not in self.options):
                     raise ValueError("{} is an invalid option for {}. Valid options: {}".format(val, self.name, self.options))
                 else:
-                    assert val.split()[0] in [invalid_opt_icon, valid_opt_icon], \
+                    assert val.split()[0] in [self.invalid_opt_icon, self.valid_opt_icon], \
                         "ConfigVarOptMS value must always have a status icon"
                 self._widget.value = tuple(val.split('%'))
             else:
@@ -52,18 +49,18 @@ class ConfigVarOptMS(ConfigVar):
         if self._widget.value == self._NoneVal:
             return True
         else:
-            return all([val.split()[0] == valid_opt_icon for val in self._widget.value])
+            return all([val.split()[0] == self.valid_opt_icon for val in self._widget.value])
 
     @ConfigVar.widget.setter
     def widget(self, widget):
         """Assigns the widget. Options of the passed in widget are assumed to be NOT preceded by status icons."""
         orig_widget_val = widget.value
         self._widget = widget
-        self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in widget.options])
+        self._widget.options = tuple(['{} {}'.format(self.valid_opt_icon, opt) for opt in widget.options])
         if orig_widget_val == self._NoneVal:
             self._widget.value = self._NoneVal
         else:
-            self._widget.value = tuple(['{} {}'.format(valid_opt_icon, val) for val in list(orig_widget_val)])
+            self._widget.value = tuple(['{} {}'.format(self.valid_opt_icon, val) for val in list(orig_widget_val)])
         self._widget.value_status = self.value_status
         self._widget.parentCV = self
         self._observe_value_validity()
@@ -81,7 +78,7 @@ class ConfigVarOptMS(ConfigVar):
 
         # First, update to new options
         self._unobserve_value_validity()
-        self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in opts])
+        self._widget.options = tuple(['{} {}'.format(self.valid_opt_icon, opt) for opt in opts])
         self._widget.value = self._NoneVal
         # Second, update options validities
         self.update_options_validity()
@@ -97,15 +94,15 @@ class ConfigVarOptMS(ConfigVar):
         if val == None or val == self._NoneVal:
             return True
         elif isinstance(val, str):
-            if val[0] == valid_opt_icon:
+            if val[0] == self.valid_opt_icon:
                 return True
-            elif val[0] == invalid_opt_icon:
+            elif val[0] == self.invalid_opt_icon:
                 return False
             else:
                 raise RuntimeError("Cannot determine ConfigVarOptMS value validity: {}".format(val))
         else:
             assert isinstance(val, tuple), "Unknown val type for ConfigVarOptMS. Val:{}, Type:{}".format(val,type(val))
-            return all([v[0] == valid_opt_icon for v in val])
+            return all([v[0] == self.valid_opt_icon for v in val])
 
     @property
     def tooltips(self):
@@ -127,7 +124,7 @@ class ConfigVarOptMS(ConfigVar):
 
     @owh.out.capture()
     def _get_options_validity_icons(self):
-        return [valid_opt_icon if valid else invalid_opt_icon for valid in self._options_validity]
+        return [self.valid_opt_icon if valid else self.invalid_opt_icon for valid in self._options_validity]
 
     def _set_value_to_first_valid_opt(self, inform_related_vars=True):
         for option in self._widget.options:

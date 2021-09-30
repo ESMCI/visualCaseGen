@@ -112,6 +112,7 @@ class GUI_create_custom():
                 )
             #todo cv_comp_option.widget_style.button_width = '90px'
             #todo cv_comp_option.widget_style.description_width = '0px'
+            cv_comp_option.valid_opt_icon = '%'
 
             cv_comp_grid.widget = DummyWidget()
 
@@ -128,6 +129,7 @@ class GUI_create_custom():
              #todo layout=widgets.Layout(width='500px')
         )
         #todo cv_grid.widget_style.description_width = '150px'
+        cv_grid.valid_opt_icon = chr(int('27A4',base=16))
 
         cv_casename = ConfigVar.vdict['CASENAME']
         cv_casename.widget = widgets.Textarea(
@@ -519,7 +521,7 @@ class GUI_create_custom():
             ConfigVar.vdict['INITTIME']._widget,
             widgets.Label(value="Components:"),
             _constr_vbx_components(),
-            widgets.Label(value="Component Options:"),
+            widgets.Label(value="Component Physics and Options:"),
             _constr_hbx_comp_options(),
             ConfigVar.vdict['COMPSET']._widget,
             widgets.Label(value="Grids:"),
