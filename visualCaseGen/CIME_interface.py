@@ -231,7 +231,12 @@ class CIME_interface():
             alias = self._grids_obj.get(model_grid,"alias")
             compset = self._grids_obj.get(model_grid,"compset")
             not_compset = self._grids_obj.get(model_grid,"not_compset")
-            self.model_grids.append((alias, compset, not_compset))
+            desc = ''
+            desc_node = self._grids_obj.get_children("desc", root=model_grid)
+            if desc_node:
+                desc = self._grids_obj.text(desc_node[0])
+                if desc != '':
+                    self.model_grids.append((alias, compset, not_compset, desc))
 
     def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         # todo: implement atmlev and lndnlev
