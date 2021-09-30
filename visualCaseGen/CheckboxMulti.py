@@ -20,8 +20,9 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         self._options = []
         self._options_indices = dict() #keys: option names, values: option indexes
         self._options_widgets = []
-        self._tooltips_widgets = []
-        self._options_vbox = widgets.VBox()
+        self._tooltips = []
+        self._tooltips_widget = widgets.HTML(value='', placeholder='', description='')
+        self._options_hbox = widgets.HBox()
 
         # general CheckboxMulti widget configuration
         self.description = description # not displayed.
@@ -51,16 +52,16 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         else:
             if len(self._options) < 2:
                 self._searchbar.value = ''
-                self.children = [self._options_vbox]
+                self.children = [self._options_hbox]
             else:
                 if self._allow_multi_select:
                     self.children = [
                         widgets.HBox([  self._searchbar,
                                         self._selectmode],
                                         layout=widgets.Layout(justify_content='space-between')),
-                        self._options_vbox]
+                        self._options_hbox]
                 else:
-                    self.children = [self._searchbar, self._options_vbox]
+                    self.children = [self._searchbar, self._options_hbox]
 
     @property
     def disabled(self):
@@ -166,12 +167,11 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 self._options_widgets[opt_ix].description = opt
                 self._options_widgets[opt_ix].value = False
                 if not status_change_only:
-                    self._tooltips_widgets[opt_ix].value = ''
+                    self._tooltips[opt_ix] = ''
         else:
             self._options_widgets = [widgets.Checkbox(description=opt, value=False,
-                    layout=widgets.Layout(width='240px', left='-40px')) for opt in self._options]
-            self._tooltips_widgets = [widgets.Label('',
-                    layout={'width':'600px'}) for opt in self._options]
+                    layout=widgets.Layout(width='240px', left='-40px', margin='0px')) for opt in self._options]
+            self._tooltips = ['']*len(self._options)
 
         for opt_widget in self._options_widgets:
             opt_widget.observe(self.update_value, names='value', type='change')
@@ -210,16 +210,25 @@ class CheckboxMulti(widgets.VBox, HasTraits):
 
 
     def _display_options(self, options_list=None):
-        rows = []
+
+        options_widgets_display = []
+        tooltips_display = []
         if options_list:
             for opt in options_list:
                 opt = opt.split(':=')[0].strip()
                 opt_ix = self._options_indices[opt]
-                rows.append(widgets.HBox([self._options_widgets[opt_ix], self._tooltips_widgets[opt_ix]]))
-            self._options_vbox.children = tuple(rows)
+                options_widgets_display.append(self._options_widgets[opt_ix])
+                tooltips_display.append(self._tooltips[opt_ix])
         else:
-            rows = [widgets.HBox([self._options_widgets[i], self._tooltips_widgets[i]]) for i in range(len(self._options))]
-            self._options_vbox.children = tuple(rows)
+            options_widgets_display = self._options_widgets
+            tooltips_display = self._tooltips
+
+        self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+'<br>'.join(tooltips_display)+' </p>'
+
+        self._options_hbox.children = tuple([
+            widgets.VBox(options_widgets_display),
+            widgets.VBox((self._tooltips_widget,), layout={'width':'500px'})
+        ])
 
     def _sort_opts_by_relevance(self,change):
         key = change['new']
@@ -236,7 +245,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
     @tooltips.setter
     def tooltips(self, new_tooltips):
         assert len(new_tooltips) == len(self._options), "Tooltips length is not equal to options length."
-        for opt_ix in range(len(self._options)):
-            opt = self._options[opt_ix]
-            self._tooltips_widgets[opt_ix].value = new_tooltips[opt_ix]
-            self._search_list[opt_ix] = '{} := {}'.format(opt, new_tooltips[opt_ix])
+        self._tooltips = new_tooltips
+        self._search_list = ['{} := {}'.format(self._options[i], new_tooltips[i]) \
+            for i in range(len(self._options))]
+        self._display_options()
