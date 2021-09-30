@@ -277,7 +277,7 @@ class GUI_create_predefined():
                     compatible_grids = sci_supported_grid
                     break
         else:
-            for alias, compset_attr, not_compset_attr in self.ci.model_grids:
+            for alias, compset_attr, not_compset_attr, desc in self.ci.model_grids:
                 if compset_attr and not re.search(compset_attr, new_compset_lname):
                     continue
                 if not_compset_attr and re.search(not_compset_attr, new_compset_lname):

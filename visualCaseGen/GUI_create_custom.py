@@ -33,7 +33,7 @@ class GUI_create_custom():
             cv_comp_option = ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), never_unset=True)
             cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
-        cv_grid = ConfigVarOpt('GRID', NoneVal='')
+        cv_grid = ConfigVarOptMS('GRID')
         cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
@@ -119,14 +119,15 @@ class GUI_create_custom():
         cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
 
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.widget = widgets.Combobox(
+        cv_grid.widget = CheckboxMulti(
              options=[],
              placeholder = '(Finalize Compset First.)',
              description='Compatible Grids:',
              disabled=True,
-             layout=widgets.Layout(width='500px')
+             allow_multi_select=False,
+             #todo layout=widgets.Layout(width='500px')
         )
-        cv_grid.widget_style.description_width = '150px'
+        #todo cv_grid.widget_style.description_width = '150px'
 
         cv_casename = ConfigVar.vdict['CASENAME']
         cv_casename.widget = widgets.Textarea(
@@ -174,7 +175,8 @@ class GUI_create_custom():
             })
         else:
             compatible_grids = []
-            for alias, compset_attr, not_compset_attr in self.ci.model_grids:
+            grid_descriptions = []
+            for alias, compset_attr, not_compset_attr, desc in self.ci.model_grids:
                 if compset_attr and not re.search(compset_attr, compset_text):
                     continue
                 if not_compset_attr and re.search(not_compset_attr, compset_text):
@@ -214,6 +216,7 @@ class GUI_create_custom():
                     continue
                 else:
                     compatible_grids.append(alias)
+                    grid_descriptions.append(desc)
 
             if len(compatible_grids)==0:
                 cv_grid.set_widget_properties({
@@ -225,8 +228,9 @@ class GUI_create_custom():
                     'disabled': False,
                     'placeholder': 'Select from {} compatible grids'.format(len(compatible_grids)),
                 })
-                cv_grid.value = ''
+                cv_grid.value = ()
                 cv_grid.options = compatible_grids
+                cv_grid.tooltips = grid_descriptions
 
     @owh.out.capture()
     def _update_comp_phys(self,change=None):
@@ -249,7 +253,7 @@ class GUI_create_custom():
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
             cv_comp_phys.widget_layout.visibility = 'visible'
-            cv_comp_phys.options = comp_phys 
+            cv_comp_phys.options = comp_phys
             cv_comp_phys.tooltips = comp_phys_desc
 
             self._update_comp_options(change=None, invoker_phys=cv_comp_phys)
@@ -291,9 +295,13 @@ class GUI_create_custom():
             comp_options_desc = ['no modifiers for the {} physics'.format(phys)] + comp_options_desc
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
+            #import time
+            #start = time.time()
             cv_comp_option.options = comp_options
             cv_comp_option.tooltips = comp_options_desc
             cv_comp_option.set_widget_properties({'disabled':False})
+            #end = time.time()
+            #print("elapsed: ", end-start)
 
 
     @owh.out.capture()
@@ -303,11 +311,13 @@ class GUI_create_custom():
         for comp_class in self.ci.comp_classes:
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
             comp_phys_val = cv_comp_phys.value
+            if comp_phys_val == 'SIMPLE':
+                comp_phys_val = 'CAM' # todo: generalize this special case
             if comp_phys_val != None:
                 compset_text += '_'+comp_phys_val
                 cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
                 comp_option_val = cv_comp_option.value
-                if comp_option_val != None and comp_option_val != '(none)':
+                if comp_option_val not in [None, ()] and comp_option_val != '(none)':
                     compset_text += '%'+comp_option_val
             else:
                 # display warning
