@@ -16,7 +16,6 @@ class GUI_create_custom():
 
     def __init__(self, ci):
         self.ci = ci
-        self._comp_options_tabbed = True
         self._init_configvars()
         self._init_widgets()
         self._construct_all_widget_observances()
@@ -95,19 +94,20 @@ class GUI_create_custom():
             cv_comp_phys.widget = widgets.ToggleButtons(
                     options=[],
                     value=None,
-                    description=comp_class+':',
+                    description='{} physics:'.format(comp_class),
                     disabled=False,
-                    layout=widgets.Layout(width='110px', max_height='100px')
+                    layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px')
                 )
             cv_comp_phys.widget_style.button_width = '90px'
-            cv_comp_phys.widget_style.description_width = '0px'
+            cv_comp_phys.widget_style.description_width = '90px'
 
             # COMP_{}_OPTION widget
             cv_comp_option.widget = CheckboxMulti(
                     options=[],
                     value=None,
-                    #todo description=comp_class+':',
-                    #todo disabled=False,
+                    description=comp_class+':',
+                    disabled=True,
+                    placeholder="Options will be displayed here after a component selection."
                     #todo layout=widgets.Layout(width='110px', max_height='100px')
                 )
             #todo cv_comp_option.widget_style.button_width = '90px'
@@ -248,6 +248,7 @@ class GUI_create_custom():
                 comp_phys_desc = comp_phys
 
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
+            cv_comp_phys.widget_layout.visibility = 'visible'
             cv_comp_phys.options = comp_phys 
             cv_comp_phys.tooltips = comp_phys_desc
 
@@ -283,14 +284,16 @@ class GUI_create_custom():
         if cv_comp_phys.value != None:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             model = cv_comp.value
-            comp_options, comp_options_desc = self.ci.comp_options[model][cv_comp_phys.value]
+            phys = cv_comp_phys.value
+            comp_options, comp_options_desc = self.ci.comp_options[model][phys]
 
             comp_options = ['(none)'] + comp_options
-            comp_options_desc = ['no modifiers for {}'.format(model)] + comp_options_desc
+            comp_options_desc = ['no modifiers for the {} physics'.format(phys)] + comp_options_desc
 
             cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
             cv_comp_option.options = comp_options
             cv_comp_option.tooltips = comp_options_desc
+            cv_comp_option.set_widget_properties({'disabled':False})
 
 
     @owh.out.capture()
@@ -436,15 +439,10 @@ class GUI_create_custom():
                 names='value',
                 type='change')
 
-            if self._comp_options_tabbed:
-                cv_comp.observe(
-                    self._set_comp_options_tab,
-                    names='_property_lock',
-                    type='change')
-                cv_comp_phys.observe(
-                    self._set_comp_options_tab,
-                    names='_property_lock',
-                    type='change')
+            cv_comp.observe(
+                self._set_comp_options_tab,
+                names='_property_lock',
+                type='change')
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
@@ -478,25 +476,19 @@ class GUI_create_custom():
             vbx_components.layout.width = '840px'
             return vbx_components
 
-        def _constr_hbx_comp_phys():
-            #Component phys:
-            hbx_comp_phys = widgets.HBox([ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
-            hbx_comp_phys.layout.border = '2px dotted lightgray'
-            hbx_comp_phys.layout.width = '840px' 
-            return hbx_comp_phys
-
             #Component options:
         def _constr_hbx_comp_options():
-            if self._comp_options_tabbed:
-                self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="840px"))
-                self._comp_options_tab.children = tuple([ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
-                for i in range(len(self.ci.comp_classes)):
-                    self._comp_options_tab.set_title(i, self.ci.comp_classes[i])
-                return self._comp_options_tab
-            else:
-                hbx_comp_options = widgets.HBox([ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
-                hbx_comp_options.layout.border = '2px dotted lightgray'
-                return hbx_comp_options
+            self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="840px"))
+            self._comp_options_tab.children = tuple([
+                widgets.VBox([
+                    ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
+                    ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
+                ])
+                for comp_class in self.ci.comp_classes
+            ])
+            for i in range(len(self.ci.comp_classes)):
+                self._comp_options_tab.set_title(i, self.ci.comp_classes[i])
+            return self._comp_options_tab
 
         def _constr_hbx_grids():
             hbx_grids = widgets.HBox([ConfigVar.vdict['GRID']._widget])
@@ -517,8 +509,6 @@ class GUI_create_custom():
             ConfigVar.vdict['INITTIME']._widget,
             widgets.Label(value="Components:"),
             _constr_vbx_components(),
-            widgets.Label(value="Component Physics:"),
-            _constr_hbx_comp_phys(),
             widgets.Label(value="Component Options:"),
             _constr_hbx_comp_options(),
             ConfigVar.vdict['COMPSET']._widget,
