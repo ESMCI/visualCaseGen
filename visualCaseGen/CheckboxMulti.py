@@ -53,11 +53,14 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 self._searchbar.value = ''
                 self.children = [self._options_vbox]
             else:
-                self.children = [
-                    widgets.HBox([  self._searchbar,
-                                    self._selectmode],
-                                    layout=widgets.Layout(justify_content='space-between')),
-                    self._options_vbox]
+                if self._allow_multi_select:
+                    self.children = [
+                        widgets.HBox([  self._searchbar,
+                                        self._selectmode],
+                                        layout=widgets.Layout(justify_content='space-between')),
+                        self._options_vbox]
+                else:
+                    self.children = [self._searchbar, self._options_vbox]
 
     @property
     def disabled(self):
