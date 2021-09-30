@@ -76,6 +76,14 @@ class ConfigVar():
         self._widget.style = style
 
     @property
+    def widget_layout(self):
+        return self._widget.layout
+
+    @widget_layout.setter
+    def widget_layout(self, layout):
+        self._widget.layout = layout
+
+    @property
     def description(self):
         return self._widget.description
 
