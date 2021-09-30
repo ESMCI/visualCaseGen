@@ -49,11 +49,15 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         if self._disabled:
             self.children = [widgets.Label(self._placeholder)]
         else:
-            self.children = [
-                widgets.HBox([  self._searchbar,
-                                self._selectmode],
-                                layout=widgets.Layout(justify_content='space-between')),
-                self._options_vbox]
+            if len(self._options) < 2:
+                self._searchbar.value = ''
+                self.children = [self._options_vbox]
+            else:
+                self.children = [
+                    widgets.HBox([  self._searchbar,
+                                    self._selectmode],
+                                    layout=widgets.Layout(justify_content='space-between')),
+                    self._options_vbox]
 
     @property
     def disabled(self):
@@ -84,7 +88,6 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             )
         self._selectmode.style.button_width='40px'
         self._selectmode.style.height='30px'
-        self._selectmode.layout.visibility = 'hidden'
 
         @owh.out.capture()
         def selectmode_change(change):
@@ -171,15 +174,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             opt_widget.observe(self.update_value, names='value', type='change')
 
         if not reuse_widgets:
+            self._construct_display()
             self._display_options()
-
-        if len(self._options) > 1 and self._allow_multi_select:
-            self._selectmode.layout.visibility = 'visible'
-            self._searchbar.layout.visibility = 'visible'
-        else:
-            self._selectmode.value = 'single'
-            self._selectmode.layout.visibility = 'hidden'
-            self._searchbar.layout.visibility = 'hidden'
 
     @observe('value')
     def _propagate_value(self, change):
