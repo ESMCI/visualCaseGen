@@ -13,36 +13,76 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                             # introduced in CheckboxMulti to capture value/index changes invoked at the front end only,
                             # similar to how the conventional _property_lock gets changed only via frontend changes.
 
-    def __init__(self, options=None, value=None, description='', allow_multi_select=True):
+    def __init__(self, value=None, options=None, description='', disabled=False, placeholder='', allow_multi_select=True):
         super().__init__()
-        self.description = description # not displayed.
-        self._allow_multi_select = allow_multi_select # if false, only a single options may be selected on the frontend.
-                                                # multiple options may still be selected via the backend.
-        self._select_multiple = False
+
+        #options
         self._options = []
         self._options_indices = dict() #keys: option names, values: option indexes
         self._options_widgets = []
         self._tooltips_widgets = []
         self._options_vbox = widgets.VBox()
-        self._searchbar = widgets.Text(placeholder='Sort by keys e.g., simple, CO2, ecosystem, etc.')
+
+        # general CheckboxMulti widget configuration
+        self.description = description # not displayed.
+        self._disabled = disabled
+        self._placeholder = placeholder
+        self._select_multiple = False
+        self._allow_multi_select = allow_multi_select # if false, only a single options may be selected on the frontend.
+                                                # multiple options may still be selected via the backend.
+
+        # auxiliary widgets: searchbar and selection mode switch
+        self._searchbar = widgets.Text(placeholder='Type in keywords to sort the options', layout={'margin':'3px'})
         self._init_selectmode()
-        self.children = [
-            widgets.HBox([self._searchbar, self._selectmode], layout=widgets.Layout(justify_content='space-between')),
-            self._options_vbox]
         self._searchbar.observe(self._sort_opts_by_relevance, names='value')
+
+        # construct the widget display:
+        self._construct_display()
+
         if options:
             self.set_trait('options',options)
         if value:
             self.set_trait('value',value)
 
+    def _construct_display(self):
+        # set VBox children:
+        if self._disabled:
+            self.children = [widgets.Label(self._placeholder)]
+        else:
+            self.children = [
+                widgets.HBox([  self._searchbar,
+                                self._selectmode],
+                                layout=widgets.Layout(justify_content='space-between')),
+                self._options_vbox]
+
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @disabled.setter
+    def disabled(self, disabled):
+        if self._disabled != disabled:
+           self._disabled = disabled
+           self._construct_display()
+
+    @property
+    def placeholder(self):
+        return self._placeholder
+
+    @placeholder.setter
+    def placeholder(self, placeholder):
+        self._placeholder = placeholder
+        if self._disabled:
+            self._construct_display()
+
     def _init_selectmode(self):
-        self._selectmode = w = widgets.ToggleButtons(
-            options=['single', 'multiple'], description='Selection:',
+        self._selectmode = widgets.ToggleButtons(
+            options=['single', 'multi'], description='Selection:',
             tooltips=['The user is allowed to pick one option only. This is the safe mode.',
               'The user may select multiple options. Options compatibility NOT ensured. Use with caution.'],
             #icons=['shield-alt', 'exclamation-triangle']
             )
-        self._selectmode.style.button_width='50px'
+        self._selectmode.style.button_width='40px'
         self._selectmode.style.height='30px'
         self._selectmode.layout.visibility = 'hidden'
 
@@ -135,9 +175,11 @@ class CheckboxMulti(widgets.VBox, HasTraits):
 
         if len(self._options) > 1 and self._allow_multi_select:
             self._selectmode.layout.visibility = 'visible'
+            self._searchbar.layout.visibility = 'visible'
         else:
             self._selectmode.value = 'single'
             self._selectmode.layout.visibility = 'hidden'
+            self._searchbar.layout.visibility = 'hidden'
 
     @observe('value')
     def _propagate_value(self, change):
