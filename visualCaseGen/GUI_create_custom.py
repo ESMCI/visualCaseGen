@@ -31,7 +31,7 @@ class GUI_create_custom():
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVarOpt('COMP_'+str(comp_class))
             cv_comp_phys = ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
-            cv_comp_option = ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), never_unset=True)
+            cv_comp_option = ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVarOptMS('GRID')

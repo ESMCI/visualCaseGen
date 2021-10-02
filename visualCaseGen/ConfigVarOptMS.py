@@ -12,12 +12,13 @@ class ConfigVarOptMS(ConfigVar):
     invalid_opt_icon = chr(int("274C",base=16))
     valid_opt_icon = chr(int("2713",base=16))
 
-    def __init__(self, name, never_unset=False, NoneVal=()):
+    def __init__(self, name, always_set=False, never_unset=False, NoneVal=()):
         super().__init__(name, NoneVal)
         self._has_options = True
         self._options_validity = []
         self._error_msgs = []
-        self._never_unset = never_unset # once the widget value is set, don't unset it
+        self._always_set = always_set # the widget must always have a set value
+        self._never_unset = never_unset or always_set # once the widget value is set, don't unset it
 
     def is_supported_widget(self):
         return isinstance(self._widget, (widgets.SelectMultiple, CheckboxMulti) )
@@ -128,7 +129,9 @@ class ConfigVarOptMS(ConfigVar):
     def _set_value_to_first_valid_opt(self, inform_related_vars=True):
         for option in self._widget.options:
             if self.is_valid_option(option):
+                self._unobserve_value_validity()
                 self._widget.value = (option,)
+                self._observe_value_validity()
                 if inform_related_vars:
                     for assertion in self.assertions:
                         for var_other in set(assertion.variables)-{self.name}:
@@ -258,24 +261,28 @@ class ConfigVarOptMS(ConfigVar):
         if change != None:
             assert change['name'] == 'value'
             new_val = change['new']
-            if new_val != self._NoneVal and not self.is_valid_option(new_val):
-                invalid_ix = None
-                for ix in self._widget.index:
-                    if self._options_validity[ix] == False:
-                        invalid_ix = ix
-                        break
-                if invalid_ix == None:
-                    raise RuntimeError("Couldn't find a value entry with invalid status")
-                logger.critical("ERROR: Invalid selection for {}".format(self.name))
-                logger.critical(self._error_msgs[invalid_ix])
-                from IPython.display import display, HTML, Javascript
-                js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
-                    self.name,
-                    self._error_msgs[invalid_ix]
-                )
-                display(HTML(js))
-                self._widget.value = change['old']
+            if new_val == self._NoneVal:
+                if self._always_set:
+                    self._set_value_to_first_valid_opt()
             else:
-                logger.debug("ConfigVarOptMS {} value is valid: {}".format(self.name, self._widget.value))
+                if self.is_valid_option(new_val):
+                    logger.debug("ConfigVarOptMS {} value is valid: {}".format(self.name, self._widget.value))
+                else:
+                    invalid_ix = None
+                    for ix in self._widget.index:
+                        if self._options_validity[ix] == False:
+                            invalid_ix = ix
+                            break
+                    if invalid_ix == None:
+                        raise RuntimeError("Couldn't find a value entry with invalid status")
+                    logger.critical("ERROR: Invalid selection for {}".format(self.name))
+                    logger.critical(self._error_msgs[invalid_ix])
+                    from IPython.display import display, HTML, Javascript
+                    js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
+                        self.name,
+                        self._error_msgs[invalid_ix]
+                    )
+                    display(HTML(js))
+                    self._widget.value = change['old']
         else:
             raise NotImplementedError
