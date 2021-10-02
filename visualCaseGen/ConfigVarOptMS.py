@@ -13,12 +13,11 @@ class ConfigVarOptMS(ConfigVar):
     valid_opt_icon = chr(int("2713",base=16))
 
     def __init__(self, name, never_unset=False, NoneVal=()):
-        super().__init__(name)
+        super().__init__(name, NoneVal)
         self._has_options = True
         self._options_validity = []
         self._error_msgs = []
         self._never_unset = never_unset # once the widget value is set, don't unset it
-        self._NoneVal = NoneVal
 
     def is_supported_widget(self):
         return isinstance(self._widget, (widgets.SelectMultiple, CheckboxMulti) )

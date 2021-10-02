@@ -15,12 +15,11 @@ assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
 class ConfigVarOpt(ConfigVar):
 
     def __init__(self, name, never_unset=False, NoneVal=None):
-        super().__init__(name)
+        super().__init__(name, NoneVal)
         self._has_options = True
         self._options_validity = []
         self._error_msgs = []
         self._never_unset = never_unset # once the widget value is set, don't unset it
-        self._NoneVal = NoneVal
 
     def is_supported_widget(self):
         return isinstance(self._widget, (widgets.ToggleButtons, widgets.Select, widgets.Dropdown, widgets.Combobox) )

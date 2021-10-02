@@ -17,13 +17,14 @@ class ConfigVar():
     # to be set by CompliancesHandler constructor
     compliances = None
 
-    def __init__(self, name):
+    def __init__(self, name, NoneVal=None):
         if name in ConfigVar.vdict:
             logger.warning("ConfigVar {} already created.".format(name))
         self.name = name
         self._has_options = False
         self._widget = DummyWidget()
         self._val_validity_obs_on = False
+        self._NoneVal = NoneVal
         ConfigVar.vdict[name] = self
         logger.debug("ConfigVar {} created.".format(self.name))
 
@@ -47,6 +48,9 @@ class ConfigVar():
     @value.setter
     def value(self, val):
         self._widget.value = val
+
+    def is_None(self):
+        return self._widget.value == self._NoneVal
 
     @property
     def widget(self):
