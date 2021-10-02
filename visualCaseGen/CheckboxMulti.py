@@ -17,7 +17,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         super().__init__()
 
         #options
-        self._options = []
+        self._options = ()
         self._options_indices = dict() #keys: option names, values: option indexes
         self._options_widgets = []
         self._tooltips = []
@@ -143,6 +143,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
     def _set_options(self, change):
         new_opts = change['new']
         self.value = ()
+        assert isinstance(new_opts, tuple)
 
         # check if the number of options is the same as before. If so, reuse the
         # existing widgets. This improves the performance a lot. (e.g., when
@@ -154,7 +155,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 reuse_widgets = True
                 status_change_only = [opt[1:] for opt in self._options] == [opt[1:] for opt in new_opts]
 
-        self._options = new_opts
+        self._options = tuple(new_opts)
         self._options_indices = {new_opts[i]:i for i in range(len(new_opts))}
         self._search_list = ['{} := {}'.format(opt, '.') for opt in self._options]
 

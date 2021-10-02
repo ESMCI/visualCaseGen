@@ -56,11 +56,11 @@ class ConfigVarOptMS(ConfigVar):
         """Assigns the widget. Options of the passed in widget are assumed to be NOT preceded by status icons."""
         orig_widget_val = widget.value
         self._widget = widget
-        self._widget.options = tuple(['{} {}'.format(self.valid_opt_icon, opt) for opt in widget.options])
+        self._widget.options = tuple('{}  {}'.format(self.valid_opt_icon, opt) for opt in widget.options)
         if orig_widget_val == self._NoneVal:
             self._widget.value = self._NoneVal
         else:
-            self._widget.value = tuple(['{} {}'.format(self.valid_opt_icon, val) for val in list(orig_widget_val)])
+            self._widget.value = tuple('{}  {}'.format(self.valid_opt_icon, val) for val in list(orig_widget_val))
         self._widget.value_status = self.value_status
         self._widget.parentCV = self
         self._observe_value_validity()
@@ -78,7 +78,7 @@ class ConfigVarOptMS(ConfigVar):
 
         # First, update to new options
         self._unobserve_value_validity()
-        self._widget.options = tuple(['{} {}'.format(self.valid_opt_icon, opt) for opt in opts])
+        self._widget.options = tuple('{}  {}'.format(self.valid_opt_icon, opt) for opt in opts)
         self._widget.value = self._NoneVal
         # Second, update options validities
         self.update_options_validity()
@@ -225,10 +225,10 @@ class ConfigVarOptMS(ConfigVar):
 
         options_validity_icons = self._get_options_validity_icons()
         new_widget_options = \
-            ['{}  {}'.format(options_validity_icons[i], options_sans_validity[i]) \
-                for i in range(len(options_sans_validity))]
+            tuple('{}  {}'.format(options_validity_icons[i], options_sans_validity[i]) \
+                for i in range(len(options_sans_validity)))
 
-        if self._widget.options == tuple(new_widget_options):
+        if self._widget.options == new_widget_options:
             logger.debug("No validity changes in {}".format(self.name))
             return # no change in options validity
         else:
