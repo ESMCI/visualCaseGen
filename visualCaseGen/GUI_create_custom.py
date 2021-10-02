@@ -19,6 +19,7 @@ class GUI_create_custom():
         self._init_configvars()
         self._init_widgets()
         self._construct_all_widget_observances()
+        self._compset_text = ''
 
     def _init_configvars(self):
         """ Initialize the ConfigVar instances to be displayed on the GUI as configurable case variables.
@@ -166,10 +167,10 @@ class GUI_create_custom():
             layout={'border': '1px solid black'}
         )
 
-    def _update_grid_widget(self, compset_text=None):
+    def _update_grid_widget(self):
 
         cv_grid = ConfigVar.vdict['GRID']
-        if compset_text==None:
+        if self._compset_text==None:
             cv_grid.set_widget_properties({
                 'disabled': True,
                 'description': 'Compatible Grids:',
@@ -179,14 +180,14 @@ class GUI_create_custom():
             compatible_grids = []
             grid_descriptions = []
             for alias, compset_attr, not_compset_attr, desc in self.ci.model_grids:
-                if compset_attr and not re.search(compset_attr, compset_text):
+                if compset_attr and not re.search(compset_attr, self._compset_text):
                     continue
-                if not_compset_attr and re.search(not_compset_attr, compset_text):
+                if not_compset_attr and re.search(not_compset_attr, self._compset_text):
                     continue
 
                 # temporarily set grid names:
 
-                comp_grid_dict = self.ci.retrieve_component_grids(alias, compset_text)
+                comp_grid_dict = self.ci.retrieve_component_grids(alias, self._compset_text)
                 ConfigVar.vdict['ATM_GRID'].value = comp_grid_dict['a%']
                 ConfigVar.vdict['LND_GRID'].value = comp_grid_dict['l%']
                 ConfigVar.vdict['OCN_GRID'].value = comp_grid_dict['o%']
@@ -308,28 +309,40 @@ class GUI_create_custom():
 
     @owh.out.capture()
     def _update_compset(self,change=None):
-        cv_compset = ConfigVar.vdict['COMPSET']
-        compset_text = ConfigVar.vdict['INITTIME'].value
+        new_compset_text = ConfigVar.vdict['INITTIME'].value
         for comp_class in self.ci.comp_classes:
+
+            # 0. Component
+            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            if cv_comp.is_None():
+                new_compset_text = ''
+                break
+
+            # 1. Component Physics
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-            comp_phys_val = cv_comp_phys.value
-            if comp_phys_val == 'SIMPLE':
-                comp_phys_val = 'CAM' # todo: generalize this special case
-            if comp_phys_val != None:
-                compset_text += '_'+comp_phys_val
+            if not cv_comp_phys.is_None():
+                comp_phys_val = cv_comp_phys.value
+                if comp_phys_val == 'Specialized':
+                    comp_phys_val = 'CAM' # todo: generalize this special case
+                new_compset_text += '_'+comp_phys_val
+
+                # 2. Component Option (optional)
                 cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
                 comp_option_val = cv_comp_option.value
-                if comp_option_val not in [None, ()] and comp_option_val != '(none)':
-                    compset_text += '%'+comp_option_val
+                if (not cv_comp_option.is_None()) and comp_option_val != '(none)':
+                    new_compset_text += '%'+comp_option_val
             else:
-                # display warning
+                new_compset_text = ''
+                break
+
+        if new_compset_text != self._compset_text:
+            cv_compset = ConfigVar.vdict['COMPSET']
+            if new_compset_text == '':
                 cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
-                self._update_grid_widget()
-                return
-        cv_compset.value = compset_text
-        cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{compset_text}</b></p>"
-        self._update_grid_widget(compset_text)
-        self.compset_text = compset_text
+            else:
+                cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{new_compset_text}</b></p>"
+            self._compset_text = new_compset_text
+            self._update_grid_widget()
 
     def _reset_case_create(self):
         cv_casename = ConfigVar.vdict['CASENAME']
@@ -371,7 +384,7 @@ class GUI_create_custom():
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
                 self.ci.cimeroot,
                 cv_grid.value,
-                self.compset_text,
+                self._compset_text,
                 cv_casename.value)
             print("Running cmd: {}".format(cmd))
             runout = subprocess.run(cmd, shell=True, capture_output=True)
@@ -436,15 +449,6 @@ class GUI_create_custom():
         )
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.observe(
-                self._update_compset,
-                names='_property_lock',
-                type='change')
-            cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-            cv_comp_phys.observe(
-                self._update_compset,
-                names='_property_lock',
-                type='change')
             cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
             cv_comp_option.observe(
                 self._update_compset,
@@ -503,8 +507,9 @@ class GUI_create_custom():
             return self._comp_options_tab
 
         def _constr_hbx_grids():
-            hbx_grids = widgets.HBox([ConfigVar.vdict['GRID']._widget])
+            hbx_grids = widgets.HBox([ConfigVar.vdict['GRID']._widget], layout={'padding':'15px'})
             hbx_grids.layout.border = '2px dotted lightgray'
+            hbx_grids.layout.width = '840px'
             return hbx_grids
 
 

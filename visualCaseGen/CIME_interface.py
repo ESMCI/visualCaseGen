@@ -146,7 +146,7 @@ class CIME_interface():
                     comp_options_desc["SCAM"] = description
                     physics = '' # don't store.
                 if physics == "CAM":
-                    physics = "SIMPLE" 
+                    physics = "Specialized"
                 if len(physics)>0:
                     comp_physics.append(physics)
                     if len(opts)>0:
@@ -235,8 +235,7 @@ class CIME_interface():
             desc_node = self._grids_obj.get_children("desc", root=model_grid)
             if desc_node:
                 desc = self._grids_obj.text(desc_node[0])
-                if desc != '':
-                    self.model_grids.append((alias, compset, not_compset, desc))
+            self.model_grids.append((alias, compset, not_compset, desc))
 
     def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         # todo: implement atmlev and lndnlev

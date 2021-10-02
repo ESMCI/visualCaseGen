@@ -223,11 +223,11 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             options_widgets_display = self._options_widgets
             tooltips_display = self._tooltips
 
-        self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+'<br>'.join(tooltips_display)+' </p>'
+        self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+'<br>'.join(tooltips_display)+'<br></p>'
 
         self._options_hbox.children = tuple([
             widgets.VBox(options_widgets_display),
-            widgets.VBox((self._tooltips_widget,), layout={'width':'500px'})
+            widgets.VBox((self._tooltips_widget,), layout={'width':'540px','overflow_y': 'hidden'})
         ])
 
     def _sort_opts_by_relevance(self,change):
