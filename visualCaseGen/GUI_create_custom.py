@@ -20,6 +20,7 @@ class GUI_create_custom():
         self._init_widgets()
         self._construct_all_widget_observances()
         self._compset_text = ''
+        self._grid_view_mode = 'suggested' # or 'all'
 
     def _init_configvars(self):
         """ Initialize the ConfigVar instances to be displayed on the GUI as configurable case variables.
@@ -132,6 +133,12 @@ class GUI_create_custom():
         #todo cv_grid.widget_style.description_width = '150px'
         cv_grid.valid_opt_icon = chr(int('27A4',base=16))
 
+        self._btn_grid_view = widgets.Button(
+            description='show all grids',
+            icon='chevron-down',
+            layout = {'display':'none', 'width':'200px', 'margin':'10px'}
+        )
+
         cv_casename = ConfigVar.vdict['CASENAME']
         cv_casename.widget = widgets.Textarea(
             value='',
@@ -176,6 +183,7 @@ class GUI_create_custom():
                 'description': 'Compatible Grids:',
                 'placeholder': '(Finalize Compset First.)'
             })
+            self._btn_grid_view.layout.display = 'none'
         else:
             compatible_grids = []
             grid_descriptions = []
@@ -183,6 +191,8 @@ class GUI_create_custom():
                 if compset_attr and not re.search(compset_attr, self._compset_text):
                     continue
                 if not_compset_attr and re.search(not_compset_attr, self._compset_text):
+                    continue
+                if self._grid_view_mode == 'suggested' and desc == '':
                     continue
 
                 # temporarily set grid names:
@@ -222,10 +232,13 @@ class GUI_create_custom():
                     grid_descriptions.append(desc)
 
             if len(compatible_grids)==0:
-                cv_grid.set_widget_properties({
-                    'disabled': True,
-                    'placeholder': 'No compatible grids. Change COMPSET.'
-                })
+                cv_grid.set_widget_properties({'disabled': True})
+                if self._grid_view_mode == 'suggested':
+                    cv_grid.set_widget_properties({
+                        'placeholder': "Couldn't find any suggested grids. Show all grids or change COMPSET."})
+                else:
+                    cv_grid.set_widget_properties({
+                        'placeholder': 'No compatible grids. Change COMPSET.'})
             else:
                 cv_grid.set_widget_properties({
                     'disabled': False,
@@ -234,6 +247,8 @@ class GUI_create_custom():
                 cv_grid.value = ()
                 cv_grid.options = compatible_grids
                 cv_grid.tooltips = grid_descriptions
+
+            self._btn_grid_view.layout.display = '' # turn on the display
 
     @owh.out.capture()
     def _update_comp_phys(self,change=None):
@@ -329,11 +344,18 @@ class GUI_create_custom():
                 # 2. Component Option (optional)
                 cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
                 comp_option_val = cv_comp_option.value
-                if (not cv_comp_option.is_None()) and comp_option_val != '(none)':
+                if (not cv_comp_option.is_None()):
                     new_compset_text += '%'+comp_option_val
+                else:
+                    return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set 
+                           # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most 
+                           # likely because cv_comp_option is temporarily set to NoneVal, i.e., ()., before it is
+                           # to be set to its actual value. Return for now, without making any changes in compset. 
             else:
                 new_compset_text = ''
                 break
+
+        new_compset_text = new_compset_text.replace('%(none)','')
 
         if new_compset_text != self._compset_text:
             cv_compset = ConfigVar.vdict['COMPSET']
@@ -342,6 +364,7 @@ class GUI_create_custom():
             else:
                 cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{new_compset_text}</b></p>"
             self._compset_text = new_compset_text
+            self._change_grid_view_mode(new_mode='suggested')
             self._update_grid_widget()
 
     def _reset_case_create(self):
@@ -473,6 +496,7 @@ class GUI_create_custom():
             type='change'
         )
 
+        self._btn_grid_view.on_click(self._change_grid_view_mode)
         self.btn_create.on_click(self._create_case)
 
     def _set_comp_options_tab(self, change):
@@ -483,12 +507,39 @@ class GUI_create_custom():
         self._comp_options_tab.set_title(comp_ix, ConfigVar.vdict['COMP_{}'.format(comp_class)].value.upper())
         self._comp_options_tab.selected_index = comp_ix
 
+    def _change_grid_view_mode(self, change=None, new_mode=None):
+
+        # first, update the grid_view_mode attribute
+        if new_mode:
+            # invoked by backend
+            self._grid_view_mode = new_mode
+        else:
+            # invoked by frontend click
+            if self._grid_view_mode == 'all':
+                self._grid_view_mode = 'suggested'
+            else:
+                self._grid_view_mode = 'all'
+        self._btn_grid_view.icon = 'hourglass-start' 
+        self._btn_grid_view.description = '' 
+
+        # second, update the grid list accordingly
+        self._update_grid_widget()
+
+        # finally, update the grid view mode button
+        if self._grid_view_mode == 'all':
+            self._btn_grid_view.description = 'show suggested grids' 
+            self._btn_grid_view.icon = 'chevron-up' 
+        else:
+            self._btn_grid_view.description = 'show all grids' 
+            self._btn_grid_view.icon = 'chevron-down' 
+
+
     def construct(self):
 
         def _constr_vbx_components():
             hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
             vbx_components = widgets.VBox([widgets.HBox(self.comp_labels), hbx_components])
-            vbx_components.layout.border = '2px dotted lightgray'
+            vbx_components.layout.border = '1px solid silver'
             vbx_components.layout.width = '840px'
             return vbx_components
 
@@ -506,11 +557,12 @@ class GUI_create_custom():
                 self._comp_options_tab.set_title(i, self.ci.comp_classes[i])
             return self._comp_options_tab
 
-        def _constr_hbx_grids():
-            hbx_grids = widgets.HBox([ConfigVar.vdict['GRID']._widget], layout={'padding':'15px'})
-            hbx_grids.layout.border = '2px dotted lightgray'
-            hbx_grids.layout.width = '840px'
-            return hbx_grids
+        def _constr_vbx_grids():
+            vbx_grids = widgets.VBox([ConfigVar.vdict['GRID']._widget, self._btn_grid_view],
+                layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
+            vbx_grids.layout.border = '1px solid silver'
+            vbx_grids.layout.width = '840px'
+            return vbx_grids
 
 
         def _constr_hbx_case():
@@ -530,7 +582,7 @@ class GUI_create_custom():
             _constr_hbx_comp_options(),
             ConfigVar.vdict['COMPSET']._widget,
             widgets.Label(value="Grids:"),
-            _constr_hbx_grids(),
+            _constr_vbx_grids(),
             widgets.Label(value=""),
             self.drp_machines,
             _constr_hbx_case(),
