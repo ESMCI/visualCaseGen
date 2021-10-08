@@ -160,6 +160,10 @@ class CIME_interface():
                 comp_all_options.append(option)
                 comp_options_desc[option] = description
 
+        if len(comp_physics)==0:
+            comp_physics.append(model.upper())
+            comp_physics_desc.append(model.upper())
+
         # Model physics
         self.comp_phys[model] = (comp_physics, comp_physics_desc)
 

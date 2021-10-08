@@ -265,10 +265,6 @@ class GUI_create_custom():
                 model = cv_comp.value
                 comp_phys, comp_phys_desc = self.ci.comp_phys[model]
 
-            if len(comp_phys)==0 and cv_comp.value != None:
-                comp_phys = [cv_comp.value.upper()]
-                comp_phys_desc = comp_phys
-
             cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
             cv_comp_phys.widget_layout.visibility = 'visible'
             cv_comp_phys.options = comp_phys
