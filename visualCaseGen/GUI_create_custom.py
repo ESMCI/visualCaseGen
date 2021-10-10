@@ -47,7 +47,7 @@ class GUI_create_custom():
                 widgets.Label(
                     value = '{} {} {}'.format(
                         chr(int("2000",base=16)), chr(int("25BC",base=16)), comp_class),
-                    layout = widgets.Layout(width='110px',display='flex',justify_content='center')
+                    layout = widgets.Layout(width='105px',display='flex',justify_content='center')
                 )
             )
 
@@ -87,9 +87,9 @@ class GUI_create_custom():
                     value=None,
                     description=comp_class+':',
                     disabled=False,
-                    layout=widgets.Layout(width='110px', max_height='120px')
+                    layout=widgets.Layout(width='105px', max_height='120px')
                 )
-            cv_comp.widget_style.button_width = '90px'
+            cv_comp.widget_style.button_width = '85px'
             cv_comp.widget_style.description_width = '0px'
 
             # COMP_{}_PHYS widget
@@ -536,12 +536,12 @@ class GUI_create_custom():
             hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
             vbx_components = widgets.VBox([widgets.HBox(self.comp_labels), hbx_components])
             vbx_components.layout.border = '1px solid silver'
-            vbx_components.layout.width = '840px'
+            vbx_components.layout.width = '800px'
             return vbx_components
 
             #Component options:
         def _constr_hbx_comp_options():
-            self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="840px"))
+            self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="800px"))
             self._comp_options_tab.children = tuple([
                 widgets.VBox([
                     ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
@@ -557,7 +557,7 @@ class GUI_create_custom():
             vbx_grids = widgets.VBox([ConfigVar.vdict['GRID']._widget, self._btn_grid_view],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
             vbx_grids.layout.border = '1px solid silver'
-            vbx_grids.layout.width = '840px'
+            vbx_grids.layout.width = '800px'
             return vbx_grids
 
 

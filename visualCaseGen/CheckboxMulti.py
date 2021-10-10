@@ -171,7 +171,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                     self._tooltips[opt_ix] = ''
         else:
             self._options_widgets = [widgets.Checkbox(description=opt, value=False,
-                    layout=widgets.Layout(width='240px', left='-40px', margin='0px')) for opt in self._options]
+                    layout=widgets.Layout(width='230px', left='-40px', margin='0px')) for opt in self._options]
             self._tooltips = ['']*len(self._options)
 
         for opt_widget in self._options_widgets:
@@ -228,7 +228,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
 
         self._options_hbox.children = tuple([
             widgets.VBox(options_widgets_display),
-            widgets.VBox((self._tooltips_widget,), layout={'width':'540px','overflow_y': 'hidden'})
+            widgets.VBox((self._tooltips_widget,), layout={'width':'510px','overflow_y': 'hidden'})
         ])
 
     def _sort_opts_by_relevance(self,change):
