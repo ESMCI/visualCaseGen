@@ -33,10 +33,10 @@ class GUI_create_predefined():
         self.scientific_only_widget = widgets.Checkbox(
             value=False,
             #layout={'width': 'max-content'}, # If the items' names are long
-            description='Scientifically supported only',
-            disabled=False
+            description='Scientifically supported configs only',
+            disabled=False,
+            layout=widgets.Layout(left='-40px', margin='10px', width='500px')
         )
-        #self.scientific_only_widget.style.description_width = '140px'
 
         self.comp_labels = []
         for comp_class in self.ci.comp_classes:
@@ -65,18 +65,19 @@ class GUI_create_predefined():
                 options = cv_comp_models,
                 description=comp_class,
                 disabled=False,
-                layout=widgets.Layout(width='100px', max_height='120px')
+                layout=widgets.Layout(width='105px', max_height='120px')
             )
-            cv_comp.widget_style.button_width = '80px'
+            cv_comp.widget_style.button_width = '85px'
             cv_comp.widget_style.description_width = '0px'
 
         self.keywords_widget = widgets.Textarea(
             value = '',
-            placeholder = 'Type keywords separated by comma',
+            placeholder = 'Type keywords to filter compsets below',
             description = "Keywords:",
             disabled=False,
-            layout=widgets.Layout(height='30px', width='500px')
+            layout=widgets.Layout(height='30px', width='500px', description_width='120px', padding='10px')
         )
+        self.keywords_widget.style.description_width = '90px'
 
         self.reset_widget = widgets.Button(
             description='Reset',
@@ -91,11 +92,11 @@ class GUI_create_predefined():
         cv_compset.widget = widgets.Combobox(
             options=[],
             placeholder = '(Hit Search button)',
-            description='Defined compsets:',
+            description='Compset:',
             disabled=True,
-            layout=widgets.Layout(width='650px')
+            layout=widgets.Layout(width='650px', padding='10px')
         )
-        cv_compset.widget_style.description_width = '120px'
+        cv_compset.widget_style.description_width = '90px'
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.widget = widgets.Combobox(
@@ -113,7 +114,7 @@ class GUI_create_predefined():
             placeholder='Type case name',
             description='Case name:',
             disabled=True,
-            layout=widgets.Layout(height='30px', width='400px')
+            layout=widgets.Layout(height='30px', width='500px')
         )
         cv_casename.widget_style.description_width = '120px'
 
@@ -373,28 +374,32 @@ class GUI_create_predefined():
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
         hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
-        hbx_comp_modes.layout.width = '850px'
-        hbx_comp_modes.layout.height = '180px'
+        hbx_comp_modes.layout.width = '800px'
+        hbx_comp_modes.layout.height = '170px'
 
-        vbx_filter = widgets.VBox([
+        vbx_compset = widgets.VBox([
             hbx_comp_labels,
             hbx_comp_modes,
-            self.keywords_widget
+            self.keywords_widget,
+            ConfigVar.vdict['COMPSET']._widget,
         ])
-        vbx_filter.layout.border = '2px dotted lightgray'
+        vbx_compset.layout.border = '1px solid silver'
+
+        vbx_grid = widgets.VBox([
+            ConfigVar.vdict['GRID']._widget,
+        ])
+        vbx_grid.layout.border = '1px solid silver'
 
         vbx_create_case = widgets.VBox([
             self.scientific_only_widget,
+            widgets.Label(value="Select a Compset:"),
+            vbx_compset,
+            widgets.Label(value="Select a Grid:"),
+            vbx_grid,
             widgets.Label(''),
-            widgets.Label(value="Filter Compsets:"),
-            vbx_filter,
-            widgets.Label(''),
-            ConfigVar.vdict['COMPSET']._widget,
-            ConfigVar.vdict['GRID']._widget,
-            ConfigVar.vdict['CASENAME']._widget,
             self.drp_machines,
-            widgets.VBox([
-                widgets.Label(''),
+            widgets.HBox([
+                ConfigVar.vdict['CASENAME']._widget,
                 widgets.HBox([self.btn_create])],
                 layout={'align_items':'flex-end'}),
             self.create_case_out
