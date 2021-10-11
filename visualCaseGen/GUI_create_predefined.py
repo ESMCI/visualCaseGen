@@ -97,6 +97,7 @@ class GUI_create_predefined():
             placeholder = '(Hit Search button)',
             description='Compset:',
             disabled=True,
+            ensure_option=True,
             layout=widgets.Layout(width='650px', padding='10px')
         )
         cv_compset.widget_style.description_width = '90px'
