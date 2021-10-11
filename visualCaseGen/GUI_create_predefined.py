@@ -4,6 +4,8 @@ import subprocess
 
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
+from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
+from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
@@ -18,6 +20,7 @@ class GUI_create_predefined():
         self._construct_all_widget_observances()
         self._update_compsets(None)
         self._available_compsets = []
+        self._grid_view_mode = 'suggested' # or 'all'
 
     def _init_configvars(self):
 
@@ -25,7 +28,7 @@ class GUI_create_predefined():
             cv_comp = ConfigVarOpt('COMP_{}'.format(comp_class))
 
         cv_compset = ConfigVarOpt('COMPSET', NoneVal='')
-        cv_grid = ConfigVarOpt('GRID', NoneVal='')
+        cv_grid = ConfigVarOptMS('GRID')
         cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
@@ -99,14 +102,21 @@ class GUI_create_predefined():
         cv_compset.widget_style.description_width = '90px'
 
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.widget = widgets.Combobox(
+        cv_grid.widget = CheckboxMulti(
              options=[],
              placeholder = '(Finalize Compset First.)',
              description='Compatible Grids:',
              disabled=True,
-             layout=widgets.Layout(width='650px')
+             allow_multi_select=False,
+             #todo layout=widgets.Layout(width='500px')
         )
-        cv_grid.widget_style.description_width = '120px'
+        cv_grid.valid_opt_icon = chr(int('27A4',base=16))
+
+        self._btn_grid_view = widgets.Button(
+            description='show all grids',
+            icon='chevron-down',
+            layout = {'display':'none', 'width':'200px', 'margin':'10px'}
+        )
 
         cv_casename = ConfigVar.vdict['CASENAME']
         cv_casename.widget = widgets.Textarea(
@@ -215,20 +225,14 @@ class GUI_create_predefined():
 
     def _update_case_create(self, change):
 
+        assert change['name'] == 'value'
         self._reset_case_create()
-        if change == None:
-            return
-        else:
-            if change['old'] == {}:
-                # Change in owner not finalized yet. Do nothing for now.
-                return
-            else:
-                if self.drp_machines.value:
-                    new_grid = change['old']['value']
-                    if new_grid and len(new_grid)>0:
-                        cv_casename = ConfigVar.vdict['CASENAME']
-                        cv_casename.set_widget_properties({'disabled':False})
-                        self.btn_create.disabled = False
+        if self.drp_machines.value:
+            new_grid = change['new']
+            if new_grid and len(new_grid)>0:
+                cv_casename = ConfigVar.vdict['CASENAME']
+                cv_casename.set_widget_properties({'disabled':False})
+                self.btn_create.disabled = False
 
     def _call_update_case_create(self, change):
         cv_grid = ConfigVar.vdict['GRID']
@@ -241,17 +245,18 @@ class GUI_create_predefined():
                 # Change in owner not finalized yet. Do nothing for now.
                 return
             else:
-                self._update_case_create({'old':{'value':cv_grid.value}})
+                self._update_case_create({'name':'value', 'new':cv_grid.value})
 
 
     def _reset_grid_widget(self):
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.value = ''
+        cv_grid.value = ()
         cv_grid.options = []
         cv_grid.set_widget_properties({
             'placeholder': '(Finalize Compset First.)',
             'disabled': True
         })
+        self._btn_grid_view.layout.display = 'none'
         self._reset_case_create()
 
     def _update_grid_widget(self, change):
@@ -259,23 +264,30 @@ class GUI_create_predefined():
         if change == None:
             return
         else:
-            if change['old'] == {}:
-                # Change in owner not finalized yet. Do nothing for now.
-                return
-            else:
-                new_compset = change['old']['value']
-                if len(new_compset)==0 or ':' not in new_compset:
+            new_compset = ''
+            if 'old' in change: # invoked by user frontend change
+                if change['old'] == {}:
+                    # Change in owner not finalized yet. Do nothing for now.
                     return
+                else:
+                    new_compset = change['old']['value']
+                self._change_grid_view_mode(new_mode='suggested') # reset to suggested grid view
+            else: # invoked by backend
+                new_compset = ConfigVar.vdict['COMPSET'].value
+            if len(new_compset)==0 or ':' not in new_compset:
+                return
 
         new_compset_alias = new_compset.split(':')[0].strip()
         new_compset_lname = new_compset.split(':')[1].strip()
 
         cv_grid = ConfigVar.vdict['GRID']
         compatible_grids = []
+        grid_descriptions = []
         if self.scientific_only_widget.value == True:
             for alias, lname, sci_supported_grid in self._available_compsets:
                 if new_compset_alias == alias:
                     compatible_grids = sci_supported_grid
+                    grid_descriptions = ['scientifically supported grid for {}'.format(alias)]
                     break
         else:
             for alias, compset_attr, not_compset_attr, desc in self.ci.model_grids:
@@ -283,26 +295,29 @@ class GUI_create_predefined():
                     continue
                 if not_compset_attr and re.search(not_compset_attr, new_compset_lname):
                     continue
+                if self._grid_view_mode == 'suggested' and desc == '':
+                    continue
                 compatible_grids.append(alias)
+                grid_descriptions.append(desc)
 
         if len(compatible_grids)==0:
-            cv_grid.set_widget_properties({
-                'placeholder': 'No compatible grids. Change COMPSET.',
-                'disabled': True
-            })
-        else:
-            ngrids = len(compatible_grids)
-            cv_grid.set_widget_properties({
-                'placeholder': 'Select from {} compatible grids'.format(ngrids),
-                'disabled': False
-            })
-            cv_grid.options = compatible_grids
-            if ngrids==1:
-                cv_grid.value = compatible_grids[0]
-                self._update_case_create({'old':{'value':cv_grid.value}})
+            cv_grid.set_widget_properties({'disabled': True})
+            if self._grid_view_mode == 'suggested':
+                cv_grid.set_widget_properties({
+                    'placeholder': "Couldn't find any suggested grids. Show all grids or change COMPSET."})
             else:
-                cv_grid.value = ''
+                cv_grid.set_widget_properties({
+                    'placeholder': 'No compatible grids. Change COMPSET.'})
+        else:
+            cv_grid.set_widget_properties({
+                'disabled': False,
+                'placeholder': 'Select from {} compatible grids'.format(len(compatible_grids)),
+            })
+            cv_grid.value = ()
+            cv_grid.options = compatible_grids
+            cv_grid.tooltips = grid_descriptions
 
+        self._btn_grid_view.layout.display = '' # turn on the display
 
     def _create_case(self, b):
 
@@ -327,6 +342,32 @@ class GUI_create_predefined():
                 print(runout.stdout)
                 print("ERROR: {} ".format(runout.stderr))
 
+    def _change_grid_view_mode(self, change=None, new_mode=None):
+
+        # first, update the grid_view_mode attribute
+        if new_mode:
+            # invoked by backend
+            self._grid_view_mode = new_mode
+        else:
+            # invoked by frontend click
+            if self._grid_view_mode == 'all':
+                self._grid_view_mode = 'suggested'
+            else:
+                self._grid_view_mode = 'all'
+        self._btn_grid_view.icon = 'hourglass-start' 
+        self._btn_grid_view.description = '' 
+
+        # second, update the grid list accordingly
+        self._update_grid_widget({})
+
+        # finally, update the grid view mode button
+        if self._grid_view_mode == 'all':
+            self._btn_grid_view.description = 'show suggested grids' 
+            self._btn_grid_view.icon = 'chevron-up' 
+        else:
+            self._btn_grid_view.description = 'show all grids' 
+            self._btn_grid_view.icon = 'chevron-down' 
+
     def _construct_all_widget_observances(self):
 
         self.scientific_only_widget.observe(
@@ -344,11 +385,9 @@ class GUI_create_predefined():
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
             self._update_case_create,
-            names='_property_lock',
+            names='value',
             type='change'
         )
-
-        self.btn_create.on_click(self._create_case)
 
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
@@ -370,6 +409,9 @@ class GUI_create_predefined():
             type='change'
         )
 
+        self._btn_grid_view.on_click(self._change_grid_view_mode)
+        self.btn_create.on_click(self._create_case)
+
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
@@ -385,17 +427,19 @@ class GUI_create_predefined():
         ])
         vbx_compset.layout.border = '1px solid silver'
 
-        vbx_grid = widgets.VBox([
+        vbx_grids = widgets.VBox([
             ConfigVar.vdict['GRID']._widget,
-        ])
-        vbx_grid.layout.border = '1px solid silver'
+            self._btn_grid_view],
+        layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
+        vbx_grids.layout.border = '1px solid silver'
+        vbx_grids.layout.width = '800px'
 
         vbx_create_case = widgets.VBox([
             self.scientific_only_widget,
             widgets.Label(value="Select a Compset:"),
             vbx_compset,
             widgets.Label(value="Select a Grid:"),
-            vbx_grid,
+            vbx_grids,
             widgets.Label(''),
             self.drp_machines,
             widgets.HBox([
