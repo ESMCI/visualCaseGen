@@ -271,7 +271,6 @@ class GUI_create_predefined():
                     return
                 else:
                     new_compset = change['old']['value']
-                self._change_grid_view_mode(new_mode='suggested') # reset to suggested grid view
             else: # invoked by backend
                 new_compset = ConfigVar.vdict['COMPSET'].value
             if len(new_compset)==0 or ':' not in new_compset:
@@ -284,10 +283,10 @@ class GUI_create_predefined():
         compatible_grids = []
         grid_descriptions = []
         if self.scientific_only_widget.value == True:
-            for alias, lname, sci_supported_grid in self._available_compsets:
+            for alias, lname, sci_supported_grids in self._available_compsets:
                 if new_compset_alias == alias:
-                    compatible_grids = sci_supported_grid
-                    grid_descriptions = ['scientifically supported grid for {}'.format(alias)]
+                    compatible_grids = sci_supported_grids
+                    grid_descriptions = ['scientifically supported grid for {}'.format(alias)]*len(compatible_grids)
                     break
         else:
             for alias, compset_attr, not_compset_attr, desc in self.ci.model_grids:
@@ -317,7 +316,10 @@ class GUI_create_predefined():
             cv_grid.options = compatible_grids
             cv_grid.tooltips = grid_descriptions
 
-        self._btn_grid_view.layout.display = '' # turn on the display
+            if self.scientific_only_widget.value == True:
+                self._btn_grid_view.layout.display = 'none' # turn off the display 
+            else:
+                self._btn_grid_view.layout.display = '' # turn on the display
 
     def _create_case(self, b):
 
@@ -342,7 +344,13 @@ class GUI_create_predefined():
                 print(runout.stdout)
                 print("ERROR: {} ".format(runout.stderr))
 
-    def _change_grid_view_mode(self, change=None, new_mode=None):
+    def _refresh_grids_list_wrapper(self, change):
+        if self.scientific_only_widget == True:
+            self._refresh_grids_list(new_mode='all')
+        else:
+            self._refresh_grids_list(new_mode='suggested')
+
+    def _refresh_grids_list(self, change=None, new_mode=None):
 
         # first, update the grid_view_mode attribute
         if new_mode:
@@ -377,7 +385,7 @@ class GUI_create_predefined():
 
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.observe(
-            self._update_grid_widget,
+            self._refresh_grids_list_wrapper,
             names='_property_lock',
             type='change'
         )
@@ -409,7 +417,7 @@ class GUI_create_predefined():
             type='change'
         )
 
-        self._btn_grid_view.on_click(self._change_grid_view_mode)
+        self._btn_grid_view.on_click(self._refresh_grids_list)
         self.btn_create.on_click(self._create_case)
 
     def construct(self):
