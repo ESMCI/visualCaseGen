@@ -150,7 +150,11 @@ class CreateCaseWidget(widgets.VBox):
                         self.casename_validity.readout = "Path exists!"
                     self.casename_validity.value = False
                 else:
-                    self.casename_validity.value = True
+                    if ' ' in new_casename.strip():
+                        self.casename_validity.readout = "Invalid case name!"
+                        self.casename_validity.value = False
+                    else:
+                        self.casename_validity.value = True
 
     def _on_validity_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
