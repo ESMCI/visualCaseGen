@@ -1,5 +1,7 @@
-import os, sys
+import os
+import sys
 import re
+import logging
 from collections import namedtuple
 from pathlib import Path
 
@@ -9,19 +11,14 @@ CIMEROOT = Path(filepath).parent.parent.parent.as_posix()
 sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
-from CIME.case import Case
-from CIME.nmlgen import NamelistGenerator
-from CIME.utils import expect
 from CIME.XML.generic_xml           import GenericXML
 from CIME.XML.machines              import Machines
-from CIME.XML.pes                   import Pes
 from CIME.XML.files                 import Files
 from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
 from CIME.YML.compliances           import Compliances
 
-import logging
 logger = logging.getLogger(__name__)
 
 Compset = namedtuple('Compset', ['alias', 'lname', 'sci_supported_grids'])
@@ -64,30 +61,32 @@ class CIME_interface():
 
         # Call _retrieve* methods to populate the data members defined above
 
-        if loadbar: loadbar.value = 0.0
-        self._retrieve_CIME_basics()
+        def increment_loadbar():
+            if loadbar:
+                loadbar.value += 2.0
+        if loadbar:
+            loadbar.value = 0.0
+
+        self._retrieve_cime_basics()
         for comp_class in self.comp_classes:
             self._retrieve_models(comp_class)
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class,model)
 
-        if loadbar: loadbar.value = 2.0
+        increment_loadbar()
         self._retrieve_model_grids()
-
-        if loadbar: loadbar.value = 4.0
+        increment_loadbar()
         self._retrieve_compsets()
-
-        if loadbar: loadbar.value = 6.0
+        increment_loadbar()
         self._retrieve_machines()
 
         # Initialize the compliances instance
-        if loadbar: loadbar.value = 8.0
+        increment_loadbar()
         self.compliances = Compliances.from_cime()
         self.compliances.unfold_compliances()
+        increment_loadbar()
 
-        if loadbar: loadbar.value = 10.0
-
-    def _retrieve_CIME_basics(self):
+    def _retrieve_cime_basics(self):
         """ Determine basic CIME variables and properties, including:
             - driver: 'nuopc' or 'mct'.
             - files: CIME.XML.files instance containing XML files of CIME.
@@ -120,7 +119,7 @@ class CIME_interface():
         compatt = {"component": model}
         comp_config_file =  self._files.get_value('CONFIG_{}_FILE'.format(comp_class), compatt)
         if not os.path.exists(comp_config_file):
-            logger.error("config file for {} doesn't exist.".format(model))
+            logger.error("config file for %s doesn't exist.", model)
             return
         compobj = Component(comp_config_file, comp_class)
         rootnode = compobj.get_child("description")
@@ -216,15 +215,14 @@ class CIME_interface():
         self.models[comp_class] = []
         for model in _models:
             compatt = {"component":model}
-            logger.debug("Reading CIME XML for model {}...".format(model))
+            logger.debug("Reading CIME XML for model %s...", model)
             comp_config_file = self._files.get_value(comp_config_filename, compatt, resolved=False)
             assert comp_config_file is not None,"No component {} found for class {}".format(model, comp_class)
             comp_config_file =  self._files.get_value(comp_config_filename, compatt)
             if not( comp_config_file is not None and os.path.isfile(comp_config_file) ):
-                logger.warning("Config file {} for component {} not found.".format(comp_config_file, model))
+                logger.warning("Config file %s for component %s not found.", comp_config_file, model)
                 continue
-            else:
-                self.models[comp_class].append(model)
+            self.models[comp_class].append(model)
 
     def _retrieve_model_grids(self):
         self._grids_obj = Grids()
@@ -256,7 +254,7 @@ class CIME_interface():
             compsets_filename = self._files.get_value("COMPSETS_SPEC_FILE", {"component":component})
 
             # Check if COMPSET spec file exists
-            if (os.path.isfile(compsets_filename)):
+            if os.path.isfile(compsets_filename):
                 self.compsets[component] = []
                 c = Compsets(compsets_filename)
                 compsets_xml = c.get_children("compset")
