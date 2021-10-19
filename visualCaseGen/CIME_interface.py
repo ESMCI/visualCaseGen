@@ -1,10 +1,11 @@
 import os, sys
 import re
 from collections import namedtuple
+from pathlib import Path
 
 # import CIME -----------------------------------------------------------
 filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
-CIMEROOT = os.path.join(filepath, "../../../")
+CIMEROOT = Path(filepath).parent.parent.parent.as_posix()
 sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
