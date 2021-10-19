@@ -168,7 +168,7 @@ class CreateCaseWidget(widgets.VBox):
     def _dry_run_method(self, b):
         self.output.clear_output()
         with self.output:
-            casepath = Path(self.casedir.value,self.casename.value)
+            casepath = Path(self.casedir.value.strip(), self.casename.value.strip())
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
             self.ci.cimeroot,
             self.grid,
@@ -180,7 +180,7 @@ class CreateCaseWidget(widgets.VBox):
     def _case_create_method(self, b):
         self.output.clear_output()
         with self.output:
-            casepath = Path(self.casedir.value,self.casename.value)
+            casepath = Path(self.casedir.value.strip(), self.casename.value.strip())
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
             self.ci.cimeroot,
             self.grid,
