@@ -1,4 +1,5 @@
-import os, sys, re
+import re
+import logging
 import ipywidgets as widgets
 
 from visualCaseGen.visualCaseGen.config_var import ConfigVar
@@ -7,9 +8,7 @@ from visualCaseGen.visualCaseGen.config_var_opt_ms import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.header_widget import HeaderWidget
-from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
-import logging
 logger = logging.getLogger(__name__)
 
 class GUI_create_predefined():
@@ -26,10 +25,10 @@ class GUI_create_predefined():
     def _init_configvars(self):
 
         for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVarOpt('COMP_{}'.format(comp_class))
+            ConfigVarOpt('COMP_{}'.format(comp_class))
 
-        cv_compset = ConfigVarOpt('COMPSET', none_val='')
-        cv_grid = ConfigVarOptMS('GRID')
+        ConfigVarOpt('COMPSET', none_val='')
+        ConfigVarOptMS('GRID')
 
     def _init_widgets(self):
 
@@ -55,9 +54,9 @@ class GUI_create_predefined():
             cv_comp_models = ['any']
             for model in self.ci.models[comp_class]:
                 if model[0]=='x':
-                    logger.debug("Skipping the dead component {}.".format(model))
+                    logger.debug("Skipping the dead component %s", model)
                     continue
-                elif model.upper() == 'D'+comp_class.strip() or model.upper() == 'S'+comp_class:
+                if model.upper() == 'D'+comp_class.strip() or model.upper() == 'S'+comp_class:
                     continue # will add to end
                 if model not in cv_comp_models:
                     cv_comp_models.append(model)
@@ -125,7 +124,7 @@ class GUI_create_predefined():
         # Now, determine all available compsets
         self._available_compsets = []
 
-        if self.scientific_only_widget.value == True:
+        if self.scientific_only_widget.value is True:
             # add scientifically supported compsets only
             for component in self.ci.compsets:
                 for compset in self.ci.compsets[component]:
@@ -195,20 +194,19 @@ class GUI_create_predefined():
 
     def _update_grid_widget(self, change):
 
-        if change == None:
+        if change is None:
             return
-        else:
-            new_compset = ''
-            if 'old' in change: # invoked by user frontend change
-                if change['old'] == {}:
-                    # Change in owner not finalized yet. Do nothing for now.
-                    return
-                else:
-                    new_compset = change['old']['value']
-            else: # invoked by backend
-                new_compset = ConfigVar.vdict['COMPSET'].value
-            if len(new_compset)==0 or ':' not in new_compset:
+
+        new_compset = ''
+        if 'old' in change: # invoked by user frontend change
+            if change['old'] == {}:
+                # Change in owner not finalized yet. Do nothing for now.
                 return
+            new_compset = change['old']['value']
+        else: # invoked by backend
+            new_compset = ConfigVar.vdict['COMPSET'].value
+        if len(new_compset)==0 or ':' not in new_compset:
+            return
 
         new_compset_alias = new_compset.split(':')[0].strip()
         new_compset_lname = new_compset.split(':')[1].strip()
@@ -216,7 +214,7 @@ class GUI_create_predefined():
         cv_grid = ConfigVar.vdict['GRID']
         compatible_grids = []
         grid_descriptions = []
-        if self.scientific_only_widget.value == True:
+        if self.scientific_only_widget.value is True:
             for alias, lname, sci_supported_grids in self._available_compsets:
                 if new_compset_alias == alias:
                     compatible_grids = sci_supported_grids
@@ -250,13 +248,13 @@ class GUI_create_predefined():
             cv_grid.options = compatible_grids
             cv_grid.tooltips = grid_descriptions
 
-            if self.scientific_only_widget.value == True:
-                self._btn_grid_view.layout.display = 'none' # turn off the display 
+            if self.scientific_only_widget.value is True:
+                self._btn_grid_view.layout.display = 'none' # turn off the display
             else:
                 self._btn_grid_view.layout.display = '' # turn on the display
 
     def _refresh_grids_list_wrapper(self, change):
-        if self.scientific_only_widget == True:
+        if self.scientific_only_widget is True:
             self._refresh_grids_list(new_mode='all')
         else:
             self._refresh_grids_list(new_mode='suggested')
@@ -273,19 +271,19 @@ class GUI_create_predefined():
                 self._grid_view_mode = 'suggested'
             else:
                 self._grid_view_mode = 'all'
-        self._btn_grid_view.icon = 'hourglass-start' 
-        self._btn_grid_view.description = '' 
+        self._btn_grid_view.icon = 'hourglass-start'
+        self._btn_grid_view.description = ''
 
         # second, update the grid list accordingly
         self._update_grid_widget({})
 
         # finally, update the grid view mode button
         if self._grid_view_mode == 'all':
-            self._btn_grid_view.description = 'show suggested grids' 
-            self._btn_grid_view.icon = 'chevron-up' 
+            self._btn_grid_view.description = 'show suggested grids'
+            self._btn_grid_view.icon = 'chevron-up'
         else:
-            self._btn_grid_view.description = 'show all grids' 
-            self._btn_grid_view.icon = 'chevron-down' 
+            self._btn_grid_view.description = 'show all grids'
+            self._btn_grid_view.icon = 'chevron-down'
 
     def _update_create_case(self, change):
         assert change['name'] == 'value'
@@ -335,7 +333,8 @@ class GUI_create_predefined():
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
-        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
+        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget\
+             for comp_class in self.ci.comp_classes])
         hbx_comp_modes.layout.width = '800px'
         hbx_comp_modes.layout.height = '170px'
 

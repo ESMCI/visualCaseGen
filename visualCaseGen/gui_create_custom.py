@@ -1,4 +1,5 @@
-import os, sys, re
+import re
+import logging
 import ipywidgets as widgets
 
 from visualCaseGen.visualCaseGen.config_var import ConfigVar
@@ -10,7 +11,6 @@ from visualCaseGen.visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
-import logging
 logger = logging.getLogger(__name__)
 
 class GUI_create_custom():
@@ -29,14 +29,14 @@ class GUI_create_custom():
         logger.debug("Initializing ConfigVars...")
 
         # Create Case
-        cv_inittime = ConfigVarOpt('INITTIME')
+        ConfigVarOpt('INITTIME')
         for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVarOpt('COMP_'+str(comp_class))
-            cv_comp_phys = ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
-            cv_comp_option = ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
-            cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
-        cv_compset = ConfigVar('COMPSET')
-        cv_grid = ConfigVarOptMS('GRID')
+            ConfigVarOpt('COMP_'+str(comp_class))
+            ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
+            ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
+            ConfigVar('{}_GRID'.format(comp_class))
+        ConfigVar('COMPSET')
+        ConfigVarOptMS('GRID')
 
     def _init_widgets(self):
         # Create Case: --------------------------------------
@@ -71,12 +71,12 @@ class GUI_create_custom():
             cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
             cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
 
-            # Determine the list of available models for a given component class. Available physics and options are to be
-            # determined right after the model is selected by the user.
+            # Determine the list of available models for a given component class. Available physics and options are
+            # to be determined right after the model is selected by the user.
             cv_comp_models = []
             for model in self.ci.models[comp_class]:
                 if model[0]=='x':
-                    logger.debug("Skipping the dead component {}.".format(model))
+                    logger.debug("Skipping the dead component %s.", model)
                     continue
                 if model not in cv_comp_models:
                     cv_comp_models.append(model)
@@ -119,7 +119,7 @@ class GUI_create_custom():
             cv_comp_grid.widget = DummyWidget()
 
         cv_compset = ConfigVar.vdict['COMPSET']
-        cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
+        cv_compset.widget = widgets.HTML(value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.widget = CheckboxMultiWidget(
@@ -148,7 +148,7 @@ class GUI_create_custom():
     def _update_grid_widget(self):
 
         cv_grid = ConfigVar.vdict['GRID']
-        if self._compset_text==None:
+        if self._compset_text is None:
             cv_grid.set_widget_properties({
                 'disabled': True,
                 'description': 'Compatible Grids:',
@@ -177,9 +177,9 @@ class GUI_create_custom():
                 ConfigVar.vdict['GLC_GRID'].value = comp_grid_dict['g%']
                 ConfigVar.vdict['WAV_GRID'].value = comp_grid_dict['w%']
 
-                def _instance_val_getter(cvName):
-                    val = ConfigVar.vdict[cvName].value
-                    if val == None:
+                def _instance_val_getter(cv_name):
+                    val = ConfigVar.vdict[cv_name].value
+                    if val is None:
                         val = "None"
                     return val
 
@@ -193,14 +193,13 @@ class GUI_create_custom():
                                 _instance_val_getter,
                                 _instance_val_getter,
                             )
-                        except AssertionError as e:
+                        except AssertionError:
                             assertions_satisfied = False
                             break
                 if not assertions_satisfied:
                     continue
-                else:
-                    compatible_grids.append(alias)
-                    grid_descriptions.append(desc)
+                compatible_grids.append(alias)
+                grid_descriptions.append(desc)
 
             if len(compatible_grids)==0:
                 cv_grid.set_widget_properties({'disabled': True})
@@ -223,16 +222,16 @@ class GUI_create_custom():
 
     @owh.out.capture()
     def _update_comp_phys(self,change=None):
-        if change != None:
+        if change is not None:
             # This method must be invoked by a COMP_... change by the user
             comp_class = change['owner'].description[0:3]
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            if (change['owner'].value_status == False or change['old'] == {}):
+            if (change['owner'].value_status is False or change['old'] == {}):
                 return
 
-            logger.debug("Updating the physics of ConfigVar {} with value={}".format(cv_comp.name, cv_comp.value))
+            logger.debug("Updating the physics of ConfigVar %s with value=%s", cv_comp.name, cv_comp.value)
             comp_phys, comp_phys_desc = [], []
-            if cv_comp.value != None:
+            if cv_comp.value is not None:
                 model = cv_comp.value
                 comp_phys, comp_phys_desc = self.ci.comp_phys[model]
 
@@ -249,28 +248,28 @@ class GUI_create_custom():
     def _update_comp_options(self,change=None, invoker_phys=None):
 
         cv_comp_phys = None
-        if change != None:
+        if change is not None:
             # The method is invoked by a user change in COMP_..._PHYS widget
             if change['old'] == {}:
                 # Change in owner not finalized yet. Do nothing for now.
                 return
-            elif (change['owner'].value_status == False):
-                logger.debug("Invalid value, so no need to update comp options for {}".format(change['owner'].name))
+            if change['owner'].value_status is False:
+                logger.debug("Invalid value, so no need to update comp options for %s", change['owner'].name)
                 return
-            else:
-                cv_comp_phys = change['owner'].parentCV
-        elif invoker_phys != None:
+            cv_comp_phys = change['owner'].parentCV
+
+        elif invoker_phys is not None:
             # The method is invoked by an internal change in COMP_..._PHYS widget
-            if (invoker_phys.value_status == False):
-                logger.debug("Invalid value, so no need to update comp options for {}".format(invoker_phys.name))
+            if invoker_phys.value_status is False:
+                logger.debug("Invalid value, so no need to update comp options for %s", invoker_phys.name)
                 return
-            elif invoker_phys.value == None:
+            if invoker_phys.value is None:
                 return
             cv_comp_phys = invoker_phys
 
         comp_class = cv_comp_phys.description[0:3]
-        logger.debug("Updating the options for phys of {}".format(comp_class))
-        if cv_comp_phys.value != None:
+        logger.debug("Updating the options for phys of %s", comp_class)
+        if cv_comp_phys.value is not None:
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
             model = cv_comp.value
             phys = cv_comp_phys.value
@@ -290,7 +289,7 @@ class GUI_create_custom():
 
 
     @owh.out.capture()
-    def _update_compset(self,change=None):
+    def _update_compset(self, change=None):
         new_compset_text = ConfigVar.vdict['INITTIME'].value
         for comp_class in self.ci.comp_classes:
 
@@ -311,13 +310,13 @@ class GUI_create_custom():
                 # 2. Component Option (optional)
                 cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
                 comp_option_val = cv_comp_option.value
-                if (not cv_comp_option.is_none()):
+                if not cv_comp_option.is_none():
                     new_compset_text += '%'+comp_option_val
                 else:
-                    return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set 
-                           # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most 
+                    return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set
+                           # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most
                            # likely because cv_comp_option is temporarily set to none_val, i.e., ()., before it is
-                           # to be set to its actual value. Return for now, without making any changes in compset. 
+                           # to be set to its actual value. Return for now, without making any changes in compset.
             else:
                 new_compset_text = ''
                 break
@@ -327,7 +326,7 @@ class GUI_create_custom():
         if new_compset_text != self._compset_text:
             cv_compset = ConfigVar.vdict['COMPSET']
             if new_compset_text == '':
-                cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
+                cv_compset.value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
             else:
                 cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{new_compset_text}</b></p>"
             self._compset_text = new_compset_text
@@ -344,8 +343,8 @@ class GUI_create_custom():
     @owh.out.capture()
     def observe_for_options_validity_update(self, cv):
         for assertion in self.ci.compliances.assertions(cv.name):
-            logger.debug("Observing relations for ConfigVar {}".format(cv.name))
-            if all([var in ConfigVar.vdict for var in assertion.variables]):
+            logger.debug("Observing relations for ConfigVar %s", cv.name)
+            if all(var in ConfigVar.vdict for var in assertion.variables):
                 for var_other in set(assertion.variables)-{cv.name}:
                     ConfigVar.vdict[var_other].observe(
                         cv.update_options_validity,
@@ -353,7 +352,7 @@ class GUI_create_custom():
                         names='_property_lock',
                         type='change'
                     )
-                    logger.debug("Added relational observance of {} for {}".format(var_other,cv.name))
+                    logger.debug("Added relational observance of %s for %s", var_other, cv.name)
 
     def _construct_all_widget_observances(self):
 
@@ -361,7 +360,7 @@ class GUI_create_custom():
         ConfigVar.compliances = self.ci.compliances
 
         # Build relational observances:
-        for varname, var in ConfigVar.vdict.items():
+        for var in ConfigVar.vdict.values():
             if isinstance(var, (ConfigVarOpt, ConfigVarOptMS)):
                 self.observe_for_options_validity_update(var)
 
@@ -434,25 +433,26 @@ class GUI_create_custom():
                 self._grid_view_mode = 'suggested'
             else:
                 self._grid_view_mode = 'all'
-        self._btn_grid_view.icon = 'hourglass-start' 
-        self._btn_grid_view.description = '' 
+        self._btn_grid_view.icon = 'hourglass-start'
+        self._btn_grid_view.description = ''
 
         # second, update the grid list accordingly
         self._update_grid_widget()
 
         # finally, update the grid view mode button
         if self._grid_view_mode == 'all':
-            self._btn_grid_view.description = 'show suggested grids' 
-            self._btn_grid_view.icon = 'chevron-up' 
+            self._btn_grid_view.description = 'show suggested grids'
+            self._btn_grid_view.icon = 'chevron-up'
         else:
-            self._btn_grid_view.description = 'show all grids' 
-            self._btn_grid_view.icon = 'chevron-down' 
+            self._btn_grid_view.description = 'show all grids'
+            self._btn_grid_view.icon = 'chevron-down'
 
 
     def construct(self):
 
         def _constr_vbx_components():
-            hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget for comp_class in self.ci.comp_classes])
+            hbx_components = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget\
+                 for comp_class in self.ci.comp_classes])
             vbx_components = widgets.VBox([widgets.HBox(self.comp_labels), hbx_components])
             vbx_components.layout.border = '1px solid silver'
             vbx_components.layout.width = '800px'
@@ -461,15 +461,15 @@ class GUI_create_custom():
             #Component options:
         def _constr_hbx_comp_options():
             self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="800px"))
-            self._comp_options_tab.children = tuple([
+            self._comp_options_tab.children = tuple(
                 widgets.VBox([
                     ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
                     ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
                 ])
                 for comp_class in self.ci.comp_classes
-            ])
-            for i in range(len(self.ci.comp_classes)):
-                self._comp_options_tab.set_title(i, self.ci.comp_classes[i])
+            )
+            for i, comp_class in enumerate(self.ci.comp_classes):
+                self._comp_options_tab.set_title(i, comp_class)
             return self._comp_options_tab
 
         def _constr_vbx_grids():
