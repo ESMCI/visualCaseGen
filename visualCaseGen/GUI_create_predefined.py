@@ -6,6 +6,7 @@ from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
 from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
+from visualCaseGen.visualCaseGen.HeaderWidget import HeaderWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
@@ -355,11 +356,11 @@ class GUI_create_predefined():
 
         vbx_create_case = widgets.VBox([
             self.scientific_only_widget,
-            widgets.Label(value="Select a Compset:"),
+            HeaderWidget("Compset:"),
             vbx_compset,
-            widgets.Label(value="Select a Grid:"),
+            HeaderWidget("Grid:"),
             vbx_grids,
-            widgets.Label(''),
+            HeaderWidget("Launch:"),
             self._create_case
         ])
 
