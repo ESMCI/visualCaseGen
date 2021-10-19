@@ -1,19 +1,22 @@
 import difflib
 import ipywidgets as widgets
-from traitlets import Int, Unicode, Tuple, Any, Dict, HasTraits, observe
+from traitlets import Int, Any, Dict, HasTraits, observe
 from ipywidgets import trait_types
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
-class CheckboxMulti(widgets.VBox, HasTraits):
+class CheckboxMultiWidget(widgets.VBox, HasTraits):
 
     value = trait_types.TypedTuple(trait=Any(), help="Selected values").tag(sync=True)
     index = trait_types.TypedTuple(trait=Int(), help="Selected indices").tag(sync=True)
-    options = Any((),  help="Iterable of values, (label, value) pairs, or a mapping of {label: value} pairs that the user can select.")
+    options = Any((),  help="Iterable of values, (label, value) pairs, or a mapping of {label: value} pairs that the "
+                            "user can select.")
     _property_lock = Dict() # the contents of this is not the same as those of the default widgets. This attribute is
-                            # introduced in CheckboxMulti to capture value/index changes invoked at the front end only,
+                            # introduced in CheckboxMultiWidget to capture changes invoked at the front end only,
                             # similar to how the conventional _property_lock gets changed only via frontend changes.
 
-    def __init__(self, value=None, options=None, description='', disabled=False, placeholder='', allow_multi_select=True):
+    def __init__(self, value=None, options=None, description='', disabled=False, placeholder='',
+        allow_multi_select=True):
+
         super().__init__()
 
         #options
@@ -24,7 +27,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         self._tooltips_widget = widgets.HTML(value='', placeholder='', description='')
         self._options_hbox = widgets.HBox()
 
-        # general CheckboxMulti widget configuration
+        # general CheckboxMultiWidget configuration
         self.description = description # not displayed.
         self._disabled = disabled
         self._placeholder = placeholder
@@ -70,8 +73,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
     @disabled.setter
     def disabled(self, disabled):
         if self._disabled != disabled:
-           self._disabled = disabled
-           self._construct_display()
+            self._disabled = disabled
+            self._construct_display()
 
     @property
     def placeholder(self):
@@ -101,7 +104,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 if len(self.value) > 1:
                     self.value = ()
             else:
-                from IPython.display import display, HTML, Javascript
+                from IPython.display import display, HTML
                 warn_msg = \
                     """WARNING: visualCaseGen doesn't check the compatibility of multiple options. """\
                     """Use this mode with caution! Refer to the component documentation to check which options """\
@@ -113,11 +116,11 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         self._selectmode.observe(selectmode_change, names='value', type='change')
 
     def update_value(self,change):
-        """ changes propagate from frontend (js checkboxes) to the backend (CheckboxMulti class)"""
+        """ changes propagate from frontend (js checkboxes) to the backend (CheckboxMultiWidget class)"""
 
         opt = change['owner'].description
         new_val = change['new']
-        if new_val == True:
+        if new_val is True:
             if opt not in self.value:
                 if self._select_multiple:
                     self.value += (opt,)
@@ -136,7 +139,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
                 # let the observers know that a frontend-invoked change was made:
                 self._property_lock = {'value':self.value}
 
-        self.index = tuple([self._options_indices[opt] for opt in self.value])
+        self.index = tuple(self._options_indices[opt] for opt in self.value)
         self._property_lock = {}
 
     @observe('options')
@@ -152,8 +155,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
         reuse_widgets = False
         status_change_only = False
         if len(self._options) == len(new_opts):
-                reuse_widgets = True
-                status_change_only = [opt[1:] for opt in self._options] == [opt[1:] for opt in new_opts]
+            reuse_widgets = True
+            status_change_only = [opt[1:] for opt in self._options] == [opt[1:] for opt in new_opts]
 
         self._options = tuple(new_opts)
         self._options_indices = {new_opts[i]:i for i in range(len(new_opts))}
@@ -163,8 +166,7 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             opt_widget.unobserve(self.update_value, names='value', type='change')
 
         if reuse_widgets:
-            for opt_ix in range(len(self._options)):
-                opt = self._options[opt_ix]
+            for opt_ix, opt in enumerate(self._options):
                 self._options_widgets[opt_ix].description = opt
                 self._options_widgets[opt_ix].value = False
                 if not status_change_only:
@@ -183,29 +185,28 @@ class CheckboxMulti(widgets.VBox, HasTraits):
 
     @observe('value')
     def _propagate_value(self, change):
-        """ changes propagate from the backend (CheckboxMulti) to children (i.e., actual checkboxes) """
+        """ changes propagate from the backend (CheckboxMultiWidget) to children (i.e., actual checkboxes) """
         new_vals = change['new']
         # update checkboxes
-        for i in range(len(self._options)):
-            opt = self._options[i]
+        for i, opt in enumerate(self._options):
             opt_widget = self._options_widgets[i]
 
             if opt in new_vals:
-                if opt_widget.value!=True:
+                if opt_widget.value is not True:
                     opt_widget.value = True
             else:
-                if opt_widget.value!=False:
+                if opt_widget.value is not False:
                     opt_widget.value = False
 
-        new_index = tuple([self._options_indices[opt] for opt in new_vals])
+        new_index = tuple(self._options_indices[opt] for opt in new_vals)
         if self.index != new_index:
             self.index = new_index
 
     @observe('index')
     def _propagate_index(self, change):
-        """ changes propagate from the backend (CheckboxMulti) to children (i.e., actual checkboxes) """
+        """ changes propagate from the backend (CheckboxMultiWidget) to children (i.e., actual checkboxes) """
         new_idxs = change['new']
-        new_value = tuple([self._options[opt_ix] for opt_ix in new_idxs])
+        new_value = tuple(self._options[opt_ix] for opt_ix in new_idxs)
         if self.value != new_value:
             self.value = new_value
 
@@ -224,7 +225,8 @@ class CheckboxMulti(widgets.VBox, HasTraits):
             options_widgets_display = self._options_widgets
             tooltips_display = self._tooltips
 
-        self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+'<br>'.join(tooltips_display)+'<br></p>'
+        self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+\
+            '<br>'.join(tooltips_display)+'<br></p>'
 
         self._options_hbox.children = tuple([
             widgets.VBox(options_widgets_display),

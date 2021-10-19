@@ -1,7 +1,7 @@
 import logging
 import ipywidgets as widgets
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
-from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
+from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
@@ -21,7 +21,7 @@ class ConfigVarOptMS(ConfigVar):
         self._never_unset = never_unset or always_set # once the widget value is set, don't unset it
 
     def is_supported_widget(self):
-        return isinstance(self._widget, (widgets.SelectMultiple, CheckboxMulti) )
+        return isinstance(self._widget, (widgets.SelectMultiple, CheckboxMultiWidget) )
 
     @property
     def value(self):
@@ -106,14 +106,14 @@ class ConfigVarOptMS(ConfigVar):
 
     @property
     def tooltips(self):
-        if isinstance(self._widget, CheckboxMulti):
+        if isinstance(self._widget, CheckboxMultiWidget):
             return self._widget.tooltips
         else:
             raise NotImplementedError
 
     @tooltips.setter
     def tooltips(self, tooltips):
-        if isinstance(self._widget, CheckboxMulti):
+        if isinstance(self._widget, CheckboxMultiWidget):
             self._widget.tooltips = tooltips
         else:
             raise NotImplementedError

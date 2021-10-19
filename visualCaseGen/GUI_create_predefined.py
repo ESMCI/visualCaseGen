@@ -4,7 +4,7 @@ import ipywidgets as widgets
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
-from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
+from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.HeaderWidget import HeaderWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
@@ -94,7 +94,7 @@ class GUI_create_predefined():
         cv_compset.widget_style.description_width = '90px'
 
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.widget = CheckboxMulti(
+        cv_grid.widget = CheckboxMultiWidget(
              options=[],
              placeholder = '(Finalize Compset First.)',
              description='Compatible Grids:',

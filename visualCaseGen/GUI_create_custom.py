@@ -5,7 +5,7 @@ from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
-from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
+from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.HeaderWidget import HeaderWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
@@ -104,7 +104,7 @@ class GUI_create_custom():
             cv_comp_phys.widget_style.description_width = '90px'
 
             # COMP_{}_OPTION widget
-            cv_comp_option.widget = CheckboxMulti(
+            cv_comp_option.widget = CheckboxMultiWidget(
                     options=[],
                     value=None,
                     description=comp_class+':',
@@ -122,7 +122,7 @@ class GUI_create_custom():
         cv_compset.widget = widgets.HTML(value = f"<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
 
         cv_grid = ConfigVar.vdict['GRID']
-        cv_grid.widget = CheckboxMulti(
+        cv_grid.widget = CheckboxMultiWidget(
              options=[],
              placeholder = '(Finalize Compset First.)',
              description='Compatible Grids:',
