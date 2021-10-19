@@ -1,4 +1,4 @@
-import os, sys, re
+import logging
 import ipywidgets as widgets
 
 from visualCaseGen.visualCaseGen import OutHandler
@@ -7,9 +7,8 @@ from visualCaseGen.visualCaseGen.config_var import ConfigVar
 from visualCaseGen.visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.visualCaseGen.gui_create_custom import GUI_create_custom
 from visualCaseGen.visualCaseGen.gui_create_predefined import GUI_create_predefined
-from visualCaseGen.visualCaseGen.GUI_preliminaries import GUI_preliminaries
+from visualCaseGen.visualCaseGen.gui_preliminaries import GUI_preliminaries
 
-import logging
 logger = logging.getLogger(__name__)
 
 class GUI():
@@ -32,7 +31,7 @@ class GUI():
             )
 
             self.create_tab.children = [loadbar,]
-            self.vCIME.selected_index=1
+            self.main_dialog.selected_index=1
             self.prelim_tab.driver_widget.disabled = True
             self.prelim_tab.config_mode.disabled = True
             self.prelim_tab.verbose_widget.disabled = True
@@ -54,12 +53,10 @@ class GUI():
 
             if config_mode=='predefined':
                 ci = CIME_interface(driver, loadbar)
-                w = GUI_create_predefined(ci)
-                self.create_tab.children = [w.construct(),]
+                self.create_tab.children = (GUI_create_predefined(ci).construct(),)
             elif config_mode=='custom':
                 ci = CIME_interface(driver, loadbar)
-                w = GUI_create_custom(ci)
-                self.create_tab.children = [w.construct(),]
+                self.create_tab.children = (GUI_create_custom(ci).construct(),)
         self.prelim_tab.confirm_prelim_widget.on_click(confirm_prelim_clicked)
 
         def reset_prelim_clicked(b):
@@ -98,22 +95,21 @@ class GUI():
     @owh.out.capture()
     def display(self):
 
-        logger.info("Displaying vCIME GUI")
+        logger.info("Displaying visualCaseGen GUI")
 
         self.prelim_tab = GUI_preliminaries()
         self.create_tab = widgets.HBox()
         self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
 
-        self.vCIME = widgets.Accordion(children=[
+        self.main_dialog = widgets.Accordion(children=[
             self.prelim_tab.construct(),
             self.create_tab,
             self.help_tab_construct()]
         )
-        self.vCIME.set_title(0,'Step 1: Preliminaries')
-        self.vCIME.set_title(1,'Step 2: Create Case')
-        self.vCIME.set_title(2,'Help')
+        self.main_dialog.set_title(0,'Step 1: Preliminaries')
+        self.main_dialog.set_title(1,'Step 2: Create Case')
+        self.main_dialog.set_title(2,'Help')
 
         self.construct_tab_observances()
 
-        return self.vCIME
-
+        return self.main_dialog

@@ -1,7 +1,6 @@
-import os, sys, re
+import logging
 import ipywidgets as widgets
 
-import logging
 logger = logging.getLogger(__name__)
 
 class GUI_preliminaries():
@@ -69,4 +68,3 @@ class GUI_preliminaries():
         #hbx_basics.layout.border = '2px dotted lightgray'
 
         return hbx_basics
-
