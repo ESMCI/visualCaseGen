@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
-import ipywidgets as widgets
 import subprocess
+import ipywidgets as widgets
 
 class CreateCaseWidget(widgets.VBox):
 
     def __init__(self,ci,layout=widgets.Layout()):
 
         super().__init__(layout=layout)
-                
+
         self.compset = None
         self.grid = None
         self.ci = ci
@@ -23,7 +23,7 @@ class CreateCaseWidget(widgets.VBox):
             readout="Invalid directory",
             layout=widgets.Layout(display='none')
             )
-        
+
         self.casename = widgets.Textarea(
             value='',
             placeholder='Type case name',
@@ -41,9 +41,9 @@ class CreateCaseWidget(widgets.VBox):
             value=self.ci.machine,
             layout={'width': 'max-content'}, # If the items' names are long
             description='Machine:',
-            disabled= (self.ci.machine != None)
+            disabled= (self.ci.machine is not None)
         )
-        
+
         self.case_create =  widgets.Button(
             description='Create new case',
             disabled=True,
@@ -52,7 +52,7 @@ class CreateCaseWidget(widgets.VBox):
             icon='terminal',
             layout=widgets.Layout(height='30px')
         )
-        
+
         self.dry_run =  widgets.Button(
             description='Dry run',
             disabled=True,
@@ -61,7 +61,7 @@ class CreateCaseWidget(widgets.VBox):
             icon='',
             layout=widgets.Layout(height='30px')
         )
-        
+
         self.output = widgets.Output(
             layout={'border': '1px solid silver'}
         )
@@ -73,14 +73,14 @@ class CreateCaseWidget(widgets.VBox):
                                      layout= widgets.Layout(display='flex',justify_content='center')),
                          self.output
                         ]
-        
+
         self.casedir.observe(self._on_casedir_change)
         self.casename.observe(self._on_casename_change)
         self.casedir_validity.observe(self._on_validity_change)
         self.casename_validity.observe(self._on_validity_change)
         self.dry_run.on_click(self._dry_run_method)
         self.case_create.on_click(self._case_create_method)
-    
+
     def enable(self, compset, grid):
         self.casedir.disabled = False
         self.casename.disabled = False
@@ -91,7 +91,7 @@ class CreateCaseWidget(widgets.VBox):
         self.compset = compset
         self.grid = grid
         self.output.clear_output()
-        
+
     def disable(self, clear_output=True):
         self.casedir.disabled = True
         self.casename.disabled = True
@@ -101,8 +101,8 @@ class CreateCaseWidget(widgets.VBox):
         self.casedir_validity.layout.display = 'none'
         self.casename_validity.layout.display = 'none'
         if clear_output:
-                self.output.clear_output()
-        
+            self.output.clear_output()
+
     def _on_casedir_change(self, change):
         max_nopts = 30
         if change['type'] == 'change' and change['name'] == 'value':
@@ -126,7 +126,6 @@ class CreateCaseWidget(widgets.VBox):
                 self.casename_validity.layout.display = 'none'
                 name = new_path.name
                 parent = new_path.parent
-                nopts = 0
                 options = []
                 for option in list(parent.glob('{}*'.format(name))):
                     if Path(parent,option).is_dir():
@@ -155,12 +154,12 @@ class CreateCaseWidget(widgets.VBox):
 
     def _on_validity_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            if self.casedir_validity.value == True and self.casename_validity.value == True:
+            if self.casedir_validity.value is True and self.casename_validity.value is True:
                 self.case_create.disabled = False
-                self.dry_run.disabled = False 
+                self.dry_run.disabled = False
             else:
                 self.case_create.disabled = True
-                self.dry_run.disabled = True 
+                self.dry_run.disabled = True
 
     def _dry_run_method(self, b):
         self.output.clear_output()
@@ -187,8 +186,8 @@ class CreateCaseWidget(widgets.VBox):
             print("Running cmd: {}".format(cmd))
             runout = subprocess.run(cmd, shell=True, capture_output=True)
             if runout.returncode == 0:
-                print("".format(runout.stdout))
-                print("SUCCESS: Case created at {} ".format(casepath))
+                #print("\n{}".format(runout.stdout.decode('UTF-8')))
+                print("\nSUCCESS: Case created at {} ".format(casepath))
                 self.disable(clear_output=False)
             else:
                 print(runout.stdout)

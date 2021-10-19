@@ -1,5 +1,5 @@
 import logging
-from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
+from visualCaseGen.visualCaseGen.dummy_widget import DummyWidget
 
 logger = logging.getLogger(__name__)
 

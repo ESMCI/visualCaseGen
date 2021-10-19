@@ -1,6 +1,6 @@
 import logging
 import ipywidgets as widgets
-from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
+from visualCaseGen.visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.visualCaseGen.config_var import ConfigVar
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 

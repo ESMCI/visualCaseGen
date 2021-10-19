@@ -4,9 +4,9 @@ import ipywidgets as widgets
 from visualCaseGen.visualCaseGen.config_var import ConfigVar
 from visualCaseGen.visualCaseGen.config_var_opt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.config_var_opt_ms import ConfigVarOptMS
-from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
+from visualCaseGen.visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
-from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
+from visualCaseGen.visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.HeaderWidget import HeaderWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
