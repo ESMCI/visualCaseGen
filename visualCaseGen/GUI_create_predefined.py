@@ -1,11 +1,11 @@
 import os, sys, re
 import ipywidgets as widgets
-import subprocess
 
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
+from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
@@ -29,7 +29,6 @@ class GUI_create_predefined():
 
         cv_compset = ConfigVarOpt('COMPSET', NoneVal='')
         cv_grid = ConfigVarOptMS('GRID')
-        cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
 
@@ -47,7 +46,7 @@ class GUI_create_predefined():
                 widgets.Label(
                     value = '{} {} {}'.format(
                         chr(int("2000",base=16)), chr(int("25BC",base=16)), comp_class),
-                    layout = widgets.Layout(width='100px',display='flex',justify_content='center')
+                    layout = widgets.Layout(width='105px',display='flex',justify_content='center')
                 )
             )
 
@@ -82,15 +81,6 @@ class GUI_create_predefined():
         )
         self.keywords_widget.style.description_width = '90px'
 
-        self.reset_widget = widgets.Button(
-            description='Reset',
-            disabled=True,
-            button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Reset',
-            icon='undo',
-            layout = {'width':'100px'},
-        )
-
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.Combobox(
             options=[],
@@ -119,36 +109,9 @@ class GUI_create_predefined():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
-        cv_casename = ConfigVar.vdict['CASENAME']
-        cv_casename.widget = widgets.Textarea(
-            value='',
-            placeholder='Type case name',
-            description='Case name:',
-            disabled=True,
-            layout=widgets.Layout(height='30px', width='500px')
-        )
-        cv_casename.widget_style.description_width = '120px'
-
-        self.drp_machines = widgets.Dropdown(
-            options=self.ci.machines,
-            value=self.ci.machine,
-            layout={'width': 'max-content'}, # If the items' names are long
-            description='Machine name',
-            disabled= (self.ci.machine != None)
-        )
-        self.drp_machines.style.description_width = '120px'
-
-        self.btn_create = widgets.Button(
-            description='Create new case',
-            disabled=True,
-            button_style='', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Description',
-            icon='check',
-            layout=widgets.Layout(height='30px')
-        )
-
-        self.create_case_out = widgets.Output(
-            layout={'border': '1px solid black'}
+        self._create_case = CreateCaseWidget(
+            self.ci,
+            layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
         )
 
     def _update_compsets(self, b):
@@ -218,37 +181,6 @@ class GUI_create_predefined():
             'placeholder': 'Select from {} available compsets'.format(len(cv_compset.options)),
             'disabled': False })
 
-    def _reset_case_create(self):
-        cv_casename = ConfigVar.vdict['CASENAME']
-        cv_casename.value = ""
-        cv_casename.set_widget_properties({'disabled':True})
-        self.btn_create.disabled = True
-
-    def _update_case_create(self, change):
-
-        assert change['name'] == 'value'
-        self._reset_case_create()
-        if self.drp_machines.value:
-            new_grid = change['new']
-            if new_grid and len(new_grid)>0:
-                cv_casename = ConfigVar.vdict['CASENAME']
-                cv_casename.set_widget_properties({'disabled':False})
-                self.btn_create.disabled = False
-
-    def _call_update_case_create(self, change):
-        cv_grid = ConfigVar.vdict['GRID']
-        if cv_grid.get_widget_property('disabled') == True:
-            return
-        if change == None:
-            return
-        else:
-            if change['old'] == {}:
-                # Change in owner not finalized yet. Do nothing for now.
-                return
-            else:
-                self._update_case_create({'name':'value', 'new':cv_grid.value})
-
-
     def _reset_grid_widget(self):
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.value = ()
@@ -258,7 +190,7 @@ class GUI_create_predefined():
             'disabled': True
         })
         self._btn_grid_view.layout.display = 'none'
-        self._reset_case_create()
+        self._create_case.disable()
 
     def _update_grid_widget(self, change):
 
@@ -322,29 +254,6 @@ class GUI_create_predefined():
             else:
                 self._btn_grid_view.layout.display = '' # turn on the display
 
-    def _create_case(self, b):
-
-        cv_grid = ConfigVar.vdict["GRID"]
-        cv_casename = ConfigVar.vdict["CASENAME"]
-        cv_compset = ConfigVar.vdict['COMPSET']
-        compset_alias = cv_compset.value.split(':')[0]
-        self.create_case_out.clear_output()
-        with self.create_case_out:
-            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
-                self.ci.cimeroot,
-                cv_grid.value,
-                compset_alias,
-                cv_casename.value,
-                self.drp_machines.value)
-            print("Running cmd: {}".format(cmd))
-            runout = subprocess.run(cmd, shell=True, capture_output=True)
-            if runout.returncode == 0:
-                print("".format(runout.stdout))
-                print("SUCCESS: case created at {} ".format(cv_casename.value))
-            else:
-                print(runout.stdout)
-                print("ERROR: {} ".format(runout.stderr))
-
     def _refresh_grids_list_wrapper(self, change):
         if self.scientific_only_widget == True:
             self._refresh_grids_list(new_mode='all')
@@ -377,6 +286,14 @@ class GUI_create_predefined():
             self._btn_grid_view.description = 'show all grids' 
             self._btn_grid_view.icon = 'chevron-down' 
 
+    def _update_create_case(self, change):
+        assert change['name'] == 'value'
+        self._create_case.disable()
+        new_grid = change['new']
+        if new_grid and len(new_grid)>0:
+            compset_text = ConfigVar.vdict['COMPSET'].value.split(':')[0]
+            self._create_case.enable(compset_text, new_grid[0][1:].strip())
+
     def _construct_all_widget_observances(self):
 
         self.scientific_only_widget.observe(
@@ -393,7 +310,7 @@ class GUI_create_predefined():
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
-            self._update_case_create,
+            self._update_create_case,
             names='value',
             type='change'
         )
@@ -412,14 +329,7 @@ class GUI_create_predefined():
             type='change'
         )
 
-        self.drp_machines.observe(
-            self._call_update_case_create,
-            names='_property_lock',
-            type='change'
-        )
-
         self._btn_grid_view.on_click(self._refresh_grids_list)
-        self.btn_create.on_click(self._create_case)
 
     def construct(self):
 
@@ -450,12 +360,7 @@ class GUI_create_predefined():
             widgets.Label(value="Select a Grid:"),
             vbx_grids,
             widgets.Label(''),
-            self.drp_machines,
-            widgets.HBox([
-                ConfigVar.vdict['CASENAME']._widget,
-                widgets.HBox([self.btn_create])],
-                layout={'align_items':'flex-end'}),
-            self.create_case_out
+            self._create_case
         ])
 
         return vbx_create_case
