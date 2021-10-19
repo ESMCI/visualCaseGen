@@ -1,9 +1,9 @@
 import os, sys, re
 import ipywidgets as widgets
 
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
-from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
-from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
+from visualCaseGen.visualCaseGen.config_var import ConfigVar
+from visualCaseGen.visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.visualCaseGen.config_var_opt_ms import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
 from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
@@ -296,13 +296,13 @@ class GUI_create_custom():
 
             # 0. Component
             cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-            if cv_comp.is_None():
+            if cv_comp.is_none():
                 new_compset_text = ''
                 break
 
             # 1. Component Physics
             cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-            if not cv_comp_phys.is_None():
+            if not cv_comp_phys.is_none():
                 comp_phys_val = cv_comp_phys.value
                 if comp_phys_val == 'Specialized':
                     comp_phys_val = 'CAM' # todo: generalize this special case
@@ -311,12 +311,12 @@ class GUI_create_custom():
                 # 2. Component Option (optional)
                 cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
                 comp_option_val = cv_comp_option.value
-                if (not cv_comp_option.is_None()):
+                if (not cv_comp_option.is_none()):
                     new_compset_text += '%'+comp_option_val
                 else:
                     return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set 
                            # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most 
-                           # likely because cv_comp_option is temporarily set to NoneVal, i.e., ()., before it is
+                           # likely because cv_comp_option is temporarily set to none_val, i.e., ()., before it is
                            # to be set to its actual value. Return for now, without making any changes in compset. 
             else:
                 new_compset_text = ''

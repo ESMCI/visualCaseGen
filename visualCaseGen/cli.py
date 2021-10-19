@@ -11,7 +11,7 @@ sys.path.append(pth)
 logger = logging.getLogger("cmdCaseGen")
 
 from visualCaseGen.visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
+from visualCaseGen.visualCaseGen.config_var import ConfigVar
 
 parser = argparse.ArgumentParser(description='cmdCaseGen command line interface')
 parser.add_argument('-d', '--driver', choices=['nuopc', 'mct'], default="nuopc", type=str)

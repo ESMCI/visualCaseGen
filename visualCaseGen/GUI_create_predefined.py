@@ -1,9 +1,9 @@
 import os, sys, re
 import ipywidgets as widgets
 
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
-from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
-from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
+from visualCaseGen.visualCaseGen.config_var import ConfigVar
+from visualCaseGen.visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.visualCaseGen.config_var_opt_ms import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
 from visualCaseGen.visualCaseGen.HeaderWidget import HeaderWidget
@@ -28,7 +28,7 @@ class GUI_create_predefined():
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVarOpt('COMP_{}'.format(comp_class))
 
-        cv_compset = ConfigVarOpt('COMPSET', NoneVal='')
+        cv_compset = ConfigVarOpt('COMPSET', none_val='')
         cv_grid = ConfigVarOptMS('GRID')
 
     def _init_widgets(self):

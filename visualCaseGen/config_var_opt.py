@@ -1,7 +1,7 @@
 import logging
 import ipywidgets as widgets
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
-from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
+from visualCaseGen.visualCaseGen.config_var import ConfigVar
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
 
 class ConfigVarOpt(ConfigVar):
 
-    def __init__(self, name, never_unset=False, NoneVal=None):
-        super().__init__(name, NoneVal)
+    def __init__(self, name, never_unset=False, none_val=None):
+        super().__init__(name, none_val)
         self._has_options = True
         self._options_validity = []
         self._error_msgs = []
@@ -26,33 +26,32 @@ class ConfigVarOpt(ConfigVar):
 
     @property
     def value(self):
-        assert self._widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if self._widget.value != self._NoneVal:
+        assert self._widget is not None, "Cannot determine value for "+self.name+". Associated widget not initialized."
+        if self._widget.value != self._none_val:
             return self._widget.value[1:].strip()
-        else:
-            return self._widget.value
+        return self._widget.value
 
     @value.setter
     def value(self, val):
-        if (val != self._NoneVal):
-            if (val not in self.options):
-                raise ValueError("{} is an invalid option for {}. Valid options: {}".format(val, self.name, self.options))
-            else:
-                assert val.split()[0] in [invalid_opt_icon, valid_opt_icon], \
-                    "ConfigVarOpt value must always have a status icon"
+        if val != self._none_val:
+            if val not in self.options:
+                raise ValueError("{} is an invalid option for {}. Valid options: {}"\
+                    .format(val, self.name, self.options))
+            assert val.split()[0] in [invalid_opt_icon, valid_opt_icon], \
+                "ConfigVarOpt value must always have a status icon"
         self._widget.value = val
 
     def value_status(self):
-        return self._widget.value == self._NoneVal or self._widget.value[0] == valid_opt_icon
+        return self._widget.value == self._none_val or self._widget.value[0] == valid_opt_icon
 
     @ConfigVar.widget.setter
     def widget(self, widget):
         """Assigns the widget. Options of the passed in widget are assumed to be NOT preceded by status icons."""
         orig_widget_val = widget.value
         self._widget = widget
-        self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in widget.options])
-        if orig_widget_val == self._NoneVal:
-            self._widget.value = self._NoneVal
+        self._widget.options = tuple('{} {}'.format(valid_opt_icon, opt) for opt in widget.options)
+        if orig_widget_val == self._none_val:
+            self._widget.value = self._none_val
         else:
             self._widget.value = '{} {}'.format(valid_opt_icon, orig_widget_val)
         self._widget.value_status = self.value_status
@@ -68,17 +67,17 @@ class ConfigVarOpt(ConfigVar):
         """Assigns the options displayed in the widget. Passed in options are assumed to be NOT preceded by status
         icons."""
 
-        logger.debug("Updating the options of ConfigVarOpt {}".format(self.name))
+        logger.debug("Updating the options of ConfigVarOpt %s", self.name)
 
         # First, update to new options
         self._unobserve_value_validity()
-        self._widget.options = tuple(['{} {}'.format(valid_opt_icon, opt) for opt in opts])
-        self._widget.value = self._NoneVal
+        self._widget.options = tuple('{} {}'.format(valid_opt_icon, opt) for opt in opts)
+        self._widget.value = self._none_val
         # Second, update options validities
         self.update_options_validity()
 
         # If requested, pick the first valid value:
-        if self._never_unset==True and self._widget.value==self._NoneVal:
+        if self._never_unset is True and self._widget.value==self._none_val:
             self._set_value_to_first_valid_opt()
 
         self._observe_value_validity()
@@ -86,23 +85,21 @@ class ConfigVarOpt(ConfigVar):
     def is_valid_option(self, val):
         #todo: this is expensive. use self._options_validity whenever possible
         """ConfigVarOpt-specific check for whether a value/option is valid."""
-        if val == None or val == self._NoneVal:
+        if val in (None, self._none_val):
             return True
         val_split = val.split()
         if len(val_split)>=2:
             if val_split[0] == invalid_opt_icon:
                 return False
-            elif val_split[0] == valid_opt_icon:
+            if val_split[0] == valid_opt_icon:
                 return True
-        else:
-            raise RuntimeError("Corrupt value passed to is_valid_option(): {}".format(val))
+        raise RuntimeError("Corrupt value passed to is_valid_option(): {}".format(val))
 
     @property
     def tooltips(self):
         if isinstance(self._widget, widgets.ToggleButtons):
             return self._widget.tooltips
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     @tooltips.setter
     def tooltips(self, tooltips):
@@ -130,12 +127,12 @@ class ConfigVarOpt(ConfigVar):
                                 ConfigVar.vdict[var_other].update_options_validity()
                 return
         if len(self._widget.options)>0:
-            logger.error("Couldn't find any valid option for {}".format(self.name))
+            logger.error("Couldn't find any valid option for %s", self.name)
 
     @owh.out.capture()
     def _observe_value_validity(self):
-        if (not self._val_validity_obs_on) and self.compliances != None and len(self.assertions)>0:
-            logger.debug("Observing value validity for ConfigVarOpt {}".format(self.name))
+        if (not self._val_validity_obs_on) and (self.compliances is not None) and len(self.assertions)>0:
+            logger.debug("Observing value validity for ConfigVarOpt %s", self.name)
             self._widget.observe(
                 self._check_selection_validity,
                 names='value',
@@ -144,8 +141,8 @@ class ConfigVarOpt(ConfigVar):
 
     @owh.out.capture()
     def _unobserve_value_validity(self):
-        if self._val_validity_obs_on and self.compliances != None and len(self.assertions)>0:
-            logger.debug("Unobserving value validity for ConfigVarOpt {}".format(self.name))
+        if self._val_validity_obs_on and (self.compliances is not None) and len(self.assertions)>0:
+            logger.debug("Unobserving value validity for ConfigVarOpt %s", self.name)
             self._widget.unobserve(
                 self._check_selection_validity,
                 names='value',
@@ -159,24 +156,23 @@ class ConfigVarOpt(ConfigVar):
 
         if isinstance(self._widget, DummyWidget):
             return # no validity update needed
-        elif self.compliances == None:
+        if self.compliances is None:
             return
 
         # If this method is called due to a change in an observed widget,
         # check if the options of this ConfigVar need to be updated yet.
-        if change != None:
+        if change is not None:
             if change['old'] == {}:
-                logger.debug("Change in owner not finalized yet. Do nothing for ConfigVarOpt {}".format(self.name))
+                logger.debug("Change in owner not finalized yet. Do nothing for ConfigVarOpt %s", self.name)
                 return
-            logger.debug("change: {}".format(change))
+            logger.debug("change: %s", change)
             owner_cv = change['owner'].parentCV
             owner_val = change['owner'].value
             if not owner_cv.is_valid_option(owner_val):
-                logger.debug("Invalid selection at change owner. Do nothing for observing ConfigVarOpt {}"\
-                    .format(self.name))
+                logger.debug("Invalid selection at change owner. Do nothing for observing ConfigVarOpt %s", self.name)
                 return
 
-        logger.debug("Updating option validities of ConfigVarOpt {}".format(self.name))
+        logger.debug("Updating option validities of ConfigVarOpt %s", self.name)
 
         assert self.is_supported_widget(), "ConfigVarOpt {} widget is not supported yet.".format(self.name)
 
@@ -185,23 +181,21 @@ class ConfigVarOpt(ConfigVar):
 
         options_sans_validity = self._options_sans_validity()
 
-        for i in range(len(options_sans_validity)):
-            option = options_sans_validity[i]
+        for i, option in enumerate(options_sans_validity):
 
-            def _instance_val_getter(cvName):
-                val = ConfigVar.vdict[cvName].value
-                if val == None:
+            def _instance_val_getter(cv_name):
+                val = ConfigVar.vdict[cv_name].value
+                if val is None:
                     val = "None"
                 return val
-            def _instance_val_getter_opt(cvName):
-                if cvName == self.name:
+            def _instance_val_getter_opt(cv_name):
+                if cv_name == self.name:
                     return option
-                val = ConfigVar.vdict[cvName].value
-                if val == None:
+                val = ConfigVar.vdict[cv_name].value
+                if val is None:
                     val = "None"
                 return val
 
-            status, errMsg = True, ''
             for assertion in self.assertions:
                 try:
                     self.compliances.check_assertion(
@@ -209,9 +203,9 @@ class ConfigVarOpt(ConfigVar):
                         _instance_val_getter,
                         _instance_val_getter_opt,
                     )
-                except AssertionError as e:
+                except AssertionError as assertion_err:
                     self._options_validity[i] = False
-                    self._error_msgs[i] = "{}".format(e)
+                    self._error_msgs[i] = "{}".format(assertion_err)
                     break
 
         options_validity_icons = self._get_options_validity_icons()
@@ -220,43 +214,43 @@ class ConfigVarOpt(ConfigVar):
                 for i in range(len(options_sans_validity))]
 
         if self._widget.options == new_widget_options:
-            logger.debug("No validity changes in {}".format(self.name))
+            logger.debug("No validity changes in %s", self.name)
             return # no change in options validity
-        else:
-            logger.debug("Validity changes in the options of ConfigVarOpt {}".format(self.name))
 
-            old_val = self._widget.value
-            old_val_idx = None
-            if old_val != self._NoneVal:
-                old_val_idx = self._widget.index
+        logger.debug("Validity changes in the options of ConfigVarOpt %s", self.name)
 
-            self._unobserve_value_validity()
-            self._widget.options = new_widget_options
-            self._widget.value = self._NoneVal # this is needed here to prevent a weird behavior:
-                         # in absence of this, widget selection clears for
-                         # some reason
+        old_val = self._widget.value
+        old_val_idx = None
+        if old_val != self._none_val:
+            old_val_idx = self._widget.index
 
-            if old_val != self._NoneVal and self._options_validity[old_val_idx] == True:
-                self._widget.value = self._widget.options[old_val_idx]
-            if self._widget.value == self._NoneVal and self._never_unset:
-                self._set_value_to_first_valid_opt()
+        self._unobserve_value_validity()
+        self._widget.options = new_widget_options
+        self._widget.value = self._none_val # this is needed here to prevent a weird behavior:
+                     # in absence of this, widget selection clears for
+                     # some reason
 
-            self._observe_value_validity()
-            logger.debug("Options validity updated for {}".format(self.name))
+        if old_val != self._none_val and self._options_validity[old_val_idx] is True:
+            self._widget.value = self._widget.options[old_val_idx]
+        if self._widget.value == self._none_val and self._never_unset:
+            self._set_value_to_first_valid_opt()
+
+        self._observe_value_validity()
+        logger.debug("Options validity updated for %s", self.name)
 
     @owh.out.capture()
     def _check_selection_validity(self, change):
 
-        logger.debug("Checking the validity for ConfigVarOpt {} with value={}".format(self.name, self._widget.value))
+        logger.debug("Checking the validity for ConfigVarOpt %s with value=%s", self.name, self._widget.value)
 
-        if change != None:
+        if change is not None:
             assert change['name'] == 'value'
             new_val = change['new']
-            if new_val != self._NoneVal and not self.is_valid_option(new_val):
+            if new_val != self._none_val and not self.is_valid_option(new_val):
                 new_index = self._widget.index
-                logger.critical("ERROR: Invalid selection for {}".format(self.name))
+                logger.critical("ERROR: Invalid selection for %s", self.name)
                 logger.critical(self._error_msgs[new_index])
-                from IPython.display import display, HTML, Javascript
+                from IPython.display import display, HTML
                 js = "<script>alert('ERROR: Invalid {} selection: {}');</script>".format(
                     self.name,
                     self._error_msgs[new_index]
@@ -264,6 +258,6 @@ class ConfigVarOpt(ConfigVar):
                 display(HTML(js))
                 self._widget.value = change['old']
             else:
-                logger.debug("ConfigVarOpt {} value is valid: {}".format(self.name, self._widget.value))
+                logger.debug("ConfigVarOpt %s value is valid: %s", self.name, self._widget.value)
         else:
             raise NotImplementedError

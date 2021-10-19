@@ -1,7 +1,5 @@
 import logging
-import ipywidgets as widgets
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
-from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
@@ -17,28 +15,29 @@ class ConfigVar():
     # to be set by CompliancesHandler constructor
     compliances = None
 
-    def __init__(self, name, NoneVal=None):
+    def __init__(self, name, none_val=None):
         if name in ConfigVar.vdict:
-            logger.warning("ConfigVar {} already created.".format(name))
+            logger.warning("ConfigVar %s already created.", name)
         self.name = name
         self._has_options = False
         self._widget = DummyWidget()
         self._val_validity_obs_on = False
-        self._NoneVal = NoneVal
+        self._none_val = none_val
         ConfigVar.vdict[name] = self
-        logger.debug("ConfigVar {} created.".format(self.name))
+        logger.debug("ConfigVar %s created.", self.name)
 
     def reset():
+        """Resets the ConfigVar vdict, i.e., the collective dictionary of ConfigVars."""
         logger.debug("Resetting ConfigVar vdict.")
         ConfigVar.vdict = dict()
 
     def exists(varname):
-        """ Check if a variable is already defined."""
+        """Check if a variable is already defined."""
         return varname in ConfigVar.vdict
 
     @property
     def value(self):
-        assert self._widget != None, "Cannot determine value for "+self.name+". Associated widget not initialized."
+        assert self._widget is not None, "Cannot determine value for "+self.name+". Associated widget not initialized."
         return self._widget.value
 
     @property
@@ -49,8 +48,8 @@ class ConfigVar():
     def value(self, val):
         self._widget.value = val
 
-    def is_None(self):
-        return self._widget.value == self._NoneVal
+    def is_none(self):
+        return self._widget.value == self._none_val
 
     @property
     def widget(self):
@@ -99,4 +98,3 @@ class ConfigVar():
     #        return self._widget._ipython_display_()
     #    except AttributeError:
     #        return self._widget._repr_mimebundle_()
-
