@@ -1,12 +1,13 @@
 import os, sys, re
 import ipywidgets as widgets
-import subprocess
 
 from visualCaseGen.visualCaseGen.ConfigVar import ConfigVar
 from visualCaseGen.visualCaseGen.ConfigVarOpt import ConfigVarOpt
 from visualCaseGen.visualCaseGen.ConfigVarOptMS import ConfigVarOptMS
 from visualCaseGen.visualCaseGen.DummyWidget import DummyWidget
 from visualCaseGen.visualCaseGen.CheckboxMulti import CheckboxMulti
+from visualCaseGen.visualCaseGen.CreateCaseWidget import CreateCaseWidget
+from visualCaseGen.visualCaseGen.HeaderWidget import HeaderWidget
 from visualCaseGen.visualCaseGen.OutHandler import handler as owh
 
 import logging
@@ -36,7 +37,6 @@ class GUI_create_custom():
             cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
         cv_compset = ConfigVar('COMPSET')
         cv_grid = ConfigVarOptMS('GRID')
-        cv_casename = ConfigVar('CASENAME')
 
     def _init_widgets(self):
         # Create Case: --------------------------------------
@@ -139,40 +139,11 @@ class GUI_create_custom():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
-        cv_casename = ConfigVar.vdict['CASENAME']
-        cv_casename.widget = widgets.Textarea(
-            value='',
-            placeholder='Type case name',
-            description='Case name:',
-            disabled=True,
-            layout=widgets.Layout(height='30px', width='500px')
-        )
-        cv_casename.widget_style.description_width = '100px'
-
-        # Machines
-        self.drp_machines = widgets.Dropdown(
-            options=self.ci.machines,
-            value=self.ci.machine,
-            layout={'width': 'max-content'}, # If the items' names are long
-            description='Machine name:',
-            disabled= (self.ci.machine != None)
-        )
-        self.drp_machines.style.description_width = '100px'
-
-        #Create Case:
-        self.btn_create = widgets.Button(
-            value=False,
-            description='Create new case',
-            disabled=True,
-            button_style='', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Description',
-            icon='check',
-            layout=widgets.Layout(height='30px')
+        self._create_case = CreateCaseWidget(
+            self.ci,
+            layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
         )
 
-        self.create_case_out = widgets.Output(
-            layout={'border': '1px solid black'}
-        )
 
     def _update_grid_widget(self):
 
@@ -363,57 +334,12 @@ class GUI_create_custom():
             self._change_grid_view_mode(new_mode='suggested')
             self._update_grid_widget()
 
-    def _reset_case_create(self):
-        cv_casename = ConfigVar.vdict['CASENAME']
-        cv_casename.value = ""
-        cv_casename.set_widget_properties({'disabled': True})
-        self.btn_create.disabled = True
-
-    def _update_case_create(self,change):
-
+    def _update_create_case(self, change):
         assert change['name'] == 'value'
-        self._reset_case_create()
-        if self.drp_machines.value:
-            new_grid = change['new']
-            if new_grid and len(new_grid)>0:
-                cv_casename = ConfigVar.vdict['CASENAME']
-                cv_casename.set_widget_properties({'disabled': False})
-                self.btn_create.disabled = False
-
-    def _call_update_case_create(self, change):
-        cv_grid = ConfigVar.vdict['GRID']
-        if cv_grid.get_widget_property('disabled'):
-            return
-        if change == None:
-            return
-        else:
-            if change['old'] == {}:
-                # Change in owner not finalized yet. Do nothing for now.
-                return
-            else:
-                self._update_case_create({'name':'value', 'new':cv_grid.value})
-
-
-    def _create_case(self, b):
-
-        cv_grid = ConfigVar.vdict["GRID"]
-        cv_casename = ConfigVar.vdict["CASENAME"]
-        self.create_case_out.clear_output()
-        with self.create_case_out:
-            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --run-unsupported".format(
-                self.ci.cimeroot,
-                cv_grid.value,
-                self._compset_text,
-                cv_casename.value)
-            print("Running cmd: {}".format(cmd))
-            runout = subprocess.run(cmd, shell=True, capture_output=True)
-            if runout.returncode == 0:
-                print("".format(runout.stdout))
-                print("SUCCESS: case created at {} ".format(cv_casename.value))
-            else:
-                print(runout.stdout)
-                print("ERROR: {} ".format(runout.stderr))
-
+        self._create_case.disable()
+        new_grid = change['new']
+        if new_grid and len(new_grid)>0:
+            self._create_case.enable(self._compset_text, new_grid[0][1:].strip())
 
     @owh.out.capture()
     def observe_for_options_validity_update(self, cv):
@@ -481,19 +407,12 @@ class GUI_create_custom():
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
-            self._update_case_create,
+            self._update_create_case,
             names='value',
             type='change'
         )
 
-        self.drp_machines.observe(
-            self._call_update_case_create,
-            names='_property_lock',
-            type='change'
-        )
-
         self._btn_grid_view.on_click(self._change_grid_view_mode)
-        self.btn_create.on_click(self._create_case)
 
     def _set_comp_options_tab(self, change):
         if change['old'] == {}:
@@ -560,29 +479,19 @@ class GUI_create_custom():
             vbx_grids.layout.width = '800px'
             return vbx_grids
 
-
-        def _constr_hbx_case():
-            #Case Name
-            cv_casename = ConfigVar.vdict['CASENAME']
-
-            #Component options:
-            hbx_case = widgets.HBox([cv_casename._widget, self.btn_create])
-            return hbx_case
         ## END -- functions to determine the GUI layout
 
         vbx_create_case = widgets.VBox([
             ConfigVar.vdict['INITTIME']._widget,
-            widgets.Label(value="Components:"),
+            HeaderWidget("Components:"),
             _constr_vbx_components(),
-            widgets.Label(value="Component Physics and Options:"),
+            HeaderWidget("Physics and Options:"),
             _constr_hbx_comp_options(),
             ConfigVar.vdict['COMPSET']._widget,
-            widgets.Label(value="Grids:"),
+            HeaderWidget("Grids:"),
             _constr_vbx_grids(),
-            widgets.Label(value=""),
-            self.drp_machines,
-            _constr_hbx_case(),
-            self.create_case_out
+            HeaderWidget("Launch:"),
+            self._create_case
         ])
 
         return vbx_create_case
