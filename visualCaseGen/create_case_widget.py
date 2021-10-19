@@ -106,17 +106,29 @@ class CreateCaseWidget(widgets.VBox):
     def _on_casedir_change(self, change):
         max_nopts = 30
         if change['type'] == 'change' and change['name'] == 'value':
-            new_path = Path(change['new'])
-            if new_path.is_dir() and change['new'].strip() != '':
+            new_dir = Path(change['new'])
+            is_valid_dir = False
+
+            # first check if given dir is actually an existing directory.
+            if new_dir.is_dir() and change['new'].strip() != '':
+                # now, check if the user has write permissions:
+                if os.access(change['new'], os.W_OK):
+                    is_valid_dir = True
+                else:
+                    self.casedir_validity.readout = 'No write permissions!'
+            else:
+                self.casedir_validity.readout = 'Directory not found!'
+
+            if is_valid_dir:
                 self.casedir_validity.value=True
                 self.casename.disabled = False
                 self.casename_validity.layout.display = ''
-                options = [new_path.as_posix()]
-                for option in list(new_path.glob('[!.]*')):
-                    if Path(new_path,option).is_dir():
-                        options.append(Path(new_path,option).as_posix())
+                options = [new_dir.as_posix()]
+                for option in list(new_dir.glob('[!.]*')):
+                    if Path(new_dir,option).is_dir():
+                        options.append(Path(new_dir,option).as_posix())
                     if len(options)>=max_nopts:
-                        options = [new_path.as_posix()]
+                        options = [new_dir.as_posix()]
                         break
                 if change['owner'].options != tuple(options):
                     change['owner'].options = options
@@ -124,8 +136,8 @@ class CreateCaseWidget(widgets.VBox):
                 self.casedir_validity.value=False
                 self.casename.disabled = True
                 self.casename_validity.layout.display = 'none'
-                name = new_path.name
-                parent = new_path.parent
+                name = new_dir.name
+                parent = new_dir.parent
                 options = []
                 for option in list(parent.glob('{}*'.format(name))):
                     if Path(parent,option).is_dir():
