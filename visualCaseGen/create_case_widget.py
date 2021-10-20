@@ -13,12 +13,14 @@ class CreateCaseWidget(widgets.VBox):
         self.compset = None
         self.grid = None
         self.ci = ci
+        self._default_case_dir = Path(self.ci.cimeroot).parent.parent.as_posix()
 
         self.casedir = widgets.Combobox(
-            description='Directory:',
-            layout=widgets.Layout(width='600px'),
+            description='Case directory:',
+            layout=widgets.Layout(width='590px',description_width='190px'),
             disabled=True
         )
+        self.casedir.style.description_width = '105px'
         self.casedir_validity= widgets.Valid(
             value=False,
             readout="Invalid directory",
@@ -30,8 +32,9 @@ class CreateCaseWidget(widgets.VBox):
             placeholder='Type case name',
             description='Case name:',
             disabled=True,
-            layout=widgets.Layout(height='40px', width='600px')
+            layout=widgets.Layout(height='40px', width='590px')
         )
+        self.casename.style.description_width = '105px'
         self.casename_validity = widgets.Valid(
             value=False,
             readout="Empty casename!",
@@ -44,6 +47,7 @@ class CreateCaseWidget(widgets.VBox):
             description='Machine:',
             disabled= (self.ci.machine is not None)
         )
+        self.machines.style.description_width = '105px'
 
         self.case_create =  widgets.Button(
             description='Create new case',
@@ -86,7 +90,7 @@ class CreateCaseWidget(widgets.VBox):
         self.casedir.disabled = False
         self.casename.disabled = False
         if self.casedir.value == '':
-            self.casedir.value = os.getcwd()
+            self.casedir.value = self._default_case_dir
         self.casedir_validity.layout.display = ''
         self.casename_validity.layout.display = ''
         self.compset = compset
@@ -183,7 +187,7 @@ class CreateCaseWidget(widgets.VBox):
         with self.output:
             casepath = Path(self.casedir.value.strip(), self.casename.value.strip())
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
-            self.ci.cimeroot,
+            self._default_case_dir,
             self.grid,
             self.compset,
             casepath,
@@ -195,7 +199,7 @@ class CreateCaseWidget(widgets.VBox):
         with self.output:
             casepath = Path(self.casedir.value.strip(), self.casename.value.strip())
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
-            self.ci.cimeroot,
+            self._default_case_dir,
             self.grid,
             self.compset,
             casepath,
