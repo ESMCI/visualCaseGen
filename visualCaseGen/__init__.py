@@ -1,2 +1,5 @@
 from visualCaseGen.visualCaseGen.gui import GUI
-display = GUI().display
+try:
+    GUI().display()._ipython_display_()
+except AttributeError:
+    GUI().display()._repr_mimebundle_()
