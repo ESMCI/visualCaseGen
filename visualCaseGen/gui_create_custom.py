@@ -418,8 +418,10 @@ class GUI_create_custom():
             return # change not finalized yet
         comp_class = change['owner'].description[0:3]
         comp_ix = self.ci.comp_classes.index(comp_class)
-        self._comp_options_tab.set_title(comp_ix, ConfigVar.vdict['COMP_{}'.format(comp_class)].value.upper())
-        self._comp_options_tab.selected_index = comp_ix
+        cv_comp_value = ConfigVar.vdict['COMP_{}'.format(comp_class)].value
+        if cv_comp_value is not None:
+            self._comp_options_tab.set_title(comp_ix, cv_comp_value.upper())
+            self._comp_options_tab.selected_index = comp_ix
 
     def _change_grid_view_mode(self, change=None, new_mode=None):
 
