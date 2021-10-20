@@ -75,7 +75,7 @@ class CreateCaseWidget(widgets.VBox):
                          widgets.HBox([self.casename, self.casename_validity]),
                          self.machines,
                          widgets.HBox([self.case_create, self.dry_run],
-                                     layout= widgets.Layout(display='flex',justify_content='center')),
+                                     layout= widgets.Layout(display='flex',justify_content='flex-end')),
                          self.output
                         ]
 

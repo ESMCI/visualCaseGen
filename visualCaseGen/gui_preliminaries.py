@@ -19,7 +19,7 @@ class GUI_preliminaries():
             options=['predefined', 'custom'],
             tooltips=['Select from configurations predefined within CESM.',
                       'Allows maximum flexibility. For advanced users and breakthrough applications.'],
-            value='predefined',
+            value='custom',
             #layout={'width': 'max-content'}, # If the items' names are long
             description='Config Mode:',
             disabled=False
