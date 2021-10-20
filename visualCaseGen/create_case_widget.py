@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 import subprocess
 import ipywidgets as widgets
@@ -150,8 +151,8 @@ class CreateCaseWidget(widgets.VBox):
 
     def _on_casename_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            new_casename = change['new']
-            if new_casename.strip() == '':
+            new_casename = change['new'].strip()
+            if new_casename == '':
                 self.casename_validity.value = False
                 self.casename_validity.readout = "Empty case name!"
             else:
@@ -162,7 +163,7 @@ class CreateCaseWidget(widgets.VBox):
                         self.casename_validity.readout = "Path exists!"
                     self.casename_validity.value = False
                 else:
-                    if ' ' in new_casename.strip():
+                    if bool(re.match('^[a-zA-Z0-9\.\-_%]+$', new_casename)) is False:
                         self.casename_validity.readout = "Invalid case name!"
                         self.casename_validity.value = False
                     else:
