@@ -8,6 +8,7 @@ from visualCaseGen.visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.visualCaseGen.gui_create_custom import GUI_create_custom
 from visualCaseGen.visualCaseGen.gui_create_predefined import GUI_create_predefined
 from visualCaseGen.visualCaseGen.gui_preliminaries import GUI_preliminaries
+from visualCaseGen.visualCaseGen.header_widget import HeaderWidget
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +35,12 @@ class GUI():
             self.main_dialog.selected_index=1
             self.prelim_tab.driver_widget.disabled = True
             self.prelim_tab.config_mode.disabled = True
-            self.prelim_tab.verbose_widget.disabled = True
             self.prelim_tab.confirm_prelim_widget.disabled = True
             self.prelim_tab.reset_prelim_widget.disabled = False
             ConfigVar.reset()
 
             driver = self.prelim_tab.driver_widget.value
             config_mode = self.prelim_tab.config_mode.value
-            verbose = self.prelim_tab.verbose_widget.value
-
-            OutHandler.handler.out.clear_output()
-            if verbose=='On (slow)':
-                logger.info("Verbose Mode On")
-                logging.getLogger().setLevel(logging.DEBUG)
-            elif verbose=='Off':
-                logger.info("Verbose Mode Off")
-                logging.getLogger().setLevel(logging.INFO)
 
             if config_mode=='predefined':
                 ci = CIME_interface(driver, loadbar)
@@ -62,7 +53,6 @@ class GUI():
         def reset_prelim_clicked(b):
             self.prelim_tab.driver_widget.disabled = False
             self.prelim_tab.config_mode.disabled = False
-            self.prelim_tab.verbose_widget.disabled = False
             self.prelim_tab.confirm_prelim_widget.disabled = False
             self.prelim_tab.reset_prelim_widget.disabled = True
             self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
@@ -70,6 +60,18 @@ class GUI():
         self.prelim_tab.reset_prelim_widget.on_click(reset_prelim_clicked)
 
     def help_tab_construct(self):
+        self.verbose_widget = widgets.Dropdown(
+            options=['On (slow)', 'Off'],
+            tooltips=['Turn on the verbose GUI logging. This significantly slows down the GUI.',
+                      '(Default) Minimal logging. This improves the responsiveness of the GUI.'],
+            value='Off',
+            layout={'width': 'max-content'}, # If the items' names are long
+            description='Verbose GUI log:',
+            disabled=False
+        )
+        self.verbose_widget.style.description_width = '150px'
+        self.verbose_widget.observe(self.on_verbose_change)
+
         self.clear_log_button = widgets.Button(
             description='Clear Log',
             disabled=False,
@@ -84,13 +86,28 @@ class GUI():
 
         return widgets.VBox([
             widgets.Label("To report a bug or to request help:"),
-            widgets.Label(" (1) Start over and turn on verbose logging"),
+            widgets.Label(" (1) Turn on verbose logging below and start over."),
             widgets.Label(" (2) Repeat the steps that led to the error."),
             widgets.Label(" (3) Send the description of the eror with the generated log below to: altuntas@ucar.edu"),
-            widgets.Label("Logs:"),
-            widgets.VBox([self.clear_log_button],layout={'align_items':'flex-end'}),
+            HeaderWidget("Logs:"),
+            widgets.VBox([
+                widgets.HBox([self.verbose_widget, self.clear_log_button])]
+                ,layout={'align_items':'flex-end'}),
             OutHandler.handler.out
         ])
+
+    @owh.out.capture()
+    def on_verbose_change(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            new_verbose = change['new']
+            OutHandler.handler.out.clear_output()
+            if new_verbose=='On (slow)':
+                logger.info("Verbose Mode On")
+                logging.getLogger().setLevel(logging.DEBUG)
+            elif new_verbose=='Off':
+                logger.info("Verbose Mode Off")
+                logging.getLogger().setLevel(logging.INFO)
+
 
     @owh.out.capture()
     def display(self):
