@@ -13,7 +13,7 @@ class CreateCaseWidget(widgets.VBox):
         self.compset = None
         self.grid = None
         self.ci = ci
-        self._default_case_dir = Path(self.ci.cimeroot).parent.parent.as_posix()
+        self._default_case_dir = Path(self.ci.cimeroot).parent.parent.parent.as_posix()
 
         self.casedir = widgets.Combobox(
             description='Case directory:',

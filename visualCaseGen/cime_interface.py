@@ -7,7 +7,7 @@ from pathlib import Path
 
 # import CIME -----------------------------------------------------------
 filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
-CIMEROOT = Path(filepath).parent.parent.parent.as_posix()
+CIMEROOT = Path(Path(filepath).parent, 'CESM', 'cime' ).as_posix()
 sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *

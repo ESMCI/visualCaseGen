@@ -1,14 +1,14 @@
 import logging
 import ipywidgets as widgets
 
-from visualCaseGen.visualCaseGen import OutHandler
-from visualCaseGen.visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.visualCaseGen.config_var import ConfigVar
-from visualCaseGen.visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.visualCaseGen.gui_create_custom import GUI_create_custom
-from visualCaseGen.visualCaseGen.gui_create_predefined import GUI_create_predefined
-from visualCaseGen.visualCaseGen.gui_preliminaries import GUI_preliminaries
-from visualCaseGen.visualCaseGen.header_widget import HeaderWidget
+from visualCaseGen import OutHandler
+from visualCaseGen.OutHandler import handler as owh
+from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.cime_interface import CIME_interface
+from visualCaseGen.gui_create_custom import GUI_create_custom
+from visualCaseGen.gui_create_predefined import GUI_create_predefined
+from visualCaseGen.gui_preliminaries import GUI_preliminaries
+from visualCaseGen.header_widget import HeaderWidget
 
 logger = logging.getLogger(__name__)
 

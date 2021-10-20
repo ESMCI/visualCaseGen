@@ -1,4 +1,4 @@
-from visualCaseGen.visualCaseGen.gui import GUI
+from visualCaseGen.gui import GUI
 try:
     GUI().display()._ipython_display_()
 except AttributeError:
