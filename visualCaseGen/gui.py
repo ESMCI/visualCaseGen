@@ -1,14 +1,14 @@
 import logging
 import ipywidgets as widgets
 
-from visualCaseGen.visualCaseGen import OutHandler
-from visualCaseGen.visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.visualCaseGen.config_var import ConfigVar
-from visualCaseGen.visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.visualCaseGen.gui_create_custom import GUI_create_custom
-from visualCaseGen.visualCaseGen.gui_create_predefined import GUI_create_predefined
-from visualCaseGen.visualCaseGen.gui_preliminaries import GUI_preliminaries
-from visualCaseGen.visualCaseGen.header_widget import HeaderWidget
+from .OutHandler import *
+from .OutHandler import handler as owh
+from .config_var import ConfigVar
+from .cime_interface import CIME_interface
+from .gui_create_custom import GUI_create_custom
+from .gui_create_predefined import GUI_create_predefined
+from .gui_preliminaries import GUI_preliminaries
+from .header_widget import HeaderWidget
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class GUI():
         )
 
         def clear_log(b):
-            OutHandler.handler.out.clear_output()
+            handler.out.clear_output()
         self.clear_log_button.on_click(clear_log)
 
         return widgets.VBox([
@@ -93,14 +93,14 @@ class GUI():
             widgets.VBox([
                 widgets.HBox([self.verbose_widget, self.clear_log_button])]
                 ,layout={'align_items':'flex-end'}),
-            OutHandler.handler.out
+            handler.out
         ])
 
     @owh.out.capture()
     def on_verbose_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
             new_verbose = change['new']
-            OutHandler.handler.out.clear_output()
+            handler.out.clear_output()
             if new_verbose=='On (slow)':
                 logger.info("Verbose Mode On")
                 logging.getLogger().setLevel(logging.DEBUG)

@@ -2,7 +2,7 @@ import difflib
 import ipywidgets as widgets
 from traitlets import Int, Any, Dict, HasTraits, observe
 from ipywidgets import trait_types
-from visualCaseGen.visualCaseGen.OutHandler import handler as owh
+from .OutHandler import handler as owh
 
 class CheckboxMultiWidget(widgets.VBox, HasTraits):
 

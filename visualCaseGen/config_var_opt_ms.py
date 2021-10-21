@@ -1,9 +1,9 @@
 import logging
 import ipywidgets as widgets
-from visualCaseGen.visualCaseGen.dummy_widget import DummyWidget
-from visualCaseGen.visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
-from visualCaseGen.visualCaseGen.config_var import ConfigVar
-from visualCaseGen.visualCaseGen.OutHandler import handler as owh
+from .dummy_widget import DummyWidget
+from .checkbox_multi_widget import CheckboxMultiWidget
+from .config_var import ConfigVar
+from .OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
