@@ -7,7 +7,7 @@ from pathlib import Path
 
 # import CIME -----------------------------------------------------------
 filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
-CIMEROOT = Path(filepath).parent.parent.parent.as_posix()
+CIMEROOT = Path(Path(filepath).parent.parent, 'cime').as_posix()
 sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
@@ -242,9 +242,14 @@ class CIME_interface():
 
     def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         # todo: implement atmlev and lndnlev
-        config_grids = self._grids_obj._read_config_grids(grid_alias, compset, atmnlev, lndnlev)
-        # config_grids[0] : long grid name
-        return config_grids[1] # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
+        grid_long_name = self._grids_obj._read_config_grids(grid_alias, compset, atmnlev, lndnlev)
+        component_grids = {}
+        for comp_grid in grid_long_name.split('_'):
+            p_ix = comp_grid.index('%')
+            comp_id = comp_grid[:p_ix+1]
+            grid_name = comp_grid[p_ix+1:]
+            component_grids[comp_id] = grid_name
+        return component_grids # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
 
 
     def _retrieve_compsets(self):

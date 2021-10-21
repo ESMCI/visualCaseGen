@@ -171,8 +171,8 @@ class GUI_create_custom():
                 comp_grid_dict = self.ci.retrieve_component_grids(alias, self._compset_text)
                 ConfigVar.vdict['ATM_GRID'].value = comp_grid_dict['a%']
                 ConfigVar.vdict['LND_GRID'].value = comp_grid_dict['l%']
-                ConfigVar.vdict['OCN_GRID'].value = comp_grid_dict['o%']
-                ConfigVar.vdict['ICE_GRID'].value = comp_grid_dict['i%']
+                ConfigVar.vdict['OCN_GRID'].value = comp_grid_dict['oi%']
+                ConfigVar.vdict['ICE_GRID'].value = comp_grid_dict['oi%']
                 ConfigVar.vdict['ROF_GRID'].value = comp_grid_dict['r%']
                 ConfigVar.vdict['GLC_GRID'].value = comp_grid_dict['g%']
                 ConfigVar.vdict['WAV_GRID'].value = comp_grid_dict['w%']
