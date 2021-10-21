@@ -49,7 +49,7 @@ class CreateCaseWidget(widgets.VBox):
         )
         self.machines.style.description_width = '105px'
         self.machine_validity = widgets.Valid(
-            value=False,
+            value=self.ci.machine is not None,
             readout="Invalid Machine!",
             layout=widgets.Layout(display='none')
             )
@@ -212,7 +212,7 @@ class CreateCaseWidget(widgets.VBox):
         with self.output:
             casepath = Path(self.casedir.value.strip(), self.casename.value.strip())
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
-            self._default_case_dir,
+            self.ci.cimeroot,
             self.grid,
             self.compset,
             casepath,
@@ -224,7 +224,7 @@ class CreateCaseWidget(widgets.VBox):
         with self.output:
             casepath = Path(self.casedir.value.strip(), self.casename.value.strip())
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
-            self._default_case_dir,
+            self.ci.cimeroot,
             self.grid,
             self.compset,
             casepath,
