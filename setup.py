@@ -1,6 +1,7 @@
 import distutils
 import setuptools
 import subprocess
+from distutils.command.build import build as _build
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -17,7 +18,14 @@ class CheckoutCESM(distutils.cmd.Command):
         pass
 
     def run(self):
+        print("Downloading CESM...\nThis may take a few minutes...")
         subprocess.run('./manage_externals/checkout_externals -o', shell=True, capture_output=True, cwd='./CESM')
+        print("done.")
+
+class mybuild(_build):
+    def run(self):
+        self.run_command("checkout_cesm")
+        _build.run(self)
 
 
 setuptools.setup(
@@ -46,6 +54,7 @@ setuptools.setup(
         'PyYAML>=5.4,<6'
     ],
     cmdclass={
-        'checkout_cesm':CheckoutCESM, 
+        'checkout_cesm':CheckoutCESM,
+        'build':mybuild
     }
 )
