@@ -48,6 +48,11 @@ class CreateCaseWidget(widgets.VBox):
             disabled= (self.ci.machine is not None)
         )
         self.machines.style.description_width = '105px'
+        self.machine_validity = widgets.Valid(
+            value=False,
+            readout="Invalid Machine!",
+            layout=widgets.Layout(display='none')
+            )
 
         self.case_create =  widgets.Button(
             description='Create new case',
@@ -73,7 +78,7 @@ class CreateCaseWidget(widgets.VBox):
 
         self.children = [widgets.HBox([self.casedir, self.casedir_validity]),
                          widgets.HBox([self.casename, self.casename_validity]),
-                         self.machines,
+                         widgets.HBox([self.machines, self.machine_validity]),
                          widgets.HBox([self.case_create, self.dry_run],
                                      layout= widgets.Layout(display='flex',justify_content='flex-end')),
                          self.output
@@ -81,8 +86,10 @@ class CreateCaseWidget(widgets.VBox):
 
         self.casedir.observe(self._on_casedir_change)
         self.casename.observe(self._on_casename_change)
+        self.machines.observe(self._on_machine_change)
         self.casedir_validity.observe(self._on_validity_change)
         self.casename_validity.observe(self._on_validity_change)
+        self.machine_validity.observe(self._on_validity_change)
         self.dry_run.on_click(self._dry_run_method)
         self.case_create.on_click(self._case_create_method)
 
@@ -105,6 +112,7 @@ class CreateCaseWidget(widgets.VBox):
         self.dry_run.disabled = True
         self.casedir_validity.layout.display = 'none'
         self.casename_validity.layout.display = 'none'
+        self.machine_validity.layout.display = 'none'
         if clear_output:
             self.output.clear_output()
 
@@ -125,7 +133,8 @@ class CreateCaseWidget(widgets.VBox):
                 self.casedir_validity.readout = 'Directory not found!'
 
             if is_valid_dir:
-                self.casedir_validity.value=True
+                if self.casedir_validity.value != True: 
+                    self.casedir_validity.value = True
                 self.casename.disabled = False
                 self.casename_validity.layout.display = ''
                 options = [new_dir.as_posix()]
@@ -156,8 +165,8 @@ class CreateCaseWidget(widgets.VBox):
     def _on_casename_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
             new_casename = change['new'].strip()
+            new_casename_validity = False
             if new_casename == '':
-                self.casename_validity.value = False
                 self.casename_validity.readout = "Empty case name!"
             else:
                 if Path(self.casedir.value,new_casename).exists():
@@ -165,17 +174,33 @@ class CreateCaseWidget(widgets.VBox):
                         self.casename_validity.readout = "Case exists!"
                     else:
                         self.casename_validity.readout = "Path exists!"
-                    self.casename_validity.value = False
                 else:
                     if bool(re.match('^[a-zA-Z0-9\.\-_%]+$', new_casename)) is False:
                         self.casename_validity.readout = "Invalid case name!"
-                        self.casename_validity.value = False
                     else:
-                        self.casename_validity.value = True
+                        new_casename_validity = True
+
+            if new_casename_validity is False:
+                self.machine_validity.layout.display = 'none'
+            else:
+                self.machine_validity.layout.display = ''
+
+            if self.casename_validity.value != new_casename_validity:
+                self.casename_validity.value = new_casename_validity
+
+    def _on_machine_change(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            new_machine = change['new'].strip()
+            if new_machine == '':
+                self.machine_validity.value = False
+                self.casename_validity.readout = "Select machine!"
+            else:
+                self.machine_validity.value = True
 
     def _on_validity_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            if self.casedir_validity.value is True and self.casename_validity.value is True:
+            if self.casedir_validity.value is True and self.casename_validity.value is True \
+                    and self.machine_validity.value is True:
                 self.case_create.disabled = False
                 self.dry_run.disabled = False
             else:
