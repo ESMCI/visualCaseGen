@@ -1,0 +1,3 @@
+[submodule "CESM"]
+	path = CESM
+	url = https://github.com/alperaltuntas/CESM.git
