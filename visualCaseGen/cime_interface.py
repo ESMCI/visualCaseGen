@@ -182,11 +182,9 @@ class CIME_interface():
                     comp_physics_options[phys], # phys options
                     phys_descriptions # phys options descriptions
                 )
-            else: # no options defined for this model physics, so list all model options.
-                self.comp_options[model][phys] = (
-                    comp_all_options,
-                    [comp_options_desc[opt] for opt in comp_all_options] # all option descriptions
-                )
+            else: # no options defined for this model physics
+                logger.debug("No options defined for physics %s...", phys)
+                self.comp_options[model][phys] = ([],[])
 
     def _retrieve_models(self, comp_class):
         """ Retrieves the available models of a given component class. Retrieved models
