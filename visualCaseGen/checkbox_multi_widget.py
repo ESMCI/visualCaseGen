@@ -4,6 +4,10 @@ from traitlets import Int, Any, Dict, HasTraits, observe
 from ipywidgets import trait_types
 from .OutHandler import handler as owh
 
+_checkbox_width = '185px'
+_checkbox_clm_width = '200px'
+_min_widget_width = '750px' 
+
 class CheckboxMultiWidget(widgets.VBox, HasTraits):
 
     value = trait_types.TypedTuple(trait=Any(), help="Selected values").tag(sync=True)
@@ -25,7 +29,8 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
         self._options_widgets = []
         self._tooltips = []
         self._tooltips_widget = widgets.HTML(value='', placeholder='', description='')
-        self._options_hbox = widgets.HBox()
+        self._options_hbox = widgets.HBox(layout=widgets.Layout(min_width=_min_widget_width,
+            width='max-content', display='flex',justify_content='flex-start'))
 
         # general CheckboxMultiWidget configuration
         self.description = description # not displayed.
@@ -62,7 +67,7 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
                         widgets.HBox([  self._searchbar,
                                         self._selectmode],
                                         layout=widgets.Layout(justify_content='space-between')),
-                        self._options_hbox]
+                        widgets.VBox([self._options_hbox])]
                 else:
                     self.children = [self._searchbar, self._options_hbox]
 
@@ -172,8 +177,8 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
                 if not status_change_only:
                     self._tooltips[opt_ix] = ''
         else:
-            self._options_widgets = [widgets.Checkbox(description=opt, value=False,
-                    layout=widgets.Layout(width='230px', left='-40px', margin='0px')) for opt in self._options]
+            self._options_widgets = [widgets.Checkbox(description=opt, value=False, indent=False,
+                    layout=widgets.Layout(max_width=_checkbox_width, left='5px', margin='0px')) for opt in self._options]
             self._tooltips = ['']*len(self._options)
 
         for opt_widget in self._options_widgets:
@@ -229,8 +234,9 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
             '<br>'.join(tooltips_display)+'<br></p>'
 
         self._options_hbox.children = tuple([
-            widgets.VBox(options_widgets_display),
-            widgets.VBox((self._tooltips_widget,), layout={'width':'510px','overflow_y': 'hidden'})
+            widgets.VBox(options_widgets_display, layout={'max_width':_checkbox_clm_width,
+                'min_width':_checkbox_clm_width, 'overflow': 'hidden'}),
+            widgets.VBox((self._tooltips_widget,), layout={'overflow': 'hidden'})
         ])
 
     def _sort_opts_by_relevance(self,change):
