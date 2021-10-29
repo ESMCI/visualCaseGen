@@ -35,6 +35,7 @@ class GUI_create_custom():
             ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
             ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             ConfigVar('{}_GRID'.format(comp_class))
+        ConfigVar('MASK_GRID')
         ConfigVar('COMPSET')
         ConfigVarOptMS('GRID')
 
@@ -118,6 +119,9 @@ class GUI_create_custom():
 
             cv_comp_grid.widget = DummyWidget()
 
+        cv_mask_grid = ConfigVar.vdict['MASK_GRID']
+        cv_mask_grid.widget = DummyWidget()
+
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.HTML(value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
 
@@ -176,6 +180,7 @@ class GUI_create_custom():
                 ConfigVar.vdict['ROF_GRID'].value = comp_grid_dict['r%']
                 ConfigVar.vdict['GLC_GRID'].value = comp_grid_dict['g%']
                 ConfigVar.vdict['WAV_GRID'].value = comp_grid_dict['w%']
+                ConfigVar.vdict['MASK_GRID'].value = comp_grid_dict['m%']
 
                 def _instance_val_getter(cv_name):
                     val = ConfigVar.vdict[cv_name].value
@@ -183,9 +188,12 @@ class GUI_create_custom():
                         val = "None"
                     return val
 
+                cv_comp_grids = \
+                    [ConfigVar.vdict['{}_GRID'.format(comp_class)] for comp_class in self.ci.comp_classes] +\
+                    [ConfigVar.vdict['MASK_GRID']]
+
                 assertions_satisfied = True
-                for comp_class in self.ci.comp_classes:
-                    cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
+                for cv_comp_grid in cv_comp_grids:
                     for assertion in self.ci.compliances.assertions(cv_comp_grid.name):
                         try:
                             cv_comp_grid.compliances.check_assertion(
