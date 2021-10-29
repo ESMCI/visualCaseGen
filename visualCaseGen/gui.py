@@ -33,25 +33,22 @@ class GUI():
 
             self.create_tab.children = [loadbar,]
             self.main_dialog.selected_index=1
-            self.prelim_tab.driver_widget.disabled = True
             self.prelim_tab.config_mode.disabled = True
             self.prelim_tab.confirm_prelim_widget.disabled = True
             self.prelim_tab.reset_prelim_widget.disabled = False
             ConfigVar.reset()
 
-            driver = self.prelim_tab.driver_widget.value
             config_mode = self.prelim_tab.config_mode.value
 
-            if config_mode=='predefined':
-                ci = CIME_interface(driver, loadbar)
+            if config_mode=='Predefined':
+                ci = CIME_interface("nuopc", loadbar)
                 self.create_tab.children = (GUI_create_predefined(ci).construct(),)
-            elif config_mode=='custom':
-                ci = CIME_interface(driver, loadbar)
+            elif config_mode=='Build Custom':
+                ci = CIME_interface("nuopc", loadbar)
                 self.create_tab.children = (GUI_create_custom(ci).construct(),)
         self.prelim_tab.confirm_prelim_widget.on_click(confirm_prelim_clicked)
 
         def reset_prelim_clicked(b):
-            self.prelim_tab.driver_widget.disabled = False
             self.prelim_tab.config_mode.disabled = False
             self.prelim_tab.confirm_prelim_widget.disabled = False
             self.prelim_tab.reset_prelim_widget.disabled = True
@@ -123,7 +120,7 @@ class GUI():
             self.create_tab,
             self.help_tab_construct()]
         )
-        self.main_dialog.set_title(0,'Step 1: Preliminaries')
+        self.main_dialog.set_title(0,'Step 1: Select Mode')
         self.main_dialog.set_title(1,'Step 2: Create Case')
         self.main_dialog.set_title(2,'Help')
 
