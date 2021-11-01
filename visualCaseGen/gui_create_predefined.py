@@ -27,7 +27,7 @@ class GUI_create_predefined():
         for comp_class in self.ci.comp_classes:
             ConfigVarOpt('COMP_{}'.format(comp_class))
 
-        ConfigVarOpt('COMPSET', none_val='')
+        ConfigVarOpt('COMPSET', none_val=None)
         ConfigVarOptMS('GRID')
 
     def _init_widgets(self):
@@ -82,7 +82,7 @@ class GUI_create_predefined():
         self.keywords_widget.style.description_width = '90px'
 
         cv_compset = ConfigVar.vdict['COMPSET']
-        cv_compset.widget = widgets.Combobox(
+        cv_compset.widget = widgets.Dropdown(
             options=[],
             placeholder = '(Hit Search button)',
             description='Compset:',
@@ -91,6 +91,7 @@ class GUI_create_predefined():
             layout=widgets.Layout(width='650px', padding='10px')
         )
         cv_compset.widget_style.description_width = '90px'
+        cv_compset.valid_opt_icon = chr(int('27A4',base=16))
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.widget = CheckboxMultiWidget(
@@ -118,7 +119,7 @@ class GUI_create_predefined():
 
         # First, reset both the compset and the grid widgets:
         cv_compset = ConfigVar.vdict['COMPSET']
-        cv_compset.value = ''
+        #cv_compset.value = ''
         self._reset_grid_widget()
 
         # Now, determine all available compsets
@@ -205,6 +206,9 @@ class GUI_create_predefined():
             new_compset = change['old']['value']
         else: # invoked by backend
             new_compset = ConfigVar.vdict['COMPSET'].value
+
+        if new_compset is None:
+            return
         if len(new_compset)==0 or ':' not in new_compset:
             return
 
@@ -342,9 +346,9 @@ class GUI_create_predefined():
             hbx_comp_labels,
             hbx_comp_modes,
             self.keywords_widget,
-            ConfigVar.vdict['COMPSET']._widget,
-        ])
-        vbx_compset.layout.border = '1px solid silver'
+            ConfigVar.vdict['COMPSET']._widget],
+            layout = {'border':'1px solid silver', 'overflow': 'hidden', 'height':'310px'}
+        )
 
         vbx_grids = widgets.VBox([
             ConfigVar.vdict['GRID']._widget,
