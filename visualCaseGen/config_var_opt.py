@@ -6,13 +6,11 @@ from .OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
 
-invalid_opt_icon = chr(int("274C",base=16)) # Ballot Box with X
-valid_opt_icon = chr(int("2713",base=16)) # Ballot Box with X
-
-# it is assumed in this module that icons lenghts are one char.
-assert len(invalid_opt_icon)==1 and len(valid_opt_icon)==1
-
 class ConfigVarOpt(ConfigVar):
+
+    # it is assumed in this module that icons lenghts are one char.
+    invalid_opt_icon = chr(int("274C",base=16))
+    valid_opt_icon = chr(int("2713",base=16))
 
     def __init__(self, name, never_unset=False, none_val=None):
         super().__init__(name, none_val)
@@ -37,23 +35,23 @@ class ConfigVarOpt(ConfigVar):
             if val not in self.options:
                 raise ValueError("{} is an invalid option for {}. Valid options: {}"\
                     .format(val, self.name, self.options))
-            assert val.split()[0] in [invalid_opt_icon, valid_opt_icon], \
+            assert val.split()[0] in [self.invalid_opt_icon, self.valid_opt_icon], \
                 "ConfigVarOpt value must always have a status icon"
         self._widget.value = val
 
     def value_status(self):
-        return self._widget.value == self._none_val or self._widget.value[0] == valid_opt_icon
+        return self._widget.value == self._none_val or self._widget.value[0] == self.valid_opt_icon
 
     @ConfigVar.widget.setter
     def widget(self, widget):
         """Assigns the widget. Options of the passed in widget are assumed to be NOT preceded by status icons."""
         orig_widget_val = widget.value
         self._widget = widget
-        self._widget.options = tuple('{} {}'.format(valid_opt_icon, opt) for opt in widget.options)
+        self._widget.options = tuple('{} {}'.format(self.valid_opt_icon, opt) for opt in widget.options)
         if orig_widget_val == self._none_val:
             self._widget.value = self._none_val
         else:
-            self._widget.value = '{} {}'.format(valid_opt_icon, orig_widget_val)
+            self._widget.value = '{} {}'.format(self.valid_opt_icon, orig_widget_val)
         self._widget.value_status = self.value_status
         self._widget.parentCV = self
         self._observe_value_validity()
@@ -71,7 +69,7 @@ class ConfigVarOpt(ConfigVar):
 
         # First, update to new options
         self._unobserve_value_validity()
-        self._widget.options = tuple('{} {}'.format(valid_opt_icon, opt) for opt in opts)
+        self._widget.options = tuple('{} {}'.format(self.valid_opt_icon, opt) for opt in opts)
         self._widget.value = self._none_val
         # Second, update options validities
         self.update_options_validity()
@@ -89,9 +87,9 @@ class ConfigVarOpt(ConfigVar):
             return True
         val_split = val.split()
         if len(val_split)>=2:
-            if val_split[0] == invalid_opt_icon:
+            if val_split[0] == self.invalid_opt_icon:
                 return False
-            if val_split[0] == valid_opt_icon:
+            if val_split[0] == self.valid_opt_icon:
                 return True
         raise RuntimeError("Corrupt value passed to is_valid_option(): {}".format(val))
 
@@ -114,7 +112,7 @@ class ConfigVarOpt(ConfigVar):
 
     @owh.out.capture()
     def _get_options_validity_icons(self):
-        return [valid_opt_icon if valid else invalid_opt_icon for valid in self._options_validity]
+        return [self.valid_opt_icon if valid else self.invalid_opt_icon for valid in self._options_validity]
 
     def _set_value_to_first_valid_opt(self, inform_related_vars=True):
         for option in self._widget.options:
