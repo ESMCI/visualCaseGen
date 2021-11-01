@@ -44,9 +44,7 @@ class GUI_preliminaries():
             widgets.HTML(value="""
                 <p style='text-align:center;font-size:140%'><b><i>Welcome to visualCaseGen!</i></b></p>
                 <p style='text-align:center'>
-                In <b>Predefined</b> mode, you can choose from configurations already defined in CESM.<br>
-                In <b>Build Custom</b> mode, you can build your own configuration (subject to constraints).<br>
-                Select your desired mode and hit <b>Confirm</b> to start creating your CESM case.</p>
+                Select your desired configuration mode and hit <b>Confirm</b> to start creating your CESM case.</p>
             """, layout={'left':'-10px'}),
             widgets.VBox([self.config_mode], layout={'display':'flex','align_items':'center', 'margin':'10px'}),
             widgets.VBox([
