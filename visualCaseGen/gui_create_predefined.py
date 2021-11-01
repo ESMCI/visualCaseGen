@@ -345,9 +345,8 @@ class GUI_create_predefined():
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
         hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}'.format(comp_class)]._widget\
-             for comp_class in self.ci.comp_classes])
+             for comp_class in self.ci.comp_classes], layout={'overflow':'hidden'})
         hbx_comp_modes.layout.width = '800px'
-        hbx_comp_modes.layout.height = '170px'
 
         vbx_compset = widgets.VBox([
             hbx_comp_labels,

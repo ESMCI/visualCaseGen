@@ -98,6 +98,7 @@ class CreateCaseWidget(widgets.VBox):
     def _on_casename_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
             new_casepath_in = change['new'].strip()
+            is_valid_path = False
 
             if new_casepath_in == '':
                 self.casepath_validity.readout = "Empty casename!"
@@ -108,7 +109,6 @@ class CreateCaseWidget(widgets.VBox):
                     new_casepath = Path(new_casepath_in)
                 else:
                     new_casepath = Path(Path.home(), new_casepath_in)
-                is_valid_path = False
 
                 # check if the parent directory is valid
                 new_casedir = new_casepath.parent
@@ -122,27 +122,27 @@ class CreateCaseWidget(widgets.VBox):
                 else:
                     self.casepath_validity.readout = 'Invalid case path!'
 
-                if is_valid_path:
-                    is_valid_path = False # temporarily set to False. Will be reset to True if casename is valid.
-                    if new_casepath.exists():
-                        if Path(new_casepath, 'env_case.xml').exists():
-                            self.casepath_validity.readout = 'Case exists!'
-                        else:
-                            self.casepath_validity.readout = 'Path exists!'
+            if is_valid_path:
+                is_valid_path = False # temporarily set to False. Will be reset to True if casename is valid.
+                if new_casepath.exists():
+                    if Path(new_casepath, 'env_case.xml').exists():
+                        self.casepath_validity.readout = 'Case exists!'
                     else:
-                        new_casename = new_casepath.name
-                        if bool(re.match('^[a-zA-Z0-9\.\-_%]+$', new_casename)) is False:
-                            self.casepath_validity.readout = 'Invalid case name!'
-                        else:
-                            is_valid_path = True
-
-                if is_valid_path:
-                    self.machine_validity.layout.display = ''
+                        self.casepath_validity.readout = 'Path exists!'
                 else:
-                    self.machine_validity.layout.display = 'none'
+                    new_casename = new_casepath.name
+                    if bool(re.match('^[a-zA-Z0-9\.\-_%]+$', new_casename)) is False:
+                        self.casepath_validity.readout = 'Invalid case name!'
+                    else:
+                        is_valid_path = True
 
-                if self.casepath_validity.value != is_valid_path:
-                    self.casepath_validity.value = is_valid_path
+            if is_valid_path:
+                self.machine_validity.layout.display = ''
+            else:
+                self.machine_validity.layout.display = 'none'
+
+            if self.casepath_validity.value != is_valid_path:
+                self.casepath_validity.value = is_valid_path
 
     def _on_machine_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
