@@ -84,7 +84,6 @@ class GUI_create_predefined():
         cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.Dropdown(
             options=[],
-            placeholder = '(Hit Search button)',
             description='Compset:',
             disabled=True,
             ensure_option=True,
@@ -92,6 +91,8 @@ class GUI_create_predefined():
         )
         cv_compset.widget_style.description_width = '90px'
         cv_compset.valid_opt_icon = chr(int('27A4',base=16))
+
+        self.compset_desc_widget = widgets.Label("", layout = {'left':'160px', 'margin':'10px'})
 
         cv_grid = ConfigVar.vdict['GRID']
         cv_grid.widget = CheckboxMultiWidget(
@@ -119,7 +120,6 @@ class GUI_create_predefined():
 
         # First, reset both the compset and the grid widgets:
         cv_compset = ConfigVar.vdict['COMPSET']
-        #cv_compset.value = ''
         self._reset_grid_widget()
 
         # Now, determine all available compsets
@@ -178,9 +178,14 @@ class GUI_create_predefined():
         available_compsets_str = ['{}: {}'.format(ac.alias, ac.lname) for ac in self._available_compsets]
 
         cv_compset.options = available_compsets_str
-        cv_compset.set_widget_properties({
-            'placeholder': 'Select from {} available compsets'.format(len(cv_compset.options)),
-            'disabled': False })
+        cv_compset.set_widget_properties({'disabled': False })
+        n_available_compsets = len(cv_compset.options)
+        if n_available_compsets > 0:
+            self.compset_desc_widget.value = '{} Select from {} available compsets above.'.\
+                format(chr(int("2191",base=16)), n_available_compsets)
+        else:
+            self.compset_desc_widget.value = '{} Cannot find any compsets with the above filters/keywords.'.\
+                format(chr(int("2757",base=16)))
 
     def _reset_grid_widget(self):
         cv_grid = ConfigVar.vdict['GRID']
@@ -211,6 +216,8 @@ class GUI_create_predefined():
             return
         if len(new_compset)==0 or ':' not in new_compset:
             return
+
+        self.compset_desc_widget.value = "" # a valid compset selection made. reset compset_desc_widget
 
         new_compset_alias = new_compset.split(':')[0].strip()
         new_compset_lname = new_compset.split(':')[1].strip()
@@ -346,8 +353,9 @@ class GUI_create_predefined():
             hbx_comp_labels,
             hbx_comp_modes,
             self.keywords_widget,
-            ConfigVar.vdict['COMPSET']._widget],
-            layout = {'border':'1px solid silver', 'overflow': 'hidden', 'height':'310px'}
+            ConfigVar.vdict['COMPSET']._widget,
+            self.compset_desc_widget],
+                layout = {'border':'1px solid silver', 'overflow': 'hidden', 'height':'310px'}
         )
 
         vbx_grids = widgets.VBox([
