@@ -12,6 +12,8 @@ logger = logging.getLogger("cmdCaseGen")
 
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.config_var_opt_ms import ConfigVarOptMS
 
 parser = argparse.ArgumentParser(description='cmdCaseGen command line interface')
 parser.add_argument('-d', '--driver', choices=['nuopc', 'mct'], default="nuopc", type=str)
@@ -43,20 +45,18 @@ class cmdCaseGen(cmd.Cmd):
 
         ConfigVar.compliances = self.ci.compliances
 
-        cv_inittime = ConfigVar('INITTIME')
+        cv_inittime = ConfigVarOpt('INITTIME')
         for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVar('COMP_'+str(comp_class))
-            cv_comp_phys = ConfigVar('COMP_{}_PHYS'.format(comp_class), never_unset=True)
-            cv_comp_option = ConfigVar('COMP_{}_OPTION'.format(comp_class), never_unset=True)
-            cv_comp_grid = ConfigVar('{}_GRID'.format(comp_class))
-        cv_compset = ConfigVar('COMPSET')
-        cv_grid = ConfigVar('GRID')
-        cv_casename = ConfigVar('CASENAME')
+            ConfigVarOpt('COMP_'+str(comp_class))
+            ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
+            ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), never_unset=True)
+            ConfigVar('{}_GRID'.format(comp_class))
+        ConfigVar('MASK_GRID')
+        ConfigVar('COMPSET')
+        ConfigVarOpt('GRID')
 
     def _init_options(self):
-        pass
-        #ConfigVar['INITTIME'].options = ['1850', '2000', 'HIST']
-
+        ConfigVarOpt.vdict['INITTIME'].options = ['1850', '2000', 'HIST']
 
     def do_vars(self, arg):
         """
@@ -75,6 +75,8 @@ class cmdCaseGen(cmd.Cmd):
                     print("{}={}".format(var,val))
 
     def completenames(self, text, *ignored):
+        """ This gets called when a (partial or full) single word, i.e., param name,
+        is to be completed. """
         complete_list = []
         for varname in ConfigVar.vdict:
             if varname.startswith(text.strip()):
@@ -82,39 +84,51 @@ class cmdCaseGen(cmd.Cmd):
         return complete_list
 
     def completedefault(self, text, line, begidx, endidx):
+        """ This completion method gets called when more than one words are already typed,
+        i.e., when a parameter assignment is to be made."""
         if '=' in line:
             sline = line.split('=')
             varname = sline[0].strip()
             if ConfigVar.exists(varname):
+                var = ConfigVar.vdict[varname]
+                assert isinstance(var,ConfigVarOpt) or isinstance(var,ConfigVarOptMS)
+                options_sans_validity = var._options_sans_validity()
                 val_begin = sline[1].strip()
-                if val_begin:
-                    return [opt for opt in ConfigVar.vdict[varname].options if opt.startswith(val_begin)]
+                if len(val_begin)>0:
+                    return [opt for opt in options_sans_validity if opt.startswith(val_begin)]
                 else:
-                    return ConfigVar.vdict[varname].options
+                    return options_sans_validity
         return []
 
 
+    def _assign_var(self, varname, val):
+        try:
+            var = ConfigVar.vdict[varname]
+            if val[0] not in [var.valid_opt_icon, var.invalid_opt_icon]:
+                val = '{} {}'.format(var.valid_opt_icon, val)
+            var.value = val
+        except Exception as e:
+            self.printError("{}".format(e))
+
     def default(self, line):
         """The default user input is variable assignment, i.e., key=value where key is a ConfigVar name
-        and value is a valid value for the ConfigVar."""
+        and value is a valid value for the ConfigVar. If no value is provided, current value is printed."""
+
+        # assign variable value
         if re.search(r'\b\w+\b *= *\b\w+\b', line):
-            # key=value pair, i.e., an assignment
             sline = line.split('=')
             varname = sline[0].strip()
             if ConfigVar.exists(varname):
                 val = sline[1].strip()
-                try:
-                    ConfigVar.vdict[varname].value = val
-                except Exception as e:
-                    self.printError("{}".format(e))
+                self._assign_var(varname, val)
             else:
-                self.printError("Cannot find the variable {}. To list all variables, type: ls -a".format(varname))
+                self.printError("Cannot find the variable {}. To list all variables, type: vars -a".format(varname))
+
+        # query variable value
         elif re.search(r'^ *\b\w+ *$', line):
-            # single word, i.e., a value inquiry
             varname = line.strip()
             if ConfigVar.exists(varname):
                 val = ConfigVar.vdict[varname].value
-                #print("{} = {}".format(varname,val))
                 print("{}".format(val))
             else:
                 self.printError("{} is not a variable name or a command".format(varname))
