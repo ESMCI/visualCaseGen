@@ -2,7 +2,7 @@ import difflib
 import ipywidgets as widgets
 from traitlets import Int, Any, Dict, HasTraits, observe
 from ipywidgets import trait_types
-from .OutHandler import handler as owh
+from visualCaseGen.OutHandler import handler as owh
 
 _checkbox_width = '185px'
 _checkbox_clm_width = '200px'

@@ -2,12 +2,12 @@ import re
 import logging
 import ipywidgets as widgets
 
-from .config_var import ConfigVar
-from .config_var_opt import ConfigVarOpt
-from .config_var_opt_ms import ConfigVarOptMS
-from .checkbox_multi_widget import CheckboxMultiWidget
-from .create_case_widget import CreateCaseWidget
-from .header_widget import HeaderWidget
+from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.config_var_opt_ms import ConfigVarOptMS
+from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
+from visualCaseGen.create_case_widget import CreateCaseWidget
+from visualCaseGen.header_widget import HeaderWidget
 
 logger = logging.getLogger(__name__)
 
