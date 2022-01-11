@@ -67,7 +67,7 @@ class GUI_create_predefined():
                 options = cv_comp_models,
                 description=comp_class,
                 disabled=False,
-                layout=widgets.Layout(width='105px', max_height='120px')
+                layout=widgets.Layout(width='105px', max_height='150px')
             )
             cv_comp.widget_style.button_width = '85px'
             cv_comp.widget_style.description_width = '0px'
