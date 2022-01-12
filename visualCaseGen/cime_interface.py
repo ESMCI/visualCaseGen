@@ -199,12 +199,12 @@ class CIME_interface():
         # Find list of models for component class
         # List can be in different locations, check CONFIG_XXX_FILE
         comp_config_filename = 'CONFIG_{}_FILE'.format(comp_class)
-        _models = self._files.get_components(comp_config_filename)
+        _models = set(self._files.get_components(comp_config_filename))
 
         # Backup, check COMP_ROOT_DIR_XXX
         root_dir_node_name = 'COMP_ROOT_DIR_' + comp_class
         if (_models is None) or (None in _models):
-            _models = self._files.get_components(root_dir_node_name)
+            _models = set(self._files.get_components(root_dir_node_name))
 
         # sanity checks
         assert (_models is not None) and (None not in _models),"Unable to find list of supported components"

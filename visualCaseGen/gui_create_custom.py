@@ -74,13 +74,7 @@ class GUI_create_custom():
 
             # Determine the list of available models for a given component class. Available physics and options are
             # to be determined right after the model is selected by the user.
-            cv_comp_models = []
-            for model in self.ci.models[comp_class]:
-                if model[0]=='x':
-                    logger.debug("Skipping the dead component %s.", model)
-                    continue
-                if model not in cv_comp_models:
-                    cv_comp_models.append(model)
+            cv_comp_models = [model for model in  self.ci.models[comp_class] if model[0] != 'x']
 
             # COMP_{} widget
             cv_comp.widget = widgets.ToggleButtons(
