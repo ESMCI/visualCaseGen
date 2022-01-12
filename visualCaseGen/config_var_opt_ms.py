@@ -4,6 +4,7 @@ from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.OutHandler import handler as owh
+from visualCaseGen.logic_engine import LogicEngine
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class ConfigVarOptMS(ConfigVar):
     @property
     def value(self):
         assert self._widget is not None, "Cannot determine value for "+self.name+". Associated widget not initialized."
-        if self._widget.value == self._none_val:
+        if self._widget.value == self._none_val or self._widget.value==None:
             return ''
         return '%'.join([val[1:].strip() for val in self._widget.value])
 
@@ -73,6 +74,8 @@ class ConfigVarOptMS(ConfigVar):
         icons."""
 
         logger.debug("Updating the options of ConfigVarOptMS %s", self.name)
+
+        LogicEngine.set_variable_options(self.name, opts)
 
         # First, update to new options
         self._unobserve_value_validity()

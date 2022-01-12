@@ -1,5 +1,6 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
+from visualCaseGen.logic_engine import LogicEngine
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class ConfigVar():
         self._val_validity_obs_on = False
         self._none_val = none_val
         ConfigVar.vdict[name] = self
+        LogicEngine.add_variable(name)
         logger.debug("ConfigVar %s created.", self.name)
 
     def reset():
@@ -46,6 +48,7 @@ class ConfigVar():
 
     @value.setter
     def value(self, val):
+        LogicEngine.add_assignment(self.name, val)
         self._widget.value = val
 
     def is_none(self):
