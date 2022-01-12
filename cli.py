@@ -1,5 +1,4 @@
 import logging
-import argparse
 import os, sys
 import cmd
 import re
@@ -14,12 +13,29 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_opt import ConfigVarOpt
 from visualCaseGen.config_var_opt_ms import ConfigVarOptMS
+from visualCaseGen.logic_engine import LogicEngine
+from z3 import * # this is only needed for constraint setter functions
 
-parser = argparse.ArgumentParser(description='cmdCaseGen command line interface')
-parser.add_argument('-d', '--driver', choices=['nuopc', 'mct'], default="nuopc", type=str)
+def relational_assertions_setter(LogicVars):
 
-args = parser.parse_args()
+    COMP_ATM = LogicVars['COMP_ATM']
+    COMP_LND = LogicVars['COMP_LND']
+    COMP_ICE = LogicVars['COMP_ICE']
+    COMP_OCN = LogicVars['COMP_OCN']
+    COMP_ROF = LogicVars['COMP_ROF']
+    COMP_GLC = LogicVars['COMP_GLC']
+    COMP_WAV = LogicVars['COMP_WAV']
 
+    constraints = {
+        Implies(COMP_WAV=="ww3", Or([COMP_OCN== ocn for ocn in ["mom", "pop"]])) :
+            "WW3 can only be selected if either POP2 or MOM6 is the ocean component.",
+        Implies(COMP_OCN=="mom", COMP_WAV!="dwav") :
+            "MOM6 cannot be coupled with data wave component.",
+        Implies(COMP_ATM=="cam", COMP_ICE!="dice") :
+            "CAM cannot be coupled with Data ICE",
+    }
+
+    return constraints
 
 class cmdCaseGen(cmd.Cmd):
 
@@ -27,13 +43,15 @@ class cmdCaseGen(cmd.Cmd):
     prompt = "(cmd) "
     file = None
 
-    def __init__(self, driver, exit_on_error=False):
+    def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
         ConfigVar.reset()
-        self.ci = CIME_interface(driver)
+        self.engine = LogicEngine()
+        self.ci = CIME_interface("nuopc")
         self._init_configvars()
         self._init_options()
         self._exit_on_error = exit_on_error
+        self.engine.add_relational_assertions(relational_assertions_setter)
 
     def printError(self, msg):
         if self._exit_on_error:
@@ -57,6 +75,9 @@ class cmdCaseGen(cmd.Cmd):
 
     def _init_options(self):
         ConfigVarOpt.vdict['INITTIME'].options = ['1850', '2000', 'HIST']
+        for comp_class in self.ci.comp_classes:
+            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            cv_comp.options = [model for model in  self.ci.models[comp_class] if model[0] != 'x']
 
     def do_vars(self, arg):
         """
@@ -104,8 +125,7 @@ class cmdCaseGen(cmd.Cmd):
     def _assign_var(self, varname, val):
         try:
             var = ConfigVar.vdict[varname]
-            if val[0] not in [var.valid_opt_icon, var.invalid_opt_icon]:
-                val = '{} {}'.format(var.valid_opt_icon, val)
+            val = '{} {}'.format(var.valid_opt_icon, val)
             var.value = val
         except Exception as e:
             self.printError("{}".format(e))
@@ -168,5 +188,5 @@ class cmdCaseGen(cmd.Cmd):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.WARNING)
-    cmdCaseGen(args.driver).cmdloop()
+    cmdCaseGen().cmdloop()
 
