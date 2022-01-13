@@ -69,13 +69,14 @@ def _is_option(varname, value):
     else:
         return True # the variable has no options defined.
 
-def _check_assignment(varname, value):
+def _is_sat_assignment(varname, value):
     """ This is to be called by add_assignment method only. It checks whether an
     assignment is satisfiable."""
 
     # first, check if the value is an option of var
     if not _is_option(varname, value):
-        raise ValueError("Invalid value for {} = {}".format(varname, value))
+        err_msg = '{} not an option for {}'.format(value, varname)
+        return False, err_msg
 
     # now, check if the value satisfies all assertions
 
@@ -95,8 +96,10 @@ def _check_assignment(varname, value):
         for asrt in asrt_relationals:
             s.add(asrt)
             if s.check() == unsat:
-                raise AssertionError('{}={} violates assertion:"{}"'.
-                    format(varname,value,asrt_relationals[asrt]))
+                err_msg = '{}={} violates assertion:"{}"'.format(varname,value,asrt_relationals[asrt])
+                return False, err_msg
+
+    return True, ''
 
 def set_null(varname):
     """ Removes the assignment assertion of variable, if there is one."""
@@ -105,7 +108,25 @@ def set_null(varname):
 
 def add_assignment(varname, value):
     """ Adds an assignment to the logic solver. To be called by ConfigVar value setters only."""
-    var = lvars[varname]
-    _check_assignment(varname, value)
-    asrt_assignments[varname] = var==value
 
+    # first pop old assignment if exists:
+    old_assignment = asrt_assignments.pop(varname, None)
+
+    # check if assignment is satisfiable.
+    stat, msg = _is_sat_assignment(varname, value)
+
+    if stat == False:
+        # reinsert old assignment before raising error
+        if old_assignment is not None:
+            asrt_assignments[varname] = old_assignment
+        raise AssertionError(msg)
+    else:
+        # assignment is successful
+        var = lvars[varname]
+        asrt_assignments[varname] = var==value
+
+
+# Auxiliary definitions of logic expression shorthands
+def In(var, value_list):
+    """Expression to check whether the value of a variable is in a given list."""
+    return Or([var==value for value in value_list])
