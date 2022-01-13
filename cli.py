@@ -45,6 +45,7 @@ class cmdCaseGen(cmd.Cmd):
 
     def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
+        logic.reset()
         ConfigVar.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
@@ -124,7 +125,6 @@ class cmdCaseGen(cmd.Cmd):
     def _assign_var(self, varname, val):
         try:
             var = ConfigVar.vdict[varname]
-            val = '{} {}'.format(var.valid_opt_icon, val)
             var.value = val
         except Exception as e:
             self.printError("{}".format(e))
@@ -155,15 +155,8 @@ class cmdCaseGen(cmd.Cmd):
             self.printError("Unknown syntax! Provide a key=value pair where key is a ConfigVar, e.g., COMP_OCN")
 
     def do_assertions(self, line):
-        """assertions [VARNAME]: list all assertions of the given variable [VARNAME]"""
-        if not re.search(r'^ *\b\w+ *$', line.strip()):
-            self.printError("Must provide a variable name.")
-            return
-        varname = line.strip()
-        if ConfigVar.exists(varname):
-            print(ConfigVar.vdict[varname].assertions)
-        else:
-            self.printError("{} not a valid variable name".format(varname))
+        """list all assertions"""
+        print(logic.universal_solver().assertions())
 
     def close(self):
         if self.file:
