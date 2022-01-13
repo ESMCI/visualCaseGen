@@ -101,6 +101,16 @@ def _is_sat_assignment(varname, value):
 
     return True, ''
 
+def get_options_validity(varname, options_list):
+    var = lvars[varname]
+    n_opts = len(options_list)
+    options_validity = [False]*n_opts
+    s = universal_solver()
+    for i in range(n_opts):
+        options_validity[i] = s.check(var==options_list[i]) == sat
+    return options_validity
+
+
 def set_null(varname):
     """ Removes the assignment assertion of variable, if there is one."""
     if varname in asrt_assignments:

@@ -21,7 +21,7 @@ import visualCaseGen.logic_engine as logic
 class cmdCaseGen(cmd.Cmd):
 
     intro = "\nWelcome to the cmdCaseGen command shell. Type help or ? to list commands."
-    prompt = "(cmd) "
+    prompt = ">>> "
     file = None
 
     def __init__(self, exit_on_error=False):
@@ -138,6 +138,17 @@ class cmdCaseGen(cmd.Cmd):
     def do_assertions(self, line):
         """list all assertions"""
         print(logic.universal_solver().assertions())
+
+    def do_opts(self, line):
+        """For a given varname, return all options and their validities"""
+        varname = line.strip()
+        if not re.search(r'^\b\w+\b$', varname):
+            self.printError("Invalid syntax for the opts command. Provide a variable name.")
+        var = ConfigVar.vdict[varname]
+        options_list = var._options_sans_validity()
+        options_validity_list = logic.get_options_validity(varname, options_list)
+        for i in range(len(options_list)):
+            print('\t', options_validity_list[i], options_list[i])
 
     def close(self):
         if self.file:
