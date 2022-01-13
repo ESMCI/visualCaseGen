@@ -4,7 +4,6 @@ from cli import cmdCaseGen
 from contextlib import contextmanager
 from io import StringIO
 import logging
-from visualCaseGen.logic_engine import LogicEngine
 
 logger = logging.getLogger()
 

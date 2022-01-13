@@ -13,7 +13,7 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_opt import ConfigVarOpt
 from visualCaseGen.config_var_opt_ms import ConfigVarOptMS
-from visualCaseGen.logic_engine import LogicEngine
+import visualCaseGen.logic_engine as logic
 from z3 import * # this is only needed for constraint setter functions
 
 def relational_assertions_setter(LogicVars):
@@ -46,12 +46,11 @@ class cmdCaseGen(cmd.Cmd):
     def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
         ConfigVar.reset()
-        self.engine = LogicEngine()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
         self._init_options()
         self._exit_on_error = exit_on_error
-        self.engine.add_relational_assertions(relational_assertions_setter)
+        logic.add_relational_assertions(relational_assertions_setter)
 
     def printError(self, msg):
         if self._exit_on_error:
