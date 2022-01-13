@@ -23,17 +23,24 @@ class Checker():
 
 
     def search(self):
-        cmd = cmdCaseGen(exit_on_error=True)
 
+        # test one
+        cmd = cmdCaseGen(exit_on_error=False)
         cmd.onecmd("INITTIME = 1850")
         with self.captured_output() as (out, err):
             cmd.onecmd("INITTIME")
         #print(out.getvalue().strip())
-
-        # Now, set each component.
         cmd.onecmd("COMP_OCN = mom")
         cmd.onecmd("COMP_WAV = dwav")
 
+        # test two
+        cmd = cmdCaseGen(exit_on_error=False)
+        cmd.onecmd("COMP_ATM = mom")
+
+        # test three
+        cmd = cmdCaseGen(exit_on_error=False)
+        cmd.onecmd("COMP_ATM = cam")
+        cmd.onecmd("COMP_ICE = dice")
 
 if __name__ == '__main__':
     c = Checker()
