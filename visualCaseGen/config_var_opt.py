@@ -32,14 +32,12 @@ class ConfigVarOpt(ConfigVar):
 
     @value.setter
     def value(self, val):
-        if val != self._none_val:
-            if val not in self.options:
-                raise ValueError("{} is an invalid option for {}. Valid options: {}"\
-                    .format(val, self.name, self.options))
-            assert val.split()[0] in [self.invalid_opt_icon, self.valid_opt_icon], \
-                "ConfigVarOpt value must always have a status icon"
-        logic.add_assignment(self.name, val[1:].strip())
-        self._widget.value = val
+        if val == self._none_val:
+            logic.set_null(self.name)
+            self._widget.value = val
+        else:
+            logic.add_assignment(self.name, val)
+            self._widget.value = self.valid_opt_icon+' '+val
 
     def value_status(self):
         return self._widget.value == self._none_val or self._widget.value[0] == self.valid_opt_icon

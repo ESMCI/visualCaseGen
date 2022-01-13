@@ -15,8 +15,27 @@ asrt_options = {}
 # relational assertions. key is ASSERTION, value is ERRNAME.
 asrt_relationals = {}
 
-def add_variable(varname):
-    lvars[varname] = String(varname)
+def reset():
+    global lvars, asrt_assignments, asrt_options, asrt_relationals
+    lvars = {}
+    asrt_assignments = {}
+    asrt_options = {}
+    asrt_relationals = {}
+
+
+def add_variable(varname, valtype=str):
+    if valtype == str:
+        lvars[varname] = String(varname)
+    else:
+        raise NotImplementedError()
+
+def universal_solver():
+    """ Returns a solver instance with all current assertions. """
+    s = Solver()
+    s.add(list(asrt_assignments.values()))
+    s.add(list(asrt_options.values()))
+    s.add(list(asrt_relationals.keys()))
+    return s
 
 def set_variable_options(varname, options):
     """This method is to be called by ConfigVar instance when its options are assigned."""
@@ -79,11 +98,14 @@ def _check_assignment(varname, value):
                 raise AssertionError('{}={} violates assertion:"{}"'.
                     format(varname,value,asrt_relationals[asrt]))
 
-    return True
+def set_null(varname):
+    """ Removes the assignment assertion of variable, if there is one."""
+    if varname in asrt_assignments:
+        asrt_assignments.pop(varname)
 
 def add_assignment(varname, value):
     """ Adds an assignment to the logic solver. To be called by ConfigVar value setters only."""
     var = lvars[varname]
-    if _check_assignment(varname, value):
-        asrt_assignments[varname] = var==value
+    _check_assignment(varname, value)
+    asrt_assignments[varname] = var==value
 
