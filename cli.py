@@ -138,9 +138,10 @@ class cmdCaseGen(cmd.Cmd):
         varname = line.strip()
         if not re.search(r'^\b\w+\b$', varname):
             self.printError("Invalid syntax for the opts command. Provide a variable name.")
+            return
         var = ConfigVarStr.vdict[varname]
-        options_list = var._options_sans_validity()
-        options_validity_list = logic.get_options_validity(varname, options_list)
+        options_list = var.options
+        options_validity_list = logic.get_options_validity(var, options_list)
         for i in range(len(options_list)):
             print('\t', options_validity_list[i], options_list[i])
 
