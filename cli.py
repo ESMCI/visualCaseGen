@@ -12,9 +12,7 @@ sys.path.append(pth)
 logger = logging.getLogger("cmdCaseGen")
 
 from visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.config_var import ConfigVar
-from visualCaseGen.config_var_opt import ConfigVarOpt
-from visualCaseGen.config_var_opt_ms import ConfigVarOptMS
+from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.relational_assertions import relational_assertions_setter
 import visualCaseGen.logic_engine as logic
 
@@ -27,12 +25,12 @@ class cmdCaseGen(cmd.Cmd):
     def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
         logic.reset()
-        ConfigVar.reset()
+        ConfigVarStr.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
         self._init_options()
         self._exit_on_error = exit_on_error
-        logic.add_relational_assertions(relational_assertions_setter)
+        logic.add_relational_assertions(relational_assertions_setter, ConfigVarStr.vdict)
 
     def printError(self, msg):
         if self._exit_on_error:
@@ -42,22 +40,20 @@ class cmdCaseGen(cmd.Cmd):
 
     def _init_configvars(self):
 
-        ConfigVar.compliances = self.ci.compliances
-
-        cv_inittime = ConfigVarOpt('INITTIME')
+        cv_inittime = ConfigVarStr('INITTIME')
         for comp_class in self.ci.comp_classes:
-            ConfigVarOpt('COMP_'+str(comp_class))
-            ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
-            ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), never_unset=True)
-            ConfigVar('{}_GRID'.format(comp_class))
-        ConfigVar('MASK_GRID')
-        ConfigVar('COMPSET')
-        ConfigVarOpt('GRID')
+            ConfigVarStr('COMP_'+str(comp_class))
+            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), never_unset=True)
+            ConfigVarStr('COMP_{}_OPTION'.format(comp_class), never_unset=True)
+            ConfigVarStr('{}_GRID'.format(comp_class))
+        ConfigVarStr('MASK_GRID')
+        ConfigVarStr('COMPSET')
+        ConfigVarStr('GRID')
 
     def _init_options(self):
-        ConfigVarOpt.vdict['INITTIME'].options = ['1850', '2000', 'HIST']
+        ConfigVarStr.vdict['INITTIME'].options = ['1850', '2000', 'HIST']
         for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
+            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
             cv_comp.options = [model for model in  self.ci.models[comp_class] if model[0] != 'x']
 
     def do_vars(self, arg):
@@ -66,21 +62,19 @@ class cmdCaseGen(cmd.Cmd):
         vars -a: list all ConfigVars."""
         if arg in ['-a', 'a', '-all', 'all']:
             # list all variables
-            for var in ConfigVar.vdict:
-                val = ConfigVar.vdict[var].value
-                print("{}={}".format(var,val))
+            for varname, var in ConfigVarStr.vdict.items():
+                print("{}={}".format(varname,var.value))
         else:
             # list set variables only
-            for var in ConfigVar.vdict:
-                val = ConfigVar.vdict[var].value
-                if val:
-                    print("{}={}".format(var,val))
+            for varname, var in ConfigVarStr.vdict.items():
+                if not var.is_none():
+                    print("{}={}".format(varname,var.value))
 
     def completenames(self, text, *ignored):
         """ This gets called when a (partial or full) single word, i.e., param name,
         is to be completed. """
         complete_list = []
-        for varname in ConfigVar.vdict:
+        for varname in ConfigVarStr.vdict:
             if varname.startswith(text.strip()):
                 complete_list.append(varname)
         return complete_list
@@ -91,34 +85,34 @@ class cmdCaseGen(cmd.Cmd):
         if '=' in line:
             sline = line.split('=')
             varname = sline[0].strip()
-            if ConfigVar.exists(varname):
-                var = ConfigVar.vdict[varname]
-                assert isinstance(var,ConfigVarOpt) or isinstance(var,ConfigVarOptMS)
-                options_sans_validity = var._options_sans_validity()
+            if ConfigVarStr.exists(varname):
+                var = ConfigVarStr.vdict[varname]
+                assert var.has_options()
+                options = var.options
                 val_begin = sline[1].strip()
                 if len(val_begin)>0:
-                    return [opt for opt in options_sans_validity if opt.startswith(val_begin)]
+                    return [opt for opt in options if opt.startswith(val_begin)]
                 else:
-                    return options_sans_validity
+                    return options
         return []
 
 
     def _assign_var(self, varname, val):
         try:
-            var = ConfigVar.vdict[varname]
+            var = ConfigVarStr.vdict[varname]
             var.value = val
         except Exception as e:
             self.printError("{}".format(e))
 
     def default(self, line):
-        """The default user input is variable assignment, i.e., key=value where key is a ConfigVar name
-        and value is a valid value for the ConfigVar. If no value is provided, current value is printed."""
+        """The default user input is variable assignment, i.e., key=value where key is a ConfigVarStr name
+        and value is a valid value for the ConfigVarStr. If no value is provided, current value is printed."""
 
         # assign variable value
         if re.search(r'\b\w+\b *= *\b\w+\b', line):
             sline = line.split('=')
             varname = sline[0].strip()
-            if ConfigVar.exists(varname):
+            if ConfigVarStr.exists(varname):
                 val = sline[1].strip()
                 self._assign_var(varname, val)
             else:
@@ -127,13 +121,13 @@ class cmdCaseGen(cmd.Cmd):
         # query variable value
         elif re.search(r'^ *\b\w+ *$', line):
             varname = line.strip()
-            if ConfigVar.exists(varname):
-                val = ConfigVar.vdict[varname].value
+            if ConfigVarStr.exists(varname):
+                val = ConfigVarStr.vdict[varname].value
                 print("{}".format(val))
             else:
                 self.printError("{} is not a variable name or a command".format(varname))
         else:
-            self.printError("Unknown syntax! Provide a key=value pair where key is a ConfigVar, e.g., COMP_OCN")
+            self.printError("Unknown syntax! Provide a key=value pair where key is a ConfigVarStr, e.g., COMP_OCN")
 
     def do_assertions(self, line):
         """list all assertions"""
@@ -144,7 +138,7 @@ class cmdCaseGen(cmd.Cmd):
         varname = line.strip()
         if not re.search(r'^\b\w+\b$', varname):
             self.printError("Invalid syntax for the opts command. Provide a variable name.")
-        var = ConfigVar.vdict[varname]
+        var = ConfigVarStr.vdict[varname]
         options_list = var._options_sans_validity()
         options_validity_list = logic.get_options_validity(varname, options_list)
         for i in range(len(options_list)):
@@ -171,6 +165,6 @@ class cmdCaseGen(cmd.Cmd):
 
 
 if __name__ == "__main__":
-    logging.getLogger().setLevel(logging.WARNING)
+    logging.getLogger().setLevel(logging.ERROR)
     cmdCaseGen().cmdloop()
 

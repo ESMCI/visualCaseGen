@@ -2,15 +2,15 @@
 from visualCaseGen.logic_engine import In
 from z3 import * # this is only needed for constraint setter functions
 
-def relational_assertions_setter(lvars):
+def relational_assertions_setter(cvars):
 
-    COMP_ATM = lvars['COMP_ATM']
-    COMP_LND = lvars['COMP_LND']
-    COMP_ICE = lvars['COMP_ICE']
-    COMP_OCN = lvars['COMP_OCN']
-    COMP_ROF = lvars['COMP_ROF']
-    COMP_GLC = lvars['COMP_GLC']
-    COMP_WAV = lvars['COMP_WAV']
+    COMP_ATM = cvars['COMP_ATM']
+    COMP_LND = cvars['COMP_LND']
+    COMP_ICE = cvars['COMP_ICE']
+    COMP_OCN = cvars['COMP_OCN']
+    COMP_ROF = cvars['COMP_ROF']
+    COMP_GLC = cvars['COMP_GLC']
+    COMP_WAV = cvars['COMP_WAV']
 
     assertions_dict = {
 
@@ -21,7 +21,7 @@ def relational_assertions_setter(lvars):
             "MOM6 cannot be coupled with data wave component.",
 
         Implies(COMP_ATM=="cam", COMP_ICE!="dice") :
-            "CAM cannot be coupled with Data ICE",
+            "CAM cannot be coupled with Data ICE.",
 
         Implies(COMP_WAV=="ww3", In(COMP_OCN, ["mom", "pop"])) :
             "WW3 can only be selected if either POP2 or MOM6 is the ocean component.",
