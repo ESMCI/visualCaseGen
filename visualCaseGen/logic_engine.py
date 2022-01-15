@@ -95,7 +95,7 @@ def get_options_validities(var, options_list):
     error_messages = {opt:'' for opt in options_list}
 
     s = Solver()
-    s.add(list(asrt_assignments.values()))
+    s.add([asrt_assignments[varname] for varname in asrt_assignments if varname != var.name])
     s.add(list(asrt_options.values()))
 
     for opt in options_list:

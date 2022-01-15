@@ -98,12 +98,20 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_LND=dlnd violates assertion:"When MOM|POP is forced with DATM, LND must be stub."' )
 
-        ## Re-assign COMP and check if we can set COMP_ICE to dice
+        # Re-assign COMP and check if we can set COMP_ICE to dice
         cmd.onecmd("COMP_ATM = cam")
         with self.assertLogs() as captured:
             cmd.onecmd("COMP_ICE = dice")
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ICE=dice violates assertion:"CAM cannot be coupled with Data ICE."' )
+
+        # Check opposite of the implication above:
+        cmd.onecmd("COMP_ATM = datm")
+        cmd.onecmd("COMP_ICE = dice")
+        with self.assertLogs() as captured:
+            cmd.onecmd("COMP_ATM = cam")
+        self.assertEqual(captured.records[0].getMessage(),
+            'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.ERROR)
