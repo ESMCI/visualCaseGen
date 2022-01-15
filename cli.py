@@ -141,7 +141,7 @@ class cmdCaseGen(cmd.Cmd):
             return
         var = ConfigVarStr.vdict[varname]
         options_list = var.options
-        options_validity_list = logic.get_options_validity(var, options_list)
+        options_validity_list = logic.get_options_validities(var, options_list)
         for i in range(len(options_list)):
             print('\t', options_validity_list[i], options_list[i])
 

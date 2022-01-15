@@ -1,6 +1,7 @@
 from z3 import String
 from z3 import And, Or, Implies
 from z3 import Solver, sat, unsat
+from z3 import z3util
 
 # assertions keeping track of variable assignments. key is varname, value is assignment assertion
 asrt_assignments = {}
@@ -39,6 +40,13 @@ def add_relational_assertions(assertions_setter, cvars):
         if asrt in asrt_relationals:
             raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
     asrt_relationals.update(new_assertions)
+    
+    # For all ConfigVars in each assertion, add the other ConfigVars as related so
+    # that each ConfigVar inform related ConfigVars when a value change occurs.
+    for asrt in new_assertions:
+        related_cvars = {cvars[var.sexpr()] for var in z3util.get_vars(asrt)}
+        for cvar in related_cvars:
+            cvar.add_related_vars(related_cvars - {cvar})
 
     # Check if newly added relational assertions are satisfiable:
     s = Solver()
@@ -53,9 +61,8 @@ def _is_sat_assignment(var, value):
     assignment is satisfiable."""
 
     # first, check if the value is an option of var
-    options = var.options
-    if len(options)>0:
-        if value not in options:
+    if var.has_options():
+        if value not in var.options:
             err_msg = '{} not an option for {}'.format(value, var.name)
             return False, err_msg
 
@@ -82,31 +89,52 @@ def _is_sat_assignment(var, value):
 
     return True, ''
 
-def get_options_validity(var, options_list):
+def get_options_validities(var, options_list):
     n_opts = len(options_list)
-    options_validity = [False]*n_opts
-    s = universal_solver()
-    for i in range(n_opts):
-        options_validity[i] = s.check(var==options_list[i]) == sat
-    return options_validity
+    options_validities = {opt:False for opt in options_list}
+    error_messages = {opt:'' for opt in options_list}
 
+    s = Solver()
+    s.add(list(asrt_assignments.values()))
+    s.add(list(asrt_options.values()))
+
+    for opt in options_list:
+        s.push() # push for relational assignments to be added fully
+        s.add(list(asrt_relationals.keys()))
+        if s.check(var==opt) == sat:
+            options_validities[opt] = True
+        else: # unsat
+            options_validities[opt] = False
+            # now find the assertion causing unsat and get the associated error message
+            s.pop() # pop all relational assignments
+            s.push() # push for relational assignments to be added incrementally
+            for asrt in asrt_relationals:
+                s.add(asrt)
+                if s.check(var==opt) == unsat:
+                    error_messages[opt] = '{}={} violates assertion:"{}"'.format(var.name,opt,asrt_relationals[asrt])
+                    break
+        s.pop() # pop relational assignments (partially added or full)
+    return options_validities, error_messages
 
 def set_null(varname):
     """ Removes the assignment assertion of variable, if there is one."""
     if varname in asrt_assignments:
         asrt_assignments.pop(varname)
 
-def add_assignment(var, value):
+def add_assignment(var, value, check_sat=True):
     """ Adds an assignment to the logic solver. To be called by ConfigVar value setters only."""
 
     # first pop old assignment if exists:
     old_assignment = asrt_assignments.pop(var.name, None)
 
     # check if assignment is satisfiable.
-    stat, msg = _is_sat_assignment(var, value)
+    is_ok = True
+    if check_sat:
+        is_ok, msg = _is_sat_assignment(var, value)
 
-    if stat == False:
-        # reinsert old assignment before raising error
+    # add the assignment to the assignments dictionary
+    if is_ok == False:
+        # reinsert old assignment and raise error
         if old_assignment is not None:
             asrt_assignments[var.name] = old_assignment
         raise AssertionError(msg)
