@@ -58,9 +58,7 @@ class ConfigVarStr(SeqRef):
     def value(self, new_val):
 
         if new_val == self._none_val:
-            self._widget.value = self._none_val
-            self._value = new_val
-            return
+            logic.set_null(self)
         elif self.has_options() and new_val in self.options:
             if self._options_validities[new_val] == True:
                 logic.add_assignment(self, new_val, check_sat=False)
@@ -69,7 +67,10 @@ class ConfigVarStr(SeqRef):
         else:
             logic.add_assignment(self, new_val, check_sat=True)
 
-        self._widget.value = self.valid_opt_char+' '+new_val
+        if new_val == self._none_val:
+            self._widget.value = self._none_val
+        else:
+            self._widget.value = self.valid_opt_char+' '+new_val
 
         self._value = new_val
 

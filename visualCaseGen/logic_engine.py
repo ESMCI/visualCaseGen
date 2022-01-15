@@ -116,10 +116,10 @@ def get_options_validities(var, options_list):
         s.pop() # pop relational assignments (partially added or full)
     return options_validities, error_messages
 
-def set_null(varname):
+def set_null(var):
     """ Removes the assignment assertion of variable, if there is one."""
-    if varname in asrt_assignments:
-        asrt_assignments.pop(varname)
+    if var.name in asrt_assignments:
+        asrt_assignments.pop(var.name)
 
 def add_assignment(var, value, check_sat=True):
     """ Adds an assignment to the logic solver. To be called by ConfigVar value setters only."""
