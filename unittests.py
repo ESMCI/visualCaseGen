@@ -2,10 +2,13 @@
 
 import unittest
 import sys
-from cli import cmdCaseGen
 from contextlib import contextmanager
 from io import StringIO
 import logging
+
+from visualCaseGen.cime_interface import CIME_interface
+from visualCaseGen.gui_create_custom import GUI_create_custom
+from cli import cmdCaseGen
 
 logger = logging.getLogger("unittests")
 
@@ -24,7 +27,7 @@ class TestParamGen(unittest.TestCase):
         finally:
             sys.stdout, sys.stderr = old_out, old_err
 
-    def test_var_assignment(self):
+    def test_A_var_assignment(self):
         """Check several simple variable assignments."""
 
         cmd = cmdCaseGen(exit_on_error=False)
@@ -46,13 +49,13 @@ class TestParamGen(unittest.TestCase):
             cmd.onecmd("INITTIME=1849")
         self.assertEqual(captured.records[0].getMessage(),
             '1849 not an option for INITTIME' )
-        
+
         # do not enclose string within quotes
         with self.assertLogs() as captured:
             cmd.onecmd("COMP_OCN = 'mom'")
         self.assertEqual(captured.records[0].getMessage(),
             'Unknown syntax! Provide a key=value pair where key is a ConfigVarStr, e.g., COMP_OCN' )
-        
+
         # confirm the above assignment was not successful
         with self.captured_output() as (out, err):
             cmd.onecmd("COMP_OCN")
@@ -68,13 +71,13 @@ class TestParamGen(unittest.TestCase):
             cmd.onecmd("COMP _OCN = 'pop'")
         self.assertEqual(captured.records[0].getMessage(),
             'Unknown syntax! Provide a key=value pair where key is a ConfigVarStr, e.g., COMP_OCN' )
-        
+
         # confirm the above assignment failure didn't change the previous value of COMP_OCN
         with self.captured_output() as (out, err):
             cmd.onecmd("COMP_OCN")
         self.assertEqual(out.getvalue().strip(), "mom")
 
-    def test_relational_assertions(self):
+    def test_B_relational_assertions(self):
         """Test several relational assignments defined in relational assertions.py"""
 
         # Set COMP_OCN to mom and then try setting COMP_WAV to dwav, which should fail
@@ -113,7 +116,9 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
-    def test_gui_widgets(self):
+    def test_C_widget_assignment(self):
+        """Test assignment of widgets of ConfigVars"""
+
         import ipywidgets as widgets
         from visualCaseGen.config_var_str import ConfigVarStr
 
@@ -140,6 +145,11 @@ class TestParamGen(unittest.TestCase):
             cmd.onecmd("COMP_ATM = cam")
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
+
+    def test_D_gui_init(self):
+        """Test GUI *create custom tab* initialization"""
+        ci = CIME_interface("nuopc")
+        GUI_create_custom(ci).construct()
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.ERROR)
