@@ -15,7 +15,7 @@ class ConfigVarStr(SeqRef):
     invalid_opt_char = chr(int("274C",base=16))
     valid_opt_char = chr(int("2713",base=16))
 
-    def __init__(self, name, value=None, options=None, ctx=None, never_unset=False, none_val=None):
+    def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, never_unset=False, none_val=None):
 
         # Check if the variable has already been defined 
         if name in self.vdict:
@@ -29,14 +29,25 @@ class ConfigVarStr(SeqRef):
 
         # Initialize members
         self.name = name
-        self._none_val = none_val
-        self._value = value or self._none_val
-        self._options = options
-        self._never_unset = never_unset # once the widget value is set, don't unset it
-        self._widget = DummyWidget()
+
+        # Temporarily set private members options and value to None. These will be 
+        # updated with special property setter below.
+        self._options = None
+        self._value = None
+
+        # Initialize all other private members
         self._related_vars = set() # set of variables to be informed when a value change occurs
         self._options_validities = {}
         self._error_messages = []
+        self._none_val = none_val
+        self._never_unset = never_unset # once the widget value is set, don't unset it
+        self._widget = DummyWidget()
+        self._widget.tooltips = tooltips
+
+        # Now call property setters of options and value
+        if options is not None:
+            self.options = options
+        self.value = value
 
         # Record this newly created instance in the class member storing instances
         self.vdict[name] = self
@@ -68,20 +79,20 @@ class ConfigVarStr(SeqRef):
         else:
             logic.add_assignment(self, new_val, check_sat=True)
 
-        if new_val == self._none_val:
-            self._widget.value = self._none_val
-        else:
-            self._widget.value = self.valid_opt_char+' '+new_val
-
         # update widget value
-        self._widget.value = self.value if self.value==self._none_val else self.valid_opt_char+' '+new_val 
+        self._widget.value = new_val if new_val==self._none_val else self.valid_opt_char+' '+new_val 
 
+        # update internal value
         self._value = new_val
 
         # finally, inform all related vars about this value change by calling their _update_option_validities
         for var in self._related_vars:
             if var.has_options():
                 var._update_option_validities(var.options)
+
+    @property
+    def none_val(self):
+        return self._none_val
 
     def is_none(self):
         return self.value == self._none_val
@@ -98,6 +109,14 @@ class ConfigVarStr(SeqRef):
         self._options = new_opts
         self._update_option_validities(new_opts)
         self.value = self._none_val
+    
+    @property
+    def tooltips(self):
+        return self._widget.tooltips
+
+    @tooltips.setter
+    def tooltips(self, new_tooltips):
+        self._widget.tooltips = new_tooltips
 
     def has_options(self):
         return self.options != None
@@ -127,6 +146,7 @@ class ConfigVarStr(SeqRef):
         if self.has_options():
             self._widget.options = old_widget.options
         self._widget.value = old_widget.value
+        self._widget.tooltips = old_widget.tooltips
 
         # observe frontend widget changes
         self._widget.observe(
@@ -134,6 +154,26 @@ class ConfigVarStr(SeqRef):
             names='_property_lock', # instead of 'value', use '_property_lock' to capture frontend changes only
             type='change'
         )
+
+    @property
+    def widget_style(self):
+        return self._widget.style
+
+    @widget_style.setter
+    def widget_style(self, style):
+        self._widget.style = style
+
+    @property
+    def widget_layout(self):
+        return self._widget.layout
+
+    @widget_layout.setter
+    def widget_layout(self, layout):
+        self._widget.layout = layout
+
+    @property
+    def description(self):
+        return self._widget.description
     
     def _process_frontend_value_change(self, change):
         if change['old'] == {}:
@@ -154,8 +194,8 @@ class ConfigVarStr(SeqRef):
             display(HTML(js))
             
             # set to old value:
-            self._widget.value = self.value if self.value==self._none_val else '{} {}'\
-                .format(self.valid_opt_char, self.value)
+            self._widget.value = self._value if self._value==self._none_val else '{} {}'\
+                .format(self.valid_opt_char, self._value)
             return
         else:
             self.value = new_val
