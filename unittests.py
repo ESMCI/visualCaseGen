@@ -113,6 +113,34 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
+    def test_gui_widgets(self):
+        import ipywidgets as widgets
+        from visualCaseGen.config_var_str import ConfigVarStr
+
+        cmd = cmdCaseGen(exit_on_error=False)
+        ConfigVarStr.vdict['COMP_ATM'].widget = widgets.ToggleButtons()
+        ConfigVarStr.vdict['COMP_ICE'].widget = widgets.ToggleButtons()
+        ConfigVarStr.vdict['COMP_OCN'].widget = widgets.ToggleButtons()
+        ConfigVarStr.vdict['COMP_LND'].widget = widgets.ToggleButtons()
+        ConfigVarStr.vdict['COMP_ROF'].widget = widgets.ToggleButtons()
+        ConfigVarStr.vdict['COMP_GLC'].widget = widgets.ToggleButtons()
+        ConfigVarStr.vdict['COMP_WAV'].widget = widgets.ToggleButtons()
+
+        # Re-assign COMP and check if we can set COMP_ICE to dice
+        cmd.onecmd("COMP_ATM = cam")
+        with self.assertLogs() as captured:
+            cmd.onecmd("COMP_ICE = dice")
+        self.assertEqual(captured.records[0].getMessage(),
+            'COMP_ICE=dice violates assertion:"CAM cannot be coupled with Data ICE."' )
+
+        # Check opposite of the implication above:
+        cmd.onecmd("COMP_ATM = datm")
+        cmd.onecmd("COMP_ICE = dice")
+        with self.assertLogs() as captured:
+            cmd.onecmd("COMP_ATM = cam")
+        self.assertEqual(captured.records[0].getMessage(),
+            'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.ERROR)
     unittest.main()

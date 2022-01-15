@@ -1,5 +1,6 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
+from visualCaseGen.OutHandler import handler as owh
 import visualCaseGen.logic_engine as logic
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 
@@ -72,6 +73,9 @@ class ConfigVarStr(SeqRef):
         else:
             self._widget.value = self.valid_opt_char+' '+new_val
 
+        # update widget value
+        self._widget.value = self.value if self.value==self._none_val else self.valid_opt_char+' '+new_val 
+
         self._value = new_val
 
         # finally, inform all related vars about this value change by calling their _update_option_validities
@@ -90,14 +94,10 @@ class ConfigVarStr(SeqRef):
     def options(self, new_opts):
         logger.debug("Updating the options of ConfigVarStr %s", self.name)
         assert isinstance(new_opts, (list,set))
-        ##todo: validate new options here
         logic.set_variable_options(self, new_opts)
-        self._update_option_validities(new_opts)
-        self._widget.options = tuple(
-            '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
-            else '{} {}'.format(self.invalid_opt_char, opt) for opt in new_opts)
-        self.value = self._none_val
         self._options = new_opts
+        self._update_option_validities(new_opts)
+        self.value = self._none_val
 
     def has_options(self):
         return self.options != None
@@ -106,4 +106,56 @@ class ConfigVarStr(SeqRef):
         self._related_vars.update(new_vars)
 
     def _update_option_validities(self, opts):
+        """ This method updates both self._options_validities and widget options accordingly."""
+        old_widget_value = self._widget.value
+        old_options_validities = self._options_validities
         self._options_validities, self._error_messages = logic.get_options_validities(self, opts)
+        if self._options_validities != old_options_validities:
+            self._widget.options = tuple(
+                '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
+                else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
+            self._widget.value = old_widget_value # in absence of this, widget value gets set to first option
+
+    @property
+    def widget(self):
+        raise RuntimeError("Cannot access widget property from outside the ConfigVar class")
+    
+    @widget.setter
+    def widget(self, new_widget):
+        old_widget = self._widget
+        self._widget = new_widget
+        if self.has_options():
+            self._widget.options = old_widget.options
+        self._widget.value = old_widget.value
+
+        # observe frontend widget changes
+        self._widget.observe(
+            self._process_frontend_value_change,
+            names='_property_lock', # instead of 'value', use '_property_lock' to capture frontend changes only
+            type='change'
+        )
+    
+    def _process_frontend_value_change(self, change):
+        if change['old'] == {}:
+            return # frontend-triggered change not finalized yet
+        
+        # first check if valid selection
+        new_widget_val = change['owner'].value 
+        new_val_validity_char = new_widget_val[0] 
+        new_val = new_widget_val[1:].strip()
+
+        # if an invalid selection, display error message and set widget value to old value
+        if self.has_options() and new_val_validity_char == self.invalid_opt_char:
+            logger.critical("ERROR: %s", self._error_messages[new_val])
+            from IPython.display import display, HTML
+            js = "<script>alert('ERROR: {}');</script>".format(
+                self._error_messages[new_val]
+            )
+            display(HTML(js))
+            
+            # set to old value:
+            self._widget.value = self.value if self.value==self._none_val else '{} {}'\
+                .format(self.valid_opt_char, self.value)
+            return
+        else:
+            self.value = new_val
