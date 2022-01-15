@@ -134,16 +134,17 @@ class cmdCaseGen(cmd.Cmd):
         print(logic.universal_solver().assertions())
 
     def do_opts(self, line):
-        """For a given varname, return all options and their validities"""
+        """For a given varname, print all options and their validities"""
         varname = line.strip()
         if not re.search(r'^\b\w+\b$', varname):
             self.printError("Invalid syntax for the opts command. Provide a variable name.")
             return
         var = ConfigVarStr.vdict[varname]
-        options_list = var.options
-        options_validity_list = logic.get_options_validities(var, options_list)
-        for i in range(len(options_list)):
-            print('\t', options_validity_list[i], options_list[i])
+        if var.has_options():
+            for opt in var._widget.options:
+                print('\t', opt)
+        else:
+            printError("Variable {} doesn't have options".format(varname))
 
     def close(self):
         if self.file:
