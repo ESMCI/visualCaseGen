@@ -19,7 +19,7 @@ class ConfigVarStr(SeqRef, HasTraits):
     # trait
     value = Any()
 
-    def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, never_unset=False, none_val=None):
+    def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, always_set=False, none_val=None):
 
         # Check if the variable has already been defined 
         if name in self.vdict:
@@ -44,7 +44,7 @@ class ConfigVarStr(SeqRef, HasTraits):
         self._options_validities = {}
         self._error_messages = []
         self._none_val = none_val
-        self._never_unset = never_unset # once the widget value is set, don't unset it
+        self._always_set = always_set # if a ConfigVarStr instance with options, make sure a value is always set
         self._widget = DummyWidget()
         self._widget.tooltips = tooltips
 
@@ -76,7 +76,7 @@ class ConfigVarStr(SeqRef, HasTraits):
 
         if new_val == self._none_val:
             logic.set_null(self)
-        elif self.has_options() and new_val in self.options:
+        elif self.has_options() and new_val in self._options:
             if self._options_validities[new_val] == True:
                 logic.add_assignment(self, new_val, check_sat=False)
             else:
@@ -90,10 +90,11 @@ class ConfigVarStr(SeqRef, HasTraits):
         # update internal value
         self._value = new_val
 
-        # finally, inform all related vars about this value change by calling their _update_option_validities
+        # finally, inform all related vars about this value change by calling their _update_options
+        # this will update options validities.
         for var in self._related_vars:
             if var.has_options():
-                var._update_option_validities(var.options)
+                var._update_options()
         
         return new_val
 
@@ -113,9 +114,7 @@ class ConfigVarStr(SeqRef, HasTraits):
         logger.debug("Updating the options of ConfigVarStr %s", self.name)
         assert isinstance(new_opts, (list,set))
         logic.set_variable_options(self, new_opts)
-        self._options = new_opts
-        self._update_option_validities(new_opts)
-        self.value = self._none_val
+        self._update_options(new_opts)
     
     @property
     def tooltips(self):
@@ -126,21 +125,44 @@ class ConfigVarStr(SeqRef, HasTraits):
         self._widget.tooltips = new_tooltips
 
     def has_options(self):
-        return self.options != None
+        return self._options is not None
 
     def add_related_vars(self, new_vars):
         self._related_vars.update(new_vars)
 
-    def _update_option_validities(self, opts):
-        """ This method updates both self._options_validities and widget options accordingly."""
+    def _update_options(self, new_opts=None):
+        """ This method updates options, validities, and displayed widget options.
+        If needed, value is also updated according to the options update."""
+
+        # check if validities are being updated only, while options remain the same
+        validity_change_only = new_opts is None or new_opts == self._options
         old_widget_value = self._widget.value
-        old_options_validities = self._options_validities
-        self._options_validities, self._error_messages = logic.get_options_validities(self, opts)
-        if self._options_validities != old_options_validities:
-            self._widget.options = tuple(
-                '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
-                else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
-            self._widget.value = old_widget_value # in absence of this, widget value gets set to first option
+        old_validities = self._options_validities
+
+        if not validity_change_only:
+            self._options = new_opts
+
+        self._options_validities, self._error_messages = logic.get_options_validities(self, self._options)
+
+        if validity_change_only and old_validities == self._options_validities:
+            return # no change in options or validities
+        
+        self._widget.options = tuple(
+            '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
+            else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
+        
+        if validity_change_only:
+            self._widget.value = old_widget_value 
+        else:
+           if self._always_set:
+               self._set_to_first_valid_opt() 
+
+    def _set_to_first_valid_opt(self):
+        """ Set the value of the instance to the first option that is valid."""
+        for opt in self._options:
+            if self._options_validities[opt] == True:
+                self.value = opt
+                break
 
     @property
     def widget(self):
@@ -155,7 +177,14 @@ class ConfigVarStr(SeqRef, HasTraits):
         self._widget.value = old_widget.value
         self._widget.tooltips = old_widget.tooltips
 
-        # observe frontend widget changes
+        # unobserve old widget frontend
+        old_widget.unobserve(
+            self._process_frontend_value_change,
+            names='_property_lock',
+            type='change'
+        )
+
+        # observe new widget frontend
         self._widget.observe(
             self._process_frontend_value_change,
             names='_property_lock', # instead of 'value', use '_property_lock' to capture frontend changes only
