@@ -88,7 +88,7 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_WAV=dwav violates assertion:"MOM6 cannot be coupled with data wave component."' )
 
-        # instead set COMP_WAC to ww3
+        # instead set COMP_WAV to ww3
         cmd.onecmd("COMP_WAV=ww3")
         with self.captured_output() as (out, err):
             cmd.onecmd("COMP_WAV")
@@ -146,10 +146,40 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
-    def test_D_gui_init(self):
-        """Test GUI *create custom tab* initialization"""
+    def test_D_gui_random(self):
+        """Test GUI by randomly assigning component values many times"""
+        from visualCaseGen.config_var_str import ConfigVarStr
+        import random
+
         ci = CIME_interface("nuopc")
         GUI_create_custom(ci).construct()
+
+        COMP_ATM = ConfigVarStr.vdict['COMP_ATM'] 
+        COMP_LND = ConfigVarStr.vdict['COMP_LND'] 
+        COMP_ICE = ConfigVarStr.vdict['COMP_ICE'] 
+        COMP_OCN = ConfigVarStr.vdict['COMP_OCN'] 
+        COMP_ROF = ConfigVarStr.vdict['COMP_ROF'] 
+        COMP_GLC = ConfigVarStr.vdict['COMP_GLC'] 
+        COMP_WAV = ConfigVarStr.vdict['COMP_WAV'] 
+
+        N = 100
+        # first try setting to valid options only
+        for i in range(N):
+            comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
+            valid_opts = [opt for opt in comp.options if comp._options_validities[opt] is True]
+            if len(valid_opts)>0:
+                comp.value = random.choice(valid_opts)
+            else:
+                print("WARNING: encountered cases where there is no valid opt for "+comp.name)
+
+        # not set to any values including invalid ones
+        for i in range(N):
+            comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
+            try:
+                comp.value = random.choice(comp.options)
+            except AssertionError:
+                pass
+
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.ERROR)

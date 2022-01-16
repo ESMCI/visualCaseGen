@@ -43,8 +43,8 @@ class cmdCaseGen(cmd.Cmd):
         cv_inittime = ConfigVarStr('INITTIME')
         for comp_class in self.ci.comp_classes:
             ConfigVarStr('COMP_'+str(comp_class))
-            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), never_unset=True)
-            ConfigVarStr('COMP_{}_OPTION'.format(comp_class), never_unset=True)
+            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
+            ConfigVarStr('COMP_{}_OPTION'.format(comp_class), always_set=True)
             ConfigVarStr('{}_GRID'.format(comp_class))
         ConfigVarStr('MASK_GRID')
         ConfigVarStr('COMPSET')
