@@ -2,9 +2,6 @@ import re
 import logging
 import ipywidgets as widgets
 
-#todo from visualCaseGen.config_var import ConfigVar
-#todo from visualCaseGen.config_var_opt import ConfigVarOpt
-#todo from visualCaseGen.config_var_opt_ms import ConfigVarOptMS
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
@@ -24,9 +21,9 @@ class GUI_create_custom():
         self.ci = ci
         self._init_configvars()
         self._init_widgets()
-        #todo self._construct_all_widget_observances()
-        #todo self._compset_text = ''
-        #todo self._grid_view_mode = 'suggested' # or 'all'
+        self._construct_all_widget_observances()
+        self._compset_text = ''
+        self._grid_view_mode = 'suggested' # or 'all'
         logic.add_relational_assertions(relational_assertions_setter, ConfigVarStr.vdict)
 
     def _init_configvars(self):
@@ -48,7 +45,7 @@ class GUI_create_custom():
                 options = [model for model in  self.ci.models[comp_class] if model[0] != 'x'],
                 value = None
             )
-            #todo ConfigVarOpt('COMP_{}_PHYS'.format(comp_class), never_unset=True)
+            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
             #todo ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             #todo ConfigVar('{}_GRID'.format(comp_class))
         #todo ConfigVar('MASK_GRID')
@@ -91,21 +88,19 @@ class GUI_create_custom():
             cv_comp.widget_style.description_width = '0px'
 
 
-    #todo         cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
+            cv_comp_phys = ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]
+            cv_comp_phys.widget = widgets.ToggleButtons(
+                    description='{} physics:'.format(comp_class),
+                    layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px'),
+                    disabled=False,
+                )
+            cv_comp_phys.widget_style.button_width = '90px'
+            cv_comp_phys.widget_style.description_width = '90px'
+
     #todo         cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
     #todo         cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
 
     #todo         # COMP_{}_PHYS widget
-    #todo         cv_comp_phys.widget = widgets.ToggleButtons(
-    #todo                 options=[],
-    #todo                 value=None,
-    #todo                 description='{} physics:'.format(comp_class),
-    #todo                 disabled=False,
-    #todo                 layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px')
-    #todo             )
-    #todo         cv_comp_phys.widget_style.button_width = '90px'
-    #todo         cv_comp_phys.widget_style.description_width = '90px'
-
     #todo         # COMP_{}_OPTION widget
     #todo         cv_comp_option.widget = CheckboxMultiWidget(
     #todo                 options=[],
@@ -230,29 +225,22 @@ class GUI_create_custom():
 
     #todo         self._btn_grid_view.layout.display = '' # turn on the display
 
-    #todo @owh.out.capture()
-    #todo def _update_comp_phys(self,change=None):
-    #todo     if change is not None:
-    #todo         # This method must be invoked by a COMP_... change by the user
-    #todo         comp_class = change['owner'].description[0:3]
-    #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-    #todo         if (change['owner'].value_status is False or change['old'] == {}):
-    #todo             return
+    @owh.out.capture()
+    def _update_comp_phys(self,change=None):
 
-    #todo         logger.debug("Updating the physics of ConfigVar %s with value=%s", cv_comp.name, cv_comp.value)
-    #todo         comp_phys, comp_phys_desc = [], []
-    #todo         if cv_comp.value is not None:
-    #todo             model = cv_comp.value
-    #todo             comp_phys, comp_phys_desc = self.ci.comp_phys[model]
+        cv_comp = change['owner'] 
+        model = cv_comp.value
+        comp_class = cv_comp.name[5:]
 
-    #todo         cv_comp_phys = ConfigVar.vdict["COMP_{}_PHYS".format(comp_class)]
-    #todo         cv_comp_phys.widget_layout.visibility = 'visible'
-    #todo         cv_comp_phys.options = comp_phys
-    #todo         cv_comp_phys.tooltips = comp_phys_desc
+        logger.debug("Updating the physics of %s for model=%s", comp_class, model)
+        comp_phys, comp_phys_desc = self.ci.comp_phys[model]
 
-    #todo         self._update_comp_options(change=None, invoker_phys=cv_comp_phys)
-    #todo     else:
-    #todo         raise NotImplementedError
+        cv_comp_phys = ConfigVarStr.vdict["COMP_{}_PHYS".format(comp_class)]
+        cv_comp_phys.widget_layout.visibility = 'visible'
+        cv_comp_phys.options = comp_phys
+        cv_comp_phys.tooltips = comp_phys_desc
+
+        #todo self._update_comp_options(change=None, invoker_phys=cv_comp_phys)
 
     #todo @owh.out.capture()
     #todo def _update_comp_options(self,change=None, invoker_phys=None):
@@ -364,7 +352,7 @@ class GUI_create_custom():
     #todo                 )
     #todo                 logger.debug("Added relational observance of %s for %s", var_other, cv.name)
 
-    #todo def _construct_all_widget_observances(self):
+    def _construct_all_widget_observances(self):
 
     #todo     # Assign the compliances property of all ConfigVar instsances:
     #todo     ConfigVar.compliances = self.ci.compliances
@@ -379,13 +367,13 @@ class GUI_create_custom():
     #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
     #todo         cv_comp.update_options_validity()
 
-    #todo     # Build options observances for comp_phys
-    #todo     for comp_class in self.ci.comp_classes:
-    #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-    #todo         cv_comp.observe(
-    #todo             self._update_comp_phys,
-    #todo             names='_property_lock',
-    #todo             type='change')
+        # Build options observances for comp_phys
+        for comp_class in self.ci.comp_classes:
+            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
+            cv_comp.observe(
+                self._update_comp_phys,
+                names='value',
+                type='change')
 
     #todo     # Build options observances for comp_option
     #todo     for comp_class in self.ci.comp_classes:
@@ -409,10 +397,10 @@ class GUI_create_custom():
     #todo             names='value',
     #todo             type='change')
 
-    #todo         cv_comp.observe(
-    #todo             self._set_comp_options_tab,
-    #todo             names='_property_lock',
-    #todo             type='change')
+            cv_comp._widget.observe(
+                self._set_comp_options_tab,
+                names='_property_lock',
+                type='change')
 
     #todo     cv_grid = ConfigVar.vdict['GRID']
     #todo     cv_grid.observe(
@@ -423,15 +411,15 @@ class GUI_create_custom():
 
     #todo     self._btn_grid_view.on_click(self._change_grid_view_mode)
 
-    #todo def _set_comp_options_tab(self, change):
-    #todo     if change['old'] == {}:
-    #todo         return # change not finalized yet
-    #todo     comp_class = change['owner'].description[0:3]
-    #todo     comp_ix = self.ci.comp_classes.index(comp_class)
-    #todo     cv_comp_value = ConfigVar.vdict['COMP_{}'.format(comp_class)].value
-    #todo     if cv_comp_value is not None:
-    #todo         self._comp_options_tab.set_title(comp_ix, cv_comp_value.upper())
-    #todo         self._comp_options_tab.selected_index = comp_ix
+    def _set_comp_options_tab(self, change):
+        if change['old'] == {}:
+            return # change not finalized yet
+        comp_class = change['owner'].description[0:3]
+        comp_ix = self.ci.comp_classes.index(comp_class)
+        cv_comp_value = ConfigVarStr.vdict['COMP_{}'.format(comp_class)].value
+        if cv_comp_value is not None:
+            self._comp_options_tab.set_title(comp_ix, cv_comp_value.upper())
+            self._comp_options_tab.selected_index = comp_ix
 
     def _change_grid_view_mode(self, change=None, new_mode=None):
 
@@ -475,8 +463,8 @@ class GUI_create_custom():
             self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="800px"))
             self._comp_options_tab.children = tuple(
                 widgets.VBox([
-                    ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
-                    ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
+                    ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
+                    #todo ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
                 ])
                 for comp_class in self.ci.comp_classes
             )
@@ -498,7 +486,7 @@ class GUI_create_custom():
             HeaderWidget("Components:"),
             _constr_vbx_components(),
             HeaderWidget("Physics and Options:"),
-            #todo _constr_hbx_comp_options(),
+            _constr_hbx_comp_options(),
             #todo ConfigVar.vdict['COMPSET']._widget,
             HeaderWidget("Grids:"),
             #todo _constr_vbx_grids(),
