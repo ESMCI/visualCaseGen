@@ -3,10 +3,11 @@ from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
 import visualCaseGen.logic_engine as logic
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
+from traitlets import HasTraits, Any, default, validate
 
 logger = logging.getLogger(__name__)
 
-class ConfigVarStr(SeqRef):
+class ConfigVarStr(SeqRef, HasTraits):
     
     # dictionary of instances
     vdict = {}
@@ -14,6 +15,9 @@ class ConfigVarStr(SeqRef):
     # characters used in user interface to designate option validities
     invalid_opt_char = chr(int("274C",base=16))
     valid_opt_char = chr(int("2713",base=16))
+
+    # trait
+    value = Any()
 
     def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, never_unset=False, none_val=None):
 
@@ -62,12 +66,13 @@ class ConfigVarStr(SeqRef):
         """Check if a variable is already defined."""
         return varname in cls.vdict
 
-    @property
-    def value(self):
-        return self._value
+    @default('value')
+    def _default_value(self):
+        return self._none_val
 
-    @value.setter
-    def value(self, new_val):
+    @validate('value')
+    def _validate_value(self, proposal):
+        new_val = proposal['value']
 
         if new_val == self._none_val:
             logic.set_null(self)
@@ -89,6 +94,8 @@ class ConfigVarStr(SeqRef):
         for var in self._related_vars:
             if var.has_options():
                 var._update_option_validities(var.options)
+        
+        return new_val
 
     @property
     def none_val(self):
@@ -175,6 +182,7 @@ class ConfigVarStr(SeqRef):
     def description(self):
         return self._widget.description
     
+    @owh.out.capture()
     def _process_frontend_value_change(self, change):
         if change['old'] == {}:
             return # frontend-triggered change not finalized yet
