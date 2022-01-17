@@ -5,9 +5,12 @@ import sys
 from contextlib import contextmanager
 from io import StringIO
 import logging
+import ipywidgets as widgets
+
 
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.gui_create_custom import GUI_create_custom
+from visualCaseGen.config_var_str import ConfigVarStr
 from cli import cmdCaseGen
 
 logger = logging.getLogger("unittests")
@@ -119,9 +122,6 @@ class TestParamGen(unittest.TestCase):
     def test_C_widget_assignment(self):
         """Test assignment of widgets of ConfigVars"""
 
-        import ipywidgets as widgets
-        from visualCaseGen.config_var_str import ConfigVarStr
-
         cmd = cmdCaseGen(exit_on_error=False)
         ConfigVarStr.vdict['COMP_ATM'].widget = widgets.ToggleButtons()
         ConfigVarStr.vdict['COMP_ICE'].widget = widgets.ToggleButtons()
@@ -146,29 +146,53 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
-    def test_D_gui_random(self):
+    def test_D_gui_sequence(self):
+        """Test GUI by checking an assignment sequence that was causing an error """
+
+        ci = CIME_interface("nuopc")
+        GUI_create_custom(ci).construct()
+
+        COMP_ATM = ConfigVarStr.vdict['COMP_ATM']
+        COMP_LND = ConfigVarStr.vdict['COMP_LND']
+        COMP_ICE = ConfigVarStr.vdict['COMP_ICE']
+        COMP_OCN = ConfigVarStr.vdict['COMP_OCN']
+        COMP_ROF = ConfigVarStr.vdict['COMP_ROF']
+        COMP_GLC = ConfigVarStr.vdict['COMP_GLC']
+        COMP_WAV = ConfigVarStr.vdict['COMP_WAV']
+
+        # first check an assignment sequence that was causing an error:
+        COMP_OCN.value = 'docn'
+        COMP_ROF.value = 'mosart'
+        COMP_ATM.value = 'datm'
+
+    def test_E_gui_random(self):
         """Test GUI by randomly assigning component values many times"""
+
         from visualCaseGen.config_var_str import ConfigVarStr
         import random
 
         ci = CIME_interface("nuopc")
         GUI_create_custom(ci).construct()
 
-        COMP_ATM = ConfigVarStr.vdict['COMP_ATM'] 
-        COMP_LND = ConfigVarStr.vdict['COMP_LND'] 
-        COMP_ICE = ConfigVarStr.vdict['COMP_ICE'] 
-        COMP_OCN = ConfigVarStr.vdict['COMP_OCN'] 
-        COMP_ROF = ConfigVarStr.vdict['COMP_ROF'] 
-        COMP_GLC = ConfigVarStr.vdict['COMP_GLC'] 
-        COMP_WAV = ConfigVarStr.vdict['COMP_WAV'] 
+        COMP_ATM = ConfigVarStr.vdict['COMP_ATM']
+        COMP_LND = ConfigVarStr.vdict['COMP_LND']
+        COMP_ICE = ConfigVarStr.vdict['COMP_ICE']
+        COMP_OCN = ConfigVarStr.vdict['COMP_OCN']
+        COMP_ROF = ConfigVarStr.vdict['COMP_ROF']
+        COMP_GLC = ConfigVarStr.vdict['COMP_GLC']
+        COMP_WAV = ConfigVarStr.vdict['COMP_WAV']
 
-        N = 100
+        random.seed(10) # to get consistent performance metrics
+
+        N = 30
         # first try setting to valid options only
         for i in range(N):
             comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
             valid_opts = [opt for opt in comp.options if comp._options_validities[opt] is True]
             if len(valid_opts)>0:
-                comp.value = random.choice(valid_opts)
+                random_opt = random.choice(valid_opts)
+                #print(i, comp.name, random_opt)
+                comp.value = random_opt
             else:
                 print("WARNING: encountered cases where there is no valid opt for "+comp.name)
 
