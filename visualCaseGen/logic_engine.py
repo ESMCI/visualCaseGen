@@ -90,30 +90,28 @@ def _is_sat_assignment(var, value):
     return True, ''
 
 def get_options_validities(var, options_list):
-    n_opts = len(options_list)
-    options_validities = {opt:False for opt in options_list}
+
+    options_validities = {opt:True for opt in options_list}
     error_messages = {opt:'' for opt in options_list}
 
     s = Solver()
-    s.add([asrt_assignments[varname] for varname in asrt_assignments if varname != var.name])
-    s.add(list(asrt_options.values()))
+    s.add([asrt_assignments[varname] for varname in asrt_assignments.keys() if varname != var.name])
+    # todo: check if we need to take asrt_options into account as in below line:
+    #s.add([asrt_options[varname] for varname in asrt_options.keys()])
 
     for opt in options_list:
-        s.push() # push for relational assignments to be added fully
-        s.add(list(asrt_relationals.keys()))
-        if s.check(var==opt) == sat:
-            options_validities[opt] = True
-        else: # unsat
-            options_validities[opt] = False
-            # now find the assertion causing unsat and get the associated error message
-            s.pop() # pop all relational assignments
-            s.push() # push for relational assignments to be added incrementally
-            for asrt in asrt_relationals:
-                s.add(asrt)
-                if s.check(var==opt) == unsat:
-                    error_messages[opt] = '{}={} violates assertion:"{}"'.format(var.name,opt,asrt_relationals[asrt])
-                    break
-        s.pop() # pop relational assignments (partially added or full)
+
+        # first check if all relational assertions are satisfied. If so, move to the next opt to check.
+        if s.check( And( And(list(asrt_relationals.keys())), var==opt )) == sat:
+            continue
+
+        # now find the assertion causing unsat and get the associated error message
+        for asrt in asrt_relationals:
+            if s.check(And(asrt, var==opt)) == unsat:
+                options_validities[opt] = False
+                error_messages[opt] = '{}={} violates assertion:"{}"'.format(var.name,opt,asrt_relationals[asrt])
+                break
+
     return options_validities, error_messages
 
 def set_null(var):
