@@ -10,7 +10,6 @@ class DummyWidget(HasTraits):
 
     def __init__(self, value=None, options=None, description="DummyWidget"):
         self.description = description
-        if value:
-            self.set_trait('value',value)
+        self.set_trait('value',value)
         if options:
             self.set_trait('options',options)

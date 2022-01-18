@@ -146,6 +146,15 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
+        cmd.onecmd("COMP_ROF = rtm")
+        cmd.onecmd("COMP_OCN = docn")
+        cmd.onecmd("COMP_ATM = datm")
+        with self.assertLogs() as captured:
+            cmd.onecmd("COMP_LND = clm")
+        self.assertEqual(captured.records[0].getMessage(),
+            'COMP_LND=clm violates assertion:"If CLM is coupled with DATM, then both ICE and OCN must be stub."' )
+
+
     def test_D_gui_sequence(self):
         """Test GUI by checking an assignment sequence that was causing an error """
 
