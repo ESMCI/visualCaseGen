@@ -57,7 +57,7 @@ def add_relational_assertions(assertions_setter, cvars):
         raise RuntimeError("Relational assertions not satisfiable!")
 
 def _is_sat_assignment(var, value):
-    """ This is to be called by add_assignment method only. It checks whether an
+    """ This is to be called by register_assignment method only. It checks whether an
     assignment is satisfiable."""
 
     # first, check if the value is an option of var
@@ -114,24 +114,25 @@ def get_options_validities(var, options_list):
 
     return options_validities, error_messages
 
-def set_null(var):
-    """ Removes the assignment assertion of variable, if there is one."""
-    if var.name in asrt_assignments:
-        asrt_assignments.pop(var.name)
-
-def add_assignment(var, value, check_sat=True):
+def register_assignment(var, value, check_sat=True):
     """ Adds an assignment to the logic solver. To be called by ConfigVar value setters only."""
 
-    # first pop old assignment if exists:
+    # first check if this is a null assignment, in which case remove assignment assertion
+    # for the variable and return.
+    if value is None:
+        asrt_assignments.pop(var.name, None)
+        return
+
+    # pop old assignment if exists:
     old_assignment = asrt_assignments.pop(var.name, None)
 
     # check if assignment is satisfiable.
-    is_ok = True
+    proceed = True
     if check_sat:
-        is_ok, msg = _is_sat_assignment(var, value)
+        proceed, msg = _is_sat_assignment(var, value)
 
     # add the assignment to the assignments dictionary
-    if is_ok == False:
+    if proceed == False:
         # reinsert old assignment and raise error
         if old_assignment is not None:
             asrt_assignments[var.name] = old_assignment

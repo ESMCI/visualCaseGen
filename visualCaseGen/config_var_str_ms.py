@@ -26,18 +26,15 @@ class ConfigVarStrMS(ConfigVarBase):
     def _validate_value(self, proposal):
         new_vals = proposal['value'] # values, NOT preceded by a char. (A single String joined by '%'!) 
 
-        if new_vals is None:
-            logic.set_null(self)
-        else:
-            assert isinstance(new_vals, str), "New values must be of type string joined by '%'"
-            # check if any new val is an invalid option:
-            if has_options():
-                for new_val in new_vals.split('%'):
-                    assert new_val in self._options, "Value not found in options list"
-                    if self._options_validities[new_val] == False:
-                        raise AssertionError(self._error_messages[new_val])
+        assert isinstance(new_vals, str), "New values must be of type string joined by '%'"
+        # check if any new val is an invalid option:
+        if has_options():
+            for new_val in new_vals.split('%'):
+                assert new_val in self._options, "Value not found in options list"
+                if self._options_validities[new_val] == False:
+                    raise AssertionError(self._error_messages[new_val])
 
-            logic.add_assignment(self, new_vals, check_sat=True)
+        logic.register_assignment(self, new_vals, check_sat=True)
 
         # update widget value
         if new_vals is None:

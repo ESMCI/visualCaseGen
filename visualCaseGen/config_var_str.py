@@ -23,15 +23,13 @@ class ConfigVarStr(ConfigVarBase):
     def _validate_value(self, proposal):
         new_val = proposal['value']
 
-        if new_val is None:
-            logic.set_null(self)
-        elif self.has_options() and new_val in self._options:
+        if self.has_options() and new_val in self._options:
             if self._options_validities[new_val] == True:
-                logic.add_assignment(self, new_val, check_sat=False)
+                logic.register_assignment(self, new_val, check_sat=False)
             else:
                 raise AssertionError(self._error_messages[new_val])
         else:
-            logic.add_assignment(self, new_val, check_sat=True)
+            logic.register_assignment(self, new_val, check_sat=True)
 
         # update widget value
         self._widget.value = self._widget_none_val if new_val is None else self.valid_opt_char+' '+new_val 
