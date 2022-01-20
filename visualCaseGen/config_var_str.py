@@ -12,7 +12,6 @@ class ConfigVarStr(ConfigVarBase):
     """ ConfigVar type with widget value of type String and ConfigVar value of type String.
     
     self._widget.value  : value preceded by a validity char. (of type String -- Trait)
-    self._value         : value NOT preceded by a validity char. (of type String -- Data member)
     self.value:         : value NOT preceded by a validity char. (of type String -- Trait)
     """
     
@@ -33,9 +32,6 @@ class ConfigVarStr(ConfigVarBase):
 
         # update widget value
         self._widget.value = self._widget_none_val if new_val is None else self.valid_opt_char+' '+new_val 
-
-        # update internal value
-        self._value = new_val
 
         # finally, inform all related vars about this value change by calling their _update_options
         # this will update options validities.
@@ -65,8 +61,8 @@ class ConfigVarStr(ConfigVarBase):
             display(HTML(js))
             
             # set to old value:
-            self._widget.value = self._widget_none_val if self._value is None else '{} {}'\
-                .format(self.valid_opt_char, self._value)
+            self._widget.value = self._widget_none_val if self.value is None else '{} {}'\
+                .format(self.valid_opt_char, self.value)
             return
         else:
 

@@ -12,8 +12,7 @@ class ConfigVarStrMS(ConfigVarBase):
     """ ConfigVar type with widget value of type Tuple of strings and ConfigVar value of type String. 
     
     self._widget.value  : values, each preceded by a validity char. (Tuple of Strings -- Trait)
-    self._value         : values, NOT preceded by a validity char. (Tuple of Strings -- Data member)
-    self.value:         : values, NOT preceded by a char. (A single String! Equivalent to '%'.join(self._value -- Trait)
+    self.value:         : values, NOT preceded by a char. (A single String that joins multiple vals by '%')
     """
 
     def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, always_set=False, widget_none_val=None):
@@ -41,9 +40,6 @@ class ConfigVarStrMS(ConfigVarBase):
             self._widget.value = self._widget_none_val
         else:
             self._widget.value = (self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
-
-        # update internal value
-        self._value = new_vals
 
         # finally, inform all related vars about this value change by calling their _update_options
         # this will update options validities.
@@ -75,10 +71,10 @@ class ConfigVarStrMS(ConfigVarBase):
             
                 # set to old value:
 
-                if self._value is None:
+                if self.value is None:
                     self._widget.value = self._widget_none_val
                 else:
-                    self._widget.value = ('{} {}'.format(self.valid_opt_char, val) for val in self._value)
+                    self._widget.value = ('{} {}'.format(self.valid_opt_char, val) for val in self.value.split('%'))
                 return
 
         if self._widget.value == self._widget_none_val:

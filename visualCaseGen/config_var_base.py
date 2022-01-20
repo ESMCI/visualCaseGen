@@ -41,7 +41,6 @@ class ConfigVarBase(SeqRef, HasTraits):
         # Temporarily set private members options and value to None. These will be 
         # updated with special property setter below.
         self._options = None
-        self._value = None
 
         # Initialize all other private members
         self._related_vars = set() # set of variables to be informed when a value change occurs
