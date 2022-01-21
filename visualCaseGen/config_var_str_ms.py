@@ -24,6 +24,8 @@ class ConfigVarStrMS(ConfigVarBase):
     @validate('value')
     def _validate_value(self, proposal):
         new_vals = proposal['value'] # values, NOT preceded by a char. (A single String joined by '%'!) 
+        if new_vals == self.value:
+            return new_vals # no value change, so return at this point
 
         assert isinstance(new_vals, str), "New values must be of type string joined by '%'"
         # check if any new val is an invalid option:

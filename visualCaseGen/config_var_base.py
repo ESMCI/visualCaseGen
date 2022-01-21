@@ -89,7 +89,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     def options(self, new_opts):
         logger.debug("Updating the options of ConfigVarBase %s", self.name)
         assert isinstance(new_opts, (list,set))
-        logic.set_variable_options(self, new_opts)
+        logic.register_variable_options(self, new_opts)
         self._update_options(new_opts)
     
     @property

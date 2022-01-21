@@ -21,6 +21,8 @@ class ConfigVarStr(ConfigVarBase):
     @validate('value')
     def _validate_value(self, proposal):
         new_val = proposal['value']
+        if new_val == self.value:
+            return new_val # no value change, so return at this point
 
         if self.has_options() and new_val in self._options:
             if self._options_validities[new_val] == True:

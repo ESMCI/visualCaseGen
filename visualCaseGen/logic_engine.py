@@ -1,3 +1,4 @@
+import weakref
 from z3 import String
 from z3 import And, Or, Implies
 from z3 import Solver, sat, unsat
@@ -11,6 +12,9 @@ asrt_options = {}
 
 # relational assertions. key is ASSERTION, value is ERRNAME.
 asrt_relationals = {}
+
+# set of variables appearing in relational assertions
+relational_vars = set()
 
 def reset():
     global asrt_assignments, asrt_options, asrt_relationals
@@ -27,7 +31,7 @@ def universal_solver():
     s.add(list(asrt_relationals.keys()))
     return s
 
-def set_variable_options(var, options):
+def register_variable_options(var, options):
     """This method is to be called by ConfigVar instance when its options are assigned."""
     asrt_options[var.name] = Or([var==opt for opt in options])
 
@@ -113,6 +117,9 @@ def get_options_validities(var, options_list):
                 break
 
     return options_validities, error_messages
+
+def update_options_validities():
+    pass
 
 def register_assignment(var, value, check_sat=True):
     """ Adds an assignment to the logic solver. To be called by ConfigVar value setters only."""
