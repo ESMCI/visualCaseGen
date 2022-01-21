@@ -172,7 +172,13 @@ class TestParamGen(unittest.TestCase):
         # first check an assignment sequence that was causing an error:
         COMP_OCN.value = 'docn'
         COMP_ROF.value = 'mosart'
-        COMP_ATM.value = 'datm'
+        with self.captured_output() as (out, err):
+            try:
+                COMP_ATM.value = 'datm'
+            except AssertionError as e:
+                print(e)
+        self.assertEqual(out.getvalue().strip(),
+            'COMP_ATM=datm violates assertion:"If CLM is coupled with DATM, then both ICE and OCN must be stub."' )
 
     def test_E_gui_random(self):
         """Test GUI by randomly assigning component values many times"""

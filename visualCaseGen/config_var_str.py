@@ -25,22 +25,20 @@ class ConfigVarStr(ConfigVarBase):
             return new_val # no value change, so return at this point
 
         if self.has_options() and new_val in self._options:
-            if self._options_validities[new_val] == True:
-                logic.register_assignment(self, new_val, check_sat=False)
-            else:
-                raise AssertionError(self._error_messages[new_val])
+            if self._options_validities[new_val] == False:
+                err_msg = self._retrieve_error_msg(new_val)
+                raise AssertionError(err_msg)
+            ConfigVarBase._register_assignment(self, new_val, check_sat=False)
         else:
-            logic.register_assignment(self, new_val, check_sat=True)
+            ConfigVarBase._register_assignment(self, new_val, check_sat=True)
 
         # update widget value
         self._widget.value = self._widget_none_val if new_val is None else self.valid_opt_char+' '+new_val 
 
-        # finally, inform all related vars about this value change by calling their _update_options
-        # this will update options validities.
-        for var in self._related_vars:
-            if var.has_options():
-                var._update_options()
-        
+        # update options validities of all relational vars
+        self._update_all_options_validities()
+
+        # finally, set self.value by returning new_vals
         return new_val
 
     @owh.out.capture()
@@ -55,11 +53,10 @@ class ConfigVarStr(ConfigVarBase):
 
         # if an invalid selection, display error message and set widget value to old value
         if self.has_options() and new_val_validity_char == self.invalid_opt_char:
-            logger.critical("ERROR: %s", self._error_messages[new_val])
+            err_msg = self._retrieve_error_msg(new_val)
+            logger.critical("ERROR: %s", err_msg)
             from IPython.display import display, HTML
-            js = "<script>alert('ERROR: {}');</script>".format(
-                self._error_messages[new_val]
-            )
+            js = "<script>alert('ERROR: {}');</script>".format(err_msg)
             display(HTML(js))
             
             # set to old value:

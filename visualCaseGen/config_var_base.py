@@ -1,11 +1,27 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
-import visualCaseGen.logic_engine as logic
+
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
+from z3 import And, Or, Implies
+from z3 import Solver, sat, unsat
+from z3 import z3util
+
 from traitlets import HasTraits, Any, default, validate, List
 
 logger = logging.getLogger(__name__)
+
+class Logic():
+    """Container for logic data"""
+    # assertions keeping track of variable assignments. key is varname, value is assignment assertion
+    asrt_assignments = dict()
+    # assertions for options lists of variables. key is varname, value is options assertion
+    asrt_options = dict()
+    # relational assertions. key is ASSERTION, value is ERRNAME.
+    asrt_relationals = dict()
+    # variables that appear in relational assertions
+    relational_vars = set()
+logic = Logic()
 
 class ConfigVarBase(SeqRef, HasTraits):
     
@@ -16,7 +32,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     invalid_opt_char = chr(int("274C",base=16))
     valid_opt_char = chr(int("2713",base=16))
 
-    # trait
+    # Trait
     value = Any()
 
     def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, always_set=False, widget_none_val=None):
@@ -43,7 +59,6 @@ class ConfigVarBase(SeqRef, HasTraits):
         self._options = None
 
         # Initialize all other private members
-        self._related_vars = set() # set of variables to be informed when a value change occurs
         self._options_validities = {}
         self._error_messages = []
         self._always_set = always_set # if a ConfigVarBase instance with options, make sure a value is always set
@@ -63,12 +78,117 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @staticmethod
     def reset():
-        ConfigVarBase.vdict = {}
+        ConfigVarBase.vdict = dict()
+        logic.asrt_assignments = dict()
+        logic.asrt_options = dict()
+        logic.asrt_relationals = dict()
+        logic.relational_vars = set()
 
     @staticmethod
     def exists(varname):
         """Check if a variable is already defined."""
         return varname in ConfigVarBase.vdict
+
+    @classmethod
+    def add_relational_assertions(cls, assertions_setter):
+        new_assertions = assertions_setter(cls.vdict)
+
+        # Check if any assertion has been provided multiple times.
+        # If not, update the relational_assertions_dict to include new assertions (simplified).
+        for asrt in new_assertions:
+            if asrt in logic.asrt_relationals:
+                raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
+        logic.asrt_relationals.update(new_assertions)
+
+        # Update the set of relational variables
+        for asrt in new_assertions:
+            logic.relational_vars.update( {cls.vdict[var.sexpr()] for var in z3util.get_vars(asrt)} )
+
+        # Check if newly added relational assertions are satisfiable:
+        s = Solver()
+        s.add(list(logic.asrt_assignments.values()))
+        s.add(list(logic.asrt_options.values()))
+        s.add(list(logic.asrt_relationals.keys()))
+        if s.check() == unsat:
+            raise RuntimeError("Relational assertions not satisfiable!")
+
+    def _is_sat_assignment(self, value):
+        """ This is to be called by register_assignment method only. It checks whether an
+        assignment is satisfiable."""
+
+        if self.has_options():
+            if value not in self.options:
+                err_msg = '{} not an option for {}'.format(value, self.name)
+                return False, err_msg
+
+        # now, check if the value satisfies all assertions
+
+        # first add all assertions including the assignment being checked but excluding the relational
+        # assignments because we will pop the relational assertions if the solver is unsat
+        s = Solver()
+        s.add(list(logic.asrt_assignments.values()))
+        s.add(list(logic.asrt_options.values()))
+        s.add(self==value)
+
+        # now push and temporarily add relational assertions
+        s.push()
+        s.add(list(logic.asrt_relationals.keys()))
+
+        if s.check() == unsat:
+            s.pop()
+            for asrt in logic.asrt_relationals:
+                s.add(asrt)
+                if s.check() == unsat:
+                    err_msg = '{}={} violates assertion:"{}"'.format(self.name,value,logic.asrt_relationals[asrt])
+                    return False, err_msg
+
+        return True, ''
+
+
+    def _register_assignment(self, value, check_sat=True):
+
+        # first check if this is a null assignment, in which case remove assignment assertion
+        # for the variable and return.
+        if value is None:
+            logic.asrt_assignments.pop(self.name, None)
+            return
+
+        # pop old assignment if exists:
+        old_assignment = logic.asrt_assignments.pop(self.name, None)
+
+        # check if assignment is satisfiable.
+        proceed = True
+        if check_sat:
+            proceed, msg = self._is_sat_assignment(value)
+
+        # add the assignment to the assignments dictionary
+        if proceed == False:
+            # reinsert old assignment and raise error
+            if old_assignment is not None:
+                logic.asrt_assignments[self.name] = old_assignment
+            raise AssertionError(msg)
+        else:
+            logic.asrt_assignments[self.name] = self==value
+
+    def _retrieve_error_msg(self, value):
+        """Given a failing assignment, retrieves the error message associated with the relational assertion
+        leading to unsat."""
+
+        s = Solver()
+        s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != self.name])
+        s.add(list(logic.asrt_options.values()))
+
+        # first, confirm the assignment is unsat
+        if s.check( And( And(list(logic.asrt_relationals.keys())), self==value )) == sat:
+            raise RuntimeError("_retrieve_error_msg method called for a satisfiable assignment")
+        
+        for asrt in logic.asrt_relationals:
+            s.add(asrt)
+            if s.check(self==value) == unsat:
+                return '{}={} violates assertion:"{}"'.format(self.name, value, logic.asrt_relationals[asrt])
+
+        return '{}={} violates multiple assertions.'.format(self.name, value)
+
 
     @default('value')
     def _default_value(self):
@@ -89,7 +209,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     def options(self, new_opts):
         logger.debug("Updating the options of ConfigVarBase %s", self.name)
         assert isinstance(new_opts, (list,set))
-        logic.register_variable_options(self, new_opts)
+        logic.asrt_options[self.name] = Or([self==opt for opt in new_opts])
         self._update_options(new_opts)
     
     @property
@@ -103,8 +223,10 @@ class ConfigVarBase(SeqRef, HasTraits):
     def has_options(self):
         return self._options is not None
 
-    def add_related_vars(self, new_vars):
-        self._related_vars.update(new_vars)
+    @staticmethod
+    def _update_all_options_validities():
+        for var in logic.relational_vars:
+            var._update_options()
 
     def _update_options(self, new_opts=None):
         """ This method updates options, validities, and displayed widget options.
@@ -118,7 +240,11 @@ class ConfigVarBase(SeqRef, HasTraits):
         if not validity_change_only:
             self._options = new_opts
 
-        self._options_validities, self._error_messages = logic.get_options_validities(self, self._options)
+        s = Solver()
+        s.add(list(logic.asrt_options.values()))
+        s.add(list(logic.asrt_relationals.keys()))
+        s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != self.name])
+        self._options_validities = {opt: s.check(self==opt)==sat for opt in self._options}
 
         if validity_change_only and old_validities == self._options_validities:
             return # no change in options or validities

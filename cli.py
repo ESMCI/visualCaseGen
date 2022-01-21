@@ -12,6 +12,7 @@ sys.path.append(pth)
 logger = logging.getLogger("cmdCaseGen")
 
 from visualCaseGen.cime_interface import CIME_interface
+from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.relational_assertions import relational_assertions_setter
 import visualCaseGen.logic_engine as logic
@@ -24,13 +25,12 @@ class cmdCaseGen(cmd.Cmd):
 
     def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
-        logic.reset()
-        ConfigVarStr.reset()
+        ConfigVarBase.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
         self._init_options()
         self._exit_on_error = exit_on_error
-        logic.add_relational_assertions(relational_assertions_setter, ConfigVarStr.vdict)
+        ConfigVarBase.add_relational_assertions(relational_assertions_setter)
 
     def printError(self, msg):
         if self._exit_on_error:

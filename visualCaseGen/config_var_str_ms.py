@@ -1,7 +1,6 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
-import visualCaseGen.logic_engine as logic
 from visualCaseGen.config_var_base import ConfigVarBase
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 from traitlets import HasTraits, Unicode, default, validate
@@ -29,13 +28,15 @@ class ConfigVarStrMS(ConfigVarBase):
 
         assert isinstance(new_vals, str), "New values must be of type string joined by '%'"
         # check if any new val is an invalid option:
-        if has_options():
+        if self.has_options():
             for new_val in new_vals.split('%'):
                 assert new_val in self._options, "Value not found in options list"
                 if self._options_validities[new_val] == False:
+                    err_msg = self._retrieve_error_msg(new_val)
                     raise AssertionError(self._error_messages[new_val])
-
-        logic.register_assignment(self, new_vals, check_sat=True)
+            ConfigVarBase._register_assignment(self, new_vals, check_sat=False)
+        else:
+            ConfigVarBase._register_assignment(self, new_vals, check_sat=True)
 
         # update widget value
         if new_vals is None:
@@ -43,12 +44,10 @@ class ConfigVarStrMS(ConfigVarBase):
         else:
             self._widget.value = (self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
 
-        # finally, inform all related vars about this value change by calling their _update_options
-        # this will update options validities.
-        for var in self._related_vars:
-            if var.has_options():
-                var._update_options()
-        
+        # update options validities of all relational vars
+        self._update_all_options_validities()
+
+        # finally, set self.value by returning new_vals
         return new_vals
 
     @owh.out.capture()
@@ -64,11 +63,10 @@ class ConfigVarStrMS(ConfigVarBase):
 
             # if an invalid selection, display error message and set widget value to old value
             if self.has_options() and new_val_validity_char == self.invalid_opt_char:
-                logger.critical("ERROR: %s", self._error_messages[new_val])
+                err_msg = self._retrieve_error_msg(new_val)
+                logger.critical("ERROR: %s", err_msg)
                 from IPython.display import display, HTML
-                js = "<script>alert('ERROR: {}');</script>".format(
-                    self._error_messages[new_val]
-                )
+                js = "<script>alert('ERROR: {}');</script>".format(err_msg)
                 display(HTML(js))
             
                 # set to old value:
