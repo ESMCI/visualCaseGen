@@ -2,13 +2,14 @@ import re
 import logging
 import ipywidgets as widgets
 
+from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
+from visualCaseGen.config_var_str_ms import ConfigVarStrMS
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
-import visualCaseGen.logic_engine as logic
 from visualCaseGen.relational_assertions import relational_assertions_setter
 
 logger = logging.getLogger(__name__)
@@ -16,15 +17,14 @@ logger = logging.getLogger(__name__)
 class GUI_create_custom():
 
     def __init__(self, ci):
-        logic.reset()
-        ConfigVarStr.reset()
+        ConfigVarBase.reset()
         self.ci = ci
         self._init_configvars()
         self._init_widgets()
         self._construct_all_widget_observances()
         self._compset_text = ''
         self._grid_view_mode = 'suggested' # or 'all'
-        logic.add_relational_assertions(relational_assertions_setter, ConfigVarStr.vdict)
+        ConfigVarBase.add_relational_assertions(relational_assertions_setter)
 
     def _init_configvars(self):
         """ Initialize the ConfigVar instances to be displayed on the GUI as configurable case variables.
@@ -46,7 +46,7 @@ class GUI_create_custom():
                 value = None
             )
             ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
-            #todo ConfigVarOptMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
+            ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             #todo ConfigVar('{}_GRID'.format(comp_class))
         #todo ConfigVar('MASK_GRID')
         #todo ConfigVar('COMPSET')
@@ -97,23 +97,18 @@ class GUI_create_custom():
             cv_comp_phys.widget_style.button_width = '90px'
             cv_comp_phys.widget_style.description_width = '90px'
 
-    #todo         cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
+            cv_comp_option = ConfigVarStrMS.vdict['COMP_{}_OPTION'.format(comp_class)]
+            cv_comp_option.widget = CheckboxMultiWidget(
+                    description=comp_class+':',
+                    placeholder="Options will be displayed here after a component selection.",
+                    disabled=True,
+                    #todo layout=widgets.Layout(width='110px', max_height='100px')
+                )
+            #todo cv_comp_option.widget_style.button_width = '90px'
+            #todo cv_comp_option.widget_style.description_width = '0px'
+            cv_comp_option.valid_opt_icon = '%'
+
     #todo         cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
-
-    #todo         # COMP_{}_PHYS widget
-    #todo         # COMP_{}_OPTION widget
-    #todo         cv_comp_option.widget = CheckboxMultiWidget(
-    #todo                 options=[],
-    #todo                 value=None,
-    #todo                 description=comp_class+':',
-    #todo                 disabled=True,
-    #todo                 placeholder="Options will be displayed here after a component selection."
-    #todo                 #todo layout=widgets.Layout(width='110px', max_height='100px')
-    #todo             )
-    #todo         #todo cv_comp_option.widget_style.button_width = '90px'
-    #todo         #todo cv_comp_option.widget_style.description_width = '0px'
-    #todo         cv_comp_option.valid_opt_icon = '%'
-
     #todo         cv_comp_grid.widget = DummyWidget()
 
     #todo     cv_mask_grid = ConfigVar.vdict['MASK_GRID']
@@ -226,7 +221,7 @@ class GUI_create_custom():
     #todo         self._btn_grid_view.layout.display = '' # turn on the display
 
     @owh.out.capture()
-    def _update_comp_phys(self,change=None):
+    def _update_comp_phys(self, change=None):
 
         cv_comp = change['owner'] 
         model = cv_comp.value
@@ -240,50 +235,30 @@ class GUI_create_custom():
         cv_comp_phys.options = comp_phys
         cv_comp_phys.tooltips = comp_phys_desc
 
-        #todo self._update_comp_options(change=None, invoker_phys=cv_comp_phys)
+    @owh.out.capture()
+    def _update_comp_options(self, change=None):
 
-    #todo @owh.out.capture()
-    #todo def _update_comp_options(self,change=None, invoker_phys=None):
+        cv_comp_phys = change['owner']
+        comp_class = cv_comp_phys.description[0:3]
 
-    #todo     cv_comp_phys = None
-    #todo     if change is not None:
-    #todo         # The method is invoked by a user change in COMP_..._PHYS widget
-    #todo         if change['old'] == {}:
-    #todo             # Change in owner not finalized yet. Do nothing for now.
-    #todo             return
-    #todo         if change['owner'].value_status is False:
-    #todo             logger.debug("Invalid value, so no need to update comp options for %s", change['owner'].name)
-    #todo             return
-    #todo         cv_comp_phys = change['owner'].parentCV
+        logger.debug("Updating the options for phys of %s", comp_class)
+        if cv_comp_phys.value is not None:
+            cv_comp = ConfigVarBase.vdict['COMP_{}'.format(comp_class)]
+            model = cv_comp.value
+            phys = cv_comp_phys.value
+            comp_options, comp_options_desc = self.ci.comp_options[model][phys]
 
-    #todo     elif invoker_phys is not None:
-    #todo         # The method is invoked by an internal change in COMP_..._PHYS widget
-    #todo         if invoker_phys.value_status is False:
-    #todo             logger.debug("Invalid value, so no need to update comp options for %s", invoker_phys.name)
-    #todo             return
-    #todo         if invoker_phys.value is None:
-    #todo             return
-    #todo         cv_comp_phys = invoker_phys
+            comp_options = ['(none)'] + comp_options
+            comp_options_desc = ['no modifiers for the {} physics'.format(phys)] + comp_options_desc
 
-    #todo     comp_class = cv_comp_phys.description[0:3]
-    #todo     logger.debug("Updating the options for phys of %s", comp_class)
-    #todo     if cv_comp_phys.value is not None:
-    #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-    #todo         model = cv_comp.value
-    #todo         phys = cv_comp_phys.value
-    #todo         comp_options, comp_options_desc = self.ci.comp_options[model][phys]
-
-    #todo         comp_options = ['(none)'] + comp_options
-    #todo         comp_options_desc = ['no modifiers for the {} physics'.format(phys)] + comp_options_desc
-
-    #todo         cv_comp_option = ConfigVar.vdict["COMP_{}_OPTION".format(comp_class)]
-    #todo         #import time
-    #todo         #start = time.time()
-    #todo         cv_comp_option.options = comp_options
-    #todo         cv_comp_option.tooltips = comp_options_desc
-    #todo         cv_comp_option.set_widget_properties({'disabled':False})
-    #todo         #end = time.time()
-    #todo         #print("elapsed: ", end-start)
+            cv_comp_option = ConfigVarBase.vdict["COMP_{}_OPTION".format(comp_class)]
+            #import time
+            #start = time.time()
+            cv_comp_option.options = comp_options
+            cv_comp_option.tooltips = comp_options_desc
+            cv_comp_option.set_widget_properties({'disabled':False})
+            #end = time.time()
+            #print("elapsed: ", end-start)
 
 
     #todo @owh.out.capture()
@@ -367,21 +342,29 @@ class GUI_create_custom():
     #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
     #todo         cv_comp.update_options_validity()
 
-        # Build options observances for comp_phys
         for comp_class in self.ci.comp_classes:
+
+            # Build options observances for comp_phys
             cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
             cv_comp.observe(
                 self._update_comp_phys,
                 names='value',
                 type='change')
 
-    #todo     # Build options observances for comp_option
-    #todo     for comp_class in self.ci.comp_classes:
-    #todo         cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-    #todo         cv_comp_phys.observe(
-    #todo             self._update_comp_options,
-    #todo             names='_property_lock',
-    #todo             type='change')
+            # Change component phys/options tab whenever a frontend component change is made
+            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
+            cv_comp._widget.observe(
+                self._set_comp_options_tab,
+                names='_property_lock',
+                type='change')
+
+            # Build options observances for comp_option
+            cv_comp_phys = ConfigVarBase.vdict['COMP_{}_PHYS'.format(comp_class)]
+            cv_comp_phys.observe(
+                self._update_comp_options,
+                names='value',
+                type='change')
+
 
     #todo     cv_inittime = ConfigVar.vdict['INITTIME']
     #todo     cv_inittime.observe(
@@ -396,11 +379,6 @@ class GUI_create_custom():
     #todo             self._update_compset,
     #todo             names='value',
     #todo             type='change')
-
-            cv_comp._widget.observe(
-                self._set_comp_options_tab,
-                names='_property_lock',
-                type='change')
 
     #todo     cv_grid = ConfigVar.vdict['GRID']
     #todo     cv_grid.observe(
@@ -464,7 +442,7 @@ class GUI_create_custom():
             self._comp_options_tab.children = tuple(
                 widgets.VBox([
                     ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
-                    #todo ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
+                    ConfigVarStr.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
                 ])
                 for comp_class in self.ci.comp_classes
             )

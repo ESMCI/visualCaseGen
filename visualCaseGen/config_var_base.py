@@ -318,6 +318,13 @@ class ConfigVarBase(SeqRef, HasTraits):
             type='change'
         )
 
+    def set_widget_properties(self, property_dict):
+        assert isinstance(property_dict, dict)
+        for key, val in property_dict.items():
+            assert key != "options", "Must set widget options via .options setter"
+            assert key != "value", "Must set widget value via .value setter"
+            setattr(self._widget, key, val)
+
     @property
     def widget_style(self):
         return self._widget.style

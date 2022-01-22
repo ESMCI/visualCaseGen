@@ -42,7 +42,7 @@ class ConfigVarStrMS(ConfigVarBase):
         if new_vals is None:
             self._widget.value = self._widget_none_val
         else:
-            self._widget.value = (self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
+            self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
 
         # update options validities of all relational vars
         self._update_all_options_validities()
@@ -74,7 +74,7 @@ class ConfigVarStrMS(ConfigVarBase):
                 if self.value is None:
                     self._widget.value = self._widget_none_val
                 else:
-                    self._widget.value = ('{} {}'.format(self.valid_opt_char, val) for val in self.value.split('%'))
+                    self._widget.value = tuple('{} {}'.format(self.valid_opt_char, val) for val in self.value.split('%'))
                 return
 
         if self._widget.value == self._widget_none_val:
