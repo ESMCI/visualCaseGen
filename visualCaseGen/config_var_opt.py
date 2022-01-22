@@ -3,7 +3,6 @@ import ipywidgets as widgets
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.OutHandler import handler as owh
-import visualCaseGen.logic_engine as logic
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +32,8 @@ class ConfigVarOpt(ConfigVar):
     @value.setter
     def value(self, val):
         if val == self._none_val:
-            logic.set_null(self.name)
             self._widget.value = val
         else:
-            logic.add_assignment(self.name, val)
             self._widget.value = self.valid_opt_icon+' '+val
 
     def value_status(self):
@@ -66,8 +63,6 @@ class ConfigVarOpt(ConfigVar):
         icons."""
 
         logger.debug("Updating the options of ConfigVarOpt %s", self.name)
-
-        logic.set_variable_options(self.name, opts)
 
         # First, update to new options
         self._unobserve_value_validity()

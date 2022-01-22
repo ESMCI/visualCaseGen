@@ -15,7 +15,6 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.relational_assertions import relational_assertions_setter
-import visualCaseGen.logic_engine as logic
 
 class cmdCaseGen(cmd.Cmd):
 
@@ -129,9 +128,9 @@ class cmdCaseGen(cmd.Cmd):
         else:
             self.printError("Unknown syntax! Provide a key=value pair where key is a ConfigVarStr, e.g., COMP_OCN")
 
-    def do_assertions(self, line):
-        """list all assertions"""
-        print(logic.universal_solver().assertions())
+    ##def do_assertions(self, line):
+    ##    """list all assertions"""
+    ##    print(logic.universal_solver().assertions())
 
     def do_opts(self, line):
         """For a given varname, print all options and their validities"""

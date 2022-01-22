@@ -4,7 +4,6 @@ from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.OutHandler import handler as owh
-import visualCaseGen.logic_engine as logic
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +73,6 @@ class ConfigVarOptMS(ConfigVar):
         icons."""
 
         logger.debug("Updating the options of ConfigVarOptMS %s", self.name)
-
-        logic.set_variable_options(self.name, opts)
 
         # First, update to new options
         self._unobserve_value_validity()
