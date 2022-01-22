@@ -3,7 +3,7 @@ from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
 
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
-from z3 import And, Or, Implies
+from z3 import And, Or, Implies, is_implies, is_not
 from z3 import Solver, sat, unsat
 from z3 import z3util
 
@@ -210,7 +210,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         logger.debug("Updating the options of ConfigVarBase %s", self.name)
         assert isinstance(new_opts, (list,set))
         logic.asrt_options[self.name] = Or([self==opt for opt in new_opts])
-        self._update_options(new_opts)
+        self._update_options(new_opts=new_opts)
     
     @property
     def tooltips(self):
@@ -225,10 +225,32 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @staticmethod
     def _update_all_options_validities():
-        for var in logic.relational_vars:
-            var._update_options()
+        """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
+        other variables that may be affected."""
+        
+        s = Solver()
+        s.add(list(logic.asrt_options.values()))
+        s.add(list(logic.asrt_relationals.keys())) 
 
-    def _update_options(self, new_opts=None):
+        for var in logic.relational_vars:
+            if var.has_options():
+                s.push()
+                s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
+                checklist = [var==opt for opt in var.options]
+                res = s.consequences([], checklist)
+                assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
+
+                new_validities = {opt:True for opt in var.options}
+                for implication in res[1]:
+                    consequent = implication.arg(1)
+                    if is_not(consequent):
+                        invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
+                        new_validities[invalid_val_str] = False
+                if new_validities != var._options_validities:
+                    var._update_options(new_validities=new_validities)
+                s.pop()
+        
+    def _update_options(self, new_validities=None, new_opts=None):
         """ This method updates options, validities, and displayed widget options.
         If needed, value is also updated according to the options update."""
 
@@ -240,11 +262,14 @@ class ConfigVarBase(SeqRef, HasTraits):
         if not validity_change_only:
             self._options = new_opts
 
-        s = Solver()
-        s.add(list(logic.asrt_options.values()))
-        s.add(list(logic.asrt_relationals.keys()))
-        s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != self.name])
-        self._options_validities = {opt: s.check(self==opt)==sat for opt in self._options}
+        if new_validities is None:
+            s = Solver()
+            s.add(list(logic.asrt_options.values()))
+            s.add(list(logic.asrt_relationals.keys()))
+            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != self.name])
+            self._options_validities = {opt: s.check(self==opt)==sat for opt in self._options}
+        else:
+            self._options_validities = new_validities
 
         if validity_change_only and old_validities == self._options_validities:
             return # no change in options or validities
