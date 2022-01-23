@@ -44,9 +44,6 @@ class ConfigVarStrMS(ConfigVarBase):
         else:
             self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
 
-        # update options validities of all relational vars
-        self._update_all_options_validities()
-
         # finally, set self.value by returning new_vals
         return new_vals
 

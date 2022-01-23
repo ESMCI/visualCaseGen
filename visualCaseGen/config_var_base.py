@@ -170,6 +170,9 @@ class ConfigVarBase(SeqRef, HasTraits):
         else:
             logic.asrt_assignments[self.name] = self==value
 
+        # update options validities of all relational vars
+        self._update_all_options_validities()
+
     def _retrieve_error_msg(self, value):
         """Given a failing assignment, retrieves the error message associated with the relational assertion
         leading to unsat."""
@@ -207,7 +210,7 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @options.setter
     def options(self, new_opts):
-        logger.debug("Updating the options of ConfigVarBase %s", self.name)
+        logger.debug("Assigning the options of ConfigVarBase %s", self.name)
         assert isinstance(new_opts, (list,set))
         logic.asrt_options[self.name] = Or([self==opt for opt in new_opts])
         self._update_options(new_opts=new_opts)
@@ -227,7 +230,8 @@ class ConfigVarBase(SeqRef, HasTraits):
     def _update_all_options_validities():
         """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
         other variables that may be affected."""
-        
+        logger.debug("Updating options validities of ALL relational variables")
+
         s = Solver()
         s.add(list(logic.asrt_options.values()))
         s.add(list(logic.asrt_relationals.keys())) 

@@ -34,9 +34,6 @@ class ConfigVarStr(ConfigVarBase):
         # update widget value
         self._widget.value = self._widget_none_val if new_val is None else self.valid_opt_char+' '+new_val 
 
-        # update options validities of all relational vars
-        self._update_all_options_validities()
-
         # finally, set self.value by returning new_vals
         return new_val
 
