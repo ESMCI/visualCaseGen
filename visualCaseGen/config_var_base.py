@@ -24,7 +24,176 @@ class Logic():
     asrt_relationals = dict()
     # all variables that appear in one or more relational assertions
     all_relational_vars = set()
+
+    @classmethod
+    def reset(cls):
+        cls.asrt_assignments = dict()
+        cls.asrt_options = dict()
+        cls.asrt_relationals = dict()
+        cls.all_relational_vars = set()
+    
+    @classmethod
+    def insert_relational_assertions(cls, assertions_setter, vdict):
+        new_assertions = assertions_setter(vdict)
+        # Check if any assertion has been provided multiple times.
+        # If not, update the relational_assertions_dict to include new assertions (simplified).
+        for asrt in new_assertions:
+            if asrt in cls.asrt_relationals:
+                raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
+        cls.asrt_relationals.update(new_assertions)
+
+        for asrt in new_assertions:
+            related_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
+            cls.all_relational_vars.update(related_vars)
+            for var in related_vars:
+                var._related_vars.update(related_vars - {var})
+
+        s = Solver()
+        s.add(list(cls.asrt_assignments.values()))
+        s.add(list(cls.asrt_options.values()))
+        s.add(list(cls.asrt_relationals.keys()))
+        if s.check() == unsat:
+            raise RuntimeError("Relational assertions not satisfiable!")
+
+    @classmethod
+    def add_options(cls, var, new_opts):
+        cls.asrt_options[var.name] = Or([var==opt for opt in new_opts])
+
+    @classmethod
+    def add_assignment(cls, var, new_value, check_sat=True):
+
+        status = True
+        err_msg = ''
+
+        # first, pop the old assignment
+        old_assignment = cls.asrt_assignments.pop(var.name, None)
+
+        # check if new new_value is sat. if so, register the new assignment
+        if new_value is not None:
+
+            if check_sat:
+                if var.has_options():
+                    if new_value not in var.options:
+                        status = False
+                        err_msg = '{} not an option for {}'.format(new_value, var.name)
+
+                if status is True:
+                    # now, check if the value satisfies all assertions
+
+                    # first add all assertions including the assignment being checked but excluding the relational
+                    # assignments because we will pop the relational assertions if the solver is unsat
+                    s = Solver()
+                    s.add(list(cls.asrt_assignments.values()))
+                    s.add(list(cls.asrt_options.values()))
+                    s.add(var==new_value)
+
+                    # now push and temporarily add relational assertions
+                    s.push()
+                    s.add(list(cls.asrt_relationals.keys()))
+
+                    if s.check() == unsat:
+                        s.pop()
+                        for asrt in cls.asrt_relationals:
+                            s.add(asrt)
+                            if s.check() == unsat:
+                                status = False
+                                err_msg = '{}={} violates assertion:"{}"'.format(var.name,new_value,cls.asrt_relationals[asrt])
+                                break
+
+            if status is False:
+                # reinsert old assignment and raise error
+                if old_assignment is not None:
+                    cls.asrt_assignments[var.name] = old_assignment
+                raise AssertionError(err_msg)
+            else:
+                cls.asrt_assignments[var.name] = var==new_value
+        
+        cls._update_all_options_validities(var)
+
+    @classmethod
+    def get_options_validities(cls, var, s=None):
+        if s is None:
+            s = Solver()
+            s.add(list(cls.asrt_options.values()))
+            s.add(list(cls.asrt_relationals.keys()))
+            s.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments.keys() if varname != var.name])
+        return {opt: s.check(var==opt)==sat for opt in var._options}
+
+    @classmethod
+    def _update_all_options_validities(cls, invoker_var):
+        """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
+        other variables that may be affected."""
+        logger.debug("Updating options validities of ALL relational variables")
+
+        #profiler.enable()
+
+        s = Solver()
+        s.add(list(cls.asrt_options.values()))
+        s.add(list(cls.asrt_relationals.keys())) 
+
+        def __eval_new_validities_consequences(var):
+            """ This version of __eval_new_validities uses z3.consequences, which is more expensive than the 
+            below version, __eval_new_validities, so use that instead. Maybe there is a more efficient
+            way to utilize z3.consequences, so I am keeping it here for now.""" 
+            s.push()
+            s.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments if varname != var.name ])
+            checklist = [var==opt for opt in var.options]
+            res = s.consequences([], checklist)
+            assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
+
+            new_validities = {opt:True for opt in var.options}
+            for implication in res[1]:
+                consequent = implication.arg(1)
+                if is_not(consequent):
+                    invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
+                    new_validities[invalid_val_str] = False
+            s.pop()
+            return new_validities
+
+        def __eval_new_validities(var):
+            s.push()
+            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
+            new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+            s.pop()
+            return new_validities
+
+        # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
+        # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
+        affected_vars = [invoker_var]+list(invoker_var._related_vars)
+        ivar = 1
+        while len(affected_vars)>ivar:
+            var = affected_vars[ivar]
+            if var.has_options():
+                new_validities = __eval_new_validities(var)
+                if new_validities != var._options_validities:
+                    var._update_options(new_validities=new_validities)
+                    affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
+            ivar += 1
+
+        #profiler.disable()
+
+    @classmethod
+    def retrieve_error_msg(cls, var, value):
+        """Given a failing assignment, retrieves the error message associated with the relational assertion
+        leading to unsat."""
+
+        s = Solver()
+        s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != var.name])
+        s.add(list(logic.asrt_options.values()))
+
+        # first, confirm the assignment is unsat
+        if s.check( And( And(list(logic.asrt_relationals.keys())), var==value )) == sat:
+            raise RuntimeError("_retrieve_error_msg method called for a satisfiable assignment")
+        
+        for asrt in logic.asrt_relationals:
+            s.add(asrt)
+            if s.check(var==value) == unsat:
+                return '{}={} violates assertion:"{}"'.format(var.name, value, logic.asrt_relationals[asrt])
+
+        return '{}={} violates multiple assertions.'.format(var.name, value)
+
 logic = Logic()
+
 
 class ConfigVarBase(SeqRef, HasTraits):
     
@@ -83,10 +252,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     @staticmethod
     def reset():
         ConfigVarBase.vdict = dict()
-        logic.asrt_assignments = dict()
-        logic.asrt_options = dict()
-        logic.asrt_relationals = dict()
-        logic.all_relational_vars = set()
+        logic.reset()
 
     @staticmethod
     def exists(varname):
@@ -95,106 +261,7 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @classmethod
     def add_relational_assertions(cls, assertions_setter):
-        new_assertions = assertions_setter(cls.vdict)
-
-        # Check if any assertion has been provided multiple times.
-        # If not, update the relational_assertions_dict to include new assertions (simplified).
-        for asrt in new_assertions:
-            if asrt in logic.asrt_relationals:
-                raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
-        logic.asrt_relationals.update(new_assertions)
-
-        # Update the set of relational variables
-        for asrt in new_assertions:
-            related_vars = {cls.vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
-            logic.all_relational_vars.update(related_vars)
-            for var in related_vars:
-                var._related_vars.update(related_vars - {var})
-
-        # Check if newly added relational assertions are satisfiable:
-        s = Solver()
-        s.add(list(logic.asrt_assignments.values()))
-        s.add(list(logic.asrt_options.values()))
-        s.add(list(logic.asrt_relationals.keys()))
-        if s.check() == unsat:
-            raise RuntimeError("Relational assertions not satisfiable!")
-
-    def _is_sat_assignment(self, value):
-        """ This is to be called by register_assignment method only. It checks whether an
-        assignment is satisfiable."""
-
-        if self.has_options():
-            if value not in self.options:
-                err_msg = '{} not an option for {}'.format(value, self.name)
-                return False, err_msg
-
-        # now, check if the value satisfies all assertions
-
-        # first add all assertions including the assignment being checked but excluding the relational
-        # assignments because we will pop the relational assertions if the solver is unsat
-        s = Solver()
-        s.add(list(logic.asrt_assignments.values()))
-        s.add(list(logic.asrt_options.values()))
-        s.add(self==value)
-
-        # now push and temporarily add relational assertions
-        s.push()
-        s.add(list(logic.asrt_relationals.keys()))
-
-        if s.check() == unsat:
-            s.pop()
-            for asrt in logic.asrt_relationals:
-                s.add(asrt)
-                if s.check() == unsat:
-                    err_msg = '{}={} violates assertion:"{}"'.format(self.name,value,logic.asrt_relationals[asrt])
-                    return False, err_msg
-
-        return True, ''
-
-
-    def _register_assignment(self, new_value, check_sat=True):
-
-        # first, pop the old assignment
-        old_assignment = logic.asrt_assignments.pop(self.name, None)
-
-        # check if new new_value is sat. if so, register the new assignment
-        if new_value is not None:
-
-            # check if assignment is satisfiable.
-            proceed = True
-            if check_sat:
-                proceed, msg = self._is_sat_assignment(new_value)
-
-            # add the assignment to the assignments dictionary
-            if proceed == False:
-                # reinsert old assignment and raise error
-                if old_assignment is not None:
-                    logic.asrt_assignments[self.name] = old_assignment
-                raise AssertionError(msg)
-            else:
-                logic.asrt_assignments[self.name] = self==new_value
-
-        self._update_all_options_validities()
-
-    def _retrieve_error_msg(self, value):
-        """Given a failing assignment, retrieves the error message associated with the relational assertion
-        leading to unsat."""
-
-        s = Solver()
-        s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != self.name])
-        s.add(list(logic.asrt_options.values()))
-
-        # first, confirm the assignment is unsat
-        if s.check( And( And(list(logic.asrt_relationals.keys())), self==value )) == sat:
-            raise RuntimeError("_retrieve_error_msg method called for a satisfiable assignment")
-        
-        for asrt in logic.asrt_relationals:
-            s.add(asrt)
-            if s.check(self==value) == unsat:
-                return '{}={} violates assertion:"{}"'.format(self.name, value, logic.asrt_relationals[asrt])
-
-        return '{}={} violates multiple assertions.'.format(self.name, value)
-
+        logic.insert_relational_assertions(assertions_setter, cls.vdict)
 
     @default('value')
     def _default_value(self):
@@ -215,7 +282,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     def options(self, new_opts):
         logger.debug("Assigning the options of ConfigVarBase %s", self.name)
         assert isinstance(new_opts, (list,set))
-        logic.asrt_options[self.name] = Or([self==opt for opt in new_opts])
+        logic.add_options(self, new_opts)
         self._update_options(new_opts=new_opts)
     
     @property
@@ -229,60 +296,6 @@ class ConfigVarBase(SeqRef, HasTraits):
     def has_options(self):
         return self._options is not None
 
-    def _update_all_options_validities(self):
-        """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
-        other variables that may be affected."""
-        logger.debug("Updating options validities of ALL relational variables")
-
-        #profiler.enable()
-
-        s = Solver()
-        s.add(list(logic.asrt_options.values()))
-        s.add(list(logic.asrt_relationals.keys())) 
-
-        def __eval_new_validities_consequences(var):
-            """ This version of __eval_new_validities uses z3.consequences, which is more expensive than the 
-            below version, __eval_new_validities, so use that instead. Maybe there is a more efficient
-            way to utilize z3.consequences, so I am keeping it here for now.""" 
-            s.push()
-            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
-            checklist = [var==opt for opt in var.options]
-            res = s.consequences([], checklist)
-            assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
-
-            new_validities = {opt:True for opt in var.options}
-            for implication in res[1]:
-                consequent = implication.arg(1)
-                if is_not(consequent):
-                    invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
-                    new_validities[invalid_val_str] = False
-            s.pop()
-            return new_validities
-
-        def __eval_new_validities(var):
-            s.push()
-            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
-            new_validities = {opt:True for opt in var.options}
-            for opt in var.options:
-                new_validities[opt] = s.check(var==opt) ==sat
-            s.pop()
-            return new_validities
-
-        # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
-        # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
-        affected_vars = [self]+list(self._related_vars)
-        ivar = 1
-        while len(affected_vars)>ivar:
-            var = affected_vars[ivar]
-            if var.has_options():
-                new_validities = __eval_new_validities(var)
-                if new_validities != var._options_validities:
-                    var._update_options(new_validities=new_validities)
-                    affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
-            ivar += 1
-
-        #profiler.disable()
-        
     def _update_options(self, new_validities=None, new_opts=None):
         """ This method updates options, validities, and displayed widget options.
         If needed, value is also updated according to the options update."""
@@ -296,11 +309,7 @@ class ConfigVarBase(SeqRef, HasTraits):
             self._options = new_opts
 
         if new_validities is None:
-            s = Solver()
-            s.add(list(logic.asrt_options.values()))
-            s.add(list(logic.asrt_relationals.keys()))
-            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != self.name])
-            self._options_validities = {opt: s.check(self==opt)==sat for opt in self._options}
+            self._options_validities = logic.get_options_validities(self)
         else:
             self._options_validities = new_validities
 

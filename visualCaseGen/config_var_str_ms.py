@@ -1,7 +1,7 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var_base import ConfigVarBase, logic
 from traitlets import HasTraits, Unicode, default, validate
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,11 @@ class ConfigVarStrMS(ConfigVarBase):
             for new_val in new_vals.split('%'):
                 assert new_val in self._options, "Value not found in options list"
                 if self._options_validities[new_val] == False:
-                    err_msg = self._retrieve_error_msg(new_val)
+                    err_msg = logic.retrieve_error_msg(new_val)
                     raise AssertionError(self._error_messages[new_val])
-            ConfigVarBase._register_assignment(self, new_vals, check_sat=False)
+            logic.add_assignment(self, new_vals, check_sat=False)
         else:
-            ConfigVarBase._register_assignment(self, new_vals, check_sat=True)
+            logic.add_assignment(self, new_vals, check_sat=True)
 
         # update widget value
         if new_vals is None:
@@ -59,7 +59,7 @@ class ConfigVarStrMS(ConfigVarBase):
 
             # if an invalid selection, display error message and set widget value to old value
             if self.has_options() and new_val_validity_char == self.invalid_opt_char:
-                err_msg = self._retrieve_error_msg(new_val)
+                err_msg = logic.retrieve_error_msg(new_val)
                 logger.critical("ERROR: %s", err_msg)
                 from IPython.display import display, HTML
                 js = "<script>alert('ERROR: {}');</script>".format(err_msg)
