@@ -1,7 +1,8 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_base import ConfigVarBase, logic
+from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.logic import logic
 from traitlets import HasTraits, Unicode, default, validate
 
 logger = logging.getLogger(__name__)
