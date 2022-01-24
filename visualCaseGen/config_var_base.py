@@ -9,6 +9,9 @@ from z3 import z3util
 
 from traitlets import HasTraits, Any, default, validate, List
 
+import cProfile, pstats
+profiler = cProfile.Profile()
+
 logger = logging.getLogger(__name__)
 
 class Logic():
@@ -231,11 +234,16 @@ class ConfigVarBase(SeqRef, HasTraits):
         other variables that may be affected."""
         logger.debug("Updating options validities of ALL relational variables")
 
+        #profiler.enable()
+
         s = Solver()
         s.add(list(logic.asrt_options.values()))
         s.add(list(logic.asrt_relationals.keys())) 
 
-        def __eval_new_validities(var):
+        def __eval_new_validities_consequences(var):
+            """ This version of __eval_new_validities uses z3.consequences, which is more expensive than the 
+            below version, __eval_new_validities, so use that instead. Maybe there is a more efficient
+            way to utilize z3.consequences, so I am keeping it here for now.""" 
             s.push()
             s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
             checklist = [var==opt for opt in var.options]
@@ -251,6 +259,14 @@ class ConfigVarBase(SeqRef, HasTraits):
             s.pop()
             return new_validities
 
+        def __eval_new_validities(var):
+            s.push()
+            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
+            new_validities = {opt:True for opt in var.options}
+            for opt in var.options:
+                new_validities[opt] = s.check(var==opt) ==sat
+            s.pop()
+            return new_validities
 
         # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
         # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
@@ -265,6 +281,7 @@ class ConfigVarBase(SeqRef, HasTraits):
                     affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
             ivar += 1
 
+        #profiler.disable()
         
     def _update_options(self, new_validities=None, new_opts=None):
         """ This method updates options, validities, and displayed widget options.
