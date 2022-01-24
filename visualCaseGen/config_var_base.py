@@ -3,7 +3,7 @@ from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
 
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
-from z3 import And, Or, Implies, is_implies, is_not
+from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
 from z3 import z3util
 
@@ -19,8 +19,8 @@ class Logic():
     asrt_options = dict()
     # relational assertions. key is ASSERTION, value is ERRNAME.
     asrt_relationals = dict()
-    # variables that appear in relational assertions
-    relational_vars = set()
+    # all variables that appear in one or more relational assertions
+    all_relational_vars = set()
 logic = Logic()
 
 class ConfigVarBase(SeqRef, HasTraits):
@@ -61,6 +61,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         # Initialize all other private members
         self._options_validities = {}
         self._error_messages = []
+        self._related_vars = set() # set of other variables sharing relational assertions with this var.
         self._always_set = always_set # if a ConfigVarBase instance with options, make sure a value is always set
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
@@ -82,7 +83,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         logic.asrt_assignments = dict()
         logic.asrt_options = dict()
         logic.asrt_relationals = dict()
-        logic.relational_vars = set()
+        logic.all_relational_vars = set()
 
     @staticmethod
     def exists(varname):
@@ -102,7 +103,10 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         # Update the set of relational variables
         for asrt in new_assertions:
-            logic.relational_vars.update( {cls.vdict[var.sexpr()] for var in z3util.get_vars(asrt)} )
+            related_vars = {cls.vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
+            logic.all_relational_vars.update(related_vars)
+            for var in related_vars:
+                var._related_vars.update(related_vars - {var})
 
         # Check if newly added relational assertions are satisfiable:
         s = Solver()
@@ -145,32 +149,28 @@ class ConfigVarBase(SeqRef, HasTraits):
         return True, ''
 
 
-    def _register_assignment(self, value, check_sat=True):
+    def _register_assignment(self, new_value, check_sat=True):
 
-        # first check if this is a null assignment, in which case remove assignment assertion
-        # for the variable and return.
-        if value is None:
-            logic.asrt_assignments.pop(self.name, None)
-            return
-
-        # pop old assignment if exists:
+        # first, pop the old assignment
         old_assignment = logic.asrt_assignments.pop(self.name, None)
 
-        # check if assignment is satisfiable.
-        proceed = True
-        if check_sat:
-            proceed, msg = self._is_sat_assignment(value)
+        # check if new new_value is sat. if so, register the new assignment
+        if new_value is not None:
 
-        # add the assignment to the assignments dictionary
-        if proceed == False:
-            # reinsert old assignment and raise error
-            if old_assignment is not None:
-                logic.asrt_assignments[self.name] = old_assignment
-            raise AssertionError(msg)
-        else:
-            logic.asrt_assignments[self.name] = self==value
+            # check if assignment is satisfiable.
+            proceed = True
+            if check_sat:
+                proceed, msg = self._is_sat_assignment(new_value)
 
-        # update options validities of all relational vars
+            # add the assignment to the assignments dictionary
+            if proceed == False:
+                # reinsert old assignment and raise error
+                if old_assignment is not None:
+                    logic.asrt_assignments[self.name] = old_assignment
+                raise AssertionError(msg)
+            else:
+                logic.asrt_assignments[self.name] = self==new_value
+
         self._update_all_options_validities()
 
     def _retrieve_error_msg(self, value):
@@ -226,8 +226,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     def has_options(self):
         return self._options is not None
 
-    @staticmethod
-    def _update_all_options_validities():
+    def _update_all_options_validities(self):
         """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
         other variables that may be affected."""
         logger.debug("Updating options validities of ALL relational variables")
@@ -236,23 +235,36 @@ class ConfigVarBase(SeqRef, HasTraits):
         s.add(list(logic.asrt_options.values()))
         s.add(list(logic.asrt_relationals.keys())) 
 
-        for var in logic.relational_vars:
-            if var.has_options():
-                s.push()
-                s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
-                checklist = [var==opt for opt in var.options]
-                res = s.consequences([], checklist)
-                assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
+        def __eval_new_validities(var):
+            s.push()
+            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
+            checklist = [var==opt for opt in var.options]
+            res = s.consequences([], checklist)
+            assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
 
-                new_validities = {opt:True for opt in var.options}
-                for implication in res[1]:
-                    consequent = implication.arg(1)
-                    if is_not(consequent):
-                        invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
-                        new_validities[invalid_val_str] = False
+            new_validities = {opt:True for opt in var.options}
+            for implication in res[1]:
+                consequent = implication.arg(1)
+                if is_not(consequent):
+                    invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
+                    new_validities[invalid_val_str] = False
+            s.pop()
+            return new_validities
+
+
+        # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
+        # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
+        affected_vars = [self]+list(self._related_vars)
+        ivar = 1
+        while len(affected_vars)>ivar:
+            var = affected_vars[ivar]
+            if var.has_options():
+                new_validities = __eval_new_validities(var)
                 if new_validities != var._options_validities:
                     var._update_options(new_validities=new_validities)
-                s.pop()
+                    affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
+            ivar += 1
+
         
     def _update_options(self, new_validities=None, new_opts=None):
         """ This method updates options, validities, and displayed widget options.

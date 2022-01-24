@@ -2,7 +2,6 @@ import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.config_var_base import ConfigVarBase
-from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 from traitlets import HasTraits, Unicode, default, validate
 
 logger = logging.getLogger(__name__)
