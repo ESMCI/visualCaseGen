@@ -15,6 +15,8 @@ from cli import cmdCaseGen
 
 logger = logging.getLogger("unittests")
 
+ci = CIME_interface("nuopc")
+
 class TestParamGen(unittest.TestCase):
     """ A unit test class for visualCaseGen. """
 
@@ -158,7 +160,6 @@ class TestParamGen(unittest.TestCase):
     def test_D_gui_sequence(self):
         """Test GUI by checking an assignment sequence that was causing an error """
 
-        ci = CIME_interface("nuopc")
         GUI_create_custom(ci).construct()
 
         COMP_ATM = ConfigVarStr.vdict['COMP_ATM']
@@ -186,38 +187,38 @@ class TestParamGen(unittest.TestCase):
         from visualCaseGen.config_var_str import ConfigVarStr
         import random
 
-        ci = CIME_interface("nuopc")
-        GUI_create_custom(ci).construct()
+        for i in range(3):
+            GUI_create_custom(ci).construct()
 
-        COMP_ATM = ConfigVarStr.vdict['COMP_ATM']
-        COMP_LND = ConfigVarStr.vdict['COMP_LND']
-        COMP_ICE = ConfigVarStr.vdict['COMP_ICE']
-        COMP_OCN = ConfigVarStr.vdict['COMP_OCN']
-        COMP_ROF = ConfigVarStr.vdict['COMP_ROF']
-        COMP_GLC = ConfigVarStr.vdict['COMP_GLC']
-        COMP_WAV = ConfigVarStr.vdict['COMP_WAV']
+            COMP_ATM = ConfigVarStr.vdict['COMP_ATM']
+            COMP_LND = ConfigVarStr.vdict['COMP_LND']
+            COMP_ICE = ConfigVarStr.vdict['COMP_ICE']
+            COMP_OCN = ConfigVarStr.vdict['COMP_OCN']
+            COMP_ROF = ConfigVarStr.vdict['COMP_ROF']
+            COMP_GLC = ConfigVarStr.vdict['COMP_GLC']
+            COMP_WAV = ConfigVarStr.vdict['COMP_WAV']
 
-        random.seed(10) # to get consistent performance metrics
+            random.seed(10) # to get consistent performance metrics
 
-        N = 30
-        # first try setting to valid options only
-        for i in range(N):
-            comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
-            valid_opts = [opt for opt in comp.options if comp._options_validities[opt] is True]
-            if len(valid_opts)>0:
-                random_opt = random.choice(valid_opts)
-                #print(i, comp.name, random_opt)
-                comp.value = random_opt
-            else:
-                print("WARNING: encountered cases where there is no valid opt for "+comp.name)
+            N = 50
+            # first try setting to valid options only
+            for i in range(N):
+                comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
+                valid_opts = [opt for opt in comp.options if comp._options_validities[opt] is True]
+                if len(valid_opts)>0:
+                    random_opt = random.choice(valid_opts)
+                    #print(i, comp.name, random_opt)
+                    comp.value = random_opt
+                else:
+                    print("WARNING: encountered cases where there is no valid opt for "+comp.name)
 
-        # not set to any values including invalid ones
-        for i in range(N):
-            comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
-            try:
-                comp.value = random.choice(comp.options)
-            except AssertionError:
-                pass
+            # not set to any values including invalid ones
+            for i in range(N):
+                comp = random.choice([COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV])
+                try:
+                    comp.value = random.choice(comp.options)
+                except AssertionError:
+                    pass
 
 
 if __name__ == '__main__':
