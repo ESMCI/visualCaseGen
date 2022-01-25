@@ -21,6 +21,10 @@ class Logic():
     # all variables that appear in one or more relational assertions
     all_relational_vars = set()
 
+    # A solver instance that includes options assertions only. This solver is reused within methods to
+    # improve the performance.
+    so = Solver()
+
     @classmethod
     def reset(cls):
         cls.asrt_assignments = dict()
@@ -54,6 +58,8 @@ class Logic():
     @classmethod
     def add_options(cls, var, new_opts):
         cls.asrt_options[var.name] = Or([var==opt for opt in new_opts])
+        cls.so = Solver()
+        cls.so.add(list(cls.asrt_options.values()))
 
     @classmethod
     def add_assignment(cls, var, new_value, check_sat=True):
@@ -78,23 +84,23 @@ class Logic():
 
                     # first add all assertions including the assignment being checked but excluding the relational
                     # assignments because we will pop the relational assertions if the solver is unsat
-                    s = Solver()
-                    s.add(list(cls.asrt_assignments.values()))
-                    s.add(list(cls.asrt_options.values()))
-                    s.add(var==new_value)
+                    so.push()
+                    so.add(list(cls.asrt_assignments.values()))
+                    so.add(var==new_value)
 
                     # now push and temporarily add relational assertions
-                    s.push()
-                    s.add(list(cls.asrt_relationals.keys()))
+                    so.push()
+                    so.add(list(cls.asrt_relationals.keys()))
 
-                    if s.check() == unsat:
-                        s.pop()
+                    if so.check() == unsat:
+                        so.pop()
                         for asrt in cls.asrt_relationals:
-                            s.add(asrt)
-                            if s.check() == unsat:
+                            so.add(asrt)
+                            if so.check() == unsat:
                                 status = False
                                 err_msg = '{}={} violates assertion:"{}"'.format(var.name,new_value,cls.asrt_relationals[asrt])
                                 break
+                    so.pop()
 
             if status is False:
                 # reinsert old assignment and raise error
@@ -107,13 +113,13 @@ class Logic():
         cls._update_all_options_validities(var)
 
     @classmethod
-    def get_options_validities(cls, var, s=None):
-        if s is None:
-            s = Solver()
-            s.add(list(cls.asrt_options.values()))
-            s.add(list(cls.asrt_relationals.keys()))
-            s.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments.keys() if varname != var.name])
-        return {opt: s.check(var==opt)==sat for opt in var._options}
+    def get_options_validities(cls, var):
+        cls.so.push()
+        cls.so.add(list(cls.asrt_relationals.keys()))
+        cls.so.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments.keys() if varname != var.name])
+        new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
+        cls.so.pop()
+        return new_validities
 
     @classmethod
     def _update_all_options_validities(cls, invoker_var):
@@ -121,37 +127,35 @@ class Logic():
         other variables that may be affected."""
         logger.debug("Updating options validities of ALL relational variables")
 
-        #profiler.enable()
-
-        s = Solver()
-        s.add(list(cls.asrt_options.values()))
-        s.add(list(cls.asrt_relationals.keys())) 
-
-        def __eval_new_validities_consequences(var):
-            """ This version of __eval_new_validities uses z3.consequences, which is more expensive than the 
-            below version, __eval_new_validities, so use that instead. Maybe there is a more efficient
-            way to utilize z3.consequences, so I am keeping it here for now.""" 
-            s.push()
-            s.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments if varname != var.name ])
-            checklist = [var==opt for opt in var.options]
-            res = s.consequences([], checklist)
-            assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
-
-            new_validities = {opt:True for opt in var.options}
-            for implication in res[1]:
-                consequent = implication.arg(1)
-                if is_not(consequent):
-                    invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
-                    new_validities[invalid_val_str] = False
-            s.pop()
-            return new_validities
+        #def __eval_new_validities_consequences(var):
+        #    """ This version of __eval_new_validities uses z3.consequences, which is more expensive than the 
+        #    below version, __eval_new_validities, so use that instead. Maybe there is a more efficient
+        #    way to utilize z3.consequences, so I am keeping it here for now.""" 
+        #    cls.so.push()
+        #    cls.so.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments if varname != var.name ])
+        #    checklist = [var==opt for opt in var.options]
+        #    res = cls.so.consequences([], checklist)
+        #    assert res[0] == sat, "_update_all_options_validities called for an unsat assignment!"
+        #    new_validities = {opt:True for opt in var.options}
+        #    for implication in res[1]:
+        #        consequent = implication.arg(1)
+        #        if is_not(consequent):
+        #            invalid_val_str = consequent.arg(0).arg(1).as_string() #todo: generalize this for non-string vars
+        #            new_validities[invalid_val_str] = False
+        #    cls.so.pop()
+        #    return new_validities
 
         def __eval_new_validities(var):
-            s.push()
-            s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
-            new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
-            s.pop()
+            cls.so.push()
+            cls.so.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
+            new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
+            cls.so.pop()
             return new_validities
+
+        #profiler.enable()
+
+        cls.so.push()
+        cls.so.add(list(cls.asrt_relationals.keys())) 
 
         # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
         # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
@@ -165,6 +169,7 @@ class Logic():
                     var._update_options(new_validities=new_validities)
                     affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
             ivar += 1
+        cls.so.pop()
 
         #profiler.disable()
 
