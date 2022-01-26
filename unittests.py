@@ -172,7 +172,6 @@ class TestParamGen(unittest.TestCase):
 
     def test_D_gui_sequence(self):
         """Test GUI by checking an assignment sequence that was causing an error """
-        return
 
         GUI_create_custom(ci).construct()
 
@@ -192,8 +191,11 @@ class TestParamGen(unittest.TestCase):
                 COMP_ATM.value = 'datm'
             except AssertionError as e:
                 print(e)
-        self.assertEqual(out.getvalue().strip(),
-            'COMP_ATM=datm violates assertion:"If CLM is coupled with DATM, then both ICE and OCN must be stub."' )
+        self.assertTrue(
+            'If CLM is coupled with DATM, then both ICE and OCN must be stub.' in out.getvalue().strip() and  
+            'If running with RTM|MOSART, CLM must be selected as the land component.' in out.getvalue().strip() and  
+            'Asrt.3' not in out.getvalue().strip()
+        )
 
     def test_E_gui_random(self):
         """Test GUI by randomly assigning component values many times"""
