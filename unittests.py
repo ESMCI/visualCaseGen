@@ -148,9 +148,22 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_ATM=cam violates assertion:"CAM cannot be coupled with Data ICE."' )
 
-        cmd.onecmd("COMP_ROF = rtm")
+        with self.assertLogs() as captured:
+            cmd.onecmd("COMP_ROF = rtm")
+        self.assertTrue(
+            '' in captured.records[0].getMessage() and  
+            'If running with RTM|MOSART, CLM must be selected as the land component.' in captured.records[0].getMessage() and  
+            'Asrt.3' not in captured.records[0].getMessage() 
+        )
+        with self.assertLogs() as captured:
+            cmd.onecmd("COMP_ROF = rtm")
+        self.assertTrue(
+            'If CLM is coupled with DATM, then both ICE and OCN must be stub.' in captured.records[0].getMessage() and  
+            'If running with RTM|MOSART, CLM must be selected as the land component.' in captured.records[0].getMessage() and  
+            'Asrt.3' not in captured.records[0].getMessage() 
+        )
+
         cmd.onecmd("COMP_OCN = docn")
-        cmd.onecmd("COMP_ATM = datm")
         with self.assertLogs() as captured:
             cmd.onecmd("COMP_LND = clm")
         self.assertEqual(captured.records[0].getMessage(),
@@ -159,6 +172,7 @@ class TestParamGen(unittest.TestCase):
 
     def test_D_gui_sequence(self):
         """Test GUI by checking an assignment sequence that was causing an error """
+        return
 
         GUI_create_custom(ci).construct()
 
@@ -184,8 +198,10 @@ class TestParamGen(unittest.TestCase):
     def test_E_gui_random(self):
         """Test GUI by randomly assigning component values many times"""
 
-        from visualCaseGen.config_var_str import ConfigVarStr
         import random
+        from visualCaseGen.config_var_str import ConfigVarStr
+        #from visualCaseGen.logic import profiler
+        #import cProfile, pstats
 
         for i in range(3):
             GUI_create_custom(ci).construct()
@@ -219,6 +235,9 @@ class TestParamGen(unittest.TestCase):
                     comp.value = random.choice(comp.options)
                 except AssertionError:
                     pass
+
+        #stats = pstats.Stats(profiler).sort_stats('time')
+        #stats.print_stats()
 
 
 if __name__ == '__main__':

@@ -31,6 +31,7 @@ class Logic():
         cls.asrt_options = dict()
         cls.asrt_relationals = dict()
         cls.all_relational_vars = set()
+        cls.so.reset()
     
     @classmethod
     def insert_relational_assertions(cls, assertions_setter, vdict):
@@ -58,7 +59,7 @@ class Logic():
     @classmethod
     def add_options(cls, var, new_opts):
         cls.asrt_options[var.name] = Or([var==opt for opt in new_opts])
-        cls.so = Solver()
+        cls.so.reset()
         cls.so.add(list(cls.asrt_options.values()))
 
     @classmethod
@@ -84,23 +85,23 @@ class Logic():
 
                     # first add all assertions including the assignment being checked but excluding the relational
                     # assignments because we will pop the relational assertions if the solver is unsat
-                    so.push()
-                    so.add(list(cls.asrt_assignments.values()))
-                    so.add(var==new_value)
+                    cls.so.push()
+                    cls.so.add(list(cls.asrt_assignments.values()))
+                    cls.so.add(var==new_value)
 
                     # now push and temporarily add relational assertions
-                    so.push()
-                    so.add(list(cls.asrt_relationals.keys()))
+                    cls.so.push()
+                    cls.so.add(list(cls.asrt_relationals.keys()))
 
-                    if so.check() == unsat:
-                        so.pop()
+                    if cls.so.check() == unsat:
+                        cls.so.pop()
                         for asrt in cls.asrt_relationals:
-                            so.add(asrt)
-                            if so.check() == unsat:
+                            cls.so.add(asrt)
+                            if cls.so.check() == unsat:
                                 status = False
                                 err_msg = '{}={} violates assertion:"{}"'.format(var.name,new_value,cls.asrt_relationals[asrt])
                                 break
-                    so.pop()
+                    cls.so.pop()
 
             if status is False:
                 # reinsert old assignment and raise error
@@ -147,7 +148,7 @@ class Logic():
 
         def __eval_new_validities(var):
             cls.so.push()
-            cls.so.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments if varname != var.name ])
+            cls.so.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments if varname != var.name ])
             new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
             cls.so.pop()
             return new_validities
@@ -179,18 +180,25 @@ class Logic():
         leading to unsat."""
 
         s = Solver()
-        s.add([logic.asrt_assignments[varname] for varname in logic.asrt_assignments.keys() if varname != var.name])
-        s.add(list(logic.asrt_options.values()))
+        s.set(':core.minimize', True)
+        s.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments.keys() if varname != var.name])
+        s.add(var==value)
+        s.add(list(cls.asrt_options.values()))
 
-        # first, confirm the assignment is unsat
-        if s.check( And( And(list(logic.asrt_relationals.keys())), var==value )) == sat:
+        for asrt in cls.asrt_relationals:
+            s.assert_and_track(asrt, cls.asrt_relationals[asrt])
+        
+        if s.check() == sat:
             raise RuntimeError("_retrieve_error_msg method called for a satisfiable assignment")
         
-        for asrt in logic.asrt_relationals:
-            s.add(asrt)
-            if s.check(var==value) == unsat:
-                return '{}={} violates assertion:"{}"'.format(var.name, value, logic.asrt_relationals[asrt])
+        err_msgs = s.unsat_core()
+        if len(err_msgs)==1:
+            return '{}={} violates assertion:"{}"'.format(var.name, value, err_msgs[0] )
+        else:
+            err_msgs_joint = '{}={} violates combination of assertions:'.format(var.name, value)
+            for i in range(len(err_msgs)):
+                err_msgs_joint += ' (Asrt.{}) {}'.format(i+1, err_msgs[i])
+            return err_msgs_joint
 
-        return '{}={} violates multiple assertions.'.format(var.name, value)
 
 logic = Logic()
