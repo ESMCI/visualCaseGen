@@ -32,7 +32,7 @@ class ConfigVarStrMS(ConfigVarBase):
             for new_val in new_vals.split('%'):
                 assert new_val in self._options, "Value not found in options list"
                 if self._options_validities[new_val] == False:
-                    err_msg = logic.retrieve_error_msg(new_val)
+                    err_msg = logic.retrieve_error_msg(self, new_val)
                     raise AssertionError(self._error_messages[new_val])
             logic.add_assignment(self, new_vals, check_sat=False)
         else:
@@ -60,7 +60,7 @@ class ConfigVarStrMS(ConfigVarBase):
 
             # if an invalid selection, display error message and set widget value to old value
             if self.has_options() and new_val_validity_char == self.invalid_opt_char:
-                err_msg = logic.retrieve_error_msg(new_val)
+                err_msg = logic.retrieve_error_msg(self, new_val)
                 logger.critical("ERROR: %s", err_msg)
                 from IPython.display import display, HTML
                 js = "<script>alert('ERROR: {}');</script>".format(err_msg)
