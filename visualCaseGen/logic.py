@@ -3,6 +3,7 @@ from visualCaseGen.OutHandler import handler as owh
 
 from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
+from z3 import BoolRef
 from z3 import z3util
 
 import cProfile, pstats
@@ -16,10 +17,8 @@ class Logic():
     asrt_assignments = dict()
     # assertions for options lists of variables. key is varname, value is options assertion
     asrt_options = dict()
-    # relational assertions. key is ASSERTION, value is ERRNAME.
-    asrt_relationals = dict()
-    # all variables that appear in one or more relational assertions
-    all_relational_vars = set()
+    # relational assertions that are to hold all times. key is ASSERTION, value is ERRNAME.
+    asrt_unconditional_relationals = dict()
 
     # A solver instance that includes options assertions only. This solver is reused within methods to
     # improve the performance.
@@ -29,8 +28,7 @@ class Logic():
     def reset(cls):
         cls.asrt_assignments = dict()
         cls.asrt_options = dict()
-        cls.asrt_relationals = dict()
-        cls.all_relational_vars = set()
+        cls.asrt_unconditional_relationals = dict()
         cls.so.reset()
 
     @classmethod
@@ -39,15 +37,18 @@ class Logic():
         # Check if any assertion has been provided multiple times.
         # If not, update the relational_assertions_dict to include new assertions (simplified).
         for asrt in new_assertions:
-            if asrt in cls.asrt_relationals:
-                raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
-        cls.asrt_relationals.update(new_assertions)
 
-        for asrt in new_assertions:
-            related_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
-            cls.all_relational_vars.update(related_vars)
-            for var in related_vars:
-                var._related_vars.update(related_vars - {var})
+            if isinstance(asrt, BoolRef):
+
+                # add the new unconditional assertion
+                if asrt in cls.asrt_unconditional_relationals:
+                    raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
+                cls.asrt_unconditional_relationals[asrt] = new_assertions[asrt]
+
+                # update related_vars properties of all variables appearing in newly added relational assertion 
+                related_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
+                for var in related_vars:
+                    var._related_vars.update(related_vars - {var})
 
         s = Solver()
         cls._apply_assignment_assertions(s)
@@ -76,10 +77,10 @@ class Logic():
         """ Adds all of the relational assertions to a given solver instance """
 
         if assert_and_track is True:
-            for asrt in cls.asrt_relationals:
-                solver.assert_and_track(asrt, cls.asrt_relationals[asrt])
+            for asrt in cls.asrt_unconditional_relationals:
+                solver.assert_and_track(asrt, cls.asrt_unconditional_relationals[asrt])
         else:
-            solver.add(list(cls.asrt_relationals))
+            solver.add(list(cls.asrt_unconditional_relationals))
 
     @classmethod
     def add_options(cls, var, new_opts):
@@ -147,16 +148,9 @@ class Logic():
 
     @classmethod
     def _eval_opt_validities_of_related_vars(cls, invoker_var):
-        """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
-        other variables that may be affected."""
+        """ When a variable value gets (re-)assigned, this method is called the refresh options validities of
+        related variables that may be affected."""
         logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
-
-        def __eval_new_validities(var):
-            cls.so.push()
-            cls._apply_assignment_assertions(cls.so, exclude_varname=var.name)
-            new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
-            cls.so.pop()
-            return new_validities
 
         #profiler.enable()
 
@@ -170,7 +164,10 @@ class Logic():
         while len(affected_vars)>ivar:
             var = affected_vars[ivar]
             if var.has_options():
-                new_validities = __eval_new_validities(var)
+                cls.so.push()
+                cls._apply_assignment_assertions(cls.so, exclude_varname=var.name)
+                new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
+                cls.so.pop()
                 if new_validities != var._options_validities:
                     logger.debug("%s options validities changed.", var.name)
                     var._update_options(new_validities=new_validities)
