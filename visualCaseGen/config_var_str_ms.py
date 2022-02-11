@@ -5,7 +5,7 @@ from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.logic import logic
 from traitlets import HasTraits, Unicode, default, validate
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
 class ConfigVarStrMS(ConfigVarBase):
     """ ConfigVar type with widget value of type Tuple of strings and ConfigVar value of type String. 
@@ -25,6 +25,7 @@ class ConfigVarStrMS(ConfigVarBase):
         new_vals = proposal['value'] # values, NOT preceded by a char. (A single String joined by '%'!) 
         if new_vals == self.value:
             return new_vals # no value change, so return at this point
+        logger.debug("Assigning value %s=%s", self.name, new_vals)
 
         assert isinstance(new_vals, str), "New values must be of type string joined by '%'"
         # check if any new val is an invalid option:
@@ -44,6 +45,8 @@ class ConfigVarStrMS(ConfigVarBase):
         else:
             self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
 
+        logger.debug("Done assigning value %s=%s", self.name, new_vals)
+
         # finally, set self.value by returning new_vals
         return new_vals
 
@@ -54,6 +57,8 @@ class ConfigVarStrMS(ConfigVarBase):
         
         # first check if valid selection
         new_widget_vals = change['owner'].value 
+        logger.info("Frontend changing %s widget value to %s", self.name, new_widget_vals)
+
         for new_widget_val in new_widget_vals:
             new_val_validity_char = new_widget_val[0] 
             new_val = new_widget_val[1:].strip()

@@ -6,7 +6,7 @@ from visualCaseGen.OutHandler import handler as owh
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 from traitlets import HasTraits, Any, default, validate, List
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
 class ConfigVarBase(SeqRef, HasTraits):
     
@@ -129,6 +129,8 @@ class ConfigVarBase(SeqRef, HasTraits):
         if validity_change_only and old_validities == self._options_validities:
             return # no change in options or validities
         
+        logger.debug("Updating options validities of %s. validity_change_only=%s", self.name, validity_change_only)
+
         self._widget.options = tuple(
             '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
             else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)

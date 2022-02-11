@@ -5,7 +5,7 @@ from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.logic import logic
 from traitlets import HasTraits, Unicode, default, validate
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
 class ConfigVarStr(ConfigVarBase):
     """ ConfigVar type with widget value of type String and ConfigVar value of type String.
@@ -22,6 +22,7 @@ class ConfigVarStr(ConfigVarBase):
         new_val = proposal['value']
         if new_val == self.value:
             return new_val # no value change, so return at this point
+        logger.debug("Assigning value %s=%s", self.name, new_val)
 
         if self.has_options() and new_val in self._options:
             if self._options_validities[new_val] == False:
@@ -33,6 +34,8 @@ class ConfigVarStr(ConfigVarBase):
 
         # update widget value
         self._widget.value = self._widget_none_val if new_val is None else self.valid_opt_char+' '+new_val 
+
+        logger.debug("Done assigning value %s=%s", self.name, new_val)
 
         # finally, set self.value by returning new_vals
         return new_val
@@ -46,6 +49,8 @@ class ConfigVarStr(ConfigVarBase):
         new_widget_val = change['owner'].value 
         new_val_validity_char = new_widget_val[0] 
         new_val = new_widget_val[1:].strip()
+
+        logger.info("Frontend changing %s widget value to %s", self.name, new_widget_val)
 
         # if an invalid selection, display error message and set widget value to old value
         if self.has_options() and new_val_validity_char == self.invalid_opt_char:

@@ -8,7 +8,7 @@ from z3 import z3util
 import cProfile, pstats
 profiler = cProfile.Profile()
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('\t\t'+__name__.split('.')[-1])
 
 class Logic():
     """Container for logic data"""
@@ -96,10 +96,13 @@ class Logic():
         # first, pop the old assignment
         old_assignment = cls.asrt_assignments.pop(var.name, None)
 
+        logger.debug("Adding %s=%s assignment to the Logic engine.", var.name, new_value)
+
         # check if new new_value is sat. if so, register the new assignment
         if new_value is not None:
 
             if check_sat:
+                logger.debug("Checking whether %s=%s assignment is sat.", var.name, new_value)
                 if var.has_options():
                     if new_value not in var.options:
                         status = False
@@ -129,7 +132,9 @@ class Logic():
             else:
                 cls.asrt_assignments[var.name] = var==new_value
 
-        cls._update_all_options_validities(var)
+        logger.debug("Done adding %s=%s assignment to the Logic engine.", var.name, new_value)
+
+        cls._eval_opt_validities_of_related_vars(var)
 
     @classmethod
     def get_options_validities(cls, var):
@@ -141,10 +146,10 @@ class Logic():
         return new_validities
 
     @classmethod
-    def _update_all_options_validities(cls, invoker_var):
+    def _eval_opt_validities_of_related_vars(cls, invoker_var):
         """ When a variable value gets (re-)assigned, this method is called the refresh options validities of all
         other variables that may be affected."""
-        logger.debug("Updating options validities of ALL relational variables")
+        logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
 
         def __eval_new_validities(var):
             cls.so.push()
@@ -167,6 +172,7 @@ class Logic():
             if var.has_options():
                 new_validities = __eval_new_validities(var)
                 if new_validities != var._options_validities:
+                    logger.debug("%s options validities changed.", var.name)
                     var._update_options(new_validities=new_validities)
                     affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
             ivar += 1

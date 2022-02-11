@@ -12,7 +12,7 @@ from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.relational_assertions import relational_assertions_setter
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
 class GUI_create_custom():
 
