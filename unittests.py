@@ -34,6 +34,8 @@ class TestParamGen(unittest.TestCase):
 
     def test_A_var_assignment(self):
         """Check several simple variable assignments."""
+        if 'A' in tests_to_skip:
+            return
 
         cmd = cmdCaseGen(exit_on_error=False)
 
@@ -83,6 +85,8 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(out.getvalue().strip(), "mom")
 
     def test_B_relational_assertions(self):
+        if 'B' in tests_to_skip:
+            return
         """Test several relational assignments defined in relational assertions.py"""
 
         # Set COMP_OCN to mom and then try setting COMP_WAV to dwav, which should fail
@@ -123,6 +127,8 @@ class TestParamGen(unittest.TestCase):
 
     def test_C_widget_assignment(self):
         """Test assignment of widgets of ConfigVars"""
+        if 'C' in tests_to_skip:
+            return
 
         cmd = cmdCaseGen(exit_on_error=False)
         ConfigVarStr.vdict['COMP_ATM'].widget = widgets.ToggleButtons()
@@ -172,6 +178,8 @@ class TestParamGen(unittest.TestCase):
 
     def test_D_gui_sequence(self):
         """Test GUI by checking an assignment sequence that was causing an error """
+        if 'D' in tests_to_skip:
+            return
 
         GUI_create_custom(ci).construct()
 
@@ -197,8 +205,14 @@ class TestParamGen(unittest.TestCase):
             'Asrt.3' not in out.getvalue().strip()
         )
 
+        # COMP_ICE.value = 'dice'
+        # COMP_ICE.value = 'sice'
+        # COMP_ICE.value = 'dice'
+
     def test_E_gui_random(self):
         """Test GUI by randomly assigning component values many times"""
+        if 'E' in tests_to_skip:
+            return
 
         import random
         from visualCaseGen.config_var_str import ConfigVarStr
@@ -243,5 +257,7 @@ class TestParamGen(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    tests_to_skip = []
+    #tests_to_skip = ['A', 'B', 'C', 'E']
     logging.getLogger().setLevel(logging.ERROR)
     unittest.main()
