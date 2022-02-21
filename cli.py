@@ -5,6 +5,9 @@ import os, sys
 import cmd
 import re
 import readline
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
 
 pth = os.path.dirname(os.path.dirname(os.path.dirname(os.path.join(os.path.abspath(__file__)))))
 sys.path.append(pth)
@@ -15,6 +18,7 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.relational_assertions import relational_assertions_setter
+from visualCaseGen.logic import logic
 
 class cmdCaseGen(cmd.Cmd):
 
@@ -164,6 +168,105 @@ class cmdCaseGen(cmd.Cmd):
         """Close the command line interface."""
         return self.do_exit(arg)
 
+    def do_chg(self, arg):
+        """Generate constraint hypergraph"""
+
+        # plot parameters:
+        width = 10
+        height = 10
+        dpi = 150
+        node_size = 180
+        node_font = 8
+        angle = 30
+        height_angle = 25
+        view_dist = 8.0
+        colors = ['skyblue', 'lightsalmon', 'yellowgreen', 'plum']
+
+        def get_node_shape(n):
+            """Returns the node color and marker for a given graph node."""
+            lev = G.nodes[n]['hl'] 
+            color = colors[abs(lev)]
+            marker = 'o'
+            if G.nodes[n]['hyperedge'] is True:
+                marker = 's'
+                if G.nodes[n]['conditional'] is True:
+                    marker = 'D'
+            return color, marker 
+        
+        def get_edge_shape(e):
+            """Returns the edge linestyle, color, and alpha for a given graph node."""
+            n0, n1 = e[0], e[1]
+            lev0 = G.nodes[n0]['hl']
+            lev1 = G.nodes[n1]['hl']
+            if lev0 == lev1:
+                return '-', colors[abs(lev0)], 0.6
+            else:
+                return '--', colors[abs(min([lev0,lev1]))], 0.4
+                
+
+        fig, ax = plt.subplots(1, 1, figsize=(width, height), dpi=dpi, subplot_kw={'projection':'3d'})
+
+        G = logic.chg
+        #pos = nx.spring_layout(G, k=4.0)#
+        pos = nx.spring_layout(G, k=1.0)#
+        xs = {n:pos[n][0] for n in pos}
+        ys = {n:pos[n][1] for n in pos}
+
+        # draw nodes:
+        for ni, n in enumerate(G.nodes):
+            color, marker = get_node_shape(n)
+            x, y = xs[n], ys[n]
+            z = G.nodes[n]['hl']
+            ax.scatter(x, y, z, edgecolors='.2', s=node_size, c=color, marker=marker)
+            ax.text(x, y, z, str(ni), color='.2', zorder=1000, fontsize=node_font, fontweight="bold", ha='center', va='center')
+
+        # draw edges
+        for e in G.edges:
+            n0, n1 = e[0], e[1]
+            x0, y0, z0 = pos[n0][0], pos[n0][1], G.nodes[n0]['hl'] 
+            x1, y1, z1 = pos[n1][0], pos[n1][1], G.nodes[n1]['hl']
+            linestyle, color, alpha = get_edge_shape(e)
+            ax.plot([x0, x1], [y0,y1], [z0,z1], linestyle, c=color, alpha=alpha)
+
+        # draw planes:
+        xrange = max(xs.values()) - min(xs.values())
+        yrange = max(ys.values()) - min(ys.values())
+        ymin = min(ys.values()) - yrange*0.1
+        ymax = max(ys.values()) + yrange*0.1
+        xmin = min(xs.values()) - xrange*0.1 * (width/height)
+        xmax = max(xs.values()) + xrange*0.1 * (width/height)
+        xx, yy = np.meshgrid([xmin, xmax],[ymin, ymax])
+        for i in range(logic.n_hierarchy_levels()):
+            zz = np.zeros(xx.shape) - i
+            # plane
+            ax.plot_surface(xx, yy, zz, color=colors[i], alpha=0.15, zorder=i)
+
+            # layer labels
+            ax.text(0.2, 1.2, 0-i, "Level {}".format(0-i),
+                        color=colors[i], fontsize='large', fontweight='bold', zorder=1000, ha='left', va='center')
+
+        ax.view_init(height_angle, angle)
+        ax.dist = view_dist
+        ax.set_axis_off()
+
+        plt.savefig("chg.png")
+
+        # Finally, save label keys in a text file:
+        with open("chg.txt", 'w') as chg_txt:
+            for ni, n in enumerate(G.nodes):
+
+                n_str = str(n)
+                node_type = 'V'
+                if G.nodes[n]['hyperedge'] is True:
+                    node_type = 'U'
+                    if G.nodes[n]['conditional'] is True:
+                        node_type = 'C' 
+                        n_str = 'If ({}, {})'.format(n[0], n[1])
+
+                node_text = re.sub(' +|\n', ' ', n_str )
+                chg_txt.write('{} {} {}\n'.\
+                    format(ni, node_type, node_text )
+                )
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.ERROR)
