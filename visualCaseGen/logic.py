@@ -3,8 +3,10 @@ from visualCaseGen.OutHandler import handler as owh
 
 from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
-from z3 import BoolRef
+from z3 import BoolRef, Int
 from z3 import z3util
+from z3 import If as z3_If
+import networkx as nx
 
 import cProfile, pstats
 profiler = cProfile.Profile()
@@ -19,6 +21,12 @@ class Logic():
     asrt_options = dict()
     # relational assertions that are to hold all times. key is ASSERTION, value is ERRNAME.
     asrt_unconditional_relationals = dict()
+    # dictionary of all conditional relational assertions
+    asrt_conditional_relationals= dict()
+    # dictionary of hierarchy levels (of type non-positive integer) for variables.
+    hierarchy_levels= dict()
+
+    child_vars = dict()
 
     # A solver instance that includes options assertions only. This solver is reused within methods to
     # improve the performance.
@@ -29,15 +37,142 @@ class Logic():
         cls.asrt_assignments = dict()
         cls.asrt_options = dict()
         cls.asrt_unconditional_relationals = dict()
+        cls.asrt_conditional_relationals = dict()
+        cls.hierarchy_levels = dict()
+        cls.child_vars = dict()
         cls.so.reset()
 
     @classmethod
+    def get_hierarchy_level(cls, var):
+        return cls.hierarchy_levels.get(var, 0)
+
+    @classmethod
+    def n_hierarchy_levels(cls):
+        return len(set(cls.hierarchy_levels.values()))
+
+    @classmethod
     def insert_relational_assertions(cls, assertions_setter, vdict):
+
+        if len(cls.asrt_unconditional_relationals)>0 or len(cls.asrt_conditional_relationals)>0:
+            raise RuntimeError("Attempted to call insert_relational_assertions method multiple times.")
+
+        # Obtain all new assertions including conditionals and unconditionals
         new_assertions = assertions_setter(vdict)
-        # Check if any assertion has been provided multiple times.
-        # If not, update the relational_assertions_dict to include new assertions (simplified).
+
+        cls._determine_var_hierarchy_levels(new_assertions, vdict)
+        cls._gen_constraint_hypergraph(new_assertions, vdict)
+        cls._do_insert_relational_assertions(new_assertions, vdict)
+
+    @classmethod
+    def _determine_var_hierarchy_levels(cls, new_assertions, vdict):
+
+        # hierarchy level solver:
+        hl_solver = Solver()
+
+        for asrt in new_assertions:
+            # unconditional constraints
+            if isinstance(asrt, BoolRef):
+
+                asrt_vars = z3util.get_vars(asrt)
+                for var in asrt_vars:
+                    cls.hierarchy_levels[var] = Int("HierLev_{}".format(var))
+                if len(asrt_vars)>1:
+                    hl_var_0 = cls.hierarchy_levels[asrt_vars[0]]
+                    for i in range(1,len(asrt_vars)):
+                        hl_var_i = cls.hierarchy_levels[asrt_vars[i]]
+                        hl_solver.add(hl_var_0 == hl_var_i)
+
+            # conditional constraints
+            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+
+                antecedent_vars = z3util.get_vars(asrt[0])
+                consequent_vars = z3util.get_vars(asrt[1])
+
+                for a_var in antecedent_vars:
+                    cls.hierarchy_levels[a_var] = Int("HierLev_{}".format(a_var))
+                    for c_var in consequent_vars:
+                        cls.hierarchy_levels[c_var] = Int("HierLev_{}".format(c_var))
+                        hl_solver.add(cls.hierarchy_levels[a_var] > cls.hierarchy_levels[c_var])
+            
+        if hl_solver.check() == unsat:
+            raise RuntimeError("Error in relational variable hierarchy. Make sure to use conditional "\
+                "relationals in a consistent manner. Conditional relationals dictate variable hierarchy "\
+                "such that variables appearing in antecedent have higher hierarchies than those appearing "\
+                "in consequent.")
+
+        hl_model = hl_solver.model()
+
+        # cast cls.hierarchy_levels values to integers:
+        for var in cls.hierarchy_levels:
+            cls.hierarchy_levels[var] = hl_model[cls.hierarchy_levels[var]].as_long()
+        
+        # normalize hierarchy levels:
+        hl_vals = sorted(set(cls.hierarchy_levels.values()))
+        n_hl_vals = len(hl_vals)
+        normalization = {hl_vals[i]: i-n_hl_vals+1 for i in range(n_hl_vals)}
+        for var in cls.hierarchy_levels:
+            cls.hierarchy_levels[var] = normalization[cls.hierarchy_levels[var]]
+
+    @classmethod
+    def _gen_constraint_hypergraph(cls, new_assertions, vdict):
+
+        cls.chg = nx.Graph()
+
         for asrt in new_assertions:
 
+            # unconditional assertions
+            if isinstance(asrt, BoolRef):
+
+                asrt_vars = z3util.get_vars(asrt)
+                hl = cls.get_hierarchy_level(asrt_vars[0])
+
+                # add variable nodes
+                for var in asrt_vars:
+                    if var not in cls.chg:
+                        cls.chg.add_node(var, hl=hl, hyperedge=False)
+
+                # add unconditional assertion node
+                cls.chg.add_node(asrt, hl=hl, hyperedge=True, conditional=False)
+
+                # add edge from variable to asrt
+                for var in asrt_vars:
+                    cls.chg.add_edge(var, asrt)
+
+            # conditional constraints
+            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+
+                antecedent_vars = z3util.get_vars(asrt[0])
+                consequent_vars = z3util.get_vars(asrt[1])
+
+                # min hierarchy level:
+                min_hl = min([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
+
+                # add conditional assertion node
+                cls.chg.add_node(asrt, hl=min_hl, hyperedge=True, conditional=True)
+
+                for a_var in antecedent_vars:
+                    # add antecedent variables nodes (if not added already)
+                    if a_var not in cls.chg:
+                        hl = cls.get_hierarchy_level(a_var)
+                        cls.chg.add_node(a_var, hl=hl, hyperedge=False)
+                    # add edge from var to asrt
+                    cls.chg.add_edge(a_var, asrt) # higher var to assertion
+
+                for c_var in consequent_vars:
+                    # add consequent variables's node (if not added already)
+                    if c_var not in cls.chg:
+                        hl = cls.get_hierarchy_level(c_var)
+                        cls.chg.add_node(c_var, hl=hl, hyperedge=False)
+                    # add edge from var to asrt
+                    cls.chg.add_edge(c_var, asrt) # lower var to assertion
+
+
+    @classmethod
+    def _do_insert_relational_assertions(cls, new_assertions, vdict):
+        # Update relational assertions dictionaries of the Logic class:
+        for asrt in new_assertions:
+
+            # First, process the unconditional assertions
             if isinstance(asrt, BoolRef):
 
                 # add the new unconditional assertion
@@ -50,6 +185,25 @@ class Logic():
                 for var in related_vars:
                     var._related_vars.update(related_vars - {var})
 
+            # Now, process the conditional assertions
+            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+                antecedent = asrt[0]
+                consequent = asrt[1]
+                antecedent_vars =  z3util.get_vars(antecedent)
+                consequent_vars =  z3util.get_vars(consequent)
+
+                # add the new conditional assertion
+                cls.asrt_conditional_relationals[asrt] = new_assertions[asrt]
+
+                for a_var in antecedent_vars:
+                    if a_var not in cls.child_vars:
+                        cls.child_vars[a_var] = set()
+                    cls.child_vars[a_var].update([vdict[var.sexpr()] for var in consequent_vars])
+
+            else:
+                raise RuntimeError("Unsupported assertion encountered: %s" % asrt)
+
+        # Check if newly added relational assertions are sat:
         s = Solver()
         cls._apply_assignment_assertions(s)
         cls._apply_options_assertions(s)
@@ -76,11 +230,22 @@ class Logic():
     def _apply_relational_assertions(cls, solver, assert_and_track=False):
         """ Adds all of the relational assertions to a given solver instance """
 
+        # solver for evaluations the antecedents of conditional relations
+        #s_ = Solver()
+        #cls._apply_assignment_assertions(s_)
+        #cls._apply_options_assertions(s_)
+
         if assert_and_track is True:
             for asrt in cls.asrt_unconditional_relationals:
                 solver.assert_and_track(asrt, cls.asrt_unconditional_relationals[asrt])
+            #todo for antecedent, consequent in cls.asrt_conditional_relationals:
+            #todo     if s_.check(Not(antecedent)) == unsat:
+            #todo         solver.assert_and_track(consequent, cls.asrt_conditional_relationals[antecedent,consequent])
         else:
             solver.add(list(cls.asrt_unconditional_relationals))
+            #todo for antecedent, consequent in cls.asrt_conditional_relationals:
+            #todo     if s_.check(Not(antecedent)) == unsat:
+            #todo         solver.add(consequent)
 
     @classmethod
     def add_options(cls, var, new_opts):
@@ -91,13 +256,13 @@ class Logic():
     @classmethod
     def add_assignment(cls, var, new_value, check_sat=True):
 
-        status = True
-        err_msg = ''
-
         # first, pop the old assignment
         old_assignment = cls.asrt_assignments.pop(var.name, None)
 
         logger.debug("Adding %s=%s assignment to the Logic engine.", var.name, new_value)
+
+        status = True
+        err_msg = ''
 
         # check if new new_value is sat. if so, register the new assignment
         if new_value is not None:
@@ -134,6 +299,9 @@ class Logic():
                 cls.asrt_assignments[var.name] = var==new_value
 
         logger.debug("Done adding %s=%s assignment to the Logic engine.", var.name, new_value)
+
+        if (old_assignment is not None and new_value == old_assignment.children()[1]):
+            return # no value change, so don't evaluate opt validities of others
 
         cls._eval_opt_validities_of_related_vars(var)
 
