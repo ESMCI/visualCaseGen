@@ -240,9 +240,12 @@ class Logic():
                 solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_hierarchy_level(var) >= hl])
 
     @classmethod
-    def _apply_options_assertions(cls, solver):
+    def _apply_options_assertions(cls, solver, hl=None):
         """ Adds all of the current options assertions to a given solver instance."""
-        solver.add(list(cls.asrt_options.values()))
+        if hl is None:
+            solver.add(list(cls.asrt_options.values()))
+        else:
+            solver.add([cls.asrt_options[var] for var in cls.asrt_options if cls.get_hierarchy_level(var) >= hl])
 
     @classmethod
     def _apply_relational_assertions(cls, solver, assert_and_track=False, hl=None):
