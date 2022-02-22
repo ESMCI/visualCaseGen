@@ -15,9 +15,9 @@ logger = logging.getLogger('\t\t'+__name__.split('.')[-1])
 
 class Logic():
     """Container for logic data"""
-    # assertions keeping track of variable assignments. key is varname, value is assignment assertion
+    # assertions keeping track of variable assignments. key is var, value is assignment assertion
     asrt_assignments = dict()
-    # assertions for options lists of variables. key is varname, value is options assertion
+    # assertions for options lists of variables. key is var, value is options assertion
     asrt_options = dict()
     # relational assertions that are to hold all times. key is ASSERTION, value is ERRNAME.
     asrt_unconditional_relationals = dict()
@@ -59,12 +59,13 @@ class Logic():
         # Obtain all new assertions including conditionals and unconditionals
         new_assertions = assertions_setter(vdict)
 
-        cls._determine_var_hierarchy_levels(new_assertions, vdict)
+        cls._determine_hierarchy_levels(new_assertions, vdict)
         cls._gen_constraint_hypergraph(new_assertions, vdict)
         cls._do_insert_relational_assertions(new_assertions, vdict)
 
     @classmethod
-    def _determine_var_hierarchy_levels(cls, new_assertions, vdict):
+    def _determine_hierarchy_levels(cls, new_assertions, vdict):
+        """Determines hierarchy levels of assertions and variables appearing in those assertions."""
 
         # hierarchy level solver:
         hl_solver = Solver()
@@ -112,6 +113,19 @@ class Logic():
         normalization = {hl_vals[i]: i-n_hl_vals+1 for i in range(n_hl_vals)}
         for var in cls.hierarchy_levels:
             cls.hierarchy_levels[var] = normalization[cls.hierarchy_levels[var]]
+        
+        # finally, set assertion hierarchy levels:
+        for asrt in new_assertions:
+            # unconditional assertions
+            if isinstance(asrt, BoolRef):
+                asrt_vars = z3util.get_vars(asrt)
+                cls.hierarchy_levels[asrt] = cls.get_hierarchy_level(asrt_vars[0]) 
+            # conditional constraints
+            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+                consequent_vars = z3util.get_vars(asrt[1])
+                min_hl = min([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
+                cls.hierarchy_levels[asrt] = min_hl 
+
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, vdict):
@@ -124,7 +138,7 @@ class Logic():
             if isinstance(asrt, BoolRef):
 
                 asrt_vars = z3util.get_vars(asrt)
-                hl = cls.get_hierarchy_level(asrt_vars[0])
+                hl = cls.get_hierarchy_level(asrt)
 
                 # add variable nodes
                 for var in asrt_vars:
@@ -144,11 +158,9 @@ class Logic():
                 antecedent_vars = z3util.get_vars(asrt[0])
                 consequent_vars = z3util.get_vars(asrt[1])
 
-                # min hierarchy level:
-                min_hl = min([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
-
                 # add conditional assertion node
-                cls.chg.add_node(asrt, hl=min_hl, hyperedge=True, conditional=True)
+                hl = cls.get_hierarchy_level(asrt)
+                cls.chg.add_node(asrt, hl=hl, hyperedge=True, conditional=True)
 
                 for a_var in antecedent_vars:
                     # add antecedent variables nodes (if not added already)
@@ -212,14 +224,20 @@ class Logic():
             raise RuntimeError("Relational assertions not satisfiable!")
 
     @classmethod
-    def _apply_assignment_assertions(cls, solver, exclude_varname=None):
+    def _apply_assignment_assertions(cls, solver, exclude_varname=None, hl=None):
         """ Adds all current assignment assertions to a given solver instance.
         The assignment of a variable may be excluded by providing its name to the optional exclude_varname option. """
 
-        if exclude_varname is None:
-            solver.add(list(cls.asrt_assignments.values()))
-        else:
-            solver.add([cls.asrt_assignments[varname] for varname in cls.asrt_assignments.keys() if varname != exclude_varname])
+        if hl is None:
+            if exclude_varname is None:
+                solver.add(list(cls.asrt_assignments.values()))
+            else:
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname])
+        else: # hl is NOT None
+            if exclude_varname is None:
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if cls.get_hierarchy_level(var) >= hl])
+            else:
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_hierarchy_level(var) >= hl])
 
     @classmethod
     def _apply_options_assertions(cls, solver):
@@ -227,7 +245,7 @@ class Logic():
         solver.add(list(cls.asrt_options.values()))
 
     @classmethod
-    def _apply_relational_assertions(cls, solver, assert_and_track=False):
+    def _apply_relational_assertions(cls, solver, assert_and_track=False, hl=None):
         """ Adds all of the relational assertions to a given solver instance """
 
         # solver for evaluations the antecedents of conditional relations
@@ -249,7 +267,7 @@ class Logic():
 
     @classmethod
     def add_options(cls, var, new_opts):
-        cls.asrt_options[var.name] = Or([var==opt for opt in new_opts])
+        cls.asrt_options[var] = Or([var==opt for opt in new_opts])
         cls.so.reset()
         cls._apply_options_assertions(cls.so)
 
@@ -257,7 +275,7 @@ class Logic():
     def add_assignment(cls, var, new_value, check_sat=True):
 
         # first, pop the old assignment
-        old_assignment = cls.asrt_assignments.pop(var.name, None)
+        old_assignment = cls.asrt_assignments.pop(var, None)
 
         logger.debug("Adding %s=%s assignment to the Logic engine.", var.name, new_value)
 
@@ -293,10 +311,10 @@ class Logic():
             if status is False:
                 # reinsert old assignment and raise error
                 if old_assignment is not None:
-                    cls.asrt_assignments[var.name] = old_assignment
+                    cls.asrt_assignments[var] = old_assignment
                 raise AssertionError(err_msg)
             else:
-                cls.asrt_assignments[var.name] = var==new_value
+                cls.asrt_assignments[var] = var==new_value
 
         logger.debug("Done adding %s=%s assignment to the Logic engine.", var.name, new_value)
 
