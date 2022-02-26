@@ -23,29 +23,28 @@ class ConfigVarStrMS(ConfigVarBase):
     @validate('value')
     def _validate_value(self, proposal):
         new_vals = proposal['value'] # values, NOT preceded by a char. (A single String joined by '%'!) 
-        if new_vals == self.value:
-            return new_vals # no value change, so return at this point
         logger.debug("Assigning value %s=%s", self.name, new_vals)
 
         assert isinstance(new_vals, str), "New values must be of type string joined by '%'"
-        # check if any new val is an invalid option:
+
+        # confirm the value validity
         if self.has_options():
             for new_val in new_vals.split('%'):
                 assert new_val in self._options, "Value not found in options list"
                 if self._options_validities[new_val] == False:
                     err_msg = logic.retrieve_error_msg(self, new_val)
                     raise AssertionError(self._error_messages[new_val])
-            logic.add_assignment(self, new_vals, check_sat=False)
         else:
-            logic.add_assignment(self, new_vals, check_sat=True)
+            logic.check_assignment(self, new_vals)
+
+        # register the assignment with the logic engine
+        logic.register_assignment(self, new_vals)
 
         # update widget value
         if new_vals is None:
             self._widget.value = self._widget_none_val
         else:
             self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
-
-        logger.debug("Done assigning value %s=%s", self.name, new_vals)
 
         # finally, set self.value by returning new_vals
         return new_vals

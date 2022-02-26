@@ -9,10 +9,10 @@ from traitlets import HasTraits, Any, default, validate, List
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
 class ConfigVarBase(SeqRef, HasTraits):
-    
+
     # Dictionary of instances. This should not be modified or overriden in derived classes.
     vdict = {}
-    
+
     # characters used in user interface to designate option validities
     invalid_opt_char = chr(int("274C",base=16))
     valid_opt_char = chr(int("2713",base=16))
@@ -22,10 +22,10 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, always_set=False, widget_none_val=None):
 
-        # Check if the variable has already been defined 
+        # Check if the variable has already been defined
         if name in ConfigVarBase.vdict:
             raise RuntimeError("Attempted to re-define ConfigVarBase instance {}.".format(name))
-        
+
         if ctx==None:
             ctx = main_ctx()
 
@@ -39,7 +39,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         # Initialize members
         self.name = name
 
-        # Temporarily set private members options and value to None. These will be 
+        # Temporarily set private members options and value to None. These will be
         # updated with special property setter below.
         self._options = None
 
@@ -58,9 +58,25 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         self.value = value
 
+        HasTraits.observe(self, self._post_value_change, names='value', type='change')
+
         # Record this newly created instance in the class member storing instances
         ConfigVarBase.vdict[name] = self
         logger.debug("ConfigVarBase %s created.", self.name)
+
+
+    def observe(self, *args, **kwargs):
+        # override the original observe method such that self._post_value_change observer
+        # is always the last one to be notified (called).
+        HasTraits.unobserve(self, self._post_value_change, names='value', type='change')
+        HasTraits.observe(self, *args, **kwargs)
+        HasTraits.observe(self, self._post_value_change, names='value', type='change')
+
+    def _post_value_change(self, change):
+        """If new value is valid, this method is called automatically after self.value is set and after
+        all other value change observers are called/notified."""
+
+        new_val = change['new']
 
     @staticmethod
     def reset():
@@ -74,7 +90,7 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @classmethod
     def add_relational_assertions(cls, assertions_setter):
-        logic.insert_relational_assertions(assertions_setter, cls.vdict)
+        logic.register_relational_assertions(assertions_setter, cls.vdict)
 
     @default('value')
     def _default_value(self):
@@ -95,9 +111,9 @@ class ConfigVarBase(SeqRef, HasTraits):
     def options(self, new_opts):
         logger.debug("Assigning the options of ConfigVarBase %s", self.name)
         assert isinstance(new_opts, (list,set))
-        logic.add_options(self, new_opts)
+        logic.register_options(self, new_opts)
         self._update_options(new_opts=new_opts)
-    
+
     @property
     def tooltips(self):
         return self._widget.tooltips
@@ -128,30 +144,44 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         if validity_change_only and old_validities == self._options_validities:
             return # no change in options or validities
-        
+
         logger.debug("Updating options validities of %s. validity_change_only=%s", self.name, validity_change_only)
 
         self._widget.options = tuple(
             '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
             else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
-        
+
         if validity_change_only:
-            self._widget.value = old_widget_value 
+            self._widget.value = old_widget_value
         else:
            if self._always_set:
-               self._set_to_first_valid_opt() 
+                self._set_to_first_valid_opt()
+
+        logger.debug("Done Updating options validities of %s. validity_change_only=%s", self.name, validity_change_only)
 
     def _set_to_first_valid_opt(self):
         """ Set the value of the instance to the first option that is valid."""
+
+        if self._options is None:
+            return
+
+        logger.debug("Setting %s to first valid value", self.name)
+        valid_opt_found = False
         for opt in self._options:
             if self._options_validities[opt] == True:
+                logger.debug("First valid value for %s is %s", self.name, opt)
                 self.value = opt
+                valid_opt_found = True
                 break
+
+        if valid_opt_found is False:
+            logger.debug("Couldn't find a valid opt for %s", self.name)
+
 
     @property
     def widget(self):
         raise RuntimeError("Cannot access widget property from outside the ConfigVar class")
-    
+
     @widget.setter
     def widget(self, new_widget):
         old_widget = self._widget
@@ -201,7 +231,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     @property
     def description(self):
         return self._widget.description
-   
+
     @validate('value')
     def _validate_value(self, proposal):
         raise NotImplementedError("This method must be implemented in the derived class")

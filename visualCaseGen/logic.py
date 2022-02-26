@@ -28,10 +28,6 @@ class Logic():
 
     child_vars = dict()
 
-    # A solver instance that includes options assertions only. This solver is reused within methods to
-    # improve the performance.
-    so = Solver()
-
     @classmethod
     def reset(cls):
         cls.asrt_assignments = dict()
@@ -40,7 +36,6 @@ class Logic():
         cls.asrt_conditional_relationals = dict()
         cls.hierarchy_levels = dict()
         cls.child_vars = dict()
-        cls.so.reset()
 
     @classmethod
     def get_hierarchy_level(cls, var):
@@ -51,17 +46,17 @@ class Logic():
         return len(set(cls.hierarchy_levels.values()))
 
     @classmethod
-    def insert_relational_assertions(cls, assertions_setter, vdict):
+    def register_relational_assertions(cls, assertions_setter, vdict):
 
         if len(cls.asrt_unconditional_relationals)>0 or len(cls.asrt_conditional_relationals)>0:
-            raise RuntimeError("Attempted to call insert_relational_assertions method multiple times.")
+            raise RuntimeError("Attempted to call register_relational_assertions method multiple times.")
 
         # Obtain all new assertions including conditionals and unconditionals
         new_assertions = assertions_setter(vdict)
 
         cls._determine_hierarchy_levels(new_assertions, vdict)
         cls._gen_constraint_hypergraph(new_assertions, vdict)
-        cls._do_insert_relational_assertions(new_assertions, vdict)
+        cls._insert_relational_assertions(new_assertions, vdict)
 
     @classmethod
     def _determine_hierarchy_levels(cls, new_assertions, vdict):
@@ -180,7 +175,7 @@ class Logic():
 
 
     @classmethod
-    def _do_insert_relational_assertions(cls, new_assertions, vdict):
+    def _insert_relational_assertions(cls, new_assertions, vdict):
         # Update relational assertions dictionaries of the Logic class:
         for asrt in new_assertions:
 
@@ -252,74 +247,64 @@ class Logic():
         """ Adds all of the relational assertions to a given solver instance """
 
         # solver for evaluations the antecedents of conditional relations
-        #s_ = Solver()
-        #cls._apply_assignment_assertions(s_)
-        #cls._apply_options_assertions(s_)
+        s_ = Solver()
+        cls._apply_assignment_assertions(s_)
+        cls._apply_options_assertions(s_)
 
         if assert_and_track is True:
             for asrt in cls.asrt_unconditional_relationals:
                 solver.assert_and_track(asrt, cls.asrt_unconditional_relationals[asrt])
-            #todo for antecedent, consequent in cls.asrt_conditional_relationals:
-            #todo     if s_.check(Not(antecedent)) == unsat:
-            #todo         solver.assert_and_track(consequent, cls.asrt_conditional_relationals[antecedent,consequent])
+            for antecedent, consequent in cls.asrt_conditional_relationals:
+                if s_.check(Not(antecedent)) == unsat:
+                    solver.assert_and_track(consequent, cls.asrt_conditional_relationals[antecedent,consequent])
         else:
             solver.add(list(cls.asrt_unconditional_relationals))
-            #todo for antecedent, consequent in cls.asrt_conditional_relationals:
-            #todo     if s_.check(Not(antecedent)) == unsat:
-            #todo         solver.add(consequent)
+            for antecedent, consequent in cls.asrt_conditional_relationals:
+                if s_.check(Not(antecedent)) == unsat:
+                    solver.add(consequent)
 
     @classmethod
-    def add_options(cls, var, new_opts):
+    def register_options(cls, var, new_opts):
+        logger.debug("Registering options of %s with the logic engine", var.name)
         cls.asrt_options[var] = Or([var==opt for opt in new_opts])
-        cls.so.reset()
-        cls._apply_options_assertions(cls.so)
+        cls.asrt_assignments.pop(var, None)
 
     @classmethod
-    def add_assignment(cls, var, new_value, check_sat=True):
-
-        # first, pop the old assignment
-        old_assignment = cls.asrt_assignments.pop(var, None)
-
-        logger.debug("Adding %s=%s assignment to the Logic engine.", var.name, new_value)
+    def check_assignment(cls, var, new_value):
 
         status = True
         err_msg = ''
 
-        # check if new new_value is sat. if so, register the new assignment
         if new_value is not None:
+            logger.debug("Checking whether %s=%s assignment is sat.", var.name, new_value)
+            if var.has_options():
+                if new_value not in var.options:
+                    status = False
+                    err_msg = '{} not an option for {}'.format(new_value, var.name)
+            
+            if status is True:
+                # now, check if the value satisfies all assertions
+                s = Solver()
+                cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
+                cls._apply_assignment_assertions(s, hl=cls.get_hierarchy_level(var))
+                s.add(var==new_value)
+                cls._apply_relational_assertions(s)
+                status = s.check() == sat
 
-            if check_sat:
-                logger.debug("Checking whether %s=%s assignment is sat.", var.name, new_value)
-                if var.has_options():
-                    if new_value not in var.options:
-                        status = False
-                        err_msg = '{} not an option for {}'.format(new_value, var.name)
+                if status is False:
+                    err_msg = cls.retrieve_error_msg(var, new_value)
 
-                if status is True:
-                    # now, check if the value satisfies all assertions
+        if status is False:
+            raise AssertionError(err_msg)
 
-                    # first add all assertions including the assignment being checked but excluding the relational
-                    # assignments because we will pop the relational assertions if the solver is unsat
-                    cls.so.push()
-                    cls._apply_assignment_assertions(cls.so)
-                    cls.so.add(var==new_value)
-                    cls._apply_relational_assertions(cls.so)
-                    _assignment_is_sat = cls.so.check() == sat
-                    cls.so.pop()
+    @classmethod
+    def register_assignment(cls, var, new_value):
 
-                    if not _assignment_is_sat:
-                        err_msg = cls.retrieve_error_msg(var, new_value)
+        logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
 
-
-            if status is False:
-                # reinsert old assignment and raise error
-                if old_assignment is not None:
-                    cls.asrt_assignments[var] = old_assignment
-                raise AssertionError(err_msg)
-            else:
-                cls.asrt_assignments[var] = var==new_value
-
-        logger.debug("Done adding %s=%s assignment to the Logic engine.", var.name, new_value)
+        old_assignment = cls.asrt_assignments.pop(var, None) 
+        if new_value is not None:
+            cls.asrt_assignments[var] = var==new_value
 
         if (old_assignment is not None and new_value == old_assignment.children()[1]):
             return # no value change, so don't evaluate opt validities of others
@@ -328,11 +313,11 @@ class Logic():
 
     @classmethod
     def get_options_validities(cls, var):
-        cls.so.push()
-        cls._apply_relational_assertions(cls.so)
-        cls._apply_assignment_assertions(cls.so, exclude_varname=var.name)
-        new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
-        cls.so.pop()
+        s = Solver()
+        cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
+        cls._apply_assignment_assertions(s, exclude_varname=var.name, hl=cls.get_hierarchy_level(var))
+        cls._apply_relational_assertions(s)
+        new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
         return new_validities
 
     @classmethod
@@ -343,8 +328,9 @@ class Logic():
 
         #profiler.enable()
 
-        cls.so.push()
-        cls._apply_relational_assertions(cls.so)
+        s = Solver()
+        cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(invoker_var))
+        cls._apply_relational_assertions(s)
 
         # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
         # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
@@ -353,16 +339,15 @@ class Logic():
         while len(affected_vars)>ivar:
             var = affected_vars[ivar]
             if var.has_options():
-                cls.so.push()
-                cls._apply_assignment_assertions(cls.so, exclude_varname=var.name)
-                new_validities = {opt: cls.so.check(var==opt)==sat for opt in var._options}
-                cls.so.pop()
+                s.push()
+                cls._apply_assignment_assertions(s, exclude_varname=var.name, hl=cls.get_hierarchy_level(var))
+                new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+                s.pop()
                 if new_validities != var._options_validities:
                     logger.debug("%s options validities changed.", var.name)
                     var._update_options(new_validities=new_validities)
                     affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
             ivar += 1
-        cls.so.pop()
 
         #profiler.disable()
 
@@ -373,8 +358,8 @@ class Logic():
 
         s = Solver()
         s.set(':core.minimize', True)
-        cls._apply_options_assertions(s)
-        cls._apply_assignment_assertions(s, exclude_varname=var.name)
+        cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
+        cls._apply_assignment_assertions(s, exclude_varname=var.name, hl=cls.get_hierarchy_level(var))
         s.add(var==value)
 
         cls._apply_relational_assertions(s, assert_and_track=True)
