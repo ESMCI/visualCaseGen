@@ -88,7 +88,7 @@ class Logic():
                     cls.hierarchy_levels[a_var] = Int("HierLev_{}".format(a_var))
                     for c_var in consequent_vars:
                         cls.hierarchy_levels[c_var] = Int("HierLev_{}".format(c_var))
-                        hl_solver.add(cls.hierarchy_levels[a_var] > cls.hierarchy_levels[c_var])
+                        hl_solver.add(cls.hierarchy_levels[a_var] < cls.hierarchy_levels[c_var])
             
         if hl_solver.check() == unsat:
             raise RuntimeError("Error in relational variable hierarchy. Make sure to use conditional "\
@@ -105,7 +105,7 @@ class Logic():
         # normalize hierarchy levels:
         hl_vals = sorted(set(cls.hierarchy_levels.values()))
         n_hl_vals = len(hl_vals)
-        normalization = {hl_vals[i]: i-n_hl_vals+1 for i in range(n_hl_vals)}
+        normalization = {hl_vals[i]: i for i in range(n_hl_vals)}
         for var in cls.hierarchy_levels:
             cls.hierarchy_levels[var] = normalization[cls.hierarchy_levels[var]]
         
@@ -118,8 +118,8 @@ class Logic():
             # conditional constraints
             elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
                 consequent_vars = z3util.get_vars(asrt[1])
-                min_hl = min([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
-                cls.hierarchy_levels[asrt] = min_hl 
+                max_hl = max([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
+                cls.hierarchy_levels[asrt] = max_hl 
 
 
     @classmethod
@@ -230,9 +230,9 @@ class Logic():
                 solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname])
         else: # hl is NOT None
             if exclude_varname is None:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if cls.get_hierarchy_level(var) >= hl])
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if cls.get_hierarchy_level(var) <= hl])
             else:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_hierarchy_level(var) >= hl])
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_hierarchy_level(var) <= hl])
 
     @classmethod
     def _apply_options_assertions(cls, solver, hl=None):
@@ -240,7 +240,7 @@ class Logic():
         if hl is None:
             solver.add(list(cls.asrt_options.values()))
         else:
-            solver.add([cls.asrt_options[var] for var in cls.asrt_options if cls.get_hierarchy_level(var) >= hl])
+            solver.add([cls.asrt_options[var] for var in cls.asrt_options if cls.get_hierarchy_level(var) <= hl])
 
     @classmethod
     def _apply_relational_assertions(cls, solver, assert_and_track=False, hl=None):
