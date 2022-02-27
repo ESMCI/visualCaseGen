@@ -76,7 +76,10 @@ class ConfigVarBase(SeqRef, HasTraits):
         """If new value is valid, this method is called automatically after self.value is set and after
         all other value change observers are called/notified."""
 
-        new_val = change['new']
+        #old_val = change['old']
+        #new_val = change['new']
+
+        logic.notify_related_vars(self)
 
     @staticmethod
     def reset():

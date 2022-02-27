@@ -5,7 +5,6 @@ from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
 from z3 import BoolRef, Int
 from z3 import z3util
-from z3 import If as z3_If
 import networkx as nx
 
 import cProfile, pstats
@@ -49,6 +48,11 @@ class Logic():
     def _determine_hierarchy_levels(cls, new_assertions, vdict):
         """Determines hierarchy levels of assertions and variables appearing in those assertions."""
 
+        if len(cls.asrt_assignments) > 0:
+            raise RuntimeError("Relational assertions must be registered before assignment assertions.")
+        if len(cls.asrt_options) > 0:
+            raise RuntimeError("Relational assertions must be registered before options assertions.")
+
         # hierarchy level solver:
         hl_solver = Solver()
 
@@ -76,7 +80,7 @@ class Logic():
                     for c_var in consequent_vars:
                         cls.hierarchy_levels[c_var] = Int("HierLev_{}".format(c_var))
                         hl_solver.add(cls.hierarchy_levels[a_var] < cls.hierarchy_levels[c_var])
-            
+
         if hl_solver.check() == unsat:
             raise RuntimeError("Error in relational variable hierarchy. Make sure to use conditional "\
                 "relationals in a consistent manner. Conditional relationals dictate variable hierarchy "\
@@ -88,25 +92,25 @@ class Logic():
         # cast cls.hierarchy_levels values to integers:
         for var in cls.hierarchy_levels:
             cls.hierarchy_levels[var] = hl_model[cls.hierarchy_levels[var]].as_long()
-        
+
         # normalize hierarchy levels:
         hl_vals = sorted(set(cls.hierarchy_levels.values()))
         n_hl_vals = len(hl_vals)
         normalization = {hl_vals[i]: i for i in range(n_hl_vals)}
         for var in cls.hierarchy_levels:
             cls.hierarchy_levels[var] = normalization[cls.hierarchy_levels[var]]
-        
+
         # finally, set assertion hierarchy levels:
         for asrt in new_assertions:
             # unconditional assertions
             if isinstance(asrt, BoolRef):
                 asrt_vars = z3util.get_vars(asrt)
-                cls.hierarchy_levels[asrt] = cls.get_hierarchy_level(asrt_vars[0]) 
+                cls.hierarchy_levels[asrt] = cls.get_hierarchy_level(asrt_vars[0])
             # conditional constraints
             elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
                 consequent_vars = z3util.get_vars(asrt[1])
                 max_hl = max([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
-                cls.hierarchy_levels[asrt] = max_hl 
+                cls.hierarchy_levels[asrt] = max_hl
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, vdict):
@@ -171,7 +175,7 @@ class Logic():
                 if new_value not in var.options:
                     status = False
                     err_msg = '{} not an option for {}'.format(new_value, var.name)
-            
+
             if status is True:
                 # now, check if the value satisfies all assertions
                 s = Solver()
@@ -188,20 +192,6 @@ class Logic():
             raise AssertionError(err_msg)
 
     @classmethod
-    def register_assignment(cls, var, new_value):
-
-        logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
-
-        old_assignment = cls.asrt_assignments.pop(var, None) 
-        if new_value is not None:
-            cls.asrt_assignments[var] = var==new_value
-
-        if (old_assignment is not None and new_value == old_assignment.children()[1]):
-            return # no value change, so don't evaluate opt validities of others
-
-        cls._eval_opt_validities_of_related_vars(var)
-
-    @classmethod
     def get_options_validities(cls, var):
         s = Solver()
         cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
@@ -209,6 +199,13 @@ class Logic():
         cls._apply_relational_assertions(s)
         new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
         return new_validities
+
+    @classmethod
+    def register_assignment(cls, var, new_value):
+        logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
+        old_assignment = cls.asrt_assignments.pop(var, None)
+        if new_value is not None:
+            cls.asrt_assignments[var] = var==new_value
 
     @classmethod
     def register_options(cls, var, new_opts):
@@ -242,7 +239,7 @@ class Logic():
                     raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
                 cls.asrt_unconditional_relationals[asrt] = new_assertions[asrt]
 
-                # update related_vars properties of all variables appearing in newly added relational assertion 
+                # update related_vars properties of all variables appearing in newly added relational assertion
                 related_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
                 for var in related_vars:
                     var._related_vars.update(related_vars - {var})
@@ -319,9 +316,9 @@ class Logic():
                     solver.add(consequent)
 
     @classmethod
-    def _eval_opt_validities_of_related_vars(cls, invoker_var):
-        """ When a variable value gets (re-)assigned, this method is called the refresh options validities of
-        related variables that may be affected."""
+    def notify_related_vars(cls, invoker_var):
+        """ When a variable value gets (re-)assigned, this method is called to notify the related variables that
+        may be affected by the value assignment"""
         logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
 
         #profiler.enable()

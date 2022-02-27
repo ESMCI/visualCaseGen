@@ -31,9 +31,9 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarBase.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
-        self._init_options()
-        self._exit_on_error = exit_on_error
         ConfigVarBase.add_relational_assertions(relational_assertions_setter)
+        self._init_configvar_options()
+        self._exit_on_error = exit_on_error
 
     def printError(self, msg):
         if self._exit_on_error:
@@ -53,7 +53,7 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarStr('COMPSET')
         ConfigVarStr('GRID')
 
-    def _init_options(self):
+    def _init_configvar_options(self):
         ConfigVarStr.vdict['INITTIME'].options = ['1850', '2000', 'HIST']
         for comp_class in self.ci.comp_classes:
             cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
@@ -184,15 +184,15 @@ class cmdCaseGen(cmd.Cmd):
 
         def get_node_shape(n):
             """Returns the node color and marker for a given graph node."""
-            i = G.nodes[n]['hl'] 
+            i = G.nodes[n]['hl']
             color = colors[i]
             marker = 'o'
             if G.nodes[n]['hyperedge'] is True:
                 marker = 's'
                 if G.nodes[n]['conditional'] is True:
                     marker = 'D'
-            return color, marker 
-        
+            return color, marker
+
         def get_edge_shape(e):
             """Returns the edge linestyle, color, and alpha for a given graph node."""
             n0, n1 = e[0], e[1]
@@ -202,7 +202,7 @@ class cmdCaseGen(cmd.Cmd):
                 return '-', colors[i0], 0.6
             else:
                 return '--', colors[max([i0,i1])], 0.4
-                
+
 
         fig, ax = plt.subplots(1, 1, figsize=(width, height), dpi=dpi, subplot_kw={'projection':'3d'})
 
@@ -223,7 +223,7 @@ class cmdCaseGen(cmd.Cmd):
         # draw edges
         for e in G.edges:
             n0, n1 = e[0], e[1]
-            x0, y0, z0 = pos[n0][0], pos[n0][1], - G.nodes[n0]['hl'] 
+            x0, y0, z0 = pos[n0][0], pos[n0][1], - G.nodes[n0]['hl']
             x1, y1, z1 = pos[n1][0], pos[n1][1], - G.nodes[n1]['hl']
             linestyle, color, alpha = get_edge_shape(e)
             ax.plot([x0, x1], [y0,y1], [z0,z1], linestyle, c=color, alpha=alpha)
@@ -260,7 +260,7 @@ class cmdCaseGen(cmd.Cmd):
                 if G.nodes[n]['hyperedge'] is True:
                     node_type = 'U'
                     if G.nodes[n]['conditional'] is True:
-                        node_type = 'C' 
+                        node_type = 'C'
                         n_str = 'If ({}, {})'.format(n[0], n[1])
 
                 node_text = re.sub(' +|\n', ' ', n_str )

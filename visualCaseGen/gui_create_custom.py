@@ -20,31 +20,20 @@ class GUI_create_custom():
         ConfigVarBase.reset()
         self.ci = ci
         self._init_configvars()
+        ConfigVarBase.add_relational_assertions(relational_assertions_setter)
+        self._init_configvar_values_and_options()
         self._init_widgets()
         self._construct_all_widget_observances()
         self._compset_text = ''
         self._grid_view_mode = 'suggested' # or 'all'
-        ConfigVarBase.add_relational_assertions(relational_assertions_setter)
 
     def _init_configvars(self):
-        """ Initialize the ConfigVar instances to be displayed on the GUI as configurable case variables.
-        Also initializes the options of each ConfigVar
-        """
+        """ Define the ConfigVars and, by doing so, register them with the logic engine. """
         logger.debug("Initializing ConfigVars...")
 
-        ConfigVarStr('INITTIME',
-            options=['1850', '2000', 'HIST'] ,
-            tooltips=['Pre-industrial', 'Present day', 'Historical'],
-            value='2000'
-        )
-
+        ConfigVarStr('INITTIME')
         for comp_class in self.ci.comp_classes:
-
-            # Components, e.g., COMP_ATM, COMP_OCN, etc.
-            ConfigVarStr('COMP_'+str(comp_class),
-                options = [model for model in  self.ci.models[comp_class] if model[0] != 'x'],
-                value = None
-            )
+            ConfigVarStr('COMP_'+str(comp_class))
             ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
             ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             #todo ConfigVar('{}_GRID'.format(comp_class))
@@ -52,6 +41,18 @@ class GUI_create_custom():
         #todo ConfigVar('COMPSET')
         #todo ConfigVarOptMS('GRID')
 
+    def _init_configvar_values_and_options(self):
+        """ Initialize the values of ConfigVars to their default values, if they have any.
+        Also initialize the default options of ConfigVars, if they have any."""
+
+        cv_inittime = ConfigVarStr.vdict['INITTIME']
+        cv_inittime.options = ['1850', '2000', 'HIST'] 
+        cv_inittime.tooltips = ['Pre-industrial', 'Present day', 'Historical'] 
+        cv_inittime.value = '2000'
+
+        for comp_class in self.ci.comp_classes:
+            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
+            cv_comp.options = [model for model in  self.ci.models[comp_class] if model[0] != 'x']
 
     def _init_widgets(self):
         # Create Case: --------------------------------------
