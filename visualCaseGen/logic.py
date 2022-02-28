@@ -22,8 +22,8 @@ class Logic():
     asrt_unconditional_relationals = dict()
     # dictionary of all conditional relational assertions
     asrt_conditional_relationals= dict()
-    # dictionary of hierarchy levels (of type non-positive integer) for variables.
-    hierarchy_levels= dict()
+    # dictionary of constraint hypergraph (chg) layer indices for variables.
+    layer_indices= dict()
 
     child_vars = dict()
 
@@ -33,28 +33,28 @@ class Logic():
         cls.asrt_options = dict()
         cls.asrt_unconditional_relationals = dict()
         cls.asrt_conditional_relationals = dict()
-        cls.hierarchy_levels = dict()
+        cls.layer_indices = dict()
         cls.child_vars = dict()
 
     @classmethod
-    def get_hierarchy_level(cls, var):
-        return cls.hierarchy_levels.get(var, 0)
+    def get_layer_index(cls, var):
+        return cls.layer_indices.get(var, 0)
 
     @classmethod
-    def n_hierarchy_levels(cls):
-        return len(set(cls.hierarchy_levels.values()))
+    def n_layers(cls):
+        return len(set(cls.layer_indices.values()))
 
     @classmethod
-    def _determine_hierarchy_levels(cls, new_assertions, vdict):
-        """Determines hierarchy levels of assertions and variables appearing in those assertions."""
+    def _determine_chg_layers(cls, new_assertions, vdict):
+        """Determines constraint hypergraph layer indices of assertions and variables appearing in those assertions."""
 
         if len(cls.asrt_assignments) > 0:
             raise RuntimeError("Relational assertions must be registered before assignment assertions.")
         if len(cls.asrt_options) > 0:
             raise RuntimeError("Relational assertions must be registered before options assertions.")
 
-        # hierarchy level solver:
-        hl_solver = Solver()
+        # layer index solver:
+        lis = Solver()
 
         for asrt in new_assertions:
             # unconditional constraints
@@ -62,12 +62,12 @@ class Logic():
 
                 asrt_vars = z3util.get_vars(asrt)
                 for var in asrt_vars:
-                    cls.hierarchy_levels[var] = Int("HierLev_{}".format(var))
+                    cls.layer_indices[var] = Int("LayerIx{}".format(var))
                 if len(asrt_vars)>1:
-                    hl_var_0 = cls.hierarchy_levels[asrt_vars[0]]
+                    li_var_0 = cls.layer_indices[asrt_vars[0]] # layer index of 0.th assertion variable
                     for i in range(1,len(asrt_vars)):
-                        hl_var_i = cls.hierarchy_levels[asrt_vars[i]]
-                        hl_solver.add(hl_var_0 == hl_var_i)
+                        li_var_i = cls.layer_indices[asrt_vars[i]] # layer index of i.th assertion variable
+                        lis.add(li_var_0 == li_var_i)
 
             # conditional constraints
             elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
@@ -76,41 +76,41 @@ class Logic():
                 consequent_vars = z3util.get_vars(asrt[1])
 
                 for a_var in antecedent_vars:
-                    cls.hierarchy_levels[a_var] = Int("HierLev_{}".format(a_var))
+                    cls.layer_indices[a_var] = Int("LayerIx{}".format(a_var))
                     for c_var in consequent_vars:
-                        cls.hierarchy_levels[c_var] = Int("HierLev_{}".format(c_var))
-                        hl_solver.add(cls.hierarchy_levels[a_var] < cls.hierarchy_levels[c_var])
+                        cls.layer_indices[c_var] = Int("LayerIx{}".format(c_var))
+                        lis.add(cls.layer_indices[a_var] < cls.layer_indices[c_var])
 
-        if hl_solver.check() == unsat:
+        if lis.check() == unsat:
             raise RuntimeError("Error in relational variable hierarchy. Make sure to use conditional "\
-                "relationals in a consistent manner. Conditional relationals dictate variable hierarchy "\
-                "such that variables appearing in antecedent have higher hierarchies than those appearing "\
-                "in consequent.")
+                "relationals (i.e., When() operators) in a consistent manner. Conditional relationals dictate "\
+                "variable hierarchy such that variables appearing in antecedent have higher hierarchies "\
+                "than those appearing in consequent. See constraint hierarchy graph documentation for more info.")
 
-        hl_model = hl_solver.model()
+        layer_index_model = lis.model()
 
-        # cast cls.hierarchy_levels values to integers:
-        for var in cls.hierarchy_levels:
-            cls.hierarchy_levels[var] = hl_model[cls.hierarchy_levels[var]].as_long()
+        # cast cls.layer_indices values to integers:
+        for var in cls.layer_indices:
+            cls.layer_indices[var] = layer_index_model[cls.layer_indices[var]].as_long()
 
-        # normalize hierarchy levels:
-        hl_vals = sorted(set(cls.hierarchy_levels.values()))
-        n_hl_vals = len(hl_vals)
-        normalization = {hl_vals[i]: i for i in range(n_hl_vals)}
-        for var in cls.hierarchy_levels:
-            cls.hierarchy_levels[var] = normalization[cls.hierarchy_levels[var]]
+        # normalize layer indices:
+        layer_index_vals = sorted(set(cls.layer_indices.values()))
+        n_layer_index_vals = len(layer_index_vals)
+        normalization = {layer_index_vals[i]: i for i in range(n_layer_index_vals)}
+        for var in cls.layer_indices:
+            cls.layer_indices[var] = normalization[cls.layer_indices[var]]
 
-        # finally, set assertion hierarchy levels:
+        # finally, set layer indices of assertions:
         for asrt in new_assertions:
             # unconditional assertions
             if isinstance(asrt, BoolRef):
                 asrt_vars = z3util.get_vars(asrt)
-                cls.hierarchy_levels[asrt] = cls.get_hierarchy_level(asrt_vars[0])
+                cls.layer_indices[asrt] = cls.get_layer_index(asrt_vars[0])
             # conditional constraints
             elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
                 consequent_vars = z3util.get_vars(asrt[1])
-                max_hl = max([cls.get_hierarchy_level(c_var) for c_var in consequent_vars])
-                cls.hierarchy_levels[asrt] = max_hl
+                max_layer_index= max([cls.get_layer_index(c_var) for c_var in consequent_vars])
+                cls.layer_indices[asrt] = max_layer_index
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, vdict):
@@ -123,15 +123,15 @@ class Logic():
             if isinstance(asrt, BoolRef):
 
                 asrt_vars = z3util.get_vars(asrt)
-                hl = cls.get_hierarchy_level(asrt)
+                li = cls.get_layer_index(asrt)
 
                 # add variable nodes
                 for var in asrt_vars:
                     if var not in cls.chg:
-                        cls.chg.add_node(var, hl=hl, hyperedge=False)
+                        cls.chg.add_node(var, li=li, hyperedge=False)
 
                 # add unconditional assertion node
-                cls.chg.add_node(asrt, hl=hl, hyperedge=True, conditional=False)
+                cls.chg.add_node(asrt, li=li, hyperedge=True, conditional=False)
 
                 # add edge from variable to asrt
                 for var in asrt_vars:
@@ -144,22 +144,22 @@ class Logic():
                 consequent_vars = z3util.get_vars(asrt[1])
 
                 # add conditional assertion node
-                hl = cls.get_hierarchy_level(asrt)
-                cls.chg.add_node(asrt, hl=hl, hyperedge=True, conditional=True)
+                li = cls.get_layer_index(asrt)
+                cls.chg.add_node(asrt, li=li, hyperedge=True, conditional=True)
 
                 for a_var in antecedent_vars:
                     # add antecedent variables nodes (if not added already)
                     if a_var not in cls.chg:
-                        hl = cls.get_hierarchy_level(a_var)
-                        cls.chg.add_node(a_var, hl=hl, hyperedge=False)
+                        li = cls.get_layer_index(a_var)
+                        cls.chg.add_node(a_var, li=li, hyperedge=False)
                     # add edge from var to asrt
                     cls.chg.add_edge(a_var, asrt) # higher var to assertion
 
                 for c_var in consequent_vars:
                     # add consequent variables's node (if not added already)
                     if c_var not in cls.chg:
-                        hl = cls.get_hierarchy_level(c_var)
-                        cls.chg.add_node(c_var, hl=hl, hyperedge=False)
+                        li = cls.get_layer_index(c_var)
+                        cls.chg.add_node(c_var, li=li, hyperedge=False)
                     # add edge from var to asrt
                     cls.chg.add_edge(c_var, asrt) # lower var to assertion
 
@@ -179,8 +179,8 @@ class Logic():
             if status is True:
                 # now, check if the value satisfies all assertions
                 s = Solver()
-                cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
-                cls._apply_assignment_assertions(s, hl=cls.get_hierarchy_level(var))
+                cls._apply_options_assertions(s, li=cls.get_layer_index(var))
+                cls._apply_assignment_assertions(s, li=cls.get_layer_index(var))
                 s.add(var==new_value)
                 cls._apply_relational_assertions(s)
                 status = s.check() == sat
@@ -194,8 +194,8 @@ class Logic():
     @classmethod
     def get_options_validities(cls, var):
         s = Solver()
-        cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
-        cls._apply_assignment_assertions(s, exclude_varname=var.name, hl=cls.get_hierarchy_level(var))
+        cls._apply_options_assertions(s, li=cls.get_layer_index(var))
+        cls._apply_assignment_assertions(s, exclude_varname=var.name, li=cls.get_layer_index(var))
         cls._apply_relational_assertions(s)
         new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
         return new_validities
@@ -222,7 +222,7 @@ class Logic():
         # Obtain all new assertions including conditionals and unconditionals
         new_assertions = assertions_setter(vdict)
 
-        cls._determine_hierarchy_levels(new_assertions, vdict)
+        cls._determine_chg_layers(new_assertions, vdict)
         cls._gen_constraint_hypergraph(new_assertions, vdict)
         cls._insert_relational_assertions(new_assertions, vdict)
 
@@ -271,31 +271,31 @@ class Logic():
             raise RuntimeError("Relational assertions not satisfiable!")
 
     @classmethod
-    def _apply_assignment_assertions(cls, solver, exclude_varname=None, hl=None):
+    def _apply_assignment_assertions(cls, solver, exclude_varname=None, li=None):
         """ Adds all current assignment assertions to a given solver instance.
         The assignment of a variable may be excluded by providing its name to the optional exclude_varname option. """
 
-        if hl is None:
+        if li is None:
             if exclude_varname is None:
                 solver.add(list(cls.asrt_assignments.values()))
             else:
                 solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname])
-        else: # hl is NOT None
+        else: # li is NOT None
             if exclude_varname is None:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if cls.get_hierarchy_level(var) <= hl])
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if cls.get_layer_index(var) <= li])
             else:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_hierarchy_level(var) <= hl])
+                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_layer_index(var) <= li])
 
     @classmethod
-    def _apply_options_assertions(cls, solver, hl=None):
+    def _apply_options_assertions(cls, solver, li=None):
         """ Adds all of the current options assertions to a given solver instance."""
-        if hl is None:
+        if li is None:
             solver.add(list(cls.asrt_options.values()))
         else:
-            solver.add([cls.asrt_options[var] for var in cls.asrt_options if cls.get_hierarchy_level(var) <= hl])
+            solver.add([cls.asrt_options[var] for var in cls.asrt_options if cls.get_layer_index(var) <= li])
 
     @classmethod
-    def _apply_relational_assertions(cls, solver, assert_and_track=False, hl=None):
+    def _apply_relational_assertions(cls, solver, assert_and_track=False, li=None):
         """ Adds all of the relational assertions to a given solver instance """
 
         # solver for evaluations the antecedents of conditional relations
@@ -324,7 +324,7 @@ class Logic():
         #profiler.enable()
 
         s = Solver()
-        cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(invoker_var))
+        cls._apply_options_assertions(s, li=cls.get_layer_index(invoker_var))
         cls._apply_relational_assertions(s)
 
         # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
@@ -335,7 +335,7 @@ class Logic():
             var = affected_vars[ivar]
             if var.has_options():
                 s.push()
-                cls._apply_assignment_assertions(s, exclude_varname=var.name, hl=cls.get_hierarchy_level(var))
+                cls._apply_assignment_assertions(s, exclude_varname=var.name, li=cls.get_layer_index(var))
                 new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
                 s.pop()
                 if new_validities != var._options_validities:
@@ -353,8 +353,8 @@ class Logic():
 
         s = Solver()
         s.set(':core.minimize', True)
-        cls._apply_options_assertions(s, hl=cls.get_hierarchy_level(var))
-        cls._apply_assignment_assertions(s, exclude_varname=var.name, hl=cls.get_hierarchy_level(var))
+        cls._apply_options_assertions(s, li=cls.get_layer_index(var))
+        cls._apply_assignment_assertions(s, exclude_varname=var.name, li=cls.get_layer_index(var))
         s.add(var==value)
 
         cls._apply_relational_assertions(s, assert_and_track=True)
