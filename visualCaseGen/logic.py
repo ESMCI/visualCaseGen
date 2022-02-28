@@ -14,44 +14,23 @@ logger = logging.getLogger('\t\t'+__name__.split('.')[-1])
 
 class Logic():
     """Container for logic data"""
-    # assertions keeping track of variable assignments. key is var, value is assignment assertion
-    asrt_assignments = dict()
-    # assertions for options lists of variables. key is var, value is options assertion
-    asrt_options = dict()
-    # relational assertions that are to hold all times. key is ASSERTION, value is ERRNAME.
-    asrt_unconditional_relationals = dict()
-    # dictionary of all conditional relational assertions
-    asrt_conditional_relationals= dict()
-    # dictionary of constraint hypergraph (chg) layer indices for variables.
-    layer_indices= dict()
-
+    # dictionary of child variables
     child_vars = dict()
+    # list of constraint hypergraph layers
+    layers = []
 
     @classmethod
     def reset(cls):
-        cls.asrt_assignments = dict()
-        cls.asrt_options = dict()
-        cls.asrt_unconditional_relationals = dict()
-        cls.asrt_conditional_relationals = dict()
-        cls.layer_indices = dict()
         cls.child_vars = dict()
+        cls.layers = []
+        Layer.reset()
 
     @classmethod
-    def get_layer_index(cls, var):
-        return cls.layer_indices.get(var, 0)
-
-    @classmethod
-    def n_layers(cls):
-        return len(set(cls.layer_indices.values()))
-
-    @classmethod
-    def _determine_chg_layers(cls, new_assertions, vdict):
+    def _initialize_chg_layers(cls, new_assertions, vdict):
         """Determines constraint hypergraph layer indices of assertions and variables appearing in those assertions."""
 
-        if len(cls.asrt_assignments) > 0:
+        if len(cls.layers) > 0:
             raise RuntimeError("Relational assertions must be registered before assignment assertions.")
-        if len(cls.asrt_options) > 0:
-            raise RuntimeError("Relational assertions must be registered before options assertions.")
 
         # layer index solver:
         lis = Solver()
@@ -62,11 +41,11 @@ class Logic():
 
                 asrt_vars = z3util.get_vars(asrt)
                 for var in asrt_vars:
-                    cls.layer_indices[var] = Int("LayerIx{}".format(var))
+                    Layer.indices[var] = Int("LayerIx{}".format(var))
                 if len(asrt_vars)>1:
-                    li_var_0 = cls.layer_indices[asrt_vars[0]] # layer index of 0.th assertion variable
+                    li_var_0 = Layer.indices[asrt_vars[0]] # layer index of 0.th assertion variable
                     for i in range(1,len(asrt_vars)):
-                        li_var_i = cls.layer_indices[asrt_vars[i]] # layer index of i.th assertion variable
+                        li_var_i = Layer.indices[asrt_vars[i]] # layer index of i.th assertion variable
                         lis.add(li_var_0 == li_var_i)
 
             # conditional constraints
@@ -76,10 +55,13 @@ class Logic():
                 consequent_vars = z3util.get_vars(asrt[1])
 
                 for a_var in antecedent_vars:
-                    cls.layer_indices[a_var] = Int("LayerIx{}".format(a_var))
+                    Layer.indices[a_var] = Int("LayerIx{}".format(a_var))
                     for c_var in consequent_vars:
-                        cls.layer_indices[c_var] = Int("LayerIx{}".format(c_var))
-                        lis.add(cls.layer_indices[a_var] < cls.layer_indices[c_var])
+                        Layer.indices[c_var] = Int("LayerIx{}".format(c_var))
+                        lis.add(Layer.indices[a_var] < Layer.indices[c_var])
+            
+            else:
+                raise RuntimeError("Unsupported relational assertion encountered.")
 
         if lis.check() == unsat:
             raise RuntimeError("Error in relational variable hierarchy. Make sure to use conditional "\
@@ -89,28 +71,47 @@ class Logic():
 
         layer_index_model = lis.model()
 
-        # cast cls.layer_indices values to integers:
-        for var in cls.layer_indices:
-            cls.layer_indices[var] = layer_index_model[cls.layer_indices[var]].as_long()
+        # cast Layer.indices values to integers:
+        for var in Layer.indices:
+            Layer.indices[var] = layer_index_model[Layer.indices[var]].as_long()
 
-        # normalize layer indices:
-        layer_index_vals = sorted(set(cls.layer_indices.values()))
+        # get a set of layer indices and initialize Layer instances:
+        layer_index_vals = sorted(set(Layer.indices.values()))
         n_layer_index_vals = len(layer_index_vals)
         normalization = {layer_index_vals[i]: i for i in range(n_layer_index_vals)}
-        for var in cls.layer_indices:
-            cls.layer_indices[var] = normalization[cls.layer_indices[var]]
+        cls.layers = [ Layer(i) for i in range(n_layer_index_vals)]
+
+        # normalize layer indices. Also turn variable layer indices into lists so as to allow variables
+        # to have multiple layer indices. This is needed when a variable is connected to other layers via
+        # conditional relational assertions. The first index, however, is the primary layer that the
+        # variable belongs to.
+        for var in Layer.indices:
+            li = normalization[Layer.indices[var]] 
+            Layer.indices[var] = [li]
+            cls.layers[li].vars.append(var)
 
         # finally, set layer indices of assertions:
         for asrt in new_assertions:
             # unconditional assertions
             if isinstance(asrt, BoolRef):
                 asrt_vars = z3util.get_vars(asrt)
-                cls.layer_indices[asrt] = cls.get_layer_index(asrt_vars[0])
+                li = Layer.get_major_index(asrt_vars[0])
+                Layer.indices[asrt] = [li]
+                cls.layers[li].relational_assertions[asrt] = new_assertions[asrt]
             # conditional constraints
             elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+                antecedent_vars = z3util.get_vars(asrt[0])
                 consequent_vars = z3util.get_vars(asrt[1])
-                max_layer_index= max([cls.get_layer_index(c_var) for c_var in consequent_vars])
-                cls.layer_indices[asrt] = max_layer_index
+                li= max([Layer.get_major_index(c_var) for c_var in consequent_vars])
+                Layer.indices[asrt] = [li]
+                cls.layers[li].relational_assertions[Implies(asrt[0], asrt[1])] = new_assertions[asrt]
+
+                # add the layer index to antecedent vars' layer indices
+                for a_var in antecedent_vars:
+                    if li not in Layer.indices[a_var]:
+                        Layer.indices[a_var].append(li)
+                    if a_var not in cls.layers[li].ghost_vars:
+                        cls.layers[li].ghost_vars.append(a_var)
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, vdict):
@@ -122,8 +123,11 @@ class Logic():
             # unconditional assertions
             if isinstance(asrt, BoolRef):
 
-                asrt_vars = z3util.get_vars(asrt)
-                li = cls.get_layer_index(asrt)
+                asrt_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
+                for var in asrt_vars:
+                    var._related_vars.update(asrt_vars - {var})
+
+                li = Layer.get_major_index(asrt)
 
                 # add variable nodes
                 for var in asrt_vars:
@@ -140,31 +144,165 @@ class Logic():
             # conditional constraints
             elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
 
-                antecedent_vars = z3util.get_vars(asrt[0])
-                consequent_vars = z3util.get_vars(asrt[1])
+                antecedent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt[0])}
+                consequent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt[1])}
 
                 # add conditional assertion node
-                li = cls.get_layer_index(asrt)
+                li = Layer.get_major_index(asrt)
                 cls.chg.add_node(asrt, li=li, hyperedge=True, conditional=True)
 
                 for a_var in antecedent_vars:
                     # add antecedent variables nodes (if not added already)
                     if a_var not in cls.chg:
-                        li = cls.get_layer_index(a_var)
+                        li = Layer.get_major_index(a_var)
                         cls.chg.add_node(a_var, li=li, hyperedge=False)
                     # add edge from var to asrt
                     cls.chg.add_edge(a_var, asrt) # higher var to assertion
 
+                    if a_var not in cls.child_vars:
+                        cls.child_vars[a_var] = set()
+                    cls.child_vars[a_var].update([var for var in consequent_vars])
+
                 for c_var in consequent_vars:
                     # add consequent variables's node (if not added already)
                     if c_var not in cls.chg:
-                        li = cls.get_layer_index(c_var)
+                        li = Layer.get_major_index(c_var)
                         cls.chg.add_node(c_var, li=li, hyperedge=False)
                     # add edge from var to asrt
                     cls.chg.add_edge(c_var, asrt) # lower var to assertion
 
+        # Check if newly added relational assertions are sat:
+        #todo s = Solver()
+        #todo cls._apply_assignment_assertions(s)
+        #todo cls._apply_options_assertions(s)
+        #todo cls._apply_relational_assertions(s)
+        #todo if s.check() == unsat:
+        #todo     raise RuntimeError("Relational assertions not satisfiable!")
+
+    @classmethod
+    def register_assignment(cls, var, new_value):
+        logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
+
+        for li in Layer.get_indices(var):
+            cls.layers[li].asrt_assignments.pop(var, None)
+            if new_value is not None:
+                cls.layers[li].asrt_assignments[var] = var==new_value
+
+    @classmethod
+    def register_options(cls, var, new_opts):
+        logger.debug("Registering options of %s with the logic engine", var.name)
+
+        for li in Layer.get_indices(var):
+            cls.layers[li].asrt_options[var] = Or([var==opt for opt in new_opts]) 
+            cls.layers[li].asrt_assignments.pop(var, None)
+
+    @classmethod
+    def register_relational_assertions(cls, assertions_setter, vdict):
+
+        for layer in cls.layers:
+            if len(layer.relational_assertions)>0:
+                raise RuntimeError("Attempted to call register_relational_assertions method multiple times.")
+
+        # Obtain all new assertions including conditionals and unconditionals
+        new_assertions = assertions_setter(vdict)
+
+        cls._initialize_chg_layers(new_assertions, vdict)
+        cls._gen_constraint_hypergraph(new_assertions, vdict)
+
     @classmethod
     def check_assignment(cls, var, new_value):
+        li = Layer.get_major_index(var)
+        cls.layers[li].check_assignment(var, new_value)
+
+    @classmethod
+    def get_options_validities(cls, var):
+        li = Layer.get_major_index(var)
+        return cls.layers[li].get_options_validities(var)
+
+    @classmethod
+    def retrieve_error_msg(cls, var, value):
+        """Given a failing assignment, retrieves the error message associated with the relational assertion
+        leading to unsat."""
+        li = Layer.get_major_index(var)
+        return cls.layers[li].retrieve_error_msg(var, value)
+
+    @classmethod
+    def notify_related_vars(cls, invoker_var):
+        """ When a variable value gets (re-)assigned, this method is called to notify the related variables that
+        may be affected by the value assignment"""
+        logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
+
+        li = Layer.get_major_index(invoker_var) 
+        cls.layers[li].notify_related_vars(invoker_var)
+
+
+class Layer():
+    """ A class that encapsulate constraint hypergraph layer properties. """
+
+    # a mapping from variable to its major layer index
+    indices= dict()
+
+    def __init__(self, li):
+        if not isinstance(li, int):
+            raise RuntimeError("Layer indices must be of type integer")
+
+        # layer index
+        self.li = li
+        # variables that appear in this layer
+        self.vars = []
+        # variables that don't appear in this var but connected to this var via conditional assertions
+        self.ghost_vars = []
+        # assertions keeping track of variable assignments. key is var, value is assignment assertion
+        self.asrt_assignments = dict()
+        # assertions for options lists of variables. key is var, value is options assertion
+        self.asrt_options = dict()
+        # relational assertions appearing in this layer
+        self.relational_assertions = dict()
+    
+    @classmethod
+    def reset(cls):
+        cls.indices = dict()
+    
+    @classmethod
+    def get_indices(cls, var):
+        return cls.indices.get(var, [0])
+
+    @classmethod
+    def get_major_index(cls, var):
+        return cls.indices.get(var, [0])[0]
+
+    def _apply_assignment_assertions(self, solver, exclude_varname=None):
+        """ Adds all current assignment assertions to a given solver instance.
+        The assignment of a variable may be excluded by providing its name to the optional exclude_varname option. """
+
+        if exclude_varname is None:
+            solver.add([self.asrt_assignments[var] for var in self.asrt_assignments])
+        else:
+            solver.add([self.asrt_assignments[var] for var in self.asrt_assignments if var.name != exclude_varname])
+    
+    def _apply_options_assertions(self, solver):
+        """ Adds all of the current options assertions to a given solver instance."""
+        solver.add([self.asrt_options[var] for var in self.asrt_options])
+
+    def _apply_relational_assertions(self, solver, assert_and_track=False):
+        """ Adds all of the relational assertions to a given solver instance """
+        
+        if assert_and_track is True:
+            for asrt in self.relational_assertions:
+                solver.assert_and_track(asrt, self.relational_assertions[asrt])
+        else:
+            solver.add(list(self.relational_assertions))
+        
+
+    def get_options_validities(self, var):
+        s = Solver()
+        self._apply_options_assertions(s)
+        self._apply_assignment_assertions(s, exclude_varname=var.name)
+        self._apply_relational_assertions(s)
+        new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+        return new_validities
+    
+    def check_assignment(self, var, new_value):
 
         status = True
         err_msg = ''
@@ -179,185 +317,28 @@ class Logic():
             if status is True:
                 # now, check if the value satisfies all assertions
                 s = Solver()
-                cls._apply_options_assertions(s, li=cls.get_layer_index(var))
-                cls._apply_assignment_assertions(s, li=cls.get_layer_index(var))
+                self._apply_options_assertions(s)
+                self._apply_assignment_assertions(s)
                 s.add(var==new_value)
-                cls._apply_relational_assertions(s)
-                status = s.check() == sat
+                self._apply_relational_assertions(s)
+                status = s.check()==sat
 
                 if status is False:
-                    err_msg = cls.retrieve_error_msg(var, new_value)
-
+                    err_msg = self.retrieve_error_msg(var, new_value)
+        
         if status is False:
             raise AssertionError(err_msg)
-
-    @classmethod
-    def get_options_validities(cls, var):
-        s = Solver()
-        cls._apply_options_assertions(s, li=cls.get_layer_index(var))
-        cls._apply_assignment_assertions(s, exclude_varname=var.name, li=cls.get_layer_index(var))
-        cls._apply_relational_assertions(s)
-        new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
-        return new_validities
-
-    @classmethod
-    def register_assignment(cls, var, new_value):
-        logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
-        old_assignment = cls.asrt_assignments.pop(var, None)
-        if new_value is not None:
-            cls.asrt_assignments[var] = var==new_value
-
-    @classmethod
-    def register_options(cls, var, new_opts):
-        logger.debug("Registering options of %s with the logic engine", var.name)
-        cls.asrt_options[var] = Or([var==opt for opt in new_opts])
-        cls.asrt_assignments.pop(var, None)
-
-    @classmethod
-    def register_relational_assertions(cls, assertions_setter, vdict):
-
-        if len(cls.asrt_unconditional_relationals)>0 or len(cls.asrt_conditional_relationals)>0:
-            raise RuntimeError("Attempted to call register_relational_assertions method multiple times.")
-
-        # Obtain all new assertions including conditionals and unconditionals
-        new_assertions = assertions_setter(vdict)
-
-        cls._determine_chg_layers(new_assertions, vdict)
-        cls._gen_constraint_hypergraph(new_assertions, vdict)
-        cls._insert_relational_assertions(new_assertions, vdict)
-
-    @classmethod
-    def _insert_relational_assertions(cls, new_assertions, vdict):
-        # Update relational assertions dictionaries of the Logic class:
-        for asrt in new_assertions:
-
-            # First, process the unconditional assertions
-            if isinstance(asrt, BoolRef):
-
-                # add the new unconditional assertion
-                if asrt in cls.asrt_unconditional_relationals:
-                    raise ValueError("Versions of assertion encountered multiple times: {}".format(asrt))
-                cls.asrt_unconditional_relationals[asrt] = new_assertions[asrt]
-
-                # update related_vars properties of all variables appearing in newly added relational assertion
-                related_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
-                for var in related_vars:
-                    var._related_vars.update(related_vars - {var})
-
-            # Now, process the conditional assertions
-            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
-                antecedent = asrt[0]
-                consequent = asrt[1]
-                antecedent_vars =  z3util.get_vars(antecedent)
-                consequent_vars =  z3util.get_vars(consequent)
-
-                # add the new conditional assertion
-                cls.asrt_conditional_relationals[asrt] = new_assertions[asrt]
-
-                for a_var in antecedent_vars:
-                    if a_var not in cls.child_vars:
-                        cls.child_vars[a_var] = set()
-                    cls.child_vars[a_var].update([vdict[var.sexpr()] for var in consequent_vars])
-
-            else:
-                raise RuntimeError("Unsupported assertion encountered: %s" % asrt)
-
-        # Check if newly added relational assertions are sat:
-        s = Solver()
-        cls._apply_assignment_assertions(s)
-        cls._apply_options_assertions(s)
-        cls._apply_relational_assertions(s)
-        if s.check() == unsat:
-            raise RuntimeError("Relational assertions not satisfiable!")
-
-    @classmethod
-    def _apply_assignment_assertions(cls, solver, exclude_varname=None, li=None):
-        """ Adds all current assignment assertions to a given solver instance.
-        The assignment of a variable may be excluded by providing its name to the optional exclude_varname option. """
-
-        if li is None:
-            if exclude_varname is None:
-                solver.add(list(cls.asrt_assignments.values()))
-            else:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname])
-        else: # li is NOT None
-            if exclude_varname is None:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if cls.get_layer_index(var) <= li])
-            else:
-                solver.add([cls.asrt_assignments[var] for var in cls.asrt_assignments if var.name != exclude_varname and cls.get_layer_index(var) <= li])
-
-    @classmethod
-    def _apply_options_assertions(cls, solver, li=None):
-        """ Adds all of the current options assertions to a given solver instance."""
-        if li is None:
-            solver.add(list(cls.asrt_options.values()))
-        else:
-            solver.add([cls.asrt_options[var] for var in cls.asrt_options if cls.get_layer_index(var) <= li])
-
-    @classmethod
-    def _apply_relational_assertions(cls, solver, assert_and_track=False, li=None):
-        """ Adds all of the relational assertions to a given solver instance """
-
-        # solver for evaluations the antecedents of conditional relations
-        s_ = Solver()
-        cls._apply_assignment_assertions(s_)
-        cls._apply_options_assertions(s_)
-
-        if assert_and_track is True:
-            for asrt in cls.asrt_unconditional_relationals:
-                solver.assert_and_track(asrt, cls.asrt_unconditional_relationals[asrt])
-            for antecedent, consequent in cls.asrt_conditional_relationals:
-                if s_.check(Not(antecedent)) == unsat:
-                    solver.assert_and_track(consequent, cls.asrt_conditional_relationals[antecedent,consequent])
-        else:
-            solver.add(list(cls.asrt_unconditional_relationals))
-            for antecedent, consequent in cls.asrt_conditional_relationals:
-                if s_.check(Not(antecedent)) == unsat:
-                    solver.add(consequent)
-
-    @classmethod
-    def notify_related_vars(cls, invoker_var):
-        """ When a variable value gets (re-)assigned, this method is called to notify the related variables that
-        may be affected by the value assignment"""
-        logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
-
-        #profiler.enable()
-
-        s = Solver()
-        cls._apply_options_assertions(s, li=cls.get_layer_index(invoker_var))
-        cls._apply_relational_assertions(s)
-
-        # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
-        # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
-        affected_vars = [invoker_var]+list(invoker_var._related_vars)
-        ivar = 1
-        while len(affected_vars)>ivar:
-            var = affected_vars[ivar]
-            if var.has_options():
-                s.push()
-                cls._apply_assignment_assertions(s, exclude_varname=var.name, li=cls.get_layer_index(var))
-                new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
-                s.pop()
-                if new_validities != var._options_validities:
-                    logger.debug("%s options validities changed.", var.name)
-                    var._update_options(new_validities=new_validities)
-                    affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
-            ivar += 1
-
-        #profiler.disable()
-
-    @classmethod
-    def retrieve_error_msg(cls, var, value):
+    
+    def retrieve_error_msg(self, var, value):
         """Given a failing assignment, retrieves the error message associated with the relational assertion
         leading to unsat."""
 
         s = Solver()
         s.set(':core.minimize', True)
-        cls._apply_options_assertions(s, li=cls.get_layer_index(var))
-        cls._apply_assignment_assertions(s, exclude_varname=var.name, li=cls.get_layer_index(var))
+        self._apply_options_assertions(s)
+        self._apply_assignment_assertions(s, exclude_varname=var.name)
         s.add(var==value)
-
-        cls._apply_relational_assertions(s, assert_and_track=True)
+        self._apply_relational_assertions(s, assert_and_track=True)
 
         if s.check() == sat:
             raise RuntimeError("_retrieve_error_msg method called for a satisfiable assignment")
@@ -370,6 +351,30 @@ class Logic():
             for i in range(len(err_msgs)):
                 err_msgs_joint += ' (Asrt.{}) {}'.format(i+1, err_msgs[i])
             return err_msgs_joint
+    
+    def notify_related_vars(self, invoker_var):
+
+        s = Solver()
+        self._apply_options_assertions(s)
+        self._apply_relational_assertions(s)
+
+        # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
+        # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
+        affected_vars = [invoker_var] + list(invoker_var._related_vars)
+        ivar = 1
+        while len(affected_vars)>ivar:
+            var = affected_vars[ivar]
+            if var.has_options():
+                s.push()
+                self._apply_assignment_assertions(s, exclude_varname=var.name)
+                new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+                s.pop()
+                if new_validities != var._options_validities:
+                    logger.debug("%s options validities changed.", var.name)
+                    var._update_options(new_validities=new_validities)
+                    affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
+            ivar += 1
+
 
 
 logic = Logic()

@@ -184,7 +184,7 @@ class cmdCaseGen(cmd.Cmd):
 
         def get_node_shape(n):
             """Returns the node color and marker for a given graph node."""
-            i = G.nodes[n]['hl']
+            i = G.nodes[n]['li']
             color = colors[i]
             marker = 'o'
             if G.nodes[n]['hyperedge'] is True:
@@ -196,8 +196,8 @@ class cmdCaseGen(cmd.Cmd):
         def get_edge_shape(e):
             """Returns the edge linestyle, color, and alpha for a given graph node."""
             n0, n1 = e[0], e[1]
-            i0 = G.nodes[n0]['hl']
-            i1 = G.nodes[n1]['hl']
+            i0 = G.nodes[n0]['li']
+            i1 = G.nodes[n1]['li']
             if i0 == i1:
                 return '-', colors[i0], 0.6
             else:
@@ -216,15 +216,15 @@ class cmdCaseGen(cmd.Cmd):
         for ni, n in enumerate(G.nodes):
             color, marker = get_node_shape(n)
             x, y = xs[n], ys[n]
-            z = - G.nodes[n]['hl']
+            z = - G.nodes[n]['li']
             ax.scatter(x, y, z, edgecolors='.2', s=node_size, c=color, marker=marker)
             ax.text(x, y, z, str(ni), color='.2', zorder=1000, fontsize=node_font, fontweight="bold", ha='center', va='center')
 
         # draw edges
         for e in G.edges:
             n0, n1 = e[0], e[1]
-            x0, y0, z0 = pos[n0][0], pos[n0][1], - G.nodes[n0]['hl']
-            x1, y1, z1 = pos[n1][0], pos[n1][1], - G.nodes[n1]['hl']
+            x0, y0, z0 = pos[n0][0], pos[n0][1], - G.nodes[n0]['li']
+            x1, y1, z1 = pos[n1][0], pos[n1][1], - G.nodes[n1]['li']
             linestyle, color, alpha = get_edge_shape(e)
             ax.plot([x0, x1], [y0,y1], [z0,z1], linestyle, c=color, alpha=alpha)
 
@@ -236,7 +236,7 @@ class cmdCaseGen(cmd.Cmd):
         xmin = min(xs.values()) - xrange*0.1 * (width/height)
         xmax = max(xs.values()) + xrange*0.1 * (width/height)
         xx, yy = np.meshgrid([xmin, xmax],[ymin, ymax])
-        for i in range(logic.n_hierarchy_levels()):
+        for i in range(len(logic.layers)):
             zz = np.zeros(xx.shape) - i
             # plane
             ax.plot_surface(xx, yy, zz, color=colors[i], alpha=0.15, zorder=i)
