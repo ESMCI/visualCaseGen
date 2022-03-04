@@ -14,11 +14,11 @@ class ConfigVarStrMS(ConfigVarBase):
     self.value:         : values, NOT preceded by a char. (A single String that joins multiple vals by '%')
     """
 
-    def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, always_set=False, widget_none_val=None):
-        super().__init__(name, value, options, tooltips, ctx, always_set, widget_none_val=())
-
     # trait
     value = Unicode(allow_none=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, widget_none_val=())
 
     @validate('value')
     def _validate_value(self, proposal):

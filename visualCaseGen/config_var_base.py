@@ -20,7 +20,8 @@ class ConfigVarBase(SeqRef, HasTraits):
     # Trait
     value = Any()
 
-    def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, always_set=False, widget_none_val=None):
+    def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, widget_none_val=None,
+                    always_set=False, hide_invalid=False):
 
         # Check if the variable has already been defined
         if name in ConfigVarBase.vdict:
@@ -46,10 +47,12 @@ class ConfigVarBase(SeqRef, HasTraits):
         # Initialize all other private members
         self._options_validities = {}
         self._error_messages = []
-        self._always_set = always_set # if a ConfigVarBase instance with options, make sure a value is always set
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
         self._widget.tooltips = tooltips
+
+        self._always_set = always_set # if a ConfigVarBase instance with options, make sure a value is always set
+        self._hide_invalid = hide_invalid
 
         # variable properties managed by the logic module
         self.related_vars = set() # set of other variables sharing relational assertions with this var.
@@ -126,7 +129,12 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @tooltips.setter
     def tooltips(self, new_tooltips):
-        self._widget.tooltips = new_tooltips
+
+        if self._hide_invalid is True:
+            self._widget.tooltips = [new_tooltips[i] for i, opt in enumerate(self._options) \
+                if self._options_validities[opt] is True]
+        else:
+            self._widget.tooltips = new_tooltips
 
     def has_options(self):
         return self._options is not None
@@ -153,9 +161,14 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         logger.debug("Updating options of %s. validity_change_only=%s", self.name, validity_change_only)
 
-        self._widget.options = tuple(
-            '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
-            else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
+        if self._hide_invalid is True:
+            self._widget.options = tuple( 
+                '{} {}'.format(self.valid_opt_char, opt) for opt in self._options \
+                if self._options_validities[opt])
+        else:
+            self._widget.options = tuple(
+                '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] is True \
+                else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
 
         if validity_change_only:
             self._widget.value = old_widget_value
