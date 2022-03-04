@@ -46,11 +46,14 @@ class ConfigVarBase(SeqRef, HasTraits):
         # Initialize all other private members
         self._options_validities = {}
         self._error_messages = []
-        self._related_vars = set() # set of other variables sharing relational assertions with this var.
         self._always_set = always_set # if a ConfigVarBase instance with options, make sure a value is always set
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
         self._widget.tooltips = tooltips
+
+        # variable properties managed by the logic module
+        self.related_vars = set() # set of other variables sharing relational assertions with this var.
+        self.child_vars = []
 
         # Now call property setters of options and value
         if options is not None:
@@ -148,7 +151,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         if validity_change_only and old_validities == self._options_validities:
             return # no change in options or validities
 
-        logger.debug("Updating options validities of %s. validity_change_only=%s", self.name, validity_change_only)
+        logger.debug("Updating options of %s. validity_change_only=%s", self.name, validity_change_only)
 
         self._widget.options = tuple(
             '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] \
@@ -156,11 +159,28 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         if validity_change_only:
             self._widget.value = old_widget_value
-        else:
-           if self._always_set:
-                self._set_to_first_valid_opt()
 
-        logger.debug("Done Updating options validities of %s. validity_change_only=%s", self.name, validity_change_only)
+            #todo value_still_valid = True
+            #todo try:
+            #todo     self._widget.value = old_widget_value
+            #todo except KeyError:
+            #todo     value_still_valid = False
+
+            #todo if not value_still_valid:
+            #todo     # this should be reachable only when the current value of a child variable (self)
+            #todo     # gets invalidated by the value change of its parent. TODO: place more checks here.
+            #todo     if self._always_set is True:
+            #todo             self._set_to_first_valid_opt()
+            #todo     else:
+            #todo         self.value = None
+
+            #todo     logger.warning("Value of variable %s changed to %s due to a value change of one of its parent variables",
+            #todo         self.name, self.value)
+            
+        if self._always_set is True and (self.value is None or not validity_change_only):
+            self._set_to_first_valid_opt()
+
+        logger.debug("Done updating options of %s. validity_change_only=%s", self.name, validity_change_only)
 
     def _set_to_first_valid_opt(self):
         """ Set the value of the instance to the first option that is valid."""
@@ -172,12 +192,12 @@ class ConfigVarBase(SeqRef, HasTraits):
         valid_opt_found = False
         for opt in self._options:
             if self._options_validities[opt] == True:
-                logger.debug("First valid value for %s is %s", self.name, opt)
                 self.value = opt
                 valid_opt_found = True
                 break
 
         if valid_opt_found is False:
+            self.value = None
             logger.debug("Couldn't find a valid opt for %s", self.name)
 
 

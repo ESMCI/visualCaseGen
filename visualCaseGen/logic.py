@@ -14,14 +14,11 @@ logger = logging.getLogger('\t\t'+__name__.split('.')[-1])
 
 class Logic():
     """Container for logic data"""
-    # dictionary of child variables
-    child_vars = dict()
     # list of constraint hypergraph layers
     layers = []
 
     @classmethod
     def reset(cls):
-        cls.child_vars = dict()
         cls.layers = []
         Layer.reset()
 
@@ -115,6 +112,8 @@ class Logic():
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, vdict):
+        """ Given a dictionary of relational assertions, generates the constraint hypergraph. This method
+        also sets the related_vars and child_vars properties of variables appearing in relational assertions."""
 
         cls.chg = nx.Graph()
 
@@ -125,7 +124,7 @@ class Logic():
 
                 asrt_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
                 for var in asrt_vars:
-                    var._related_vars.update(asrt_vars - {var})
+                    var.related_vars.update(asrt_vars - {var})
 
                 li = Layer.get_major_index(asrt)
 
@@ -159,9 +158,8 @@ class Logic():
                     # add edge from var to asrt
                     cls.chg.add_edge(a_var, asrt) # higher var to assertion
 
-                    if a_var not in cls.child_vars:
-                        cls.child_vars[a_var] = set()
-                    cls.child_vars[a_var].update([var for var in consequent_vars])
+                    # todo: consider making child_vars of type set
+                    a_var.child_vars.extend([var for var in consequent_vars if var not in a_var.child_vars])
 
                 for c_var in consequent_vars:
                     # add consequent variables's node (if not added already)
@@ -180,6 +178,19 @@ class Logic():
         #todo     raise RuntimeError("Relational assertions not satisfiable!")
 
     @classmethod
+    def register_relational_assertions(cls, assertions_setter, vdict):
+
+        for layer in cls.layers:
+            if len(layer.relational_assertions)>0:
+                raise RuntimeError("Attempted to call register_relational_assertions method multiple times.")
+
+        # Obtain all new assertions including conditionals and unconditionals
+        new_assertions = assertions_setter(vdict)
+
+        cls._initialize_chg_layers(new_assertions, vdict)
+        cls._gen_constraint_hypergraph(new_assertions, vdict)
+
+    @classmethod
     def register_assignment(cls, var, new_value):
         logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
 
@@ -195,19 +206,6 @@ class Logic():
         for li in Layer.get_indices(var):
             cls.layers[li].asrt_options[var] = Or([var==opt for opt in new_opts]) 
             cls.layers[li].asrt_assignments.pop(var, None)
-
-    @classmethod
-    def register_relational_assertions(cls, assertions_setter, vdict):
-
-        for layer in cls.layers:
-            if len(layer.relational_assertions)>0:
-                raise RuntimeError("Attempted to call register_relational_assertions method multiple times.")
-
-        # Obtain all new assertions including conditionals and unconditionals
-        new_assertions = assertions_setter(vdict)
-
-        cls._initialize_chg_layers(new_assertions, vdict)
-        cls._gen_constraint_hypergraph(new_assertions, vdict)
 
     @classmethod
     def check_assignment(cls, var, new_value):
@@ -232,8 +230,28 @@ class Logic():
         may be affected by the value assignment"""
         logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
 
+        # layer index of invoker var
         li = Layer.get_major_index(invoker_var) 
-        cls.layers[li].notify_related_vars(invoker_var)
+
+        # indices of layers that may need to be notified:
+        relevant_layer_indices = range(li, len(cls.layers))
+        
+        # empy lists of affected vars for each layer
+        affected_vars = {rli:[] for rli in relevant_layer_indices}
+
+        # set the list of affected vars of layer li (i.e., the first relevant layer):
+        affected_vars[li] = list(invoker_var.related_vars)
+
+        # also record child vars that may be affected by invoker_var's value change:
+        for child_var in invoker_var.child_vars:
+            child_li = Layer.get_major_index(child_var)
+            if child_var not in affected_vars[child_li]:
+                affected_vars[child_li].append(child_var)
+
+        #print("notifying related vars ----------------- invoker:", invoker_var, 'children:', invoker_var.child_vars)
+        for rli in relevant_layer_indices:
+            #print("\trelevant layer index:", rli, "initial vars:", affected_vars[rli])
+            cls.layers[rli].refresh_options_validities(affected_vars)
 
 
 class Layer():
@@ -352,18 +370,21 @@ class Layer():
                 err_msgs_joint += ' (Asrt.{}) {}'.format(i+1, err_msgs[i])
             return err_msgs_joint
     
-    def notify_related_vars(self, invoker_var):
+    def refresh_options_validities(self, affected_vars):
+
+        if len(affected_vars[self.li]) == 0:
+            return # no variables affected in this layer
 
         s = Solver()
         self._apply_options_assertions(s)
         self._apply_relational_assertions(s)
 
-        # (ivar==1) First, evaluate if (re-)assignment of self has made an options validities change in its related variables.
-        # (ivar>1) Then, recursively check the related variables of related variables whose options validities have changed.
-        affected_vars = [invoker_var] + list(invoker_var._related_vars)
-        ivar = 1
-        while len(affected_vars)>ivar:
-            var = affected_vars[ivar]
+        # Recursively check the related variables whose options validities have changed.
+        # Also keep a record of child variables that may have been affected. Those will be 
+        # checked by subsequent layers.
+        ivar = 0
+        while len(affected_vars[self.li]) > ivar:
+            var = affected_vars[self.li][ivar]
             if var.has_options():
                 s.push()
                 self._apply_assignment_assertions(s, exclude_varname=var.name)
@@ -372,9 +393,19 @@ class Layer():
                 if new_validities != var._options_validities:
                     logger.debug("%s options validities changed.", var.name)
                     var._update_options(new_validities=new_validities)
-                    affected_vars += [var_other for var_other in var._related_vars if var_other not in affected_vars]
-            ivar += 1
 
+                    # extend the list of affected vars of this layer
+                    affected_vars[self.li] += [var_other for var_other in var.related_vars if var_other not in affected_vars[self.li]]
+
+                    # also include child vars that may be affected by options validity change of var:
+                    for child_var in var.child_vars:
+                        child_li = Layer.get_major_index(child_var)
+                        if child_var not in affected_vars[child_li]:
+                            affected_vars[child_li].append(child_var)
+            else:
+                logger.debug("Variable %s has no options.", var.name)
+
+            ivar += 1
 
 
 logic = Logic()
