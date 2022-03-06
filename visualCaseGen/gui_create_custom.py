@@ -11,6 +11,7 @@ from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.relational_assertions import relational_assertions_setter
+from visualCaseGen.options_dependencies import get_options_setters
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
@@ -20,7 +21,10 @@ class GUI_create_custom():
         ConfigVarBase.reset()
         self.ci = ci
         self._init_configvars()
-        ConfigVarBase.add_relational_assertions(relational_assertions_setter)
+        options_setters = get_options_setters(ConfigVarBase.vdict, self.ci)
+        ConfigVarBase.determine_interdependencies(
+            relational_assertions_setter,
+            options_setters)
         self._init_configvar_values_and_options()
         self._init_widgets()
         self._construct_all_widget_observances()

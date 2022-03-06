@@ -43,6 +43,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         # Temporarily set private members options and value to None. These will be
         # updated with special property setter below.
         self._options = None
+        self._options_setter = None
 
         # Initialize all other private members
         self._options_validities = {}
@@ -56,6 +57,7 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         # variable properties managed by the logic module
         self.related_vars = set() # set of other variables sharing relational assertions with this var.
+        self.options_children = set() # set of other variables sharing relational assertions with this var.
         self.child_vars = []
 
         # Now call property setters of options and value
@@ -98,8 +100,12 @@ class ConfigVarBase(SeqRef, HasTraits):
         return varname in ConfigVarBase.vdict
 
     @classmethod
-    def add_relational_assertions(cls, assertions_setter):
-        logic.register_relational_assertions(assertions_setter, cls.vdict)
+    def determine_interdependencies(cls, relational_assertions_setter, options_setters):
+        logic.register_interdependencies(
+            relational_assertions_setter, 
+            options_setters,
+            cls.vdict
+        )
 
     @default('value')
     def _default_value(self):

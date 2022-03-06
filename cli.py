@@ -18,6 +18,7 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.relational_assertions import relational_assertions_setter
+from visualCaseGen.options_dependencies import get_options_setters
 from visualCaseGen.logic import logic
 
 class cmdCaseGen(cmd.Cmd):
@@ -31,7 +32,10 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarBase.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
-        ConfigVarBase.add_relational_assertions(relational_assertions_setter)
+        options_setters = get_options_setters(ConfigVarBase.vdict, self.ci)
+        ConfigVarBase.determine_interdependencies(
+            relational_assertions_setter,
+            options_setters)
         self._init_configvar_options()
         self._exit_on_error = exit_on_error
 
@@ -175,22 +179,27 @@ class cmdCaseGen(cmd.Cmd):
         width = 8
         height = 10
         dpi = 150
-        node_size = 180
+        node_size = 200
         node_font = 8
         angle = 30
         height_angle = 25
-        view_dist = 8.0
-        colors = ['skyblue', 'lightsalmon', 'yellowgreen', 'plum']
+        view_dist = 9.0
+        colors = ['skyblue', 'lightsalmon', 'yellowgreen', 'plum', 'orange']
 
         def get_node_shape(n):
             """Returns the node color and marker for a given graph node."""
             i = G.nodes[n]['li']
             color = colors[i]
-            marker = 'o'
-            if G.nodes[n]['hyperedge'] is True:
+            if G.nodes[n]['type'] == "V":
+                marker = 'o'
+            elif G.nodes[n]['type'] == "U":
                 marker = 's'
-                if G.nodes[n]['conditional'] is True:
-                    marker = 'D'
+            elif G.nodes[n]['type'] == "C":
+                marker = 'D'
+            elif G.nodes[n]['type'] == "O":
+                marker = 'p'
+            else:
+                raise RuntimeError("Unknown node type")
             return color, marker
 
         def get_edge_shape(e):
@@ -205,6 +214,7 @@ class cmdCaseGen(cmd.Cmd):
 
 
         fig, ax = plt.subplots(1, 1, figsize=(width, height), dpi=dpi, subplot_kw={'projection':'3d'})
+        ax.set_box_aspect((1, 1, 1.1))
 
         G = logic.chg
         #pos = nx.spring_layout(G, k=4.0)#
@@ -242,13 +252,14 @@ class cmdCaseGen(cmd.Cmd):
             ax.plot_surface(xx, yy, zz, color=colors[i], alpha=0.15, zorder=i)
 
             # layer labels
-            ax.text(0.2, 1.2, -i, "Level {}".format(i),
+            ax.text(0.2, 1.2, -i, "Layer {}".format(i),
                         color=colors[i], fontsize='large', fontweight='bold', zorder=1000, ha='left', va='center')
 
         ax.view_init(height_angle, angle)
         ax.dist = view_dist
         ax.set_axis_off()
 
+        plt.tight_layout()
         plt.savefig("chg.png")
 
         # Finally, save label keys in a text file:
@@ -256,12 +267,9 @@ class cmdCaseGen(cmd.Cmd):
             for ni, n in enumerate(G.nodes):
 
                 n_str = str(n)
-                node_type = 'V'
-                if G.nodes[n]['hyperedge'] is True:
-                    node_type = 'U'
-                    if G.nodes[n]['conditional'] is True:
-                        node_type = 'C'
-                        n_str = 'If ({}, {})'.format(n[0], n[1])
+                node_type = G.nodes[n]['type']
+                if node_type == 'C':
+                    n_str = 'If ({}, {})'.format(n[0], n[1])
 
                 node_text = re.sub(' +|\n', ' ', n_str )
                 chg_txt.write('{} {} {}\n'.\

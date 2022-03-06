@@ -23,7 +23,7 @@ class Logic():
         Layer.reset()
 
     @classmethod
-    def _initialize_chg_layers(cls, new_assertions, vdict):
+    def _initialize_layers(cls, new_assertions, options_setters):
         """Determines constraint hypergraph layer indices of assertions and variables appearing in those assertions."""
 
         if len(cls.layers) > 0:
@@ -32,6 +32,7 @@ class Logic():
         # layer index solver:
         lis = Solver()
 
+        # First, take into account the relational assertions (both unconditional and conditional) 
         for asrt in new_assertions:
             # unconditional constraints
             if isinstance(asrt, BoolRef):
@@ -66,6 +67,23 @@ class Logic():
                 "variable hierarchy such that variables appearing in antecedent have higher hierarchies "\
                 "than those appearing in consequent. See constraint hierarchy graph documentation for more info.")
 
+        # After having taken into account the relational assertions, impose the layerconstraints due to
+        # the options dependencies:
+        for os in options_setters:
+            if os.parent_vars is not None:
+                Layer.indices[os.var] = Int("LayerIx{}".format(os.var))
+                for parent_var in os.parent_vars:
+                    Layer.indices[parent_var] = Int("LayerIx{}".format(parent_var))
+                    lis.add(Layer.indices[os.var] > Layer.indices[parent_var])
+
+        if lis.check() == unsat:
+            raise RuntimeError("Error in relational variable hierarchy after registering options dependencies. "\
+                "Make sure to use conditional "\
+                "relationals (i.e., When() operators) in a consistent manner. Conditional relationals dictate "\
+                "variable hierarchy such that variables appearing in antecedent have higher hierarchies "\
+                "than those appearing in consequent. See constraint hierarchy graph documentation for more info.")
+
+
         layer_index_model = lis.model()
 
         # cast Layer.indices values to integers:
@@ -86,6 +104,9 @@ class Logic():
             li = normalization[Layer.indices[var]] 
             Layer.indices[var] = [li]
             cls.layers[li].vars.append(var)
+
+    @classmethod
+    def _register_relational_assertions(cls, new_assertions):
 
         # finally, set layer indices of assertions:
         for asrt in new_assertions:
@@ -111,12 +132,18 @@ class Logic():
                         cls.layers[li].ghost_vars.append(a_var)
 
     @classmethod
-    def _gen_constraint_hypergraph(cls, new_assertions, vdict):
+    def _gen_constraint_hypergraph(cls, new_assertions, options_setters, vdict):
         """ Given a dictionary of relational assertions, generates the constraint hypergraph. This method
         also sets the related_vars and child_vars properties of variables appearing in relational assertions."""
 
         cls.chg = nx.Graph()
+        
+        # Nodes:
+        for layer in cls.layers:
+            for var in layer.vars:
+                cls.chg.add_node(var, li=layer.li, type="V") # V: variable node
 
+        # Edges and Hyperedges due to relational assertions:
         for asrt in new_assertions:
 
             # unconditional assertions
@@ -128,13 +155,8 @@ class Logic():
 
                 li = Layer.get_major_index(asrt)
 
-                # add variable nodes
-                for var in asrt_vars:
-                    if var not in cls.chg:
-                        cls.chg.add_node(var, li=li, hyperedge=False)
-
                 # add unconditional assertion node
-                cls.chg.add_node(asrt, li=li, hyperedge=True, conditional=False)
+                cls.chg.add_node(asrt, li=li, type="U") # U: unconditional relational assertion
 
                 # add edge from variable to asrt
                 for var in asrt_vars:
@@ -148,13 +170,9 @@ class Logic():
 
                 # add conditional assertion node
                 li = Layer.get_major_index(asrt)
-                cls.chg.add_node(asrt, li=li, hyperedge=True, conditional=True)
+                cls.chg.add_node(asrt, li=li, type="C") # C: conditional relational assertion
 
                 for a_var in antecedent_vars:
-                    # add antecedent variables nodes (if not added already)
-                    if a_var not in cls.chg:
-                        li = Layer.get_major_index(a_var)
-                        cls.chg.add_node(a_var, li=li, hyperedge=False)
                     # add edge from var to asrt
                     cls.chg.add_edge(a_var, asrt) # higher var to assertion
 
@@ -162,12 +180,26 @@ class Logic():
                     a_var.child_vars.extend([var for var in consequent_vars if var not in a_var.child_vars])
 
                 for c_var in consequent_vars:
-                    # add consequent variables's node (if not added already)
-                    if c_var not in cls.chg:
-                        li = Layer.get_major_index(c_var)
-                        cls.chg.add_node(c_var, li=li, hyperedge=False)
                     # add edge from var to asrt
                     cls.chg.add_edge(c_var, asrt) # lower var to assertion
+
+        # Edges and hyperedges due to options setters:
+        for os in options_setters:
+            if os.parent_vars is not None:
+                li = Layer.get_major_index(os.var)
+                hyperedge_str = '{} options setter'.format(os.var) 
+                cls.chg.add_node(hyperedge_str, li=li, type="O")
+
+                for parent_var in os.parent_vars:
+                    cls.chg.add_edge(parent_var, hyperedge_str)
+                    parent_var.options_children.add(os.var)
+
+                cls.chg.add_edge(hyperedge_str, os.var)
+
+
+
+
+
 
         # Check if newly added relational assertions are sat:
         #todo s = Solver()
@@ -178,17 +210,18 @@ class Logic():
         #todo     raise RuntimeError("Relational assertions not satisfiable!")
 
     @classmethod
-    def register_relational_assertions(cls, assertions_setter, vdict):
+    def register_interdependencies(cls, relational_assertions_setter, options_setters, vdict):
 
         for layer in cls.layers:
             if len(layer.relational_assertions)>0:
-                raise RuntimeError("Attempted to call register_relational_assertions method multiple times.")
+                raise RuntimeError("Attempted to call register_interdependencies method multiple times.")
 
         # Obtain all new assertions including conditionals and unconditionals
-        new_assertions = assertions_setter(vdict)
+        relational_assertions = relational_assertions_setter(vdict)
 
-        cls._initialize_chg_layers(new_assertions, vdict)
-        cls._gen_constraint_hypergraph(new_assertions, vdict)
+        cls._initialize_layers(relational_assertions, options_setters)
+        cls._register_relational_assertions(relational_assertions)
+        cls._gen_constraint_hypergraph(relational_assertions, options_setters, vdict)
 
     @classmethod
     def register_assignment(cls, var, new_value):
