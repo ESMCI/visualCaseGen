@@ -57,8 +57,9 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         # variable properties managed by the logic module
         self.related_vars = set() # set of other variables sharing relational assertions with this var.
-        self.options_children = set() # set of other variables sharing relational assertions with this var.
-        self.child_vars = []
+        self.child_vars_opt = set() # set of variables whose options are to be updated when the value of self changes.
+        self.child_vars_rlt = [] # set of other variables appearing consequents of conditional relations that
+                               # include self in antecedent.
 
         # Now call property setters of options and value
         if options is not None:
@@ -123,11 +124,13 @@ class ConfigVarBase(SeqRef, HasTraits):
         return self._options
 
     @options.setter
-    def options(self, new_opts):
+    def options(self, new_options):
         logger.debug("Assigning the options of ConfigVarBase %s", self.name)
-        assert isinstance(new_opts, (list,set))
-        logic.register_options(self, new_opts)
-        self._update_options(new_opts=new_opts)
+        assert isinstance(new_options, (list,set))
+        logic.register_options(self, new_options)
+        self._options = new_options
+        self.update_options_validities(options_changed=True)
+        logger.debug("Done assigning the options of ConfigVarBase %s", self.name)
 
     @property
     def tooltips(self):
@@ -145,27 +148,22 @@ class ConfigVarBase(SeqRef, HasTraits):
     def has_options(self):
         return self._options is not None
 
-    def _update_options(self, new_validities=None, new_opts=None):
-        """ This method updates options, validities, and displayed widget options.
+    def update_options_validities(self, new_validities=None, options_changed=False):
+        """ This method updates options validities, and displayed widget options.
         If needed, value is also updated according to the options update."""
 
-        # check if validities are being updated only, while options remain the same
-        validity_change_only = new_opts is None or new_opts == self._options
         old_widget_value = self._widget.value
         old_validities = self._options_validities
-
-        if not validity_change_only:
-            self._options = new_opts
 
         if new_validities is None:
             self._options_validities = logic.get_options_validities(self)
         else:
             self._options_validities = new_validities
 
-        if validity_change_only and old_validities == self._options_validities:
-            return # no change in options or validities
+        if (not options_changed) and self._options_validities == old_validities:
+            return # no change in validities or options
 
-        logger.debug("Updating options of %s. validity_change_only=%s", self.name, validity_change_only)
+        logger.debug("Updated options validities of %s. Now updating widget.", self.name)
 
         if self._hide_invalid is True:
             self._widget.options = tuple( 
@@ -176,30 +174,29 @@ class ConfigVarBase(SeqRef, HasTraits):
                 '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] is True \
                 else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
 
-        if validity_change_only:
+        if not options_changed:
             self._widget.value = old_widget_value
 
-            #todo value_still_valid = True
-            #todo try:
-            #todo     self._widget.value = old_widget_value
-            #todo except KeyError:
-            #todo     value_still_valid = False
+        #todo value_still_valid = True
+        #todo try:
+        #todo     self._widget.value = old_widget_value
+        #todo except KeyError:
+        #todo     value_still_valid = False
 
-            #todo if not value_still_valid:
-            #todo     # this should be reachable only when the current value of a child variable (self)
-            #todo     # gets invalidated by the value change of its parent. TODO: place more checks here.
-            #todo     if self._always_set is True:
-            #todo             self._set_to_first_valid_opt()
-            #todo     else:
-            #todo         self.value = None
+        #todo if not value_still_valid:
+        #todo     # this should be reachable only when the current value of a child variable (self)
+        #todo     # gets invalidated by the value change of its parent. TODO: place more checks here.
+        #todo     if self._always_set is True:
+        #todo             self._set_to_first_valid_opt()
+        #todo     else:
+        #todo         self.value = None
 
-            #todo     logger.warning("Value of variable %s changed to %s due to a value change of one of its parent variables",
-            #todo         self.name, self.value)
+        #todo     logger.warning("Value of variable %s changed to %s due to a value change of one of its parent variables",
+        #todo         self.name, self.value)
             
-        if self._always_set is True and (self.value is None or not validity_change_only):
+        if self._always_set is True and (self.value is None or options_changed):
             self._set_to_first_valid_opt()
 
-        logger.debug("Done updating options of %s. validity_change_only=%s", self.name, validity_change_only)
 
     def _set_to_first_valid_opt(self):
         """ Set the value of the instance to the first option that is valid."""

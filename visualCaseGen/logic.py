@@ -134,7 +134,7 @@ class Logic():
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, options_setters, vdict):
         """ Given a dictionary of relational assertions, generates the constraint hypergraph. This method
-        also sets the related_vars and child_vars properties of variables appearing in relational assertions."""
+        also sets the related_vars and child_vars_rlt properties of variables appearing in relational assertions."""
 
         cls.chg = nx.Graph()
         
@@ -176,8 +176,8 @@ class Logic():
                     # add edge from var to asrt
                     cls.chg.add_edge(a_var, asrt) # higher var to assertion
 
-                    # todo: consider making child_vars of type set
-                    a_var.child_vars.extend([var for var in consequent_vars if var not in a_var.child_vars])
+                    # todo: consider making child_vars_rlt of type set
+                    a_var.child_vars_rlt.extend([var for var in consequent_vars if var not in a_var.child_vars_rlt])
 
                 for c_var in consequent_vars:
                     # add edge from var to asrt
@@ -192,14 +192,9 @@ class Logic():
 
                 for parent_var in os.parent_vars:
                     cls.chg.add_edge(parent_var, hyperedge_str)
-                    parent_var.options_children.add(os.var)
+                    parent_var.child_vars_opt.add(os.var)
 
                 cls.chg.add_edge(hyperedge_str, os.var)
-
-
-
-
-
 
         # Check if newly added relational assertions are sat:
         #todo s = Solver()
@@ -272,19 +267,20 @@ class Logic():
         # empy lists of affected vars for each layer
         affected_vars = {rli:[] for rli in relevant_layer_indices}
 
-        # set the list of affected vars of layer li (i.e., the first relevant layer):
-        affected_vars[li] = list(invoker_var.related_vars)
+        # record variables whose options are to be updated due to the value change of invoker_var:
+        for child_var_opt in invoker_var.child_vars_opt:
+            child_layer = cls.layers[Layer.get_major_index(child_var_opt)]
+            child_layer.vars_refresh_opts.add(child_var_opt)
 
         # also record child vars that may be affected by invoker_var's value change:
-        for child_var in invoker_var.child_vars:
-            child_li = Layer.get_major_index(child_var)
-            if child_var not in affected_vars[child_li]:
-                affected_vars[child_li].append(child_var)
+        affected_vars[li] = list(invoker_var.related_vars)
+        for child_var_rlt in invoker_var.child_vars_rlt:
+            child_li = Layer.get_major_index(child_var_rlt)
+            if child_var_rlt not in affected_vars[child_li]:
+                affected_vars[child_li].append(child_var_rlt)
 
-        #print("notifying related vars ----------------- invoker:", invoker_var, 'children:', invoker_var.child_vars)
         for rli in relevant_layer_indices:
-            #print("\trelevant layer index:", rli, "initial vars:", affected_vars[rli])
-            cls.layers[rli].refresh_options_validities(affected_vars)
+            cls.layers[rli].refresh(affected_vars)
 
 
 class Layer():
@@ -309,6 +305,9 @@ class Layer():
         self.asrt_options = dict()
         # relational assertions appearing in this layer
         self.relational_assertions = dict()
+
+        # set of variables whose options are to be updated
+        self.vars_refresh_opts = set()
     
     @classmethod
     def reset(cls):
@@ -403,7 +402,10 @@ class Layer():
                 err_msgs_joint += ' (Asrt.{}) {}'.format(i+1, err_msgs[i])
             return err_msgs_joint
     
-    def refresh_options_validities(self, affected_vars):
+    def refresh(self, affected_vars):
+
+        #todo for var in self.vars_refresh_opts:
+        #todo     var.update_options()
 
         if len(affected_vars[self.li]) == 0:
             return # no variables affected in this layer
@@ -425,16 +427,16 @@ class Layer():
                 s.pop()
                 if new_validities != var._options_validities:
                     logger.debug("%s options validities changed.", var.name)
-                    var._update_options(new_validities=new_validities)
+                    var.update_options_validities(new_validities=new_validities)
 
                     # extend the list of affected vars of this layer
                     affected_vars[self.li] += [var_other for var_other in var.related_vars if var_other not in affected_vars[self.li]]
 
                     # also include child vars that may be affected by options validity change of var:
-                    for child_var in var.child_vars:
-                        child_li = Layer.get_major_index(child_var)
-                        if child_var not in affected_vars[child_li]:
-                            affected_vars[child_li].append(child_var)
+                    for child_var_rlt in var.child_vars_rlt:
+                        child_li = Layer.get_major_index(child_var_rlt)
+                        if child_var_rlt not in affected_vars[child_li]:
+                            affected_vars[child_li].append(child_var_rlt)
             else:
                 logger.debug("Variable %s has no options.", var.name)
 
