@@ -58,10 +58,9 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarStr('GRID')
 
     def _init_configvar_options(self):
-        ConfigVarStr.vdict['INITTIME'].options = ['1850', '2000', 'HIST']
-        for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.options = [model for model in  self.ci.models[comp_class] if model[0] != 'x']
+        for varname, var in ConfigVarBase.vdict.items():
+            if var.has_options_setter():
+                var.run_options_setter()
 
     def do_vars(self, arg):
         """

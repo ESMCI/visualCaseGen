@@ -132,6 +132,22 @@ class ConfigVarBase(SeqRef, HasTraits):
         self.update_options_validities(options_changed=True)
         logger.debug("Done assigning the options of ConfigVarBase %s", self.name)
 
+    def assign_options_setter(self, options_setter, tooltips_setter=None):
+        self._options_setter = options_setter
+
+    def run_options_setter(self):
+        """ This should only be called for variables whose options depend on other variables
+        and are preset by the OptionsSetter mechanism."""
+
+        new_options, new_tooltips = self._options_setter()
+
+        if new_options is not None:
+            self.options = new_options
+            if new_tooltips is not None:
+                self.tooltips = new_tooltips
+            self._widget.layout.visibility = 'visible'
+            self._widget.disabled = False
+
     @property
     def tooltips(self):
         return self._widget.tooltips
@@ -145,7 +161,12 @@ class ConfigVarBase(SeqRef, HasTraits):
         else:
             self._widget.tooltips = new_tooltips
 
+    def has_options_setter(self):
+        """Returns True if an options_setter function has been assigned for this variable."""
+        return self._options_setter is not None
+
     def has_options(self):
+        """Returns True if options have been assigned for this variable."""
         return self._options is not None
 
     def update_options_validities(self, new_validities=None, options_changed=False):

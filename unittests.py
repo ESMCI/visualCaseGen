@@ -68,10 +68,18 @@ class TestParamGen(unittest.TestCase):
             cmd.onecmd("COMP_OCN")
         self.assertEqual(out.getvalue().strip(), "None")
 
+        # confirm COMP_ATM_PHYS and COMP_ATM_OPTION are initially empty
+        self.assertEqual(ConfigVarStr.vdict['COMP_ATM_PHYS'].options, None)
+        self.assertEqual(ConfigVarStr.vdict['COMP_ATM_OPTION'].options, None)
+
         # now set COMP_OCN and others successfully
         cmd.onecmd("COMP_OCN =mom")
-        cmd.onecmd("COMP_ATM= cam")
         cmd.onecmd("COMP_LND = clm")
+        cmd.onecmd("COMP_ATM= cam")
+
+        # After having set COMP_ATM, confirm COMP_ATM_PHYS and COMP_ATM_OPTION are updated.
+        self.assertIn("CAM60", ConfigVarStr.vdict['COMP_ATM_PHYS'].options, None)
+        self.assertIn("1PCT", ConfigVarStr.vdict['COMP_ATM_OPTION'].options, None)
 
         #capture another syntax error:
         with self.assertLogs() as captured:
@@ -177,7 +185,7 @@ class TestParamGen(unittest.TestCase):
 
 
     def test_D_gui_sequence(self):
-        """Test GUI by checking an assignment sequence that was causing an error """
+        """Test GUI by checking an assignment sequence that was previously causing an error."""
         if 'D' in tests_to_skip:
             return
 
@@ -205,9 +213,9 @@ class TestParamGen(unittest.TestCase):
             'Asrt.3' not in out.getvalue().strip()
         )
 
-        # COMP_ICE.value = 'dice'
-        # COMP_ICE.value = 'sice'
-        # COMP_ICE.value = 'dice'
+        #todo COMP_ICE.value = 'dice'
+        #todo COMP_ICE.value = 'sice'
+        #todo COMP_ICE.value = 'dice'
 
     def test_E_gui_random(self):
         """Test GUI by randomly assigning component values many times"""
@@ -219,7 +227,7 @@ class TestParamGen(unittest.TestCase):
         #from visualCaseGen.logic import profiler
         #import cProfile, pstats
 
-        for i in range(3):
+        for i in range(2):
             GUI_create_custom(ci).construct()
 
             COMP_ATM = ConfigVarStr.vdict['COMP_ATM']
@@ -255,9 +263,17 @@ class TestParamGen(unittest.TestCase):
         #stats = pstats.Stats(profiler).sort_stats('time')
         #stats.print_stats()
 
+    def test_F_var_assignment(self):
+        """Check constraint hypergraph generator."""
+        if 'F' in tests_to_skip:
+            return
+
+        cmd = cmdCaseGen(exit_on_error=False)
+        cmd.onecmd("chg")
 
 if __name__ == '__main__':
-    tests_to_skip = []
-    #tests_to_skip = ['A', 'B', 'C', 'E']
+    tests_to_skip = ''
+    #tests_to_skip = 'F'
+    #tests_to_skip = 'ABCDE'
     logging.getLogger().setLevel(logging.ERROR)
     unittest.main()

@@ -70,11 +70,11 @@ class Logic():
         # After having taken into account the relational assertions, impose the layerconstraints due to
         # the options dependencies:
         for os in options_setters:
-            if os.parent_vars is not None:
+            if os.has_inducing_vars():
                 Layer.indices[os.var] = Int("LayerIx{}".format(os.var))
-                for parent_var in os.parent_vars:
-                    Layer.indices[parent_var] = Int("LayerIx{}".format(parent_var))
-                    lis.add(Layer.indices[os.var] > Layer.indices[parent_var])
+                for inducing_var in os.inducing_vars:
+                    Layer.indices[inducing_var] = Int("LayerIx{}".format(inducing_var))
+                    lis.add(Layer.indices[os.var] > Layer.indices[inducing_var])
 
         if lis.check() == unsat:
             raise RuntimeError("Error in relational variable hierarchy after registering options dependencies. "\
@@ -185,14 +185,14 @@ class Logic():
 
         # Edges and hyperedges due to options setters:
         for os in options_setters:
-            if os.parent_vars is not None:
+            if os.has_inducing_vars():
                 li = Layer.get_major_index(os.var)
                 hyperedge_str = '{} options setter'.format(os.var) 
                 cls.chg.add_node(hyperedge_str, li=li, type="O")
 
-                for parent_var in os.parent_vars:
-                    cls.chg.add_edge(parent_var, hyperedge_str)
-                    parent_var.child_vars_opt.add(os.var)
+                for inducing_var in os.inducing_vars:
+                    cls.chg.add_edge(inducing_var, hyperedge_str)
+                    inducing_var.child_vars_opt.add(os.var)
 
                 cls.chg.add_edge(hyperedge_str, os.var)
 
@@ -264,8 +264,9 @@ class Logic():
         # indices of layers that may need to be notified:
         relevant_layer_indices = range(li, len(cls.layers))
         
-        # empy lists of affected vars for each layer
+        # running lists of affected vars for each layer
         affected_vars = {rli:[] for rli in relevant_layer_indices}
+        affected_vars[li] = list(invoker_var.related_vars)
 
         # record variables whose options are to be updated due to the value change of invoker_var:
         for child_var_opt in invoker_var.child_vars_opt:
@@ -273,7 +274,6 @@ class Logic():
             child_layer.vars_refresh_opts.add(child_var_opt)
 
         # also record child vars that may be affected by invoker_var's value change:
-        affected_vars[li] = list(invoker_var.related_vars)
         for child_var_rlt in invoker_var.child_vars_rlt:
             child_li = Layer.get_major_index(child_var_rlt)
             if child_var_rlt not in affected_vars[child_li]:
@@ -404,8 +404,9 @@ class Layer():
     
     def refresh(self, affected_vars):
 
-        #todo for var in self.vars_refresh_opts:
-        #todo     var.update_options()
+        for var in self.vars_refresh_opts:
+            var.run_options_setter()
+        self.vars_refresh_opts = set() # reset
 
         if len(affected_vars[self.li]) == 0:
             return # no variables affected in this layer

@@ -25,11 +25,13 @@ class GUI_create_custom():
         ConfigVarBase.determine_interdependencies(
             relational_assertions_setter,
             options_setters)
-        self._init_configvar_values_and_options()
+        self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
         self._compset_text = ''
         self._grid_view_mode = 'suggested' # or 'all'
+        # set inittime to its default value
+        ConfigVarStr.vdict['INITTIME'].value = '2000'
 
     def _init_configvars(self):
         """ Define the ConfigVars and, by doing so, register them with the logic engine. """
@@ -45,18 +47,11 @@ class GUI_create_custom():
         #todo ConfigVar('COMPSET')
         #todo ConfigVarOptMS('GRID')
 
-    def _init_configvar_values_and_options(self):
-        """ Initialize the values of ConfigVars to their default values, if they have any.
-        Also initialize the default options of ConfigVars, if they have any."""
-
-        cv_inittime = ConfigVarStr.vdict['INITTIME']
-        cv_inittime.options = ['1850', '2000', 'HIST'] 
-        cv_inittime.tooltips = ['Pre-industrial', 'Present day', 'Historical'] 
-        cv_inittime.value = '2000'
-
-        for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.options = [model for model in  self.ci.models[comp_class] if model[0] != 'x']
+    def _init_configvar_options(self):
+        """ Initialize the options of all ConfigVars by calling their options setters."""
+        for varname, var in ConfigVarBase.vdict.items():
+            if var.has_options_setter():
+                var.run_options_setter()
 
     def _init_widgets(self):
         # Create Case: --------------------------------------
@@ -111,7 +106,7 @@ class GUI_create_custom():
                 )
             #todo cv_comp_option.widget_style.button_width = '90px'
             #todo cv_comp_option.widget_style.description_width = '0px'
-            cv_comp_option.valid_opt_icon = '%'
+            cv_comp_option.valid_opt_char = '%'
 
     #todo         cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
     #todo         cv_comp_grid.widget = DummyWidget()
@@ -132,7 +127,7 @@ class GUI_create_custom():
     #todo          #todo layout=widgets.Layout(width='500px')
     #todo     )
     #todo     #todo cv_grid.widget_style.description_width = '150px'
-    #todo     cv_grid.valid_opt_icon = chr(int('27A4',base=16))
+    #todo     cv_grid.valid_opt_char = chr(int('27A4',base=16))
 
     #todo     self._btn_grid_view = widgets.Button(
     #todo         description='show all grids',
@@ -225,47 +220,6 @@ class GUI_create_custom():
 
     #todo         self._btn_grid_view.layout.display = '' # turn on the display
 
-    @owh.out.capture()
-    def _update_comp_phys(self, change=None):
-
-        cv_comp = change['owner'] 
-        model = cv_comp.value
-        comp_class = cv_comp.name[5:]
-
-        logger.debug("Updating the physics of %s for model=%s", comp_class, model)
-        comp_phys, comp_phys_desc = self.ci.comp_phys[model]
-
-        cv_comp_phys = ConfigVarStr.vdict["COMP_{}_PHYS".format(comp_class)]
-        cv_comp_phys.widget_layout.visibility = 'visible'
-        cv_comp_phys.options = comp_phys
-        cv_comp_phys.tooltips = comp_phys_desc
-
-    @owh.out.capture()
-    def _update_comp_options(self, change=None):
-
-        cv_comp_phys = change['owner']
-        comp_class = cv_comp_phys.description[0:3]
-
-        logger.debug("Updating the options for phys of %s", comp_class)
-        if cv_comp_phys.value is not None:
-            cv_comp = ConfigVarBase.vdict['COMP_{}'.format(comp_class)]
-            model = cv_comp.value
-            phys = cv_comp_phys.value
-            comp_options, comp_options_desc = self.ci.comp_options[model][phys]
-
-            comp_options = ['(none)'] + comp_options
-            comp_options_desc = ['no modifiers for the {} physics'.format(phys)] + comp_options_desc
-
-            cv_comp_option = ConfigVarBase.vdict["COMP_{}_OPTION".format(comp_class)]
-            #import time
-            #start = time.time()
-            cv_comp_option.options = comp_options
-            cv_comp_option.tooltips = comp_options_desc
-            cv_comp_option.set_widget_properties({'disabled':False})
-            #end = time.time()
-            #print("elapsed: ", end-start)
-
-
     #todo @owh.out.capture()
     #todo def _update_compset(self, change=None):
     #todo     new_compset_text = ConfigVar.vdict['INITTIME'].value
@@ -334,27 +288,7 @@ class GUI_create_custom():
 
     def _construct_all_widget_observances(self):
 
-    #todo     # Assign the compliances property of all ConfigVar instsances:
-    #todo     ConfigVar.compliances = self.ci.compliances
-
-    #todo     # Build relational observances:
-    #todo     for var in ConfigVar.vdict.values():
-    #todo         if isinstance(var, (ConfigVarOpt, ConfigVarOptMS)):
-    #todo             self.observe_for_options_validity_update(var)
-
-    #todo     # Update COMP_{} states
-    #todo     for comp_class in self.ci.comp_classes:
-    #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-    #todo         cv_comp.update_options_validity()
-
         for comp_class in self.ci.comp_classes:
-
-            # Build options observances for comp_phys
-            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.observe(
-                self._update_comp_phys,
-                names='value',
-                type='change')
 
             # Change component phys/options tab whenever a frontend component change is made
             cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
@@ -362,14 +296,6 @@ class GUI_create_custom():
                 self._set_comp_options_tab,
                 names='_property_lock',
                 type='change')
-
-            # Build options observances for comp_option
-            cv_comp_phys = ConfigVarBase.vdict['COMP_{}_PHYS'.format(comp_class)]
-            cv_comp_phys.observe(
-                self._update_comp_options,
-                names='value',
-                type='change')
-
 
     #todo     cv_inittime = ConfigVar.vdict['INITTIME']
     #todo     cv_inittime.observe(

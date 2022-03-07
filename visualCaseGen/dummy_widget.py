@@ -13,3 +13,8 @@ class DummyWidget(HasTraits):
         self.set_trait('value',value)
         if options:
             self.set_trait('options',options)
+        self.layout = DummyLayout()
+
+class DummyLayout():
+    def __init__(self):
+        self.visibility = 'hidden'
