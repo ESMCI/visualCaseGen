@@ -239,6 +239,13 @@ class GUI_create_predefined():
                     continue
                 if self._grid_view_mode == 'suggested' and desc == '':
                     continue
+
+                # when the new logic solver is in place, below hack should be removed.
+                comp_ocn = new_compset_lname.split('_')[4]
+                if 'AQ' in comp_ocn:
+                    if not (alias.startswith('f09_f09') or alias.startswith('f19_f19') or alias.startswith('f45_f45')):
+                        continue
+
                 compatible_grids.append(alias)
                 grid_descriptions.append(desc)
 
