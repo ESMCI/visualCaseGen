@@ -5,6 +5,7 @@ from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
 from z3 import BoolRef, Int
 from z3 import z3util
+from z3 import If as z3_If
 import networkx as nx
 
 import cProfile, pstats
@@ -83,7 +84,8 @@ class Logic():
                 "variable hierarchy such that variables appearing in antecedent have higher hierarchies "\
                 "than those appearing in consequent. See constraint hierarchy graph documentation for more info.")
 
-
+        # now that we have confirmed the feasibilty of the layer constraints, minimize the number of layers:
+        Logic._minimize_n_layers(lis)
         layer_index_model = lis.model()
 
         # cast Layer.indices values to integers:
@@ -104,6 +106,36 @@ class Logic():
             li = normalization[Layer.indices[var]] 
             Layer.indices[var] = [li]
             cls.layers[li].vars.append(var)
+    
+    @staticmethod
+    def _minimize_n_layers(lis):
+
+        def get_min_val(varlist):
+            min_val = varlist[0]
+            for val in varlist[1:]:
+                min_val = z3_If(val < min_val, val, min_val)
+            return min_val
+        def get_max_val(varlist):
+            max_val = varlist[0]
+            for val in varlist[1:]:
+                max_val = z3_If(val > max_val, val, max_val)
+            return max_val
+        
+        minimizing_constraint = None
+        layer_indices_list = list(Layer.indices.values())
+        layer_index_max = get_max_val(layer_indices_list)
+        layer_index_min = get_min_val(layer_indices_list)
+        for layer_range in range(2,100):
+            if lis.check( (layer_index_max-layer_index_min) == layer_range ) == sat:
+                minimizing_constraint = (layer_index_max-layer_index_min) == layer_range
+                break
+        
+        if minimizing_constraint is None:
+            raise RuntimeError("Relational and options constraints resulted in more than a hundred constraint "
+            "hypergraph layers, which indicates a likely error in the constraints specification. Exiting...")
+        
+        lis.add(minimizing_constraint)
+        lis.check()
 
     @classmethod
     def _register_relational_assertions(cls, new_assertions):
