@@ -195,47 +195,32 @@ class ConfigVarBase(SeqRef, HasTraits):
                 '{} {}'.format(self.valid_opt_char, opt) if self._options_validities[opt] is True \
                 else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
 
-        if not options_changed:
+        if options_changed:
+            if self._always_set is True:
+                self.value = self._get_first_valid_option()
+            else:
+                self.value = None
+
+        else: # options NOT changed. only the validities have changed.
+
             self._widget.value = old_widget_value
 
-        #todo value_still_valid = True
-        #todo try:
-        #todo     self._widget.value = old_widget_value
-        #todo except KeyError:
-        #todo     value_still_valid = False
+            #todo try:
+            #todo     self._widget.value = old_widget_value
+            #todo except KeyError:
+            #todo     new_value = self._get_first_valid_option() if self._always_set else None
 
-        #todo if not value_still_valid:
-        #todo     # this should be reachable only when the current value of a child variable (self)
-        #todo     # gets invalidated by the value change of its parent. TODO: place more checks here.
-        #todo     if self._always_set is True:
-        #todo             self._set_to_first_valid_opt()
-        #todo     else:
-        #todo         self.value = None
-
-        #todo     logger.warning("Value of variable %s changed to %s due to a value change of one of its parent variables",
-        #todo         self.name, self.value)
-            
-        if self._always_set is True and (self.value is None or options_changed):
-            self._set_to_first_valid_opt()
+            #todo     logger.warning("The {}={} assignment is no longer feasible. Setting {}={}".
+            #todo         format(self.name, old_widget_value[2:], self.name, new_value))
+            #todo     self.value = new_value
 
 
-    def _set_to_first_valid_opt(self):
-        """ Set the value of the instance to the first option that is valid."""
-
-        if self._options is None:
-            return
-
-        logger.debug("Setting %s to first valid value", self.name)
-        valid_opt_found = False
+    def _get_first_valid_option(self):
+        """Returns the first valid value from the list of options of this ConfigVar instance."""
         for opt in self._options:
             if self._options_validities[opt] == True:
-                self.value = opt
-                valid_opt_found = True
-                break
-
-        if valid_opt_found is False:
-            self.value = None
-            logger.debug("Couldn't find a valid opt for %s", self.name)
+                return opt
+        return None
 
 
     @property
