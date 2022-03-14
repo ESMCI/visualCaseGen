@@ -18,6 +18,8 @@ class Logic():
     # list of constraint hypergraph layers
     layers = []
 
+    invoker_lock = False
+
     @classmethod
     def reset(cls):
         cls.layers = []
@@ -288,6 +290,11 @@ class Logic():
     def notify_related_vars(cls, invoker_var):
         """ When a variable value gets (re-)assigned, this method is called to notify the related variables that
         may be affected by the value assignment"""
+
+        if Logic.invoker_lock is True:
+            return # the root invoker is not this variable, so return
+        Logic.invoker_lock = True
+
         logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
 
         # layer index of invoker var
@@ -314,6 +321,7 @@ class Logic():
         for rli in relevant_layer_indices:
             cls.layers[rli].refresh(affected_vars)
 
+        Logic.invoker_lock = False # After having traversed the entire chg, release the invoker lock.
 
 class Layer():
     """ A class that encapsulate constraint hypergraph layer properties. """
@@ -436,12 +444,16 @@ class Layer():
     
     def refresh(self, affected_vars):
 
-        for var in self.vars_refresh_opts:
-            var.run_options_setter()
-        self.vars_refresh_opts = set() # reset
+        some_options_changed = len(self.vars_refresh_opts) > 0
+        some_relational_impact = len(affected_vars[self.li]) > 0
 
-        if len(affected_vars[self.li]) == 0:
-            return # no variables affected in this layer
+        if some_options_changed is True:
+            for var in self.vars_refresh_opts:
+                var.run_options_setter()
+            self.vars_refresh_opts = set() # reset
+
+        if not some_relational_impact:
+            return
 
         s = Solver()
         self._apply_options_assertions(s)
