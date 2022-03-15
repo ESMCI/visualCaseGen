@@ -1,5 +1,6 @@
 import logging
 from visualCaseGen.OutHandler import handler as owh
+from visualCaseGen.logic_utils import When
 
 from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
@@ -50,10 +51,10 @@ class Logic():
                         lis.add(li_var_0 == li_var_i)
 
             # conditional constraints
-            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+            elif isinstance(asrt, When):
 
-                antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt[0])]
-                consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt[1])]
+                antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)]
+                consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt.consequent)]
 
                 for a_var in antecedent_vars:
                     Layer.indices[a_var] = Int("LayerIx{}".format(a_var))
@@ -151,12 +152,14 @@ class Logic():
                 Layer.indices[asrt] = [li]
                 cls.layers[li].relational_assertions[asrt] = new_assertions[asrt]
             # conditional constraints
-            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
-                antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt[0])]
-                consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt[1])]
+            elif isinstance(asrt, When):
+                antecedent = asrt.antecedent
+                consequent = asrt.consequent
+                antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(antecedent)]
+                consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(consequent)]
                 li= max([Layer.get_major_index(c_var) for c_var in consequent_vars])
                 Layer.indices[asrt] = [li]
-                cls.layers[li].relational_assertions[Implies(asrt[0], asrt[1])] = new_assertions[asrt]
+                cls.layers[li].relational_assertions[Implies(antecedent, consequent)] = new_assertions[asrt]
 
                 # add the layer index to antecedent vars' layer indices
                 for a_var in antecedent_vars:
@@ -164,6 +167,8 @@ class Logic():
                         Layer.indices[a_var].append(li)
                     if a_var not in cls.layers[li].ghost_vars:
                         cls.layers[li].ghost_vars.append(a_var)
+            else:
+                raise RuntimeError("Encountered unknown relational assertion type: {}".format(asrt))
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, options_setters, vdict):
@@ -197,10 +202,10 @@ class Logic():
                     cls.chg.add_edge(var, asrt)
 
             # conditional constraints
-            elif isinstance(asrt, tuple) and len(asrt)==2 and isinstance(asrt[0], BoolRef) and isinstance(asrt[1], BoolRef):
+            elif isinstance(asrt, When):
 
-                antecedent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt[0])}
-                consequent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt[1])}
+                antecedent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)}
+                consequent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt.consequent)}
 
                 # add conditional assertion node
                 li = Layer.get_major_index(asrt)
