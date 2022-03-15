@@ -34,7 +34,7 @@ class ConfigVarStr(ConfigVarBase):
         logic.register_assignment(self, new_val)
 
         # update widget value
-        self._widget.value = self._widget_none_val if new_val is None else self.valid_opt_char+' '+new_val 
+        self._widget.value = self.valid_opt_char+' '+new_val 
 
         # finally, set self.value by returning new_vals
         return new_val

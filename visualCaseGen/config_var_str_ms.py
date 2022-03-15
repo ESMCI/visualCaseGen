@@ -41,10 +41,7 @@ class ConfigVarStrMS(ConfigVarBase):
         logic.register_assignment(self, new_vals)
 
         # update widget value
-        if new_vals is None:
-            self._widget.value = self._widget_none_val
-        else:
-            self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
+        self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
 
         # finally, set self.value by returning new_vals
         return new_vals

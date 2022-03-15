@@ -86,7 +86,13 @@ class ConfigVarBase(SeqRef, HasTraits):
         all other value change observers are called/notified."""
 
         #old_val = change['old']
-        #new_val = change['new']
+        new_val = change['new']
+
+        # when a variable value is set to None, its _validate_value method doesn't get called.
+        # so, call the register assignment and update widget value here instead.
+        if new_val is None:
+            logic.register_assignment(self, new_val)
+            self._widget.value = self._widget_none_val
 
         logic.notify_related_vars(self)
 
@@ -198,7 +204,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         if options_changed:
             if self._always_set is True:
                 self.value = self._get_first_valid_option()
-            else:
+            elif self.value is not None:
                 self.value = None
 
         else: # options NOT changed. only the validities have changed.
