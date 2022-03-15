@@ -1,12 +1,9 @@
-from z3 import Implies, And, Or
-
-# Auxiliary definitions of logic expression shorthands
-def In(var, value_list):
-    """Expression to check whether the value of a variable is in a given list."""
-    return Or([var==value for value in value_list])
+from z3 import Implies, And, Or, Not
+from visualCaseGen.logic_utils import In, When
 
 def relational_assertions_setter(cvars):
 
+    # define references to ConfigVars
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
     COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
     COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_PHYS = cvars['COMP_ICE_PHYS'];  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
@@ -15,7 +12,10 @@ def relational_assertions_setter(cvars):
     COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_PHYS = cvars['COMP_GLC_PHYS'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
     COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
 
+    # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
+
+        # Unconditional assertions (invariants) ----------------------------------------------------
 
         Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) : 
             "If COMP_ICE is stub, all other components must be stub (except for ATM)",
@@ -41,30 +41,35 @@ def relational_assertions_setter(cvars):
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
         
-        Implies(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"]), 
-            And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav") ):
-            "When a simple CAM physics option is picked, all other components must be stub.",
-        
-        #todo Implies(And(COMP_ICE=="cice", COMP_OCN == "docn"), COMP_OCN_OPTION=="SOM"):
-        #todo    "When DOCN is coupled with CICE, DOCN option must be set to SOM."
+        # Conditional assertions (When clause) ----------------------------------------------------
 
-        Implies(COMP_ICE=="dice", COMP_ICE_OPTION != "(none)"):
+        When(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
+            "Must pick a valid DOCN option.",
+        
+        When(COMP_ICE=="dice", COMP_ICE_OPTION != "(none)"):
             "Must pick a valid DICE option.",
         
-        Implies(COMP_ATM=="datm", COMP_ATM_OPTION != "(none)"):
+        When(COMP_ATM=="datm", COMP_ATM_OPTION != "(none)"):
             "Must pick a valid DATM option.",
         
-        Implies(COMP_ROF=="drof", COMP_ROF_OPTION != "(none)"):
+        When(COMP_ROF=="drof", COMP_ROF_OPTION != "(none)"):
             "Must pick a valid DROF option.",
         
-        Implies(COMP_WAV=="dwav", COMP_WAV_OPTION != "(none)"):
+        When(COMP_WAV=="dwav", COMP_WAV_OPTION != "(none)"):
             "Must pick a valid DWAV option.",
         
-        Implies(COMP_LND=="clm", COMP_LND_OPTION != "(none)"):
-            "Must pick a valid CLM option.",
+        When(In(COMP_LND, ["clm", "dlnd"]), COMP_LND_OPTION != "(none)"):
+            "Must pick a valid LND option.",
         
-        Implies(COMP_GLC=="cism", COMP_GLC_OPTION != "(none)"):
+        When(COMP_GLC=="cism", COMP_GLC_OPTION != "(none)"):
             "Must pick a valid GLC option.",
+
+        When(And(COMP_ICE=="cice", COMP_OCN == "docn"), COMP_OCN_OPTION=="SOM"):
+           "When DOCN is coupled with CICE, DOCN option must be set to SOM.",
+
+        ##When( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")), 
+        ##        Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
+        ##    "When a simple CAM physics option is picked, all other components must be stub.",
         
     }
 
