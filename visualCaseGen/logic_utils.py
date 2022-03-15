@@ -11,14 +11,14 @@ def In(var, value_list):
     """Expression to check whether the value of a variable is in a given list."""
     return Or([var==value for value in value_list])
 
-def get_min_val(varlist):
+def MinVal(varlist):
     """Given a numeric varlist, returns the variable with minimum value."""
     min_val = varlist[0]
     for val in varlist[1:]:
         min_val = z3_If(val < min_val, val, min_val)
     return min_val
 
-def get_max_val(varlist):
+def MaxVal(varlist):
     """Given a numeric varlist, returns the variable with maximum value."""
     max_val = varlist[0]
     for val in varlist[1:]:
