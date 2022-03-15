@@ -151,6 +151,15 @@ class cmdCaseGen(cmd.Cmd):
                 print('\t', opt)
         else:
             printError("Variable {} doesn't have options".format(varname))
+    
+    def do_nullify(self, line):
+        """Set a given variable to None"""
+        varname = line.strip()
+        if not re.search(r'^\b\w+\b$', varname):
+            self.printError("Invalid syntax for the nullify command. Provide a variable name.")
+            return
+        var = ConfigVarStr.vdict[varname]
+        var.value = None
 
     def close(self):
         if self.file:
