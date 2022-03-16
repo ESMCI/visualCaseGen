@@ -41,7 +41,7 @@ def relational_assertions_setter(cvars):
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
         
-        # Conditional assertions (When clause) ----------------------------------------------------
+        # Preconditioned assertions (When clause) ----------------------------------------------------
 
         When(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",

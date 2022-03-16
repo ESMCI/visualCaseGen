@@ -35,9 +35,9 @@ class Logic():
         # layer index solver:
         lis = Solver()
 
-        # First, take into account the relational assertions (both unconditional and conditional) 
+        # First, take into account the relational assertions (both ordinary and preconditional) 
         for asrt in new_assertions:
-            # unconditional constraints
+            # Ordinary constraints
             if isinstance(asrt, BoolRef):
 
                 asrt_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt)]
@@ -49,7 +49,7 @@ class Logic():
                         li_var_i = Layer.indices[asrt_vars[i]] # layer index of i.th assertion variable
                         lis.add(li_var_0 == li_var_i)
 
-            # conditional constraints
+            # Preconditional constraints
             elif isinstance(asrt, When):
 
                 antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)]
@@ -65,7 +65,7 @@ class Logic():
                 raise RuntimeError("Unsupported relational assertion encountered.")
 
         if lis.check() == unsat:
-            raise RuntimeError("Error in relational variable hierarchy. Make sure to use conditional "\
+            raise RuntimeError("Error in relational variable hierarchy. Make sure to use preconditioned "\
                 "relationals (i.e., When() operators) in a consistent manner. Conditional relationals dictate "\
                 "variable hierarchy such that variables appearing in antecedent have higher hierarchies "\
                 "than those appearing in consequent. See constraint hierarchy graph documentation for more info.")
@@ -81,8 +81,8 @@ class Logic():
 
         if lis.check() == unsat:
             raise RuntimeError("Error in relational variable hierarchy after registering options dependencies. "\
-                "Make sure to use conditional "\
-                "relationals (i.e., When() operators) in a consistent manner. Conditional relationals dictate "\
+                "Make sure to use preconditioned "\
+                "relationals (i.e., When() operators) in a consistent manner. Preconditional relationals dictate "\
                 "variable hierarchy such that variables appearing in antecedent have higher hierarchies "\
                 "than those appearing in consequent. See constraint hierarchy graph documentation for more info.")
 
@@ -102,7 +102,7 @@ class Logic():
 
         # normalize layer indices. Also turn variable layer indices into lists so as to allow variables
         # to have multiple layer indices. This is needed when a variable is connected to other layers via
-        # conditional relational assertions. The first index, however, is the primary layer that the
+        # preconditional relational assertions. The first index, however, is the primary layer that the
         # variable belongs to.
         for var in Layer.indices:
             li = normalization[Layer.indices[var]] 
@@ -133,13 +133,13 @@ class Logic():
 
         # finally, set layer indices of assertions:
         for asrt in new_assertions:
-            # unconditional assertions
+            # Ordinary assertions
             if isinstance(asrt, BoolRef):
                 asrt_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt)]
                 li = Layer.get_major_index(asrt_vars[0])
                 Layer.indices[asrt] = [li]
                 cls.layers[li].relational_assertions[asrt] = new_assertions[asrt]
-            # conditional constraints
+            # Preconditined constraints
             elif isinstance(asrt, When):
                 antecedent = asrt.antecedent
                 consequent = asrt.consequent
@@ -173,7 +173,7 @@ class Logic():
         # Edges and Hyperedges due to relational assertions:
         for asrt in new_assertions:
 
-            # unconditional assertions
+            # Ordinary assertions
             if isinstance(asrt, BoolRef):
 
                 asrt_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
@@ -182,22 +182,22 @@ class Logic():
 
                 li = Layer.get_major_index(asrt)
 
-                # add unconditional assertion node
-                cls.chg.add_node(asrt, li=li, type="U") # U: unconditional relational assertion
+                # add ordinary assertion node
+                cls.chg.add_node(asrt, li=li, type="U") # U: ordinary relational assertion
 
                 # add edge from variable to asrt
                 for var in asrt_vars:
                     cls.chg.add_edge(var, asrt)
 
-            # conditional constraints
+            # preconditional constraints
             elif isinstance(asrt, When):
 
                 antecedent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)}
                 consequent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt.consequent)}
 
-                # add conditional assertion node
+                # add preconditional assertion node
                 li = Layer.get_major_index(asrt)
-                cls.chg.add_node(asrt, li=li, type="C") # C: conditional relational assertion
+                cls.chg.add_node(asrt, li=li, type="C") # C: preconditional relational assertion
 
                 for a_var in antecedent_vars:
                     # add edge from var to asrt
@@ -238,7 +238,7 @@ class Logic():
             if len(layer.relational_assertions)>0:
                 raise RuntimeError("Attempted to call register_interdependencies method multiple times.")
 
-        # Obtain all new assertions including conditionals and unconditionals
+        # Obtain all new assertions including preconditionals and ordinary assertions
         relational_assertions = relational_assertions_setter(vdict)
 
         cls._initialize_layers(relational_assertions, options_setters, vdict)
@@ -330,7 +330,7 @@ class Layer():
         self.li = li
         # variables that appear in this layer
         self.vars = []
-        # variables that don't appear in this var but connected to this var via conditional assertions
+        # variables that don't appear in this var but connected to this var via preconditinal assertions
         self.ghost_vars = []
         # assertions keeping track of variable assignments. key is var, value is assignment assertion
         self.asrt_assignments = dict()

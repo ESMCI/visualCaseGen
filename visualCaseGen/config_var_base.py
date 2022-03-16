@@ -61,7 +61,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         # variable properties managed by the logic module
         self.related_vars = set() # set of other variables sharing relational assertions with this var.
         self.child_vars_opt = set() # set of variables whose options are to be updated when the value of self changes.
-        self.child_vars_rlt = [] # set of other variables appearing consequents of conditional relations that
+        self.child_vars_rlt = [] # set of other variables appearing consequents of preconditional relations that
                                # include self in antecedent.
 
         # Now call property setters of options and value

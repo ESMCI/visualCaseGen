@@ -1,11 +1,27 @@
 """ This module includes some logical operator and type definitions to be used to specify relational assertions."""
 
-from z3 import Or
+from z3 import BoolRef, Or
 from z3 import If as z3_If
 from collections import namedtuple
 
-# The When clause used to specify conditional assertions
-When = namedtuple("When", "antecedent consequent")
+class When():
+    """A When object is a logical clause that is used to specify preconditioned relational assertions,
+    where antecedent is the precondition and consequent is the assertion to be checked iff antecedent
+    evaulates to True."""
+    def __init__(self, antecedent, consequent):
+        assert isinstance(antecedent, BoolRef), "The antecedent of When clause must be of type BoolRef"
+        assert isinstance(consequent, BoolRef), "The consequent of When clause must be of type BoolRef"
+        self.antecedent = antecedent
+        self.consequent = consequent
+    
+    def __getitem__(self, key):
+        if key==0:
+            return self.antecedent
+        elif key==1:
+            return self.consequent
+        else:
+            raise IndexError
+
 
 def In(var, value_list):
     """Expression to check whether the value of a variable is in a given list."""
