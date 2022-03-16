@@ -2,6 +2,7 @@ import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
 from traitlets import HasTraits, Unicode, default, validate
 
@@ -56,9 +57,7 @@ class ConfigVarStr(ConfigVarBase):
         if self.has_options() and new_val_validity_char == self.invalid_opt_char:
             err_msg = logic.retrieve_error_msg(self, new_val)
             logger.critical("ERROR: %s", err_msg)
-            from IPython.display import display, HTML
-            js = "<script>alert('ERROR: {}');</script>".format(err_msg)
-            display(HTML(js))
+            alert_error(err_msg)
             
             # set to old value:
             self._widget.value = self._widget_none_val if self.value is None else '{} {}'\

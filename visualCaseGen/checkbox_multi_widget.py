@@ -3,6 +3,7 @@ import ipywidgets as widgets
 from traitlets import Int, Any, Dict, HasTraits, observe
 from ipywidgets import trait_types
 from visualCaseGen.OutHandler import handler as owh
+from visualCaseGen.dialog import alert_warning
 
 _checkbox_width = '185px'
 _checkbox_clm_width = '200px'
@@ -109,13 +110,11 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
                 if len(self.value) > 1:
                     self.value = ()
             else:
-                from IPython.display import display, HTML
                 warn_msg = \
-                    """WARNING: visualCaseGen doesn't check the compatibility of multiple options. """\
+                    """visualCaseGen doesn't check the compatibility of multiple options. """\
                     """Use this mode with caution! Refer to the component documentation to check which options """\
                     """may be combined."""
-                js = """<script>alert(" {} ");</script>""".format(warn_msg)
-                display(HTML(js))
+                alert_warning(warn_msg)
                 self._select_multiple = True
 
         self._selectmode.observe(selectmode_change, names='value', type='change')
