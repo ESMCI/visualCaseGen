@@ -20,6 +20,9 @@ class ConfigVarBase(SeqRef, HasTraits):
     # Trait
     value = Any()
 
+    # List of all ConfigVar assignments in chronological order. Used only for debugging purposes
+    assignment_history = list()
+
     def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, widget_none_val=None,
                     always_set=False, hide_invalid=False):
 
@@ -73,32 +76,27 @@ class ConfigVarBase(SeqRef, HasTraits):
         ConfigVarBase.vdict[name] = self
         logger.debug("ConfigVarBase %s created.", self.name)
 
-
-    def observe(self, *args, **kwargs):
-        # override the original observe method such that self._post_value_change observer
-        # is always the last one to be notified (called).
-        HasTraits.unobserve(self, self._post_value_change, names='value', type='change')
-        HasTraits.observe(self, *args, **kwargs)
-        HasTraits.observe(self, self._post_value_change, names='value', type='change')
-
     def _post_value_change(self, change):
-        """If new value is valid, this method is called automatically after self.value is set and after
-        all other value change observers are called/notified."""
+        """If new value is valid, this method is called automatically right after self.value is set."""
 
-        #old_val = change['old']
         new_val = change['new']
 
-        # when a variable value is set to None, its _validate_value method doesn't get called.
-        # so, call the register assignment and update widget value here instead.
-        if new_val is None:
-            logic.register_assignment(self, new_val)
-            self._widget.value = self._widget_none_val
+        # record the assignment in history list
+        ConfigVarBase.assignment_history.append((self,self.value,))
 
+        # update displayed widget values:
+        self._update_widget_value()
+
+        # register the assignment with the logic engine
+        logic.register_assignment(self, new_val)
+
+        # traverse over the logic layers and refresh all possibly affected variables
         logic.notify_related_vars(self)
 
     @staticmethod
     def reset():
         ConfigVarBase.vdict = dict()
+        ConfigVarBase.assignment_history = list()
         logic.reset()
 
     @staticmethod
@@ -289,4 +287,8 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):
+        raise NotImplementedError("This method must be implemented in the derived class")
+
+    @owh.out.capture()
+    def _update_widget_value(self):
         raise NotImplementedError("This method must be implemented in the derived class")

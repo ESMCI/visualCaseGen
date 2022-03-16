@@ -37,14 +37,15 @@ class ConfigVarStrMS(ConfigVarBase):
         else:
             logic.check_assignment(self, new_vals)
 
-        # register the assignment with the logic engine
-        logic.register_assignment(self, new_vals)
-
-        # update widget value
-        self._widget.value = tuple(self.valid_opt_char+' '+new_val for new_val in new_vals.split('%'))
-
         # finally, set self.value by returning new_vals
         return new_vals
+
+    @owh.out.capture()
+    def _update_widget_value(self):
+        if self.value is None:
+            self._widget.value = self._widget_none_val
+        else:
+            self._widget.value = tuple(self.valid_opt_char+' '+val for val in self.value.split('%'))
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):
