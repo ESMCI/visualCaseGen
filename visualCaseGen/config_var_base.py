@@ -59,6 +59,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         self._hide_invalid = hide_invalid
 
         # variable properties managed by the logic module
+        self._layers = []
         self.related_vars = set() # set of other variables sharing relational assertions with this var.
         self.child_vars_opt = set() # set of variables whose options are to be updated when the value of self changes.
         self.child_vars_rlt = [] # set of other variables appearing consequents of preconditional relations that
@@ -107,7 +108,7 @@ class ConfigVarBase(SeqRef, HasTraits):
     @classmethod
     def determine_interdependencies(cls, relational_assertions_setter, options_setters):
         logic.register_interdependencies(
-            relational_assertions_setter, 
+            relational_assertions_setter,
             options_setters,
             cls.vdict
         )
@@ -122,6 +123,31 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     def is_none(self):
         return self.value is None
+
+    @property
+    def major_layer(self):
+        """Return the layer that this variable belongs to."""
+        if len(self._layers) == 0:
+            return logic.layers[0]
+        else:
+            return self._layers[0]
+
+    @property
+    def layers(self):
+        """Return all layers that this variable appears in."""
+        if len(self._layers) == 0:
+            return [logic.layers[0]]
+        else:
+            return self._layers
+
+    def add_layer(self, new_layer):
+        if len(self._layers) > 0:
+            if new_layer.idx <= self._layers[0].idx:
+                raise RuntimeError("Cannot add a secondary chg layer that has higher priority than major layer for var {}"\
+                    .format(var.name))
+            if new_layer.idx in self._layers:
+                raise RuntimeError("Trying to add a layer that is already added to var {}".format(var.name))
+        self._layers.append(new_layer)
 
     @property
     def options(self):
@@ -191,7 +217,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         logger.debug("Updated options validities of %s. Now updating widget.", self.name)
 
         if self._hide_invalid is True:
-            self._widget.options = tuple( 
+            self._widget.options = tuple(
                 '{} {}'.format(self.valid_opt_char, opt) for opt in self._options \
                 if self._options_validities[opt])
         else:
@@ -200,23 +226,17 @@ class ConfigVarBase(SeqRef, HasTraits):
                 else '{} {}'.format(self.invalid_opt_char, opt) for opt in self._options)
 
         if options_changed:
+            # if options have changed, then the value must be updated.
             if self._always_set is True:
                 self.value = self._get_first_valid_option()
             elif self.value is not None:
                 self.value = None
 
-        else: # options NOT changed. only the validities have changed.
-
+        else:
+            # Only the validities have changed, so no need to change the value.
+            # Buth the widget value must be re-set to the old value since its options have changed
+            # due to the validity change.
             self._widget.value = old_widget_value
-
-            #todo try:
-            #todo     self._widget.value = old_widget_value
-            #todo except KeyError:
-            #todo     new_value = self._get_first_valid_option() if self._always_set else None
-
-            #todo     logger.warning("The {}={} assignment is no longer feasible. Setting {}={}".
-            #todo         format(self.name, old_widget_value[2:], self.name, new_value))
-            #todo     self.value = new_value
 
 
     def _get_first_valid_option(self):
