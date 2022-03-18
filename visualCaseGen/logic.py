@@ -285,29 +285,24 @@ class Logic():
 
         logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
 
-        # layer index of invoker var
-        idx = invoker_var.major_layer.idx
+        # layer of invoker var
+        entry_layer = invoker_var.major_layer
 
-        # indices of layers that may need to be notified:
-        relevant_layer_indices = range(idx, len(cls.layers))
-
-        # running lists of affected vars for each layer
-        affected_vars = {rli:[] for rli in relevant_layer_indices}
-        affected_vars[idx] = list(invoker_var.related_vars)
+        entry_layer.vars_refresh_validities = list(invoker_var.related_vars)
 
         # record variables whose options are to be updated due to the value change of invoker_var:
         for child_var_opt in invoker_var.child_vars_opt:
             child_layer = child_var_opt.major_layer
-            child_layer.vars_refresh_opts.add(child_var_opt)
+            child_layer.vars_refresh_options.add(child_var_opt)
 
         # also record child vars that may be affected by invoker_var's value change:
         for child_var_rlt in invoker_var.child_vars_rlt:
-            child_li = child_var_rlt.major_layer.idx
-            if child_var_rlt not in affected_vars[child_li]:
-                affected_vars[child_li].append(child_var_rlt)
+            child_layer = child_var_rlt.major_layer
+            if child_var_rlt not in child_layer.vars_refresh_validities:
+                child_layer.vars_refresh_validities.append(child_var_rlt)
 
-        for rli in relevant_layer_indices:
-            cls.layers[rli].sweep(affected_vars)
+        for rli in range(entry_layer.idx, len(cls.layers)):
+            cls.layers[rli].sweep()
 
         Logic.invoker_lock = False # After having traversed the entire chg, release the invoker lock.
 
@@ -337,8 +332,12 @@ class Layer():
         # relational assertions appearing in this layer
         self.relational_assertions = dict()
 
-        # set of variables whose options are to be updated
-        self.vars_refresh_opts = set()
+        # Set of variables whose options validities are to be updated only.
+        # These are variables whose neighbors went through either a value change or an options validities change
+        self.vars_refresh_validities = list()
+        # set of variables whose options are to be updated.
+        # These are variables who are options children of variables whose values are changed.
+        self.vars_refresh_options = set()
 
     @classmethod
     def reset(cls):
@@ -425,27 +424,27 @@ class Layer():
                 err_msgs_joint += ' (Asrt.{}) {}'.format(i+1, err_msgs[i])
             return err_msgs_joint
 
-    def sweep(self, affected_vars):
+    def sweep(self):
 
-        some_options_changed = len(self.vars_refresh_opts) > 0
-        some_relational_impact = len(affected_vars[self.idx]) > 0
+        some_options_changed = len(self.vars_refresh_options) > 0
+        some_relational_impact = len(self.vars_refresh_validities) > 0
 
         if not (some_options_changed or some_relational_impact):
             return
 
         if some_options_changed is True:
-            for var in self.vars_refresh_opts:
+            for var in self.vars_refresh_options:
                 var.run_options_setter()
 
                 for child_var_opt in var.child_vars_opt:
                     child_layer = child_var_opt.major_layer
-                    child_layer.vars_refresh_opts.add(child_var_opt)
+                    child_layer.vars_refresh_options.add(child_var_opt)
                 for child_var_rlt in var.child_vars_rlt:
-                    child_li = child_var_rlt.major_layer.idx
-                    if child_var_rlt not in affected_vars[child_li]:
-                        affected_vars[child_li].append(child_var_rlt)
+                    child_layer = child_var_rlt.major_layer
+                    if child_var_rlt not in child_layer.vars_refresh_validities:
+                        child_layer.vars_refresh_validities.append(child_var_rlt)
 
-            self.vars_refresh_opts = set() # reset
+            self.vars_refresh_options = set() # reset
 
         if not some_relational_impact:
             return
@@ -458,8 +457,8 @@ class Layer():
         # Also keep a record of child variables that may have been affected. Those will be
         # checked by subsequent layers.
         ivar = 0
-        while len(affected_vars[self.idx]) > ivar:
-            var = affected_vars[self.idx][ivar]
+        while len(self.vars_refresh_validities) > ivar:
+            var = self.vars_refresh_validities[ivar]
             if var.has_options():
                 s.push()
                 self._apply_assignment_assertions(s, exclude_varname=var.name)
@@ -470,17 +469,20 @@ class Layer():
                     var.update_options_validities(new_validities=new_validities)
 
                     # extend the list of affected vars of this layer
-                    affected_vars[self.idx] += [var_other for var_other in var.related_vars if var_other not in affected_vars[self.idx]]
+                    self.vars_refresh_validities.extend(
+                        [var_other for var_other in var.related_vars if var_other not in self.vars_refresh_validities]
+                    )
 
                     # also include child vars that may be affected by options validity change of var:
                     for child_var_rlt in var.child_vars_rlt:
-                        child_li = child_var_rlt.major_layer.idx
-                        if child_var_rlt not in affected_vars[child_li]:
-                            affected_vars[child_li].append(child_var_rlt)
+                        child_layer = child_var_rlt.major_layer
+                        if child_var_rlt not in child_layer.vars_refresh_validities:
+                            child_layer.vars_refresh_validities.append(child_var_rlt)
             else:
                 logger.debug("Variable %s has no options.", var.name)
 
             ivar += 1
 
+        self.vars_refresh_validities = list() # reset after sweep is complete
 
 logic = Logic()
