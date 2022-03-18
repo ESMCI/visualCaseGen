@@ -1,6 +1,6 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
-from visualCaseGen.logic import logic
+from visualCaseGen.logic import logic, Layer
 from visualCaseGen.OutHandler import handler as owh
 
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
@@ -90,9 +90,10 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         # register the assignment with the logic engine
         logic.register_assignment(self, new_val)
+        Layer.designate_affected_vars(self)
 
-        # traverse over the logic layers and refresh all possibly affected variables
-        logic.notify_related_vars(self)
+        # traverse over the logic layers and refresh all variables designated as potentially affected
+        logic.traverse_layers(self)
 
     @staticmethod
     def reset():
@@ -177,6 +178,9 @@ class ConfigVarBase(SeqRef, HasTraits):
                 self.tooltips = new_tooltips
             self._widget.layout.visibility = 'visible'
             self._widget.disabled = False
+        else:
+            if self.options is not None:
+                raise RuntimeError("Attempted to nullify options list of {}".format(var.name))
 
     @property
     def tooltips(self):
@@ -234,10 +238,11 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         else:
             # Only the validities have changed, so no need to change the value.
-            # Buth the widget value must be re-set to the old value since its options have changed
+            # But the widget value must be re-set to the old value since its options have changed
             # due to the validity change.
             self._widget.value = old_widget_value
 
+        Layer.designate_affected_vars(self, designate_opt_children=options_changed)
 
     def _get_first_valid_option(self):
         """Returns the first valid value from the list of options of this ConfigVar instance."""

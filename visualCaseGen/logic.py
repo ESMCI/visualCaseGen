@@ -275,7 +275,7 @@ class Logic():
         return var.major_layer.retrieve_error_msg(var, value)
 
     @classmethod
-    def notify_related_vars(cls, invoker_var):
+    def traverse_layers(cls, invoker_var):
         """ When a variable value gets (re-)assigned, this method is called to notify the related variables that
         may be affected by the value assignment"""
 
@@ -285,24 +285,9 @@ class Logic():
 
         logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
 
-        # layer of invoker var
-        entry_layer = invoker_var.major_layer
-
-        entry_layer.vars_refresh_validities = list(invoker_var.related_vars)
-
-        # record variables whose options are to be updated due to the value change of invoker_var:
-        for child_var_opt in invoker_var.child_vars_opt:
-            child_layer = child_var_opt.major_layer
-            child_layer.vars_refresh_options.add(child_var_opt)
-
-        # also record child vars that may be affected by invoker_var's value change:
-        for child_var_rlt in invoker_var.child_vars_rlt:
-            child_layer = child_var_rlt.major_layer
-            if child_var_rlt not in child_layer.vars_refresh_validities:
-                child_layer.vars_refresh_validities.append(child_var_rlt)
-
-        for rli in range(entry_layer.idx, len(cls.layers)):
-            cls.layers[rli].sweep()
+        # loop over relevant layers and sweep them:
+        for idx in range(invoker_var.major_layer.idx, len(cls.layers)):
+            cls.layers[idx].sweep()
 
         Logic.invoker_lock = False # After having traversed the entire chg, release the invoker lock.
 
@@ -365,6 +350,27 @@ class Layer():
         else:
             solver.add(list(self.relational_assertions))
 
+    @staticmethod
+    def designate_affected_vars(var, designate_opt_children=True):
+        """ Given a variable whose options or value has changed, designate its neighbors and children
+        as variables whose options/validities are to be potentially updated."""
+
+        major_layer = var.major_layer
+        major_layer.vars_refresh_validities.extend(
+            [var_other for var_other in var.related_vars if var_other not in major_layer.vars_refresh_validities]            
+        )
+
+        # update set of child vars whose validities are to be refreshed:
+        for child_var_rlt in var.child_vars_rlt:
+            child_layer = child_var_rlt.major_layer
+            if child_var_rlt not in child_layer.vars_refresh_validities:
+                child_layer.vars_refresh_validities.append(child_var_rlt)
+
+        # update set of variables whose options are to be updated due to the value change of this var:
+        if designate_opt_children:
+            for child_var_opt in var.child_vars_opt:
+                child_layer = child_var_opt.major_layer
+                child_layer.vars_refresh_options.add(child_var_opt)
 
     def get_options_validities(self, var):
         s = Solver()
@@ -432,22 +438,18 @@ class Layer():
         if not (some_options_changed or some_relational_impact):
             return
 
+        # First, handle option changes --------------------------------------------------
+
         if some_options_changed is True:
             for var in self.vars_refresh_options:
                 var.run_options_setter()
 
-                for child_var_opt in var.child_vars_opt:
-                    child_layer = child_var_opt.major_layer
-                    child_layer.vars_refresh_options.add(child_var_opt)
-                for child_var_rlt in var.child_vars_rlt:
-                    child_layer = child_var_rlt.major_layer
-                    if child_var_rlt not in child_layer.vars_refresh_validities:
-                        child_layer.vars_refresh_validities.append(child_var_rlt)
-
-            self.vars_refresh_options = set() # reset
+        self.vars_refresh_options = set() # reset
 
         if not some_relational_impact:
             return
+
+        # Second, handle validities changes --------------------------------------------------
 
         s = Solver()
         self._apply_options_assertions(s)
@@ -467,17 +469,6 @@ class Layer():
                 if new_validities != var._options_validities:
                     logger.debug("%s options validities changed.", var.name)
                     var.update_options_validities(new_validities=new_validities)
-
-                    # extend the list of affected vars of this layer
-                    self.vars_refresh_validities.extend(
-                        [var_other for var_other in var.related_vars if var_other not in self.vars_refresh_validities]
-                    )
-
-                    # also include child vars that may be affected by options validity change of var:
-                    for child_var_rlt in var.child_vars_rlt:
-                        child_layer = child_var_rlt.major_layer
-                        if child_var_rlt not in child_layer.vars_refresh_validities:
-                            child_layer.vars_refresh_validities.append(child_var_rlt)
             else:
                 logger.debug("Variable %s has no options.", var.name)
 
