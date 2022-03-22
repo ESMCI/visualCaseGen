@@ -2,6 +2,7 @@ import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.logic import logic, Layer
 from visualCaseGen.OutHandler import handler as owh
+from visualCaseGen.dev_utils import debug, RunError
 
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 from traitlets import HasTraits, Any, default, validate, List
@@ -19,9 +20,6 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     # Trait
     value = Any()
-
-    # List of all ConfigVar assignments in chronological order. Used only for debugging purposes
-    assignment_history = list()
 
     def __init__(self, name, value=None, options=None, tooltips=(), ctx=None, widget_none_val=None,
                     always_set=False, hide_invalid=False):
@@ -82,9 +80,6 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         new_val = change['new']
 
-        # record the assignment in history list
-        ConfigVarBase.assignment_history.append((self,self.value,))
-
         # update displayed widget values:
         self._update_widget_value()
 
@@ -98,7 +93,6 @@ class ConfigVarBase(SeqRef, HasTraits):
     @staticmethod
     def reset():
         ConfigVarBase.vdict = dict()
-        ConfigVarBase.assignment_history = list()
         logic.reset()
 
     @staticmethod
@@ -117,6 +111,10 @@ class ConfigVarBase(SeqRef, HasTraits):
     @default('value')
     def _default_value(self):
         return None
+    
+    @property
+    def always_set(self):
+        return self._always_set
 
     @property
     def widget_none_val(self):
@@ -232,7 +230,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         if options_changed:
             # if options have changed, then the value must be updated.
             if self._always_set is True:
-                self.value = self._get_first_valid_option()
+                self.value = self.get_first_valid_option()
             elif self.value is not None:
                 self.value = None
 
@@ -240,11 +238,18 @@ class ConfigVarBase(SeqRef, HasTraits):
             # Only the validities have changed, so no need to change the value.
             # But the widget value must be re-set to the old value since its options have changed
             # due to the validity change.
-            self._widget.value = old_widget_value
+            if debug is True:
+                try:
+                    self._widget.value = old_widget_value
+                except KeyError:
+                    raise RunError("Old widget value {} not in the list of options anymore: {}"\
+                        .format(old_widget_value, self._widget.options))
+            else:
+                self._widget.value = old_widget_value
 
         Layer.designate_affected_vars(self, designate_opt_children=options_changed)
 
-    def _get_first_valid_option(self):
+    def get_first_valid_option(self):
         """Returns the first valid value from the list of options of this ConfigVar instance."""
         for opt in self._options:
             if self._options_validities[opt] == True:
