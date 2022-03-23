@@ -271,8 +271,8 @@ class ConfigVarBase(SeqRef, HasTraits):
         self._widget = new_widget
         if self.has_options():
             self._widget.options = old_widget.options
+            self._widget.tooltips = old_widget.tooltips
         self._widget.value = old_widget.value
-        self._widget.tooltips = old_widget.tooltips
 
         # unobserve old widget frontend
         old_widget.unobserve(

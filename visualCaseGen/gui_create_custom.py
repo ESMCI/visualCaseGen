@@ -44,7 +44,6 @@ class GUI_create_custom():
             ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             #todo ConfigVar('{}_GRID'.format(comp_class))
         #todo ConfigVar('MASK_GRID')
-        #todo ConfigVar('COMPSET')
         #todo ConfigVarOptMS('GRID')
 
     def _init_configvar_options(self):
@@ -114,8 +113,9 @@ class GUI_create_custom():
     #todo     cv_mask_grid = ConfigVar.vdict['MASK_GRID']
     #todo     cv_mask_grid.widget = DummyWidget()
 
-    #todo     cv_compset = ConfigVar.vdict['COMPSET']
-    #todo     cv_compset.widget = widgets.HTML(value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>")
+        self.compset_widget = widgets.HTML(
+            "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
+        )
 
     #todo     cv_grid = ConfigVar.vdict['GRID']
     #todo     cv_grid.widget = CheckboxMultiWidget(
@@ -220,50 +220,49 @@ class GUI_create_custom():
 
     #todo         self._btn_grid_view.layout.display = '' # turn on the display
 
-    #todo @owh.out.capture()
-    #todo def _update_compset(self, change=None):
-    #todo     new_compset_text = ConfigVar.vdict['INITTIME'].value
-    #todo     for comp_class in self.ci.comp_classes:
+    @owh.out.capture()
+    def _update_compset(self, change=None):
+        new_compset_text = ConfigVarStr.vdict['INITTIME'].value
+        for comp_class in self.ci.comp_classes:
 
-    #todo         # 0. Component
-    #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-    #todo         if cv_comp.is_none():
-    #todo             new_compset_text = ''
-    #todo             break
+            # 0. Component
+            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
+            if cv_comp.is_none():
+                new_compset_text = ''
+                break
 
-    #todo         # 1. Component Physics
-    #todo         cv_comp_phys = ConfigVar.vdict['COMP_{}_PHYS'.format(comp_class)]
-    #todo         if not cv_comp_phys.is_none():
-    #todo             comp_phys_val = cv_comp_phys.value
-    #todo             if comp_phys_val == 'Specialized':
-    #todo                 comp_phys_val = 'CAM' # todo: generalize this special case
-    #todo             new_compset_text += '_'+comp_phys_val
+            # 1. Component Physics
+            cv_comp_phys = ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]
+            if not cv_comp_phys.is_none():
+                comp_phys_val = cv_comp_phys.value
+                if comp_phys_val == 'Specialized':
+                    comp_phys_val = 'CAM' # todo: generalize this special case
+                new_compset_text += '_'+comp_phys_val
 
-    #todo             # 2. Component Option (optional)
-    #todo             cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
-    #todo             comp_option_val = cv_comp_option.value
-    #todo             if not cv_comp_option.is_none():
-    #todo                 new_compset_text += '%'+comp_option_val
-    #todo             else:
-    #todo                 return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set
-    #todo                        # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most
-    #todo                        # likely because cv_comp_option is temporarily set to none_val, i.e., ()., before it is
-    #todo                        # to be set to its actual value. Return for now, without making any changes in compset.
-    #todo         else:
-    #todo             new_compset_text = ''
-    #todo             break
+                # 2. Component Option (optional)
+                cv_comp_option = ConfigVarStr.vdict['COMP_{}_OPTION'.format(comp_class)]
+                comp_option_val = cv_comp_option.value
+                if not cv_comp_option.is_none():
+                    new_compset_text += '%'+comp_option_val
+                else:
+                    return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set
+                           # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most
+                           # likely because cv_comp_option is temporarily set to none_val, i.e., ()., before it is
+                           # to be set to its actual value. Return for now, without making any changes in compset.
+            else:
+                new_compset_text = ''
+                break
 
-    #todo     new_compset_text = new_compset_text.replace('%(none)','')
+        new_compset_text = new_compset_text.replace('%(none)','')
 
-    #todo     if new_compset_text != self._compset_text:
-    #todo         cv_compset = ConfigVar.vdict['COMPSET']
-    #todo         if new_compset_text == '':
-    #todo             cv_compset.value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
-    #todo         else:
-    #todo             cv_compset.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{new_compset_text}</b></p>"
-    #todo         self._compset_text = new_compset_text
-    #todo         self._change_grid_view_mode(new_mode='suggested')
-    #todo         self._update_grid_widget()
+        if new_compset_text != self._compset_text:
+            if new_compset_text == '':
+                self.compset_widget.value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
+            else:
+                self.compset_widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{new_compset_text}</b></p>"
+            self._compset_text = new_compset_text
+            #todo self._change_grid_view_mode(new_mode='suggested')
+            #todo self._update_grid_widget()
 
     #todo def _update_create_case(self, change):
     #todo     assert change['name'] == 'value'
@@ -288,28 +287,28 @@ class GUI_create_custom():
 
     def _construct_all_widget_observances(self):
 
+        # Change component phys/options tab whenever a frontend component change is made
         for comp_class in self.ci.comp_classes:
-
-            # Change component phys/options tab whenever a frontend component change is made
             cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
             cv_comp._widget.observe(
                 self._set_comp_options_tab,
                 names='_property_lock',
                 type='change')
 
-    #todo     cv_inittime = ConfigVar.vdict['INITTIME']
-    #todo     cv_inittime.observe(
-    #todo         self._update_compset,
-    #todo         names='_property_lock',
-    #todo         type='change'
-    #todo     )
-    #todo     for comp_class in self.ci.comp_classes:
-    #todo         cv_comp = ConfigVar.vdict['COMP_{}'.format(comp_class)]
-    #todo         cv_comp_option = ConfigVar.vdict['COMP_{}_OPTION'.format(comp_class)]
-    #todo         cv_comp_option.observe(
-    #todo             self._update_compset,
-    #todo             names='value',
-    #todo             type='change')
+        # update compset when INITTIME changes
+        cv_inittime = ConfigVarStr.vdict['INITTIME']
+        cv_inittime.observe(
+            self._update_compset,
+            names='value',
+            type='change'
+        )
+        ## also, update compset when any COMP_???_OPTION changes
+        for comp_class in self.ci.comp_classes:
+            cv_comp_option = ConfigVarStr.vdict['COMP_{}_OPTION'.format(comp_class)]
+            cv_comp_option.observe(
+                self._update_compset,
+                names='value',
+                type='change')
 
     #todo     cv_grid = ConfigVar.vdict['GRID']
     #todo     cv_grid.observe(
@@ -396,7 +395,7 @@ class GUI_create_custom():
             _constr_vbx_components(),
             HeaderWidget("Physics and Options:"),
             _constr_hbx_comp_options(),
-            #todo ConfigVar.vdict['COMPSET']._widget,
+            self.compset_widget,
             HeaderWidget("Grids:"),
             #todo _constr_vbx_grids(),
             HeaderWidget("Launch:"),
