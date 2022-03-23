@@ -69,14 +69,15 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         self.value = value
 
-        HasTraits.observe(self, self._post_value_change, names='value', type='change')
+        self.observe(self._post_value_change, names='value', type='change')
 
         # Record this newly created instance in the class member storing instances
         ConfigVarBase.vdict[name] = self
         logger.debug("ConfigVarBase %s created.", self.name)
 
     def _post_value_change(self, change):
-        """If new value is valid, this method is called automatically right after self.value is set."""
+        """If new value is valid, this method is called automatically right after self.value is set.
+        However, note that this method doesn't get called if the new value is the same as old value."""
 
         new_val = change['new']
 
@@ -230,6 +231,9 @@ class ConfigVarBase(SeqRef, HasTraits):
         if options_changed:
             # if options have changed, then the value must be updated.
             if self._always_set is True:
+                self.value = None   # reset the value to ensure that _post_value_change() gets called
+                                    # when options change, but the first valid option happens to be the
+                                    # same as the old value (from a different list of options)
                 self.value = self.get_first_valid_option()
             elif self.value is not None:
                 self.value = None

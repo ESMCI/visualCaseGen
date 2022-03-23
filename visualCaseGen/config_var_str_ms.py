@@ -2,6 +2,7 @@ import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.dev_utils import RunError
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
 from traitlets import HasTraits, Unicode, default, validate
@@ -31,7 +32,8 @@ class ConfigVarStrMS(ConfigVarBase):
         # confirm the value validity
         if self.has_options():
             for new_val in new_vals.split('%'):
-                assert new_val in self._options, "Value not found in options list"
+                if new_val not in self._options:
+                    raise RunError("Value {} not found in {} options list: {}".format(new_val, self.name, self.options))
                 if self._options_validities[new_val] == False:
                     err_msg = logic.retrieve_error_msg(self, new_val)
                     raise AssertionError(self._error_messages[new_val])
