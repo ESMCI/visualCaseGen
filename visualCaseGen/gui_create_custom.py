@@ -5,6 +5,7 @@ import ipywidgets as widgets
 from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
+from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
@@ -28,7 +29,6 @@ class GUI_create_custom():
         self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
-        self._compset_text = ''
         self._grid_view_mode = 'suggested' # or 'all'
         # set inittime to its default value
         ConfigVarStr.vdict['INITTIME'].value = '2000'
@@ -43,8 +43,9 @@ class GUI_create_custom():
             ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
             ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             #todo ConfigVar('{}_GRID'.format(comp_class))
+        ConfigVarCompset("COMPSET")
         #todo ConfigVar('MASK_GRID')
-        #todo ConfigVarOptMS('GRID')
+        ConfigVarStr('GRID')
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
@@ -113,21 +114,24 @@ class GUI_create_custom():
     #todo     cv_mask_grid = ConfigVar.vdict['MASK_GRID']
     #todo     cv_mask_grid.widget = DummyWidget()
 
-        self.compset_widget = widgets.HTML(
+        cv_compset = ConfigVarBase.vdict["COMPSET"] 
+        cv_compset.value = ""
+        cv_compset.widget = widgets.HTML(
             "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
         )
 
-    #todo     cv_grid = ConfigVar.vdict['GRID']
-    #todo     cv_grid.widget = CheckboxMultiWidget(
-    #todo          options=[],
-    #todo          placeholder = '(Finalize Compset First.)',
-    #todo          description='Compatible Grids:',
-    #todo          disabled=True,
-    #todo          allow_multi_select=False,
-    #todo          #todo layout=widgets.Layout(width='500px')
-    #todo     )
-    #todo     #todo cv_grid.widget_style.description_width = '150px'
-    #todo     cv_grid.valid_opt_char = chr(int('27A4',base=16))
+        cv_grid = ConfigVarStr.vdict['GRID']
+        cv_grid._widget.value = ()
+        cv_grid.widget = CheckboxMultiWidget(
+            options=[],
+            placeholder = '(Finalize Compset First.)',
+            description='Compatible Grids:',
+            disabled=True,
+            allow_multi_select=False,
+            #todo layout=widgets.Layout(width='500px')
+        )
+        #todo cv_grid.widget_style.description_width = '150px'
+        cv_grid.valid_opt_char = chr(int('27A4',base=16))
 
     #todo     self._btn_grid_view = widgets.Button(
     #todo         description='show all grids',
@@ -255,12 +259,8 @@ class GUI_create_custom():
 
         new_compset_text = new_compset_text.replace('%(none)','')
 
-        if new_compset_text != self._compset_text:
-            if new_compset_text == '':
-                self.compset_widget.value = "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
-            else:
-                self.compset_widget.value = f"<p style='text-align:right'><b><i>compset: </i><font color='green'>{new_compset_text}</b></p>"
-            self._compset_text = new_compset_text
+        if new_compset_text != ConfigVarStr.vdict["COMPSET"].value:
+            ConfigVarStr.vdict["COMPSET"].value = new_compset_text
             #todo self._change_grid_view_mode(new_mode='suggested')
             #todo self._update_grid_widget()
 
@@ -381,7 +381,10 @@ class GUI_create_custom():
             return self._comp_options_tab
 
         def _constr_vbx_grids():
-            vbx_grids = widgets.VBox([ConfigVar.vdict['GRID']._widget, self._btn_grid_view],
+            vbx_grids = widgets.VBox([
+                    ConfigVarStr.vdict['GRID']._widget,
+                    #todo self._btn_grid_view
+                ],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
             vbx_grids.layout.border = '1px solid silver'
             vbx_grids.layout.width = '800px'
@@ -395,9 +398,9 @@ class GUI_create_custom():
             _constr_vbx_components(),
             HeaderWidget("Physics and Options:"),
             _constr_hbx_comp_options(),
-            self.compset_widget,
+            ConfigVarBase.vdict['COMPSET']._widget,
             HeaderWidget("Grids:"),
-            #todo _constr_vbx_grids(),
+            _constr_vbx_grids(),
             HeaderWidget("Launch:"),
             #todo self._create_case
         ])

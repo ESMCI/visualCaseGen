@@ -402,7 +402,7 @@ class Layer():
                 # now, check if the value satisfies all assertions
                 s = Solver()
                 self._apply_options_assertions(s)
-                self._apply_assignment_assertions(s)
+                self._apply_assignment_assertions(s, exclude_var=var)
                 s.add(var==new_value)
                 self._apply_relational_assertions(s)
                 status = s.check()==sat
