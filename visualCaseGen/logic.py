@@ -2,6 +2,7 @@ import logging
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.logic_utils import When, MinVal, MaxVal
 from visualCaseGen.dev_utils import debug, assignment_history, RunError
+from visualCaseGen.dialog import alert_warning
 
 from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
@@ -518,7 +519,9 @@ class Layer():
                 if not any(new_validities.values()):
                     raise RunError("{}={} not feasible! All new options validities are false for {}".\
                         format(invoker_var.name, invoker_var.value, var.name))
-                    # todo revert invoker variable assignment here
+                    # todo (1): revert invoker variable assignment here
+                    # todo (2): or, maybe, just throw a fatal error and instruct users submit an error report?
+                    # todo (3): in the planned static analyzer, make sure to introduce checks that would catch this error
             
                 s.add( Or([var==opt for opt in new_options]) )
 
@@ -608,5 +611,13 @@ class Layer():
                     var.update_options_validities(new_validities=new_validities)
         self.vars_refresh_validities.clear()
 
+        # finally, inform the user about the indirect value changes occured in this layer
+        # due to the invoker value change:
+        if len(reset_variables)>0:
+            msg = "{}={} assignment led to the following change(s) in dependent variable(s):"\
+                .format(invoker_var.name, invoker_var.value)
+            for var in reset_variables:
+                msg += "  {}={}".format(var.name,var.value)
+            alert_warning(msg)
 
 logic = Logic()
