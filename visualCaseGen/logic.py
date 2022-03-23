@@ -1,6 +1,7 @@
 import logging
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.logic_utils import When, MinVal, MaxVal
+from visualCaseGen.dev_utils import debug, assignment_history, RunError
 
 from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
@@ -23,6 +24,7 @@ class Logic():
     @classmethod
     def reset(cls):
         cls.layers = []
+        assignment_history.clear()
         Layer.reset()
 
     @classmethod
@@ -283,11 +285,14 @@ class Logic():
             return # the root invoker is not this variable, so return
         Logic.invoker_lock = True
 
-        logger.debug("Evaluating options validities of related variables of %s", invoker_var.name)
+        # record the assignment of invoker var in the assignment_history list
+        assignment_history.append((invoker_var.name, invoker_var.value))
+
+        logger.debug("Traversing the constraint hypergraph layers due to invoker variable %s", invoker_var.name)
 
         # loop over relevant layers and sweep them:
         for idx in range(invoker_var.major_layer.idx, len(cls.layers)):
-            cls.layers[idx].sweep()
+            cls.layers[idx].sweep(invoker_var)
 
         Logic.invoker_lock = False # After having traversed the entire chg, release the invoker lock.
 
@@ -328,14 +333,14 @@ class Layer():
     def reset(cls):
         cls._indices = set()
 
-    def _apply_assignment_assertions(self, solver, exclude_varname=None):
+    def _apply_assignment_assertions(self, solver, exclude_var=None):
         """ Adds all current assignment assertions to a given solver instance.
-        The assignment of a variable may be excluded by providing its name to the optional exclude_varname option. """
+        The optional exclude_var argument may be used to exclude a given variable """
 
-        if exclude_varname is None:
+        if exclude_var is None:
             solver.add([self.asrt_assignments[var] for var in self.asrt_assignments])
         else:
-            solver.add([self.asrt_assignments[var] for var in self.asrt_assignments if var.name != exclude_varname])
+            solver.add([self.asrt_assignments[var] for var in self.asrt_assignments if var is not exclude_var])
 
     def _apply_options_assertions(self, solver):
         """ Adds all of the current options assertions to a given solver instance."""
@@ -375,7 +380,7 @@ class Layer():
     def get_options_validities(self, var):
         s = Solver()
         self._apply_options_assertions(s)
-        self._apply_assignment_assertions(s, exclude_varname=var.name)
+        self._apply_assignment_assertions(s, exclude_var=var)
         self._apply_relational_assertions(s)
         new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
         return new_validities
@@ -414,7 +419,7 @@ class Layer():
         s = Solver()
         s.set(':core.minimize', True)
         self._apply_options_assertions(s)
-        self._apply_assignment_assertions(s, exclude_varname=var.name)
+        self._apply_assignment_assertions(s, exclude_var=var)
         s.add(var==value)
         self._apply_relational_assertions(s, assert_and_track=True)
 
@@ -430,50 +435,178 @@ class Layer():
                 err_msgs_joint += ' (Asrt.{}) {}'.format(i+1, err_msgs[i])
             return err_msgs_joint
 
-    def sweep(self):
+    def sweep(self, invoker_var):
 
-        some_options_changed = len(self.vars_refresh_options) > 0
-        some_relational_impact = len(self.vars_refresh_validities) > 0
+        if invoker_var.major_layer is self:
+            self._sweep_major_layer(invoker_var)
+        else:
+            self._sweep_subsq_layer(invoker_var)
+    
+    def _sweep_major_layer(self, invoker_var):
 
-        if not (some_options_changed or some_relational_impact):
+        some_relational_impact = lambda: len(self.vars_refresh_validities) > 0
+        if not some_relational_impact():
             return
-
-        # First, handle option changes --------------------------------------------------
-
-        if some_options_changed is True:
-            for var in self.vars_refresh_options:
-                var.run_options_setter()
-
-        self.vars_refresh_options = set() # reset
-
-        if not some_relational_impact:
-            return
-
-        # Second, handle validities changes --------------------------------------------------
 
         s = Solver()
         self._apply_options_assertions(s)
         self._apply_relational_assertions(s)
 
-        # Recursively check the related variables whose options validities have changed.
-        # Also keep a record of child variables that may have been affected. Those will be
-        # checked by subsequent layers.
         ivar = 0
         while len(self.vars_refresh_validities) > ivar:
             var = self.vars_refresh_validities[ivar]
+            ivar += 1
             if var.has_options():
+
+                # Determine new validities
                 s.push()
-                self._apply_assignment_assertions(s, exclude_varname=var.name)
+                self._apply_assignment_assertions(s, exclude_var=var)
                 new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
                 s.pop()
+
+                # Confirm at least one options is valid
+                if debug:
+                    if not any(new_validities.values()):
+                        raise RunError("All new options validities are false for {}".format(var.name))
+                
+                # If validities changed, update the validities property of var.
                 if new_validities != var._options_validities:
                     logger.debug("%s options validities changed.", var.name)
+                    if var.value is not None and new_validities[var.value] == False:
+                        raise RunError("The {}={} assignment is no longer valid after {}={} assignment!".\
+                            format(var.name, var.value, invoker_var.name, invoker_var.value))
                     var.update_options_validities(new_validities=new_validities)
-            else:
-                logger.debug("Variable %s has no options.", var.name)
+        
+        self.vars_refresh_validities.clear()
 
-            ivar += 1
+    
+    def _sweep_subsq_layer(self, invoker_var):
 
-        self.vars_refresh_validities = list() # reset after sweep is complete
+        some_options_changed = lambda: len(self.vars_refresh_options) > 0
+        some_relational_impact = lambda: len(self.vars_refresh_validities) > 0
+
+        if not (some_options_changed() or some_relational_impact()):
+            return
+    
+        s = Solver()
+
+        # Add all existing relational assertions:
+        self._apply_relational_assertions(s)
+
+        # Add existing optional assertions for variables whose options will not change due to invoker_var value change.
+        for var in self.asrt_options:
+            if var not in self.vars_refresh_options:
+                s.add([self.asrt_options[var]])
+        if debug:
+            if s.check() == unsat:
+                raise RunError("Layer not feasible when old optional and relational assertions are applied")
+        
+        # Apply assignments of ghost variables:
+        for ghost_var in self.ghost_vars:
+            if ghost_var.value is not None:
+                s.add(ghost_var==ghost_var.value)
+        if debug:
+            if s.check() == unsat:
+                raise RunError("The {}={} assignment led to an infeasible subsequent layer.".format(invoker_var.name, invoker_var.value))
+
+        # Add new optional assertions of variables whose options are to change due to invoker_var value change
+        for var in self.vars_refresh_options:
+            new_options, _ = var._options_setter() # todo - _options_setters are rec-called by run_options_setter call. try optimizing.
+            if new_options is not None:
+                new_validities = {opt: s.check(var==opt)==sat for opt in new_options }
+
+                if not any(new_validities.values()):
+                    raise RunError("{}={} not feasible! All new options validities are false for {}".\
+                        format(invoker_var.name, invoker_var.value, var.name))
+                    # todo revert invoker variable assignment here
+            
+                s.add( Or([var==opt for opt in new_options]) )
+
+        # --- Reaching here means that the layer is feasible, however some old variable assignments may not be feasible anymore.
+
+        # Find variable assignments that are not feasible anymore and set those variables to None. This is to make sure
+        # that new options may be set without ending up with an infeasible layer solver. Meanwhile, add all feasible variable
+        # assignments to the solver if variable options remain the same.
+        reset_variables = set() # variables whose value are to be reset because their values are not feasible anymore
+        asrt_assignments_temp = dict() # a temporary dict of assertions of assignments that are still feasible
+        for var in self.vars:
+            if var.value is not None and var not in self.vars_refresh_options:
+                if s.check(var==var.value)==sat:
+                    asrt_assignments_temp[var] = var==var.value
+                else:
+                    var.value = None
+                    reset_variables.add(var)
+        
+        if some_options_changed() is True:
+
+            # Remove old optional assertions of variables whose options are to change:
+            for var in self.vars_refresh_options:
+                self.asrt_options.pop(var, None)
+
+            # We are finally ready to apply the options changes
+            for var in self.vars_refresh_options:
+                var.run_options_setter()
+                if var.value is not None:
+                    asrt_assignments_temp[var] = var==var.value
+
+        self.vars_refresh_options.clear()
+
+        # refresh validities
+        ivar = 0
+        while len(self.vars_refresh_validities) > ivar:
+            var = self.vars_refresh_validities[ivar]
+            ivar += 1 
+            if var.has_options():
+                # Determine new validities
+                s.push()
+                s.add([asrt_assignments_temp[asg_var] for asg_var in asrt_assignments_temp if var is not asg_var])
+                new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+                s.pop()
+
+                # Confirm at least one options is valid
+                if debug:
+                    if not any(new_validities.values()):
+                        raise RunError("All new options validities are false for {}".format(var.name))
+
+                # If validities changed, update the validities property of var.
+                if new_validities != var._options_validities:
+                    logger.debug("%s options validities changed.", var.name)
+                    if var.value is not None and new_validities[var.value] == False:
+                        raise RunError("The {}={} assignment is no longer valid after {}={} assignment!".\
+                            format(var.name, var.value, invoker_var.name, invoker_var.value))
+                    var.update_options_validities(new_validities=new_validities)
+        self.vars_refresh_validities.clear()
+
+        # set values of reset_variables, if need be
+        for var in reset_variables:
+            if var.value is None and var.always_set is True:
+                var.value = var.get_first_valid_option()
+
+        # refresh validities again if need be. 
+        ivar = 0
+        while len(self.vars_refresh_validities) > ivar:
+            var = self.vars_refresh_validities[ivar]
+            ivar += 1 
+            if var.has_options():
+                # Determine new validities
+                s.push()
+                s.add([asrt_assignments_temp[asg_var] for asg_var in asrt_assignments_temp if var is not asg_var])
+                new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+                s.pop()
+
+                # Confirm at least one options is valid
+                if debug:
+                    if not any(new_validities.values()):
+                        raise RunError("All new options validities are false for {}".format(var.name))
+
+                # If validities changed, update the validities property of var.
+                if new_validities != var._options_validities:
+                    logger.debug("%s options validities changed.", var.name)
+                    if var.value is not None and new_validities[var.value] == False:
+                        raise RunError("The {}={} assignment is no longer valid after {}={} assignment!".\
+                            format(var.name, var.value, invoker_var.name, invoker_var.value))
+                    var.update_options_validities(new_validities=new_validities)
+        self.vars_refresh_validities.clear()
+
 
 logic = Logic()
