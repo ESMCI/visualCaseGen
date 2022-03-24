@@ -1,4 +1,4 @@
-from z3 import Implies, And, Or, Not
+import re
 
 class OptionsSetter:
     def __init__(self, var, options_func, tooltips_func=None, inducing_vars=[]):
@@ -115,25 +115,60 @@ def get_options_setters(cvars, ci):
         )
     )
     
-    #def grid_options_func(
-    #    comp_atm_option, comp_lnd_option, comp_ice_option, comp_ocn_option,
-    #    comp_rof_option, comp_glc_option, comp_wav_option
-    #):
+    def grid_options_func(compset):
 
-    #    compatible_grids = []
-    #    grid_descriptions = []
-    #    
-    #    return ['a', 'b', comp_atm_option, comp_ocn_option]
+        if compset == "":
+            return None
 
-    #GRID = cvars['GRID']
-    #options_setters.append(
-    #    OptionsSetter(
-    #        var = GRID,
-    #        options_func = grid_options_func,
-    #        tooltips_func = grid_options_func,
-    #        inducing_vars = [cvars["COMP_{}_OPTION".format(comp_class)] for comp_class in ci.comp_classes]
-    #    )
-    #)
+        compatible_grids = []
+        grid_descriptions = []
+
+        for alias, compset_attr, not_compset_attr, desc in ci.model_grids:
+            if compset_attr and not re.search(compset_attr, compset):
+                continue
+            if not_compset_attr and re.search(not_compset_attr, compset):
+                continue
+            #todo if self._grid_view_mode == 'suggested' and desc == '':
+            #todo     continue
+            if desc == '':
+                continue
+
+            comp_grid_dict = ci.retrieve_component_grids(alias, compset)
+
+            try:
+                if cvars['ATM_GRID'].has_related_vars():
+                    cvars['ATM_GRID'].major_layer.check_assignment(cvars['ATM_GRID'], comp_grid_dict['a%'])
+                if cvars['LND_GRID'].has_related_vars():
+                    cvars['LND_GRID'].major_layer.check_assignment(cvars['LND_GRID'], comp_grid_dict['l%'])
+                if cvars['OCN_GRID'].has_related_vars():
+                    cvars['OCN_GRID'].major_layer.check_assignment(cvars['OCN_GRID'], comp_grid_dict['oi%'])
+                if cvars['ICE_GRID'].has_related_vars():
+                    cvars['ICE_GRID'].major_layer.check_assignment(cvars['ICE_GRID'], comp_grid_dict['oi%'])
+                if cvars['ROF_GRID'].has_related_vars():
+                    cvars['ROF_GRID'].major_layer.check_assignment(cvars['ROF_GRID'], comp_grid_dict['r%'])
+                if cvars['GLC_GRID'].has_related_vars():
+                    cvars['GLC_GRID'].major_layer.check_assignment(cvars['GLC_GRID'], comp_grid_dict['g%'])
+                if cvars['WAV_GRID'].has_related_vars():
+                    cvars['WAV_GRID'].major_layer.check_assignment(cvars['WAV_GRID'], comp_grid_dict['w%'])
+                if cvars['MASK_GRID'].has_related_vars():
+                    cvars['MASK_GRID'].major_layer.check_assignment(cvars['MASK_GRID'], comp_grid_dict['m%'])
+            except AssertionError:
+                continue
+        
+            compatible_grids.append(alias)
+            grid_descriptions.append(alias)
+
+        return compatible_grids
+
+    GRID = cvars['GRID']
+    options_setters.append(
+        OptionsSetter(
+            var = GRID,
+            options_func = grid_options_func,
+            tooltips_func = grid_options_func,
+            inducing_vars = [COMPSET]
+        )
+    )
     
     return options_setters
 

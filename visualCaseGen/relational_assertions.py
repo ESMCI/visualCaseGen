@@ -1,4 +1,4 @@
-from z3 import Implies, And, Or, Not
+from z3 import Implies, And, Or, Not, Contains
 from visualCaseGen.logic_utils import In, When
 
 def relational_assertions_setter(cvars):
@@ -11,11 +11,15 @@ def relational_assertions_setter(cvars):
     COMP_ROF = cvars['COMP_ROF'];  COMP_ROF_PHYS = cvars['COMP_ROF_PHYS'];  COMP_ROF_OPTION = cvars['COMP_ROF_OPTION']
     COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_PHYS = cvars['COMP_GLC_PHYS'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
     COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
+    ATM_GRID = cvars['ATM_GRID']
+    OCN_GRID = cvars['OCN_GRID']
+    WAV_GRID = cvars['WAV_GRID']
+    GRID = cvars['GRID']
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
 
-        # Unconditional assertions (invariants) ----------------------------------------------------
+        # Ordinary assertions (invariants) ----------------------------------------------------
 
         Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) : 
             "If COMP_ICE is stub, all other components must be stub (except for ATM)",
@@ -41,6 +45,9 @@ def relational_assertions_setter(cvars):
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
         
+        Implies(COMP_OCN_OPTION=="SOM", COMP_ICE_OPTION!="PRES") :
+           "TODO: remove this relation. Added for testing the logic module.",
+
         # Preconditioned assertions (When clause) ----------------------------------------------------
 
         When(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
@@ -67,9 +74,25 @@ def relational_assertions_setter(cvars):
         When(And(COMP_ICE=="cice", COMP_OCN == "docn"), COMP_OCN_OPTION=="SOM"):
            "When DOCN is coupled with CICE, DOCN option must be set to SOM.",
 
-        ##When( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")), 
-        ##        Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
-        ##    "When a simple CAM physics option is picked, all other components must be stub.",
+        When( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")), 
+                Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
+            "Simple CAM physics options can only be picked if all other components are stub.",
+
+       ##Or(ATM_GRID==GRID, ATM_GRID!=GRID):
+       ##    "A dummy relational assertion to force all GRID vars to the same layer 1",
+       ##Or(OCN_GRID==GRID, OCN_GRID!=GRID):
+       ##    "A dummy relational assertion to force all GRID vars to the same layer 2",
+
+
+        When(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
+            "Not a valid MOM6 grid.",
+        
+        When(COMP_OCN!="mom", WAV_GRID != "wtx0.66v1"):
+            "wt066v1 wave grid is for MOM6 coupling only",
+        
+        When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
+            "T42 grid can only be used with SCAM option."
+
         
     }
 

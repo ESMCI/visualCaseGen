@@ -42,9 +42,9 @@ class GUI_create_custom():
             ConfigVarStr('COMP_'+str(comp_class))
             ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
             ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
-            #todo ConfigVar('{}_GRID'.format(comp_class))
+            ConfigVarStr('{}_GRID'.format(comp_class))
         ConfigVarCompset("COMPSET", always_set=True)
-        #todo ConfigVar('MASK_GRID')
+        ConfigVarStr('MASK_GRID')
         ConfigVarStr('GRID')
 
     def _init_configvar_options(self):
