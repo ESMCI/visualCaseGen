@@ -142,7 +142,8 @@ class Logic():
             if isinstance(asrt, BoolRef):
                 asrt_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt)]
                 asrt.layer = asrt_vars[0].major_layer
-                asrt.layer.relational_assertions[asrt] = new_assertions[asrt]
+                asrt.layer.add_relational_assertion(asrt, new_assertions[asrt])
+
             # Preconditined constraints
             elif isinstance(asrt, When):
                 antecedent = asrt.antecedent
@@ -151,7 +152,7 @@ class Logic():
                 consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(consequent)]
                 idx= max([c_var.major_layer.idx for c_var in consequent_vars])
                 asrt.layer = cls.layers[idx]
-                asrt.layer.relational_assertions[Implies(antecedent, consequent)] = new_assertions[asrt]
+                asrt.layer.add_relational_assertion(Implies(antecedent, consequent), new_assertions[asrt])
 
                 # add the layer index to antecedent vars' layer indices
                 for a_var in antecedent_vars:
@@ -161,6 +162,11 @@ class Logic():
                         cls.layers[idx].ghost_vars.append(a_var)
             else:
                 raise RuntimeError("Encountered unknown relational assertion type: {}".format(asrt))
+
+        # finally, seal relational assertions of all layers:
+        for layer in cls.layers:
+            layer.seal_relational_assertions()
+
 
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, options_setters, vdict):
@@ -236,32 +242,29 @@ class Logic():
     def register_interdependencies(cls, relational_assertions_setter, options_setters, vdict):
 
         for layer in cls.layers:
-            if len(layer.relational_assertions)>0:
+            if len(layer._relational_assertions)>0:
                 raise RuntimeError("Attempted to call register_interdependencies method multiple times.")
 
         # Obtain all new assertions including preconditionals and ordinary assertions
-        relational_assertions = relational_assertions_setter(vdict)
+        _relational_assertions = relational_assertions_setter(vdict)
 
-        cls._initialize_layers(relational_assertions, options_setters, vdict)
-        cls._register_relational_assertions(relational_assertions, vdict)
-        cls._gen_constraint_hypergraph(relational_assertions, options_setters, vdict)
+        cls._initialize_layers(_relational_assertions, options_setters, vdict)
+        cls._register_relational_assertions(_relational_assertions, vdict)
+        cls._gen_constraint_hypergraph(_relational_assertions, options_setters, vdict)
 
     @classmethod
     def register_assignment(cls, var, new_value):
         logger.debug("Registering %s=%s assignment with the logic engine.", var.name, new_value)
 
         for layer in var.layers:
-            layer.asrt_assignments.pop(var, None)
-            if new_value is not None:
-                layer.asrt_assignments[var] = var==new_value
+            layer.add_asrt_assignment(var, new_value)
 
     @classmethod
     def register_options(cls, var, new_opts):
         logger.debug("Registering options of %s with the logic engine", var.name)
 
         for layer in var.layers:
-            layer.asrt_options[var] = Or([var==opt for opt in new_opts])
-            layer.asrt_assignments.pop(var, None)
+            layer.add_asrt_option(var, new_opts)
 
     @classmethod
     def check_assignment(cls, var, new_value):
@@ -317,11 +320,14 @@ class Layer():
         # variables that don't appear in this var but connected to this var via preconditinal assertions
         self.ghost_vars = []
         # assertions keeping track of variable assignments. key is var, value is assignment assertion
-        self.asrt_assignments = dict()
+        self._asrt_assignments = dict()
         # assertions for options lists of variables. key is var, value is options assertion
-        self.asrt_options = dict()
+        self._asrt_options = dict()
         # relational assertions appearing in this layer
-        self.relational_assertions = dict()
+        self._relational_assertions = dict()
+        # a flag to designate whether the addition of relational assertions complete. If so, 
+        # optional and assignment assertions may start to be added.
+        self._relational_assertions_sealed = False
 
         # Set of variables whose options validities are to be updated only.
         # These are variables whose neighbors went through either a value change or an options validities change
@@ -330,31 +336,58 @@ class Layer():
         # These are variables who are options children of variables whose values are changed.
         self.vars_refresh_options = set()
 
+        # a z3 solver instance that includes optional and relational assertions. This solver should be used 
+        # whenever possible so as to improve performance
+        self._solver = Solver()
+
     @classmethod
     def reset(cls):
         cls._indices = set()
+    
+    def add_asrt_assignment(self, var, new_value):
+            self._asrt_assignments.pop(var, None)
+            if new_value is not None:
+                self._asrt_assignments[var] = var==new_value
+    
+    def add_asrt_option(self, var, new_opts):
+        self._asrt_options[var] = Or([var==opt for opt in new_opts])
+        self._asrt_assignments.pop(var, None)
+        self._solver.pop()
+        self._solver.push()
+        self._apply_options_assertions(self._solver)
+
+    def add_relational_assertion(self, asrt, err_msg):
+        self._relational_assertions[asrt] = err_msg
+    
+    def seal_relational_assertions(self):
+        if self._relational_assertions_sealed:
+            raise RuntimeError("Relational assertions already sealed.")
+        self._solver = Solver()
+        self._apply_relational_assertions(self._solver)
+        self._solver.push()
+        self._relational_assertions_sealed = True
 
     def _apply_assignment_assertions(self, solver, exclude_var=None):
         """ Adds all current assignment assertions to a given solver instance.
         The optional exclude_var argument may be used to exclude a given variable """
 
         if exclude_var is None:
-            solver.add([self.asrt_assignments[var] for var in self.asrt_assignments])
+            solver.add([self._asrt_assignments[var] for var in self._asrt_assignments])
         else:
-            solver.add([self.asrt_assignments[var] for var in self.asrt_assignments if var is not exclude_var])
+            solver.add([self._asrt_assignments[var] for var in self._asrt_assignments if var is not exclude_var])
 
     def _apply_options_assertions(self, solver):
         """ Adds all of the current options assertions to a given solver instance."""
-        solver.add([self.asrt_options[var] for var in self.asrt_options])
+        solver.add([self._asrt_options[var] for var in self._asrt_options])
 
     def _apply_relational_assertions(self, solver, assert_and_track=False):
         """ Adds all of the relational assertions to a given solver instance """
 
         if assert_and_track is True:
-            for asrt in self.relational_assertions:
-                solver.assert_and_track(asrt, self.relational_assertions[asrt])
+            for asrt in self._relational_assertions:
+                solver.assert_and_track(asrt, self._relational_assertions[asrt])
         else:
-            solver.add(list(self.relational_assertions))
+            solver.add(list(self._relational_assertions))
 
     @staticmethod
     def designate_affected_vars(var, designate_opt_children=True):
@@ -379,11 +412,10 @@ class Layer():
                 child_layer.vars_refresh_options.add(child_var_opt)
 
     def get_options_validities(self, var):
-        s = Solver()
-        self._apply_options_assertions(s)
-        self._apply_assignment_assertions(s, exclude_var=var)
-        self._apply_relational_assertions(s)
-        new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
+        self._solver.push()
+        self._apply_assignment_assertions(self._solver, exclude_var=var)
+        new_validities = {opt: self._solver.check(var==opt)==sat for opt in var._options}
+        self._solver.pop()
         return new_validities
 
     def check_assignment(self, var, new_value):
@@ -400,12 +432,10 @@ class Layer():
 
             if status is True:
                 # now, check if the value satisfies all assertions
-                s = Solver()
-                self._apply_options_assertions(s)
-                self._apply_assignment_assertions(s, exclude_var=var)
-                s.add(var==new_value)
-                self._apply_relational_assertions(s)
-                status = s.check()==sat
+                self._solver.push()
+                self._apply_assignment_assertions(self._solver, exclude_var=var)
+                status = self._solver.check(var==new_value)==sat
+                self._solver.pop()
 
                 if status is False:
                     err_msg = self.retrieve_error_msg(var, new_value)
@@ -449,10 +479,6 @@ class Layer():
         if not some_relational_impact():
             return
 
-        s = Solver()
-        self._apply_options_assertions(s)
-        self._apply_relational_assertions(s)
-
         ivar = 0
         while len(self.vars_refresh_validities) > ivar:
             var = self.vars_refresh_validities[ivar]
@@ -460,10 +486,10 @@ class Layer():
             if var.has_options():
 
                 # Determine new validities
-                s.push()
-                self._apply_assignment_assertions(s, exclude_var=var)
-                new_validities = {opt: s.check(var==opt)==sat for opt in var._options}
-                s.pop()
+                self._solver.push()
+                self._apply_assignment_assertions(self._solver, exclude_var=var)
+                new_validities = {opt: self._solver.check(var==opt)==sat for opt in var._options}
+                self._solver.pop()
 
                 # Confirm at least one options is valid
                 if debug:
@@ -495,9 +521,9 @@ class Layer():
         self._apply_relational_assertions(s)
 
         # Add existing optional assertions for variables whose options will not change due to invoker_var value change.
-        for var in self.asrt_options:
+        for var in self._asrt_options:
             if var not in self.vars_refresh_options:
-                s.add([self.asrt_options[var]])
+                s.add([self._asrt_options[var]])
         if debug:
             if s.check() == unsat:
                 raise RunError("Layer not feasible when old optional and relational assertions are applied")
@@ -544,7 +570,7 @@ class Layer():
 
             # Remove old optional assertions of variables whose options are to change:
             for var in self.vars_refresh_options:
-                self.asrt_options.pop(var, None)
+                self._asrt_options.pop(var, None)
 
             # We are finally ready to apply the options changes
             for var in self.vars_refresh_options:

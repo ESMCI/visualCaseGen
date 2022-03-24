@@ -259,6 +259,9 @@ class ConfigVarBase(SeqRef, HasTraits):
             if self._options_validities[opt] == True:
                 return opt
         return None
+    
+    def has_related_vars(self):
+        return True if len(self.related_vars)>0 else False
 
 
     @property
