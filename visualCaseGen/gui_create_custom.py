@@ -43,7 +43,7 @@ class GUI_create_custom():
             ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
             ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
             #todo ConfigVar('{}_GRID'.format(comp_class))
-        ConfigVarCompset("COMPSET")
+        ConfigVarCompset("COMPSET", always_set=True)
         #todo ConfigVar('MASK_GRID')
         ConfigVarStr('GRID')
 
@@ -224,46 +224,6 @@ class GUI_create_custom():
 
     #todo         self._btn_grid_view.layout.display = '' # turn on the display
 
-    @owh.out.capture()
-    def _update_compset(self, change=None):
-        new_compset_text = ConfigVarStr.vdict['INITTIME'].value
-        for comp_class in self.ci.comp_classes:
-
-            # 0. Component
-            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
-            if cv_comp.is_none():
-                new_compset_text = ''
-                break
-
-            # 1. Component Physics
-            cv_comp_phys = ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]
-            if not cv_comp_phys.is_none():
-                comp_phys_val = cv_comp_phys.value
-                if comp_phys_val == 'Specialized':
-                    comp_phys_val = 'CAM' # todo: generalize this special case
-                new_compset_text += '_'+comp_phys_val
-
-                # 2. Component Option (optional)
-                cv_comp_option = ConfigVarStr.vdict['COMP_{}_OPTION'.format(comp_class)]
-                comp_option_val = cv_comp_option.value
-                if not cv_comp_option.is_none():
-                    new_compset_text += '%'+comp_option_val
-                else:
-                    return # Change not finalized yet. (Otherwise, cv_comp_option would have a value, since we set
-                           # its always_set attribute to True.) Yet, cv_comp_option doesn't have a value now, most
-                           # likely because cv_comp_option is temporarily set to none_val, i.e., ()., before it is
-                           # to be set to its actual value. Return for now, without making any changes in compset.
-            else:
-                new_compset_text = ''
-                break
-
-        new_compset_text = new_compset_text.replace('%(none)','')
-
-        if new_compset_text != ConfigVarStr.vdict["COMPSET"].value:
-            ConfigVarStr.vdict["COMPSET"].value = new_compset_text
-            #todo self._change_grid_view_mode(new_mode='suggested')
-            #todo self._update_grid_widget()
-
     #todo def _update_create_case(self, change):
     #todo     assert change['name'] == 'value'
     #todo     self._create_case.disable()
@@ -293,21 +253,6 @@ class GUI_create_custom():
             cv_comp._widget.observe(
                 self._set_comp_options_tab,
                 names='_property_lock',
-                type='change')
-
-        # update compset when INITTIME changes
-        cv_inittime = ConfigVarStr.vdict['INITTIME']
-        cv_inittime.observe(
-            self._update_compset,
-            names='value',
-            type='change'
-        )
-        ## also, update compset when any COMP_???_OPTION changes
-        for comp_class in self.ci.comp_classes:
-            cv_comp_option = ConfigVarStr.vdict['COMP_{}_OPTION'.format(comp_class)]
-            cv_comp_option.observe(
-                self._update_compset,
-                names='value',
                 type='change')
 
     #todo     cv_grid = ConfigVar.vdict['GRID']
