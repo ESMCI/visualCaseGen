@@ -1,11 +1,10 @@
 import re
 
 class OptionsSetter:
-    def __init__(self, var, options_func, tooltips_func=None, inducing_vars=[]):
+    def __init__(self, var, func, inducing_vars=[]):
 
         self.var = var
-        self._options_func = options_func
-        self._tooltips_func = tooltips_func
+        self._func = func
         assert isinstance(inducing_vars, list), "incuding_vars parameter must be a list"
         self._inducing_vars = inducing_vars
         self.var.assign_options_setter(self)
@@ -15,10 +14,7 @@ class OptionsSetter:
         if any([inducing_var.is_none() for inducing_var in self._inducing_vars]):
             return None, None
 
-        options = self._options_func(*(var.value for var in self._inducing_vars))
-        tooltips = self._tooltips_func(*(var.value for var in self._inducing_vars)) \
-                    if self._tooltips_func is not None else None 
-        
+        options, tooltips = self._func(*(var.value for var in self._inducing_vars))
         return options, tooltips
     
     def has_inducing_vars(self):
@@ -37,8 +33,9 @@ def get_options_setters(cvars, ci):
     options_setters.append(
         OptionsSetter(
             var = INITTIME, 
-            options_func = lambda:['1850', '2000', 'HIST'],
-            tooltips_func = lambda:['Pre-industrial', 'Present day', 'Historical'] 
+            func = lambda:(
+                ['1850', '2000', 'HIST'],
+                ['Pre-industrial', 'Present day', 'Historical'])
         )
     )
 
@@ -47,8 +44,9 @@ def get_options_setters(cvars, ci):
         options_setters.append(
             OptionsSetter(
                 var = COMP,
-                options_func = lambda cc=comp_class:
-                    [model for model in ci.models[cc] if model[0] != 'x'] 
+                func = lambda cc=comp_class:(
+                    [model for model in ci.models[cc] if model[0] != 'x'],
+                    None)
             )
         )
 
@@ -58,8 +56,9 @@ def get_options_setters(cvars, ci):
         options_setters.append(
             OptionsSetter(
                 var = COMP_PHYS,
-                options_func = lambda model: ci.comp_phys[model],
-                tooltips_func = lambda model: ci.comp_phys_desc[model],
+                func = lambda model:(
+                    ci.comp_phys[model],
+                    ci.comp_phys_desc[model]),
                 inducing_vars = [COMP]
             )
         )
@@ -71,8 +70,9 @@ def get_options_setters(cvars, ci):
         options_setters.append(
             OptionsSetter(
                 var = COMP_OPTION,
-                options_func = lambda model,phys: ['(none)']+ci.comp_options[model][phys],
-                tooltips_func = lambda model,phys: ['no modifiers']+ci.comp_options_desc[model][phys],
+                func = lambda model,phys:(
+                    ['(none)']+ci.comp_options[model][phys],
+                    ['no modifiers']+ci.comp_options_desc[model][phys]),
                 inducing_vars = [COMP, COMP_PHYS],
             )
         )
@@ -103,14 +103,14 @@ def get_options_setters(cvars, ci):
             new_compset_text += '%'+comp_option_val
         
         new_compset_text = new_compset_text.replace('%(none)','')
-        return [new_compset_text]
+        return [new_compset_text], None
 
 
     COMPSET = cvars['COMPSET']
     options_setters.append(
         OptionsSetter(
             var = COMPSET,
-            options_func = compset_func, 
+            func = compset_func, 
             inducing_vars = [INITTIME] + [cvars["COMP_{}_OPTION".format(comp_class)] for comp_class in ci.comp_classes]  
         )
     )
@@ -118,7 +118,7 @@ def get_options_setters(cvars, ci):
     def grid_options_func(compset):
 
         if compset == "":
-            return None
+            return None, None
 
         compatible_grids = []
         grid_descriptions = []
@@ -136,36 +136,27 @@ def get_options_setters(cvars, ci):
             comp_grid_dict = ci.retrieve_component_grids(alias, compset)
 
             try:
-                if cvars['ATM_GRID'].has_related_vars():
-                    cvars['ATM_GRID'].major_layer.check_assignment(cvars['ATM_GRID'], comp_grid_dict['a%'])
-                if cvars['LND_GRID'].has_related_vars():
-                    cvars['LND_GRID'].major_layer.check_assignment(cvars['LND_GRID'], comp_grid_dict['l%'])
-                if cvars['OCN_GRID'].has_related_vars():
-                    cvars['OCN_GRID'].major_layer.check_assignment(cvars['OCN_GRID'], comp_grid_dict['oi%'])
-                if cvars['ICE_GRID'].has_related_vars():
-                    cvars['ICE_GRID'].major_layer.check_assignment(cvars['ICE_GRID'], comp_grid_dict['oi%'])
-                if cvars['ROF_GRID'].has_related_vars():
-                    cvars['ROF_GRID'].major_layer.check_assignment(cvars['ROF_GRID'], comp_grid_dict['r%'])
-                if cvars['GLC_GRID'].has_related_vars():
-                    cvars['GLC_GRID'].major_layer.check_assignment(cvars['GLC_GRID'], comp_grid_dict['g%'])
-                if cvars['WAV_GRID'].has_related_vars():
-                    cvars['WAV_GRID'].major_layer.check_assignment(cvars['WAV_GRID'], comp_grid_dict['w%'])
-                if cvars['MASK_GRID'].has_related_vars():
-                    cvars['MASK_GRID'].major_layer.check_assignment(cvars['MASK_GRID'], comp_grid_dict['m%'])
+                cvars['ATM_GRID'].major_layer.check_assignment(cvars['ATM_GRID'], comp_grid_dict['a%'])
+                cvars['LND_GRID'].major_layer.check_assignment(cvars['LND_GRID'], comp_grid_dict['l%'])
+                cvars['OCN_GRID'].major_layer.check_assignment(cvars['OCN_GRID'], comp_grid_dict['oi%'])
+                cvars['ICE_GRID'].major_layer.check_assignment(cvars['ICE_GRID'], comp_grid_dict['oi%'])
+                cvars['ROF_GRID'].major_layer.check_assignment(cvars['ROF_GRID'], comp_grid_dict['r%'])
+                cvars['GLC_GRID'].major_layer.check_assignment(cvars['GLC_GRID'], comp_grid_dict['g%'])
+                cvars['WAV_GRID'].major_layer.check_assignment(cvars['WAV_GRID'], comp_grid_dict['w%'])
+                cvars['MASK_GRID'].major_layer.check_assignment(cvars['MASK_GRID'], comp_grid_dict['m%'])
             except AssertionError:
                 continue
         
             compatible_grids.append(alias)
-            grid_descriptions.append(alias)
+            grid_descriptions.append(desc)
 
-        return compatible_grids
+        return compatible_grids, grid_descriptions
 
     GRID = cvars['GRID']
     options_setters.append(
         OptionsSetter(
             var = GRID,
-            options_func = grid_options_func,
-            tooltips_func = grid_options_func,
+            func = grid_options_func,
             inducing_vars = [COMPSET]
         )
     )
