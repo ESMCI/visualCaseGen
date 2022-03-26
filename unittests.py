@@ -14,6 +14,12 @@ from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from cli import cmdCaseGen
 
+import argparse
+parser = argparse.ArgumentParser(description="visualCaseGen unit and integration tests")
+parser.add_argument('-a', action='store_true', help='run the full test suite.')
+parser.add_argument('-chg', action='store_true', help='construct the constraint hypergraph only')
+args = parser.parse_args()
+
 logger = logging.getLogger("unittests")
 
 ci = CIME_interface("nuopc")
@@ -239,9 +245,11 @@ class TestParamGen(unittest.TestCase):
         #from visualCaseGen.logic import profiler
         #import cProfile, pstats
 
-        N = 40
-        # for sd in [7,10,13]: ### todo , there is an issue with seed 7
-        for sd in [8,10,13]:
+        N = 40; seeds = [8]
+        if args.a is True:
+            N = 60; seeds = [8, 10, 13, 20]
+
+        for sd in seeds:
             print("seed:", sd)
             random.seed(sd) # to get consistent performance metrics and reproducibility, use the same set of seeds all the time
 
@@ -322,7 +330,9 @@ class TestParamGen(unittest.TestCase):
 
 if __name__ == '__main__':
     tests_to_skip = ''
+    if args.chg is True:
+        tests_to_skip = 'ABCDE'
     #tests_to_skip = 'F'
-    #tests_to_skip = 'BCDEF'
+    #tests_to_skip = 'ABCD'
     logging.getLogger().setLevel(logging.ERROR)
-    unittest.main()
+    unittest.main(argv=['-q'])
