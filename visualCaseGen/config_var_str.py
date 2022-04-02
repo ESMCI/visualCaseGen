@@ -51,6 +51,12 @@ class ConfigVarStr(ConfigVarBase):
         new_val_validity_char = new_widget_val[0] 
         new_val = new_widget_val[1:].strip()
 
+        if new_widget_vals == self._widget_none_val and self._always_set is True:
+            # Attempted to set the value to None while always_set property is True.
+            # Revert the frontend change by calling _update_widget_value and return.
+            self._update_widget_value()
+            return
+
         logger.info("Frontend changing %s widget value to %s", self.name, new_widget_val)
 
         # if an invalid selection, display error message and set widget value to old value

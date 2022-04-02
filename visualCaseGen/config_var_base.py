@@ -180,7 +180,7 @@ class ConfigVarBase(SeqRef, HasTraits):
             self._widget.disabled = False
         else:
             if self.options is not None:
-                raise RuntimeError("Attempted to nullify options list of {}".format(var.name))
+                raise RuntimeError("Attempted to nullify options list of {}".format(self.name))
 
     @property
     def tooltips(self):
