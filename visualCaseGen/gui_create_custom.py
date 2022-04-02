@@ -45,13 +45,13 @@ class GUI_create_custom():
             ConfigVarStr('{}_GRID'.format(comp_class))
         ConfigVarCompset("COMPSET", always_set=True)
         ConfigVarStr('MASK_GRID')
-        ConfigVarStr('GRID')
+        ConfigVarStrMS('GRID')
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
         for varname, var in ConfigVarBase.vdict.items():
             if var.has_options_setter():
-                var.run_options_setter()
+                var.refresh_options()
 
     def _init_widgets(self):
         # Create Case: --------------------------------------

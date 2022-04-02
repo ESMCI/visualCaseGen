@@ -60,7 +60,7 @@ class cmdCaseGen(cmd.Cmd):
     def _init_configvar_options(self):
         for varname, var in ConfigVarBase.vdict.items():
             if var.has_options_setter():
-                var.run_options_setter()
+                var.refresh_options()
 
     def do_vars(self, arg):
         """
@@ -185,14 +185,14 @@ class cmdCaseGen(cmd.Cmd):
 
         # plot parameters:
         width = 8
-        height = 10
+        height = 11
         dpi = 150
         node_size = 200
         node_font = 8
         angle = 30
         height_angle = 25
         view_dist = 9.0
-        colors = ['skyblue', 'lightsalmon', 'yellowgreen', 'plum', 'orange']
+        colors = ['skyblue', 'lightsalmon', 'yellowgreen', 'plum', 'orange', 'mediumseagreen', 'rosybrown', 'olivedrab']*3
 
         def get_node_shape(n):
             """Returns the node color and marker for a given graph node."""
@@ -222,7 +222,7 @@ class cmdCaseGen(cmd.Cmd):
 
 
         fig, ax = plt.subplots(1, 1, figsize=(width, height), dpi=dpi, subplot_kw={'projection':'3d'})
-        ax.set_box_aspect((1, 1, 1.1))
+        ax.set_box_aspect((1, 1, 2.0))
 
         G = logic.chg
         #pos = nx.spring_layout(G, k=4.0)#

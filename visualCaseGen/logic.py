@@ -537,8 +537,10 @@ class Layer():
                 raise RunError("The {}={} assignment led to an infeasible subsequent layer.".format(invoker_var.name, invoker_var.value))
 
         # Add new optional assertions of variables whose options are to change due to invoker_var value change
+        new_options_and_tooltips = {}
         for var in self.vars_refresh_options:
-            new_options, _ = var._options_setter() # todo - _options_setters are rec-called by run_options_setter call. try optimizing.
+            new_options, new_tooltips = var._options_setter()
+            new_options_and_tooltips[var] = new_options, new_tooltips
             if new_options is not None:
                 new_validities = {opt: s.check(var==opt)==sat for opt in new_options }
 
@@ -574,7 +576,7 @@ class Layer():
 
             # We are finally ready to apply the options changes
             for var in self.vars_refresh_options:
-                var.run_options_setter()
+                var.refresh_options(*new_options_and_tooltips[var])
                 if var.value is not None:
                     asrt_assignments_temp[var] = var==var.value
 

@@ -165,11 +165,12 @@ class ConfigVarBase(SeqRef, HasTraits):
     def assign_options_setter(self, options_setter, tooltips_setter=None):
         self._options_setter = options_setter
 
-    def run_options_setter(self):
+    def refresh_options(self, new_options=None, new_tooltips=None):
         """ This should only be called for variables whose options depend on other variables
         and are preset by the OptionsSetter mechanism."""
 
-        new_options, new_tooltips = self._options_setter()
+        if new_options is None:
+            new_options, new_tooltips = self._options_setter()
 
         if new_options is not None:
             self.options = new_options
