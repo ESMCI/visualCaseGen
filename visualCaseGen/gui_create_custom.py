@@ -133,10 +133,10 @@ class GUI_create_custom():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
-    #todo     self._create_case = CreateCaseWidget(
-    #todo         self.ci,
-    #todo         layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
-    #todo     )
+        self._create_case = CreateCaseWidget(
+            self.ci,
+            layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
+        )
 
 
     def _update_grid_view_button(self, change):
@@ -152,26 +152,13 @@ class GUI_create_custom():
             # turn on the grid view button display
             self._btn_grid_view.layout.display = ''
 
-    #todo def _update_create_case(self, change):
-    #todo     assert change['name'] == 'value'
-    #todo     self._create_case.disable()
-    #todo     new_grid = change['new']
-    #todo     if new_grid and len(new_grid)>0:
-    #todo         self._create_case.enable(self._compset_text, new_grid[0][1:].strip())
-
-    #todo @owh.out.capture()
-    #todo def observe_for_options_validity_update(self, cv):
-    #todo     for assertion in self.ci.compliances.assertions(cv.name):
-    #todo         logger.debug("Observing relations for ConfigVar %s", cv.name)
-    #todo         if all(var in ConfigVar.vdict for var in assertion.variables):
-    #todo             for var_other in set(assertion.variables)-{cv.name}:
-    #todo                 ConfigVar.vdict[var_other].observe(
-    #todo                     cv.update_options_validity,
-    #todo                     #names='value',
-    #todo                     names='_property_lock',
-    #todo                     type='change'
-    #todo                 )
-    #todo                 logger.debug("Added relational observance of %s for %s", var_other, cv.name)
+    def _update_create_case(self, change):
+        assert change['name'] == 'value'
+        self._create_case.disable()
+        new_grid = change['new']
+        if new_grid and len(new_grid)>0:
+            compset_text =  ConfigVarBase.vdict["COMPSET"].value 
+            self._create_case.enable(compset_text, new_grid)
 
     def _construct_all_widget_observances(self):
 
@@ -191,11 +178,11 @@ class GUI_create_custom():
         )
 
         cv_grid = ConfigVarBase.vdict['GRID']
-    #todo     cv_grid.observe(
-    #todo         self._update_create_case,
-    #todo         names='value',
-    #todo         type='change'
-    #todo     )
+        cv_grid.observe(
+            self._update_create_case,
+            names='value',
+            type='change'
+        )
 
         self._btn_grid_view.on_click(self._change_grid_view_mode)
 
@@ -278,7 +265,7 @@ class GUI_create_custom():
             HeaderWidget("Grids:"),
             _constr_vbx_grids(),
             HeaderWidget("Launch:"),
-            #todo self._create_case
+            self._create_case
         ])
 
         return vbx_create_case
