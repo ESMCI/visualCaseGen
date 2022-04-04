@@ -10,6 +10,7 @@ import ipywidgets as widgets
 
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.gui_create_custom import GUI_create_custom
+from visualCaseGen.gui_create_predefined import GUI_create_predefined
 from visualCaseGen.config_var_base import ConfigVarBase
 from visualCaseGen.config_var_str import ConfigVarStr
 from cli import cmdCaseGen
@@ -17,6 +18,8 @@ from cli import cmdCaseGen
 import argparse
 parser = argparse.ArgumentParser(description="visualCaseGen unit and integration tests")
 parser.add_argument('-a', action='store_true', help='run the full test suite.')
+parser.add_argument('-t', metavar='tcode', type=str, required=False,
+                    help='Run given test codes only. For example, to run test A and C only: -t AC ')
 parser.add_argument('-chg', action='store_true', help='construct the constraint hypergraph only')
 args = parser.parse_args()
 
@@ -190,10 +193,17 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(captured.records[0].getMessage(),
             'COMP_LND=clm violates assertion:"If CLM is coupled with DATM, then both ICE and OCN must be stub."' )
 
-
-    def test_D_gui_sequence(self):
-        """Test GUI by checking assignment sequences that were previously causing issues."""
+    def test_D_gui_predefined(self):
+        """Test GUI predefined mode."""
         if 'D' in tests_to_skip:
+            return
+
+        GUI_create_predefined(ci).construct()
+
+
+    def test_E_gui_custom_sequence(self):
+        """Test GUI by checking assignment sequences that were previously causing issues."""
+        if 'E' in tests_to_skip:
             return
 
         GUI_create_custom(ci).construct()
@@ -236,9 +246,9 @@ class TestParamGen(unittest.TestCase):
         COMP_ICE.value = 'cice'
         self.assertEqual(COMP_OCN_OPTION.value, "SOM")
 
-    def test_E_gui_random(self):
-        """Test GUI by randomly assigning component values many times"""
-        if 'E' in tests_to_skip:
+    def test_F_gui_custom_random(self):
+        """Test GUI (custom mode) by randomly assigning component values many times"""
+        if 'F' in tests_to_skip:
             return
 
         import random
@@ -320,9 +330,9 @@ class TestParamGen(unittest.TestCase):
         #stats = pstats.Stats(profiler).sort_stats('time')
         #stats.print_stats()
 
-    def test_F_var_assignment(self):
+    def test_G_chg(self):
         """Check constraint hypergraph generator."""
-        if 'F' in tests_to_skip:
+        if 'G' in tests_to_skip:
             return
 
         cmd = cmdCaseGen(exit_on_error=False)
@@ -331,8 +341,9 @@ class TestParamGen(unittest.TestCase):
 if __name__ == '__main__':
     tests_to_skip = ''
     if args.chg is True:
-        tests_to_skip = 'ABCDE'
-    #tests_to_skip = 'F'
-    #tests_to_skip = 'ABCD'
+        tests_to_skip = 'ABCDEF'
+    if args.t is not None:
+        assert len(args.t)>0
+        tests_to_skip = ''.join([c for c in 'ABCDEF' if c not in args.t])
     logging.getLogger().setLevel(logging.ERROR)
     unittest.main(argv=['-q'])
