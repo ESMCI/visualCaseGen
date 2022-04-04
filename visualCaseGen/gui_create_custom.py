@@ -29,7 +29,6 @@ class GUI_create_custom():
         self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
-        self._grid_view_mode = 'suggested' # or 'all'
         # set inittime to its default value
         ConfigVarStr.vdict['INITTIME'].value = '2000'
 
@@ -46,6 +45,7 @@ class GUI_create_custom():
         ConfigVarCompset("COMPSET", always_set=True)
         ConfigVarStr('MASK_GRID')
         ConfigVarStrMS('GRID')
+        ConfigVarStr.vdict['GRID'].view_mode = 'suggested' # or 'all'
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
@@ -108,12 +108,6 @@ class GUI_create_custom():
             #todo cv_comp_option.widget_style.description_width = '0px'
             cv_comp_option.valid_opt_char = '%'
 
-    #todo         cv_comp_grid = ConfigVar.vdict['{}_GRID'.format(comp_class)]
-    #todo         cv_comp_grid.widget = DummyWidget()
-
-    #todo     cv_mask_grid = ConfigVar.vdict['MASK_GRID']
-    #todo     cv_mask_grid.widget = DummyWidget()
-
         cv_compset = ConfigVarBase.vdict["COMPSET"] 
         cv_compset.value = ""
         cv_compset.widget = widgets.HTML(
@@ -133,11 +127,11 @@ class GUI_create_custom():
         #todo cv_grid.widget_style.description_width = '150px'
         cv_grid.valid_opt_char = chr(int('27A4',base=16))
 
-    #todo     self._btn_grid_view = widgets.Button(
-    #todo         description='show all grids',
-    #todo         icon='chevron-down',
-    #todo         layout = {'display':'none', 'width':'200px', 'margin':'10px'}
-    #todo     )
+        self._btn_grid_view = widgets.Button(
+            description='show all grids',
+            icon='chevron-down',
+            layout = {'display':'none', 'width':'200px', 'margin':'10px'}
+        )
 
     #todo     self._create_case = CreateCaseWidget(
     #todo         self.ci,
@@ -145,84 +139,18 @@ class GUI_create_custom():
     #todo     )
 
 
-    #todo def _update_grid_widget(self):
-
-    #todo     cv_grid = ConfigVar.vdict['GRID']
-    #todo     if self._compset_text is None:
-    #todo         cv_grid.set_widget_properties({
-    #todo             'disabled': True,
-    #todo             'description': 'Compatible Grids:',
-    #todo             'placeholder': '(Finalize Compset First.)'
-    #todo         })
-    #todo         self._btn_grid_view.layout.display = 'none'
-    #todo     else:
-    #todo         compatible_grids = []
-    #todo         grid_descriptions = []
-    #todo         for alias, compset_attr, not_compset_attr, desc in self.ci.model_grids:
-    #todo             if compset_attr and not re.search(compset_attr, self._compset_text):
-    #todo                 continue
-    #todo             if not_compset_attr and re.search(not_compset_attr, self._compset_text):
-    #todo                 continue
-    #todo             if self._grid_view_mode == 'suggested' and desc == '':
-    #todo                 continue
-
-    #todo             # temporarily set grid names:
-
-    #todo             comp_grid_dict = self.ci.retrieve_component_grids(alias, self._compset_text)
-    #todo             ConfigVar.vdict['ATM_GRID'].value = comp_grid_dict['a%']
-    #todo             ConfigVar.vdict['LND_GRID'].value = comp_grid_dict['l%']
-    #todo             ConfigVar.vdict['OCN_GRID'].value = comp_grid_dict['oi%']
-    #todo             ConfigVar.vdict['ICE_GRID'].value = comp_grid_dict['oi%']
-    #todo             ConfigVar.vdict['ROF_GRID'].value = comp_grid_dict['r%']
-    #todo             ConfigVar.vdict['GLC_GRID'].value = comp_grid_dict['g%']
-    #todo             ConfigVar.vdict['WAV_GRID'].value = comp_grid_dict['w%']
-    #todo             ConfigVar.vdict['MASK_GRID'].value = comp_grid_dict['m%']
-
-    #todo             def _instance_val_getter(cv_name):
-    #todo                 val = ConfigVar.vdict[cv_name].value
-    #todo                 if val is None:
-    #todo                     val = "None"
-    #todo                 return val
-
-    #todo             cv_comp_grids = \
-    #todo                 [ConfigVar.vdict['{}_GRID'.format(comp_class)] for comp_class in self.ci.comp_classes] +\
-    #todo                 [ConfigVar.vdict['MASK_GRID']]
-
-    #todo             assertions_satisfied = True
-    #todo             for cv_comp_grid in cv_comp_grids:
-    #todo                 for assertion in self.ci.compliances.assertions(cv_comp_grid.name):
-    #todo                     try:
-    #todo                         cv_comp_grid.compliances.check_assertion(
-    #todo                             assertion,
-    #todo                             _instance_val_getter,
-    #todo                             _instance_val_getter,
-    #todo                         )
-    #todo                     except AssertionError:
-    #todo                         assertions_satisfied = False
-    #todo                         break
-    #todo             if not assertions_satisfied:
-    #todo                 continue
-    #todo             compatible_grids.append(alias)
-    #todo             grid_descriptions.append(desc)
-
-    #todo         if len(compatible_grids)==0:
-    #todo             cv_grid.set_widget_properties({'disabled': True})
-    #todo             if self._grid_view_mode == 'suggested':
-    #todo                 cv_grid.set_widget_properties({
-    #todo                     'placeholder': "Couldn't find any suggested grids. Show all grids or change COMPSET."})
-    #todo             else:
-    #todo                 cv_grid.set_widget_properties({
-    #todo                     'placeholder': 'No compatible grids. Change COMPSET.'})
-    #todo         else:
-    #todo             cv_grid.set_widget_properties({
-    #todo                 'disabled': False,
-    #todo                 'placeholder': 'Select from {} compatible grids'.format(len(compatible_grids)),
-    #todo             })
-    #todo             cv_grid.value = ()
-    #todo             cv_grid.options = compatible_grids
-    #todo             cv_grid.tooltips = grid_descriptions
-
-    #todo         self._btn_grid_view.layout.display = '' # turn on the display
+    def _update_grid_view_button(self, change):
+        new_compset = change['new']
+        if new_compset == "" or new_compset is None:
+            self._btn_grid_view.layout.display = 'none'
+        else:
+            # everytime the compset changes, reset the grid view mode to 'suggested'
+            cv_grid = ConfigVarStr.vdict['GRID']
+            cv_grid.view_mode = 'suggested'
+            self._btn_grid_view.description = 'show all grids'
+            self._btn_grid_view.icon = 'chevron-down'
+            # turn on the grid view button display
+            self._btn_grid_view.layout.display = ''
 
     #todo def _update_create_case(self, change):
     #todo     assert change['name'] == 'value'
@@ -255,14 +183,21 @@ class GUI_create_custom():
                 names='_property_lock',
                 type='change')
 
-    #todo     cv_grid = ConfigVar.vdict['GRID']
+        cv_compset = ConfigVarBase.vdict["COMPSET"] 
+        cv_compset.observe(
+            self._update_grid_view_button,
+            names='value',
+            type='change'
+        )
+
+        cv_grid = ConfigVarBase.vdict['GRID']
     #todo     cv_grid.observe(
     #todo         self._update_create_case,
     #todo         names='value',
     #todo         type='change'
     #todo     )
 
-    #todo     self._btn_grid_view.on_click(self._change_grid_view_mode)
+        self._btn_grid_view.on_click(self._change_grid_view_mode)
 
     def _set_comp_options_tab(self, change):
         if change['old'] == {}:
@@ -276,24 +211,20 @@ class GUI_create_custom():
 
     def _change_grid_view_mode(self, change=None, new_mode=None):
 
-        # first, update the grid_view_mode attribute
-        if new_mode:
-            # invoked by backend
-            self._grid_view_mode = new_mode
+        cv_grid = ConfigVarStr.vdict['GRID']
+
+        if cv_grid.view_mode == 'all':
+            cv_grid.view_mode = 'suggested'
         else:
-            # invoked by frontend click
-            if self._grid_view_mode == 'all':
-                self._grid_view_mode = 'suggested'
-            else:
-                self._grid_view_mode = 'all'
+            cv_grid.view_mode = 'all'
         self._btn_grid_view.icon = 'hourglass-start'
         self._btn_grid_view.description = ''
 
         # second, update the grid list accordingly
-        self._update_grid_widget()
+        cv_grid.refresh_options()
 
         # finally, update the grid view mode button
-        if self._grid_view_mode == 'all':
+        if cv_grid.view_mode == 'all':
             self._btn_grid_view.description = 'show suggested grids'
             self._btn_grid_view.icon = 'chevron-up'
         else:
@@ -328,7 +259,7 @@ class GUI_create_custom():
         def _constr_vbx_grids():
             vbx_grids = widgets.VBox([
                     ConfigVarStr.vdict['GRID']._widget,
-                    #todo self._btn_grid_view
+                    self._btn_grid_view
                 ],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
             vbx_grids.layout.border = '1px solid silver'

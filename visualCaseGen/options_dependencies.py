@@ -115,6 +115,8 @@ def get_options_setters(cvars, ci):
         )
     )
     
+    GRID = cvars['GRID']
+
     def grid_options_func(compset):
 
         if compset == "":
@@ -128,9 +130,7 @@ def get_options_setters(cvars, ci):
                 continue
             if not_compset_attr and re.search(not_compset_attr, compset):
                 continue
-            #todo if self._grid_view_mode == 'suggested' and desc == '':
-            #todo     continue
-            if desc == '':
+            if GRID.view_mode == 'suggested' and desc == '':
                 continue
 
             comp_grid_dict = ci.retrieve_component_grids(alias, compset)
@@ -152,7 +152,6 @@ def get_options_setters(cvars, ci):
 
         return compatible_grids, grid_descriptions
 
-    GRID = cvars['GRID']
     options_setters.append(
         OptionsSetter(
             var = GRID,
