@@ -9,6 +9,7 @@ from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
+from visualCaseGen.relational_assertions import relational_assertions_setter
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,12 @@ class GUI_create_predefined():
         ConfigVarBase.reset()
         self.ci = ci
         self._init_configvars()
+        options_setters = {} # don't use the options setters from the options_dependencies module
+        ConfigVarBase.determine_interdependencies(
+            #todo relational_assertions_setter,
+            lambda cvars:{},
+            options_setters)
+        self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
         self._update_compsets(None)
@@ -25,11 +32,40 @@ class GUI_create_predefined():
 
     def _init_configvars(self):
 
+        ConfigVarStr('INITTIME')
         for comp_class in self.ci.comp_classes:
-            ConfigVarStr('COMP_{}'.format(comp_class))
+            # Note, COMP_???_FILTER are the only component-related variables shown in the frontend.
+            # The rest of the component-related variables are either used at backend or not used at all,
+            # but need to be defined so as to parse the option_setters and relational assertions.
+            ConfigVarStr('COMP_{}_FILTER'.format(comp_class))
+            ConfigVarStr('COMP_'+str(comp_class))
+            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
+            ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
+            ConfigVarStr('{}_GRID'.format(comp_class))
 
         ConfigVarStr("COMPSET", always_set=True)
         ConfigVarStrMS('GRID')
+
+    def _init_configvar_options(self):
+        """ Initialize the options of all ConfigVars by calling their options setters."""
+        for varname, var in ConfigVarBase.vdict.items():
+            if var.has_options_setter():
+                var.refresh_options()
+
+        for comp_class in self.ci.comp_classes:
+            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter_options = ['any']
+            for model in self.ci.models[comp_class]:
+                if model[0]=='x':
+                    logger.debug("Skipping the dead component %s", model)
+                    continue
+                if model.upper() == 'D'+comp_class.strip() or model.upper() == 'S'+comp_class:
+                    continue # will add to end
+                if model not in cv_comp_filter_options:
+                    cv_comp_filter_options.append(model)
+            cv_comp_filter_options += ['data', 'none']
+            cv_comp_filter.options = cv_comp_filter_options
+            cv_comp_filter.value = cv_comp_filter.options[0]
 
     def _init_widgets(self):
 
@@ -52,26 +88,14 @@ class GUI_create_predefined():
             )
 
         for comp_class in self.ci.comp_classes:
-            cv_comp_models = ['any']
-            for model in self.ci.models[comp_class]:
-                if model[0]=='x':
-                    logger.debug("Skipping the dead component %s", model)
-                    continue
-                if model.upper() == 'D'+comp_class.strip() or model.upper() == 'S'+comp_class:
-                    continue # will add to end
-                if model not in cv_comp_models:
-                    cv_comp_models.append(model)
-            cv_comp_models += ['data', 'none']
-
-            cv_comp = ConfigVarBase.vdict['COMP_{}'.format(comp_class)]
-            cv_comp.widget = widgets.ToggleButtons(
-                options = cv_comp_models,
+            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter.widget = widgets.ToggleButtons(
                 description=comp_class,
                 disabled=False,
                 layout=widgets.Layout(width='105px', max_height='120px')
             )
-            cv_comp.widget_style.button_width = '85px'
-            cv_comp.widget_style.description_width = '0px'
+            cv_comp_filter.widget_style.button_width = '85px'
+            cv_comp_filter.widget_style.description_width = '0px'
 
         self.keywords_widget = widgets.Textarea(
             value = '',
@@ -118,75 +142,74 @@ class GUI_create_predefined():
 
     def _update_compsets(self, b):
 
-        pass
-        #todo # First, reset both the compset and the grid widgets:
-        #todo cv_compset = ConfigVarBase.vdict['COMPSET']
-        #todo self._reset_grid_widget()
+        # First, reset both the compset and the grid widgets:
+        cv_compset = ConfigVarBase.vdict['COMPSET']
+        self._reset_grid_widget()
 
-        #todo # Now, determine all available compsets
-        #todo self._available_compsets = []
+        # Now, determine all available compsets
+        self._available_compsets = []
 
-        #todo if self.scientific_only_widget.value is True:
-        #todo     # add scientifically supported compsets only
-        #todo     for component in self.ci.compsets:
-        #todo         for compset in self.ci.compsets[component]:
-        #todo             if len(compset.sci_supported_grids)>0:
-        #todo                 self._available_compsets.append(compset)
-        #todo else:
-        #todo     # add all compsets regardless of support level
-        #todo     for component in self.ci.compsets:
-        #todo         self._available_compsets += self.ci.compsets[component]
+        if self.scientific_only_widget.value is True:
+            # add scientifically supported compsets only
+            for component in self.ci.compsets:
+                for compset in self.ci.compsets[component]:
+                    if len(compset.sci_supported_grids)>0:
+                        self._available_compsets.append(compset)
+        else:
+            # add all compsets regardless of support level
+            for component in self.ci.compsets:
+                self._available_compsets += self.ci.compsets[component]
 
-        #todo filter_compsets = []
-        #todo for comp_class in self.ci.comp_classes:
-        #todo     cv_comp = ConfigVarBase.vdict['COMP_{}'.format(comp_class)]
-        #todo     filter_compsets.append((comp_class,cv_comp.value))
-
-
-        #todo new_available_compsets = []
-        #todo for compset in self._available_compsets:
-        #todo     filter_compset = False
-        #todo     for comp_class, model in filter_compsets:
-        #todo         if model == "any":
-        #todo             pass
-        #todo         elif (model == "none" and 'S'+comp_class not in compset.lname) or\
-        #todo              (model == "data" and 'D'+comp_class not in compset.lname) or\
-        #todo              (model not in ["none", "data"] and model.upper() not in compset.lname):
-        #todo             filter_compset = True
-        #todo             break
-
-        #todo     if not filter_compset:
-        #todo         new_available_compsets.append(compset)
-        #todo self._available_compsets = new_available_compsets
+        filter_compsets = []
+        for comp_class in self.ci.comp_classes:
+            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            filter_compsets.append((comp_class,cv_comp_filter.value))
 
 
-        #todo if self.keywords_widget.value != '':
-        #todo     keywords = self.keywords_widget.value.split(',')
-        #todo     new_available_compsets = []
-        #todo     for ac in self._available_compsets:
-        #todo         all_keywords_found = True
-        #todo         for keyword in keywords:
-        #todo             keyword = keyword.strip()
-        #todo             if keyword in ac[1] or keyword in ac[0]:
-        #todo                 pass
-        #todo             else:
-        #todo                 all_keywords_found = False
-        #todo                 break
-        #todo         if all_keywords_found:
-        #todo             new_available_compsets.append(ac)
-        #todo     self._available_compsets = new_available_compsets
+        new_available_compsets = []
+        for compset in self._available_compsets:
+            filter_compset = False
+            for comp_class, model in filter_compsets:
+                if model == "any":
+                    pass
+                elif (model == "none" and 'S'+comp_class not in compset.lname) or\
+                     (model == "data" and 'D'+comp_class not in compset.lname) or\
+                     (model not in ["none", "data"] and model.upper() not in compset.lname):
+                    filter_compset = True
+                    break
 
-        #todo available_compsets_str = ['{}: {}'.format(ac.alias, ac.lname) for ac in self._available_compsets]
+            if not filter_compset:
+                new_available_compsets.append(compset)
+        self._available_compsets = new_available_compsets
 
-        #todo cv_compset.options = available_compsets_str
-        #todo cv_compset.set_widget_properties({'disabled': False })
-        #todo n_available_compsets = len(cv_compset.options)
-        #todo if n_available_compsets > 0:
-        #todo     self.compset_desc_widget.value = '{} Select from {} available compsets above.'.\
-        #todo         format(chr(int("2191",base=16)), n_available_compsets)
-        #todo else:
-        #todo     self.compset_desc_widget.value = '{} Cannot find any compsets with the above filters/keywords.'.\
-        #todo         format(chr(int("2757",base=16)))
+
+        if self.keywords_widget.value != '':
+            keywords = self.keywords_widget.value.split(',')
+            new_available_compsets = []
+            for ac in self._available_compsets:
+                all_keywords_found = True
+                for keyword in keywords:
+                    keyword = keyword.strip()
+                    if keyword in ac[1] or keyword in ac[0]:
+                        pass
+                    else:
+                        all_keywords_found = False
+                        break
+                if all_keywords_found:
+                    new_available_compsets.append(ac)
+            self._available_compsets = new_available_compsets
+
+        available_compsets_str = ['{}: {}'.format(ac.alias, ac.lname) for ac in self._available_compsets]
+
+        cv_compset.options = available_compsets_str
+        cv_compset.set_widget_properties({'disabled': False })
+        n_available_compsets = len(cv_compset.options)
+        if n_available_compsets > 0:
+            self.compset_desc_widget.value = '{} Select from {} available compsets above.'.\
+                format(chr(int("2191",base=16)), n_available_compsets)
+        else:
+            self.compset_desc_widget.value = '{} Cannot find any compsets with the above filters/keywords.'.\
+                format(chr(int("2757",base=16)))
 
     def _reset_grid_widget(self):
 
@@ -315,11 +338,10 @@ class GUI_create_predefined():
 
     def _construct_all_widget_observances(self):
 
-        pass
-        #todo self.scientific_only_widget.observe(
-        #todo     self._update_compsets,
-        #todo     names='value'
-        #todo )
+        self.scientific_only_widget.observe(
+            self._update_compsets,
+            names='value'
+        )
 
         #todo cv_compset = ConfigVarBase.vdict['COMPSET']
         #todo cv_compset.observe(
@@ -335,26 +357,26 @@ class GUI_create_predefined():
         #todo     type='change'
         #todo )
 
-        #todo for comp_class in self.ci.comp_classes:
-        #todo     cv_comp = ConfigVarBase.vdict['COMP_{}'.format(comp_class)]
-        #todo     cv_comp.observe(
-        #todo         self._update_compsets,
-        #todo         names='_property_lock',
-        #todo         type='change'
-        #todo     )
+        for comp_class in self.ci.comp_classes:
+            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter.observe(
+                self._update_compsets,
+                names='value',
+                type='change'
+            )
 
-        #todo self.keywords_widget.observe(
-        #todo     self._update_compsets,
-        #todo     names='_property_lock',
-        #todo     type='change'
-        #todo )
+        self.keywords_widget.observe(
+            self._update_compsets,
+            names='_property_lock',
+            type='change'
+        )
 
         #todo self._btn_grid_view.on_click(self._refresh_grids_list)
 
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
-        hbx_comp_modes = widgets.HBox([ConfigVarBase.vdict['COMP_{}'.format(comp_class)]._widget\
+        hbx_comp_modes = widgets.HBox([ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]._widget\
              for comp_class in self.ci.comp_classes], layout={'overflow':'hidden'})
         hbx_comp_modes.layout.width = '800px'
 
