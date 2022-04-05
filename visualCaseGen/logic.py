@@ -103,7 +103,10 @@ class Logic():
         layer_index_vals = sorted(set(layer_indices.values()))
         n_layer_index_vals = len(layer_index_vals)
         normalization = {layer_index_vals[i]: i for i in range(n_layer_index_vals)}
-        cls.layers = [ Layer(i) for i in range(n_layer_index_vals)]
+        if n_layer_index_vals==0:
+            cls.layers = [ Layer(0)]
+        else:
+            cls.layers = [ Layer(i) for i in range(n_layer_index_vals)]
 
         # normalize layer indices. Also turn variable layer indices into lists so as to allow variables
         # to have multiple layer indices. This is needed when a variable is connected to other layers via
@@ -119,6 +122,9 @@ class Logic():
 
         minimizing_constraint = None
         layer_indices_list = list(layer_indices.values())
+        if len(layer_indices_list)==0:
+            return
+
         layer_index_max = MaxVal(layer_indices_list)
         layer_index_min = MinVal(layer_indices_list)
         for layer_range in range(2,100):
