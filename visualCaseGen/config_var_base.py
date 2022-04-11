@@ -58,10 +58,10 @@ class ConfigVarBase(SeqRef, HasTraits):
 
         # variable properties managed by the logic module
         self._layers = []
-        self.related_vars = set() # set of other variables sharing relational assertions with this var.
-        self.child_vars_opt = set() # set of variables whose options are to be updated when the value of self changes.
-        self.child_vars_rlt = [] # set of other variables appearing consequents of preconditional relations that
-                               # include self in antecedent.
+        self.peer_vars_relational = set()   # set of variables sharing relational assertions with this var on same chg layer.
+        self.parent_vars_relational = set() # set of variables appearing in antecedent of When clauses that include self in consequent.
+        self.child_vars_relational = set()  # set of variables appearing consequents of When clauses that include self in antecendet.
+        self.child_vars_options = set()     # set of variables whose options are to be updated when the value of self changes.
 
         # Now call property setters of options and value
         if options is not None:
@@ -211,7 +211,10 @@ class ConfigVarBase(SeqRef, HasTraits):
         old_validities = self._options_validities
 
         if new_validities is None:
-            self._options_validities = logic.get_options_validities(self)
+            if self.is_relational():
+                self._options_validities = logic.get_options_validities(self)
+            else:
+                self._options_validities = {opt:True for opt in self._options}
         else:
             self._options_validities = new_validities
 
@@ -261,9 +264,11 @@ class ConfigVarBase(SeqRef, HasTraits):
                 return opt
         return None
     
-    def has_related_vars(self):
-        return True if len(self.related_vars)>0 else False
-
+    def is_relational(self):
+        """ Returns True if this variable appears in a relational assertion. If the variable appears only in antecedent(s) of
+        When clauses but doesn't appear in any other relational assertions, then it is NOT deemed to be relational because its
+        options validities do not depend on other variables."""
+        return True if (len(self.peer_vars_relational)>0 or len(self.parent_vars_relational)>0) else False
 
     @property
     def widget(self):

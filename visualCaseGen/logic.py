@@ -177,7 +177,7 @@ class Logic():
     @classmethod
     def _gen_constraint_hypergraph(cls, new_assertions, options_setters, vdict):
         """ Given a dictionary of relational assertions, generates the constraint hypergraph. This method
-        also sets the related_vars and child_vars_rlt properties of variables appearing in relational assertions."""
+        also sets the relational vars properties of variables appearing in relational assertions."""
 
         cls.chg = nx.Graph()
 
@@ -194,7 +194,7 @@ class Logic():
 
                 asrt_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
                 for var in asrt_vars:
-                    var.related_vars.update(asrt_vars - {var})
+                    var.peer_vars_relational.update(asrt_vars - {var})
 
                 # add ordinary assertion node
                 cls.chg.add_node(asrt, li=asrt.layer.idx, type="U") # U: ordinary relational assertion
@@ -216,10 +216,13 @@ class Logic():
                     # add edge from var to asrt
                     cls.chg.add_edge(a_var, asrt) # higher var to assertion
 
-                    # todo: consider making child_vars_rlt of type set
-                    a_var.child_vars_rlt.extend([var for var in consequent_vars if var not in a_var.child_vars_rlt])
+                    # todo: consider making child_vars_relational of type set
+                    a_var.child_vars_relational.update(consequent_vars)
 
                 for c_var in consequent_vars:
+                    c_var.peer_vars_relational.update(consequent_vars - {c_var})
+                    c_var.parent_vars_relational.update(antecedent_vars)
+
                     # add edge from var to asrt
                     cls.chg.add_edge(c_var, asrt) # lower var to assertion
 
@@ -232,7 +235,7 @@ class Logic():
 
                 for inducing_var in os.inducing_vars:
                     cls.chg.add_edge(inducing_var, hyperedge_str)
-                    inducing_var.child_vars_opt.add(os.var)
+                    inducing_var.child_vars_options.add(os.var)
 
                 cls.chg.add_edge(hyperedge_str, os.var)
 
@@ -402,18 +405,18 @@ class Layer():
 
         major_layer = var.major_layer
         major_layer.vars_refresh_validities.extend(
-            [var_other for var_other in var.related_vars if var_other not in major_layer.vars_refresh_validities]            
+            [var_other for var_other in var.peer_vars_relational if var_other not in major_layer.vars_refresh_validities]            
         )
 
         # update set of child vars whose validities are to be refreshed:
-        for child_var_rlt in var.child_vars_rlt:
+        for child_var_rlt in var.child_vars_relational:
             child_layer = child_var_rlt.major_layer
             if child_var_rlt not in child_layer.vars_refresh_validities:
                 child_layer.vars_refresh_validities.append(child_var_rlt)
 
         # update set of variables whose options are to be updated due to the value change of this var:
         if designate_opt_children:
-            for child_var_opt in var.child_vars_opt:
+            for child_var_opt in var.child_vars_options:
                 child_layer = child_var_opt.major_layer
                 child_layer.vars_refresh_options.add(child_var_opt)
 
