@@ -144,9 +144,9 @@ class ConfigVarBase(SeqRef, HasTraits):
         if len(self._layers) > 0:
             if new_layer.idx <= self._layers[0].idx:
                 raise RuntimeError("Cannot add a secondary chg layer that has higher priority than major layer for var {}"\
-                    .format(var.name))
+                    .format(self.name))
             if new_layer.idx in self._layers:
-                raise RuntimeError("Trying to add a layer that is already added to var {}".format(var.name))
+                raise RuntimeError("Trying to add a layer that is already added to var {}".format(self.name))
         self._layers.append(new_layer)
 
     @property
@@ -178,9 +178,6 @@ class ConfigVarBase(SeqRef, HasTraits):
                 self.tooltips = new_tooltips
             self._widget.layout.visibility = 'visible'
             self._widget.disabled = False
-        else:
-            if self.options is not None:
-                raise RuntimeError("Attempted to nullify options list of {}".format(self.name))
 
     @property
     def tooltips(self):

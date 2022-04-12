@@ -9,7 +9,7 @@ from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
-from visualCaseGen.relational_assertions import relational_assertions_setter
+from visualCaseGen.options_dependencies import get_options_setters
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +19,12 @@ class GUI_create_predefined():
         ConfigVarBase.reset()
         self.ci = ci
         self._init_configvars()
-        options_setters = {} # don't use the options setters from the options_dependencies module
+        # an empty relational assertions setter
+        relational_assertions_setter = lambda cvars:{}
+        # an options_setter list with a single entry: GRID
+        options_setters = [os for os in get_options_setters(ConfigVarBase.vdict, self.ci) if os.var.name == "GRID"]
         ConfigVarBase.determine_interdependencies(
-            #todo relational_assertions_setter,
-            lambda cvars:{},
+            relational_assertions_setter,
             options_setters)
         self._init_configvar_options()
         self._init_widgets()
@@ -44,7 +46,9 @@ class GUI_create_predefined():
             ConfigVarStr('{}_GRID'.format(comp_class))
 
         ConfigVarStr("COMPSET", always_set=True)
+        ConfigVarStr('MASK_GRID')
         ConfigVarStrMS('GRID')
+        ConfigVarStr.vdict['GRID'].view_mode = 'suggested' # or 'all'
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
@@ -119,6 +123,7 @@ class GUI_create_predefined():
         self.compset_desc_widget = widgets.Label("", layout = {'left':'160px', 'margin':'10px'})
 
         cv_grid = ConfigVarBase.vdict['GRID']
+        cv_grid._widget.value = ()
         cv_grid.widget = CheckboxMultiWidget(
              options=[],
              placeholder = '(Finalize Compset First.)',
@@ -144,7 +149,6 @@ class GUI_create_predefined():
 
         # First, reset both the compset and the grid widgets:
         cv_compset = ConfigVarBase.vdict['COMPSET']
-        self._reset_grid_widget()
 
         # Now, determine all available compsets
         self._available_compsets = []
@@ -211,18 +215,18 @@ class GUI_create_predefined():
             self.compset_desc_widget.value = '{} Cannot find any compsets with the above filters/keywords.'.\
                 format(chr(int("2757",base=16)))
 
-    def _reset_grid_widget(self):
-
-        pass
-        #todo cv_grid = ConfigVarBase.vdict['GRID']
-        #todo cv_grid.value = ()
-        #todo cv_grid.options = []
-        #todo cv_grid.set_widget_properties({
-        #todo     'placeholder': '(Finalize Compset First.)',
-        #todo     'disabled': True
-        #todo })
-        #todo self._btn_grid_view.layout.display = 'none'
-        #todo self._create_case.disable()
+    def _update_grid_view_button(self, change):
+        new_compset = change['new']
+        if new_compset == "" or new_compset is None:
+            self._btn_grid_view.layout.display = 'none'
+        else:
+            # everytime the compset changes, reset the grid view mode to 'suggested'
+            cv_grid = ConfigVarStr.vdict['GRID']
+            cv_grid.view_mode = 'suggested'
+            self._btn_grid_view.description = 'show all grids'
+            self._btn_grid_view.icon = 'chevron-down'
+            # turn on the grid view button display
+            self._btn_grid_view.layout.display = ''
 
     def _update_grid_widget(self, change):
 
@@ -291,41 +295,6 @@ class GUI_create_predefined():
         #todo     else:
         #todo         self._btn_grid_view.layout.display = '' # turn on the display
 
-    def _refresh_grids_list_wrapper(self, change):
-
-        pass
-        #todo if self.scientific_only_widget is True:
-        #todo     self._refresh_grids_list(new_mode='all')
-        #todo else:
-        #todo     self._refresh_grids_list(new_mode='suggested')
-
-    def _refresh_grids_list(self, change=None, new_mode=None):
-
-        pass
-        #todo # first, update the grid_view_mode attribute
-        #todo if new_mode:
-        #todo     # invoked by backend
-        #todo     self._grid_view_mode = new_mode
-        #todo else:
-        #todo     # invoked by frontend click
-        #todo     if self._grid_view_mode == 'all':
-        #todo         self._grid_view_mode = 'suggested'
-        #todo     else:
-        #todo         self._grid_view_mode = 'all'
-        #todo self._btn_grid_view.icon = 'hourglass-start'
-        #todo self._btn_grid_view.description = ''
-
-        #todo # second, update the grid list accordingly
-        #todo self._update_grid_widget({})
-
-        #todo # finally, update the grid view mode button
-        #todo if self._grid_view_mode == 'all':
-        #todo     self._btn_grid_view.description = 'show suggested grids'
-        #todo     self._btn_grid_view.icon = 'chevron-up'
-        #todo else:
-        #todo     self._btn_grid_view.description = 'show all grids'
-        #todo     self._btn_grid_view.icon = 'chevron-down'
-
     def _update_create_case(self, change):
 
         pass
@@ -343,12 +312,12 @@ class GUI_create_predefined():
             names='value'
         )
 
-        #todo cv_compset = ConfigVarBase.vdict['COMPSET']
-        #todo cv_compset.observe(
-        #todo     self._refresh_grids_list_wrapper,
-        #todo     names='_property_lock',
-        #todo     type='change'
-        #todo )
+        cv_compset = ConfigVarBase.vdict['COMPSET']
+        cv_compset.observe(
+            self._update_grid_view_button,
+            names='value',
+            type='change'
+        )
 
         #todo cv_grid = ConfigVarBase.vdict['GRID']
         #todo cv_grid.observe(
