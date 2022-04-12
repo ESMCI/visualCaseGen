@@ -253,14 +253,11 @@ class GUI_create_predefined():
 
 
     def _update_create_case(self, change):
-
-        pass
-        #todo assert change['name'] == 'value'
-        #todo self._create_case.disable()
-        #todo new_grid = change['new']
-        #todo if new_grid and len(new_grid)>0:
-        #todo     compset_text = ConfigVarBase.vdict['COMPSET'].value.split(':')[0]
-        #todo     self._create_case.enable(compset_text, new_grid[0][1:].strip())
+        self._create_case.disable()
+        new_grid = change['new']
+        if new_grid and len(new_grid)>0:
+            compset_text = ConfigVarBase.vdict['COMPSET'].value.split(':')[0]
+            self._create_case.enable(compset_text, new_grid)
 
     def _construct_all_widget_observances(self):
 
@@ -276,12 +273,12 @@ class GUI_create_predefined():
             type='change'
         )
 
-        #todo cv_grid = ConfigVarBase.vdict['GRID']
-        #todo cv_grid.observe(
-        #todo     self._update_create_case,
-        #todo     names='value',
-        #todo     type='change'
-        #todo )
+        cv_grid = ConfigVarBase.vdict['GRID']
+        cv_grid.observe(
+            self._update_create_case,
+            names='value',
+            type='change'
+        )
 
         for comp_class in self.ci.comp_classes:
             cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]

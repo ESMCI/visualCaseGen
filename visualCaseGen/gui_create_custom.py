@@ -153,7 +153,6 @@ class GUI_create_custom():
             self._btn_grid_view.layout.display = ''
 
     def _update_create_case(self, change):
-        assert change['name'] == 'value'
         self._create_case.disable()
         new_grid = change['new']
         if new_grid and len(new_grid)>0:
