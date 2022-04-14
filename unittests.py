@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 
 import unittest
+import os
 import sys
-from contextlib import contextmanager
-from io import StringIO
+import shutil
 import logging
 import ipywidgets as widgets
-
+import subprocess
+from io import StringIO
+from getpass import getuser
+from contextlib import contextmanager
 
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.gui_create_custom import GUI_create_custom
 from visualCaseGen.gui_create_predefined import GUI_create_predefined
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_str import ConfigVarStr
+from visualCaseGen.create_case_widget import CreateCaseWidget
 from cli import cmdCaseGen
 
 import argparse
@@ -79,8 +83,8 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(out.getvalue().strip(), "None")
 
         # confirm COMP_ATM_PHYS and COMP_ATM_OPTION are initially empty
-        self.assertEqual(ConfigVarBase.vdict['COMP_ATM_PHYS'].options, None)
-        self.assertEqual(ConfigVarBase.vdict['COMP_ATM_OPTION'].options, None)
+        self.assertEqual(ConfigVar.vdict['COMP_ATM_PHYS'].options, None)
+        self.assertEqual(ConfigVar.vdict['COMP_ATM_OPTION'].options, None)
 
         # now set COMP_OCN and others successfully
         cmd.onecmd("COMP_OCN =mom")
@@ -88,8 +92,8 @@ class TestParamGen(unittest.TestCase):
         cmd.onecmd("COMP_ATM= cam")
 
         # After having set COMP_ATM, confirm COMP_ATM_PHYS and COMP_ATM_OPTION are updated.
-        self.assertIn("CAM60", ConfigVarBase.vdict['COMP_ATM_PHYS'].options)
-        self.assertIn("1PCT", ConfigVarBase.vdict['COMP_ATM_OPTION'].options)
+        self.assertIn("CAM60", ConfigVar.vdict['COMP_ATM_PHYS'].options)
+        self.assertIn("1PCT", ConfigVar.vdict['COMP_ATM_OPTION'].options)
 
         #capture another syntax error:
         with self.assertLogs() as captured:
@@ -149,13 +153,13 @@ class TestParamGen(unittest.TestCase):
             return
 
         cmd = cmdCaseGen(exit_on_error=False)
-        ConfigVarBase.vdict['COMP_ATM'].widget = widgets.ToggleButtons()
-        ConfigVarBase.vdict['COMP_ICE'].widget = widgets.ToggleButtons()
-        ConfigVarBase.vdict['COMP_OCN'].widget = widgets.ToggleButtons()
-        ConfigVarBase.vdict['COMP_LND'].widget = widgets.ToggleButtons()
-        ConfigVarBase.vdict['COMP_ROF'].widget = widgets.ToggleButtons()
-        ConfigVarBase.vdict['COMP_GLC'].widget = widgets.ToggleButtons()
-        ConfigVarBase.vdict['COMP_WAV'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_ATM'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_ICE'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_OCN'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_LND'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_ROF'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_GLC'].widget = widgets.ToggleButtons()
+        ConfigVar.vdict['COMP_WAV'].widget = widgets.ToggleButtons()
 
         # Re-assign COMP and check if we can set COMP_ICE to dice
         cmd.onecmd("COMP_ATM = cam")
@@ -199,6 +203,29 @@ class TestParamGen(unittest.TestCase):
             return
 
         GUI_create_predefined(ci).construct()
+        ConfigVar.vdict['COMP_ATM_FILTER'].value = "cam"
+        ConfigVar.vdict['COMP_OCN_FILTER'].value = "mom"
+        ConfigVar.vdict['COMPSET'].value = ConfigVar.vdict['COMPSET'].options[0]
+        ConfigVar.vdict['GRID'].value = "f09_t061"
+
+        if ci.machine == "cheyenne" and getuser()=="altuntas":
+            casepath = "/glade/scratch/altuntas/TEMP.visualCaseGen_test.001" 
+            if os.path.exists(casepath):
+                shutil.rmtree(casepath)
+
+            cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
+                ci.cimeroot,
+                ConfigVar.vdict['GRID'].value,
+                ConfigVar.vdict['COMPSET'].value.split(':')[0],
+                casepath,
+                ci.machine)
+            runout = subprocess.run(cmd, shell=True, capture_output=True)
+            if runout.returncode == 0:
+                print("\nSUCCESS: Case created at {}.\nNow removing this temporary case...".format(casepath))
+                shutil.rmtree(casepath)
+            else:
+                print(runout.stdout)
+                print("ERROR: {} ".format(runout.stderr))
 
 
     def test_E_gui_custom_sequence(self):
@@ -208,15 +235,15 @@ class TestParamGen(unittest.TestCase):
 
         GUI_create_custom(ci).construct()
 
-        COMP_ATM = ConfigVarBase.vdict['COMP_ATM']
-        COMP_LND = ConfigVarBase.vdict['COMP_LND']
-        COMP_ICE = ConfigVarBase.vdict['COMP_ICE']
-        COMP_OCN = ConfigVarBase.vdict['COMP_OCN']
-        COMP_ROF = ConfigVarBase.vdict['COMP_ROF']
-        COMP_GLC = ConfigVarBase.vdict['COMP_GLC']
-        COMP_WAV = ConfigVarBase.vdict['COMP_WAV']
-        COMP_OCN_PHYS = ConfigVarBase.vdict['COMP_OCN_PHYS']
-        COMP_OCN_OPTION = ConfigVarBase.vdict['COMP_OCN_OPTION']
+        COMP_ATM = ConfigVar.vdict['COMP_ATM']
+        COMP_LND = ConfigVar.vdict['COMP_LND']
+        COMP_ICE = ConfigVar.vdict['COMP_ICE']
+        COMP_OCN = ConfigVar.vdict['COMP_OCN']
+        COMP_ROF = ConfigVar.vdict['COMP_ROF']
+        COMP_GLC = ConfigVar.vdict['COMP_GLC']
+        COMP_WAV = ConfigVar.vdict['COMP_WAV']
+        COMP_OCN_PHYS = ConfigVar.vdict['COMP_OCN_PHYS']
+        COMP_OCN_OPTION = ConfigVar.vdict['COMP_OCN_OPTION']
 
         # first check an assignment sequence that was causing an error:
         COMP_OCN.value = 'docn'
@@ -264,13 +291,13 @@ class TestParamGen(unittest.TestCase):
             random.seed(sd) # to get consistent performance metrics and reproducibility, use the same set of seeds all the time
 
             GUI_create_custom(ci).construct()
-            COMP_ATM = ConfigVarBase.vdict['COMP_ATM']
-            COMP_LND = ConfigVarBase.vdict['COMP_LND']
-            COMP_ICE = ConfigVarBase.vdict['COMP_ICE']
-            COMP_OCN = ConfigVarBase.vdict['COMP_OCN']
-            COMP_ROF = ConfigVarBase.vdict['COMP_ROF']
-            COMP_GLC = ConfigVarBase.vdict['COMP_GLC']
-            COMP_WAV = ConfigVarBase.vdict['COMP_WAV']
+            COMP_ATM = ConfigVar.vdict['COMP_ATM']
+            COMP_LND = ConfigVar.vdict['COMP_LND']
+            COMP_ICE = ConfigVar.vdict['COMP_ICE']
+            COMP_OCN = ConfigVar.vdict['COMP_OCN']
+            COMP_ROF = ConfigVar.vdict['COMP_ROF']
+            COMP_GLC = ConfigVar.vdict['COMP_GLC']
+            COMP_WAV = ConfigVar.vdict['COMP_WAV']
             comp_list = [COMP_ATM, COMP_LND, COMP_ICE, COMP_OCN, COMP_ROF, COMP_GLC, COMP_WAV]
 
             # first try setting to valid options only
@@ -295,8 +322,8 @@ class TestParamGen(unittest.TestCase):
             comp_list_determined = [comp for comp in comp_list if comp.value is not None]
             for i in range(N):
                 comp = random.choice(comp_list_determined)
-                comp_phys = ConfigVarBase.vdict['{}_PHYS'.format(comp.name)]
-                comp_opt = ConfigVarBase.vdict['{}_OPTION'.format(comp.name)]
+                comp_phys = ConfigVar.vdict['{}_PHYS'.format(comp.name)]
+                comp_opt = ConfigVar.vdict['{}_OPTION'.format(comp.name)]
 
                 # Phys
                 valid_opts = [opt for opt in comp_phys.options if comp_phys._options_validities[opt] is True] 
@@ -317,7 +344,7 @@ class TestParamGen(unittest.TestCase):
             # more shuffling of options:
             for i in range(N):
                 comp = random.choice(comp_list_determined)
-                comp_opt = ConfigVarBase.vdict['{}_OPTION'.format(comp.name)]
+                comp_opt = ConfigVar.vdict['{}_OPTION'.format(comp.name)]
 
                 # Options
                 valid_opts = [opt for opt in comp_opt.options if comp_opt._options_validities[opt] is True] 

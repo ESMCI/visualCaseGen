@@ -9,7 +9,7 @@ from traitlets import HasTraits, Any, default, validate, List
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
-class ConfigVarBase(SeqRef, HasTraits):
+class ConfigVar(SeqRef, HasTraits):
 
     # Dictionary of instances. This should not be modified or overriden in derived classes.
     vdict = {}
@@ -25,8 +25,8 @@ class ConfigVarBase(SeqRef, HasTraits):
                     always_set=False, hide_invalid=False):
 
         # Check if the variable has already been defined
-        if name in ConfigVarBase.vdict:
-            raise RuntimeError("Attempted to re-define ConfigVarBase instance {}.".format(name))
+        if name in ConfigVar.vdict:
+            raise RuntimeError("Attempted to re-define ConfigVar instance {}.".format(name))
 
         if ctx==None:
             ctx = main_ctx()
@@ -53,7 +53,7 @@ class ConfigVarBase(SeqRef, HasTraits):
         self._widget = DummyWidget(value=widget_none_val)
         self._widget.tooltips = tooltips
 
-        self._always_set = always_set # if a ConfigVarBase instance with options, make sure a value is always set
+        self._always_set = always_set # if a ConfigVar instance with options, make sure a value is always set
         self._hide_invalid = hide_invalid
 
         # variable properties managed by the logic module
@@ -72,8 +72,8 @@ class ConfigVarBase(SeqRef, HasTraits):
         self.observe(self._post_value_change, names='value', type='change')
 
         # Record this newly created instance in the class member storing instances
-        ConfigVarBase.vdict[name] = self
-        logger.debug("ConfigVarBase %s created.", self.name)
+        ConfigVar.vdict[name] = self
+        logger.debug("ConfigVar %s created.", self.name)
 
     def _post_value_change(self, change):
         """If new value is valid, this method is called automatically right after self.value is set.
@@ -93,13 +93,13 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @staticmethod
     def reset():
-        ConfigVarBase.vdict = dict()
+        ConfigVar.vdict = dict()
         logic.reset()
 
     @staticmethod
     def exists(varname):
         """Check if a variable is already defined."""
-        return varname in ConfigVarBase.vdict
+        return varname in ConfigVar.vdict
 
     @classmethod
     def determine_interdependencies(cls, relational_assertions_setter, options_setters):
@@ -155,12 +155,12 @@ class ConfigVarBase(SeqRef, HasTraits):
 
     @options.setter
     def options(self, new_options):
-        logger.debug("Assigning the options of ConfigVarBase %s", self.name)
+        logger.debug("Assigning the options of ConfigVar %s", self.name)
         assert isinstance(new_options, (list,set))
         logic.register_options(self, new_options)
         self._options = new_options
         self.update_options_validities(options_changed=True)
-        logger.debug("Done assigning the options of ConfigVarBase %s", self.name)
+        logger.debug("Done assigning the options of ConfigVar %s", self.name)
 
     def assign_options_setter(self, options_setter, tooltips_setter=None):
         self._options_setter = options_setter

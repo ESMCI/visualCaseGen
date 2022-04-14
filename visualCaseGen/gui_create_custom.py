@@ -2,7 +2,7 @@ import re
 import logging
 import ipywidgets as widgets
 
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
 from visualCaseGen.config_var_compset import ConfigVarCompset
@@ -19,11 +19,11 @@ logger = logging.getLogger('\t'+__name__.split('.')[-1])
 class GUI_create_custom():
 
     def __init__(self, ci):
-        ConfigVarBase.reset()
+        ConfigVar.reset()
         self.ci = ci
         self._init_configvars()
-        options_setters = get_options_setters(ConfigVarBase.vdict, self.ci)
-        ConfigVarBase.determine_interdependencies(
+        options_setters = get_options_setters(ConfigVar.vdict, self.ci)
+        ConfigVar.determine_interdependencies(
             relational_assertions_setter,
             options_setters)
         self._init_configvar_options()
@@ -49,7 +49,7 @@ class GUI_create_custom():
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
-        for varname, var in ConfigVarBase.vdict.items():
+        for varname, var in ConfigVar.vdict.items():
             if var.has_options_setter():
                 var.refresh_options()
 
@@ -108,7 +108,7 @@ class GUI_create_custom():
             #todo cv_comp_option.widget_style.description_width = '0px'
             cv_comp_option.valid_opt_char = '%'
 
-        cv_compset = ConfigVarBase.vdict["COMPSET"] 
+        cv_compset = ConfigVar.vdict["COMPSET"] 
         cv_compset.value = ""
         cv_compset.widget = widgets.HTML(
             "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
@@ -156,7 +156,7 @@ class GUI_create_custom():
         self._create_case.disable()
         new_grid = change['new']
         if new_grid and len(new_grid)>0:
-            compset_text =  ConfigVarBase.vdict["COMPSET"].value 
+            compset_text =  ConfigVar.vdict["COMPSET"].value 
             self._create_case.enable(compset_text, new_grid)
 
     def _construct_all_widget_observances(self):
@@ -169,14 +169,14 @@ class GUI_create_custom():
                 names='_property_lock',
                 type='change')
 
-        cv_compset = ConfigVarBase.vdict["COMPSET"] 
+        cv_compset = ConfigVar.vdict["COMPSET"] 
         cv_compset.observe(
             self._update_grid_view_button,
             names='value',
             type='change'
         )
 
-        cv_grid = ConfigVarBase.vdict['GRID']
+        cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
             self._update_create_case,
             names='value',
@@ -260,7 +260,7 @@ class GUI_create_custom():
             _constr_vbx_components(),
             HeaderWidget("Physics and Options:"),
             _constr_hbx_comp_options(),
-            ConfigVarBase.vdict['COMPSET']._widget,
+            ConfigVar.vdict['COMPSET']._widget,
             HeaderWidget("Grids:"),
             _constr_vbx_grids(),
             HeaderWidget("Launch:"),

@@ -15,7 +15,7 @@ sys.path.append(pth)
 logger = logging.getLogger("cmdCaseGen")
 
 from visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.relational_assertions import relational_assertions_setter
 from visualCaseGen.options_dependencies import get_options_setters
@@ -29,11 +29,11 @@ class cmdCaseGen(cmd.Cmd):
 
     def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
-        ConfigVarBase.reset()
+        ConfigVar.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
-        options_setters = get_options_setters(ConfigVarBase.vdict, self.ci)
-        ConfigVarBase.determine_interdependencies(
+        options_setters = get_options_setters(ConfigVar.vdict, self.ci)
+        ConfigVar.determine_interdependencies(
             relational_assertions_setter,
             options_setters)
         self._init_configvar_options()
@@ -58,7 +58,7 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarStr('GRID')
 
     def _init_configvar_options(self):
-        for varname, var in ConfigVarBase.vdict.items():
+        for varname, var in ConfigVar.vdict.items():
             if var.has_options_setter():
                 var.refresh_options()
 

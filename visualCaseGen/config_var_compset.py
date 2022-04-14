@@ -1,11 +1,11 @@
 import logging
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var import ConfigVar
 from traitlets import Unicode, validate
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
-class ConfigVarCompset(ConfigVarBase):
+class ConfigVarCompset(ConfigVar):
     """ A specialized ConfigVar type for Compset"""
     
     # trait

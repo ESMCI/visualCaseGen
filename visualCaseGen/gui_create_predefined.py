@@ -2,7 +2,7 @@ import re
 import logging
 import ipywidgets as widgets
 
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
 from visualCaseGen.config_var_compset import ConfigVarCompset
@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 class GUI_create_predefined():
 
     def __init__(self, ci):
-        ConfigVarBase.reset()
+        ConfigVar.reset()
         self.ci = ci
         self._init_configvars()
         # an empty relational assertions setter
         relational_assertions_setter = lambda cvars:{}
         # an options_setter list with a single entry: GRID
-        options_setters = [os for os in get_options_setters(ConfigVarBase.vdict, self.ci) if os.var.name == "GRID"]
-        ConfigVarBase.determine_interdependencies(
+        options_setters = [os for os in get_options_setters(ConfigVar.vdict, self.ci) if os.var.name == "GRID"]
+        ConfigVar.determine_interdependencies(
             relational_assertions_setter,
             options_setters)
         self._init_configvar_options()
@@ -52,12 +52,12 @@ class GUI_create_predefined():
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
-        for varname, var in ConfigVarBase.vdict.items():
+        for varname, var in ConfigVar.vdict.items():
             if var.has_options_setter():
                 var.refresh_options()
 
         for comp_class in self.ci.comp_classes:
-            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter = ConfigVar.vdict['COMP_{}_FILTER'.format(comp_class)]
             cv_comp_filter_options = ['any']
             for model in self.ci.models[comp_class]:
                 if model[0]=='x':
@@ -92,7 +92,7 @@ class GUI_create_predefined():
             )
 
         for comp_class in self.ci.comp_classes:
-            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter = ConfigVar.vdict['COMP_{}_FILTER'.format(comp_class)]
             cv_comp_filter.widget = widgets.ToggleButtons(
                 description=comp_class,
                 disabled=False,
@@ -110,7 +110,7 @@ class GUI_create_predefined():
         )
         self.keywords_widget.style.description_width = '90px'
 
-        cv_compset = ConfigVarBase.vdict['COMPSET']
+        cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.widget = widgets.Dropdown(
             options=[],
             description='Compset:',
@@ -122,7 +122,7 @@ class GUI_create_predefined():
 
         self.compset_desc_widget = widgets.Label("", layout = {'left':'160px', 'margin':'10px'})
 
-        cv_grid = ConfigVarBase.vdict['GRID']
+        cv_grid = ConfigVar.vdict['GRID']
         cv_grid._widget.value = ()
         cv_grid.widget = CheckboxMultiWidget(
              options=[],
@@ -148,7 +148,7 @@ class GUI_create_predefined():
     def _update_compsets(self, b):
 
         # First, reset both the compset and the grid widgets:
-        cv_compset = ConfigVarBase.vdict['COMPSET']
+        cv_compset = ConfigVar.vdict['COMPSET']
 
         # Now, determine all available compsets
         self._available_compsets = []
@@ -166,7 +166,7 @@ class GUI_create_predefined():
 
         filter_compsets = []
         for comp_class in self.ci.comp_classes:
-            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter = ConfigVar.vdict['COMP_{}_FILTER'.format(comp_class)]
             filter_compsets.append((comp_class,cv_comp_filter.value))
 
 
@@ -231,7 +231,7 @@ class GUI_create_predefined():
 
     def _change_grid_view_mode(self, b):
 
-        cv_grid = ConfigVarBase.vdict['GRID']
+        cv_grid = ConfigVar.vdict['GRID']
 
         if cv_grid.view_mode == 'all':
             cv_grid.view_mode = 'suggested'
@@ -256,7 +256,7 @@ class GUI_create_predefined():
         self._create_case.disable()
         new_grid = change['new']
         if new_grid and len(new_grid)>0:
-            compset_text = ConfigVarBase.vdict['COMPSET'].value.split(':')[0]
+            compset_text = ConfigVar.vdict['COMPSET'].value.split(':')[0]
             self._create_case.enable(compset_text, new_grid)
 
     def _construct_all_widget_observances(self):
@@ -266,14 +266,14 @@ class GUI_create_predefined():
             names='value'
         )
 
-        cv_compset = ConfigVarBase.vdict['COMPSET']
+        cv_compset = ConfigVar.vdict['COMPSET']
         cv_compset.observe(
             self._update_grid_view_button,
             names='value',
             type='change'
         )
 
-        cv_grid = ConfigVarBase.vdict['GRID']
+        cv_grid = ConfigVar.vdict['GRID']
         cv_grid.observe(
             self._update_create_case,
             names='value',
@@ -281,7 +281,7 @@ class GUI_create_predefined():
         )
 
         for comp_class in self.ci.comp_classes:
-            cv_comp_filter = ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]
+            cv_comp_filter = ConfigVar.vdict['COMP_{}_FILTER'.format(comp_class)]
             cv_comp_filter.observe(
                 self._update_compsets,
                 names='value',
@@ -299,7 +299,7 @@ class GUI_create_predefined():
     def construct(self):
 
         hbx_comp_labels = widgets.HBox(self.comp_labels)
-        hbx_comp_modes = widgets.HBox([ConfigVarBase.vdict['COMP_{}_FILTER'.format(comp_class)]._widget\
+        hbx_comp_modes = widgets.HBox([ConfigVar.vdict['COMP_{}_FILTER'.format(comp_class)]._widget\
              for comp_class in self.ci.comp_classes], layout={'overflow':'hidden'})
         hbx_comp_modes.layout.width = '800px'
 
@@ -307,13 +307,13 @@ class GUI_create_predefined():
             hbx_comp_labels,
             hbx_comp_modes,
             self.keywords_widget,
-            ConfigVarBase.vdict['COMPSET']._widget,
+            ConfigVar.vdict['COMPSET']._widget,
             self.compset_desc_widget],
                 layout = {'border':'1px solid silver', 'overflow': 'hidden', 'height':'310px'}
         )
 
         vbx_grids = widgets.VBox([
-            ConfigVarBase.vdict['GRID']._widget,
+            ConfigVar.vdict['GRID']._widget,
             self._btn_grid_view],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
         vbx_grids.layout.border = '1px solid silver'

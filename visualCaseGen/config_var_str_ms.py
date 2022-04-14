@@ -1,7 +1,7 @@
 import logging
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_base import ConfigVarBase
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.dev_utils import RunError
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
@@ -9,7 +9,7 @@ from traitlets import HasTraits, Unicode, default, validate
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
-class ConfigVarStrMS(ConfigVarBase):
+class ConfigVarStrMS(ConfigVar):
     """ ConfigVar type with widget value of type Tuple of strings and ConfigVar value of type String. 
     
     self._widget.value  : values, each preceded by a validity char. (Tuple of Strings -- Trait)
