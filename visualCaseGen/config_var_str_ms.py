@@ -2,7 +2,7 @@ import logging
 from traitlets import Unicode, validate
 
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var_opt import ConfigVarOpt
 from visualCaseGen.dev_utils import RunError
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
@@ -10,7 +10,7 @@ from visualCaseGen.logic import logic
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVarStrMS(ConfigVar):
+class ConfigVarStrMS(ConfigVarOpt):
     """A derived ConfigVar class with value(s) of type String. Each instance can have one or more
     strings or None as its value.
 
@@ -40,17 +40,14 @@ class ConfigVarStrMS(ConfigVar):
         ), "New values must be of type string joined by '%'"
 
         # confirm the value validity
-        if self.has_options():
-            for new_val in new_vals.split("%"):
-                if new_val not in self._options:
-                    raise RunError(
-                        f"Value {new_val} not found in {self.name} options list: {self.options}"
-                    )
-                if self._options_validities[new_val] is False:
-                    err_msg = logic.retrieve_error_msg(self, new_val)
-                    raise AssertionError(err_msg)
-        else:
-            logic.check_assignment(self, new_vals)
+        for new_val in new_vals.split("%"):
+            if new_val not in self._options:
+                raise RunError(
+                    f"Value {new_val} not found in {self.name} options list: {self.options}"
+                )
+            if self._options_validities[new_val] is False:
+                err_msg = logic.retrieve_error_msg(self, new_val)
+                raise AssertionError(err_msg)
 
         # finally, set self.value by returning new_vals
         return new_vals
@@ -94,7 +91,7 @@ class ConfigVarStrMS(ConfigVar):
             new_val = new_widget_val[1:].strip()
 
             # if an invalid selection, display error message and set widget value to old value
-            if self.has_options() and new_val_validity_char == self._invalid_opt_char:
+            if new_val_validity_char == self._invalid_opt_char:
                 err_msg = logic.retrieve_error_msg(self, new_val)
                 logger.critical("ERROR: %s", err_msg)
                 alert_error(err_msg)

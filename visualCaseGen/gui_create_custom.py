@@ -72,8 +72,8 @@ class GUI_create_custom():
             layout={'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        cv_inittime.widget_style.button_width='50px'
-        cv_inittime.widget_style.description_width = '140px'
+        cv_inittime.widget.style.button_width='50px'
+        cv_inittime.widget.style.description_width = '140px'
 
         for comp_class in self.ci.comp_classes:
 
@@ -84,8 +84,8 @@ class GUI_create_custom():
                     layout=widgets.Layout(width='105px', max_height='120px'),
                     disabled=False,
                 )
-            cv_comp.widget_style.button_width = '85px'
-            cv_comp.widget_style.description_width = '0px'
+            cv_comp.widget.style.button_width = '85px'
+            cv_comp.widget.style.description_width = '0px'
 
 
             cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
@@ -94,8 +94,8 @@ class GUI_create_custom():
                     layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px'),
                     disabled=False,
                 )
-            cv_comp_phys.widget_style.button_width = '90px'
-            cv_comp_phys.widget_style.description_width = '90px'
+            cv_comp_phys.widget.style.button_width = '90px'
+            cv_comp_phys.widget.style.description_width = '90px'
 
             cv_comp_option = cvars['COMP_{}_OPTION'.format(comp_class)]
             cv_comp_option.widget = CheckboxMultiWidget(
@@ -104,8 +104,8 @@ class GUI_create_custom():
                     disabled=True,
                     #todo layout=widgets.Layout(width='110px', max_height='100px')
                 )
-            #todo cv_comp_option.widget_style.button_width = '90px'
-            #todo cv_comp_option.widget_style.description_width = '0px'
+            #todo cv_comp_option.widget.style.button_width = '90px'
+            #todo cv_comp_option.widget.style.description_width = '0px'
             cv_comp_option.valid_opt_char = '%'
 
         cv_compset = cvars["COMPSET"] 
@@ -124,7 +124,7 @@ class GUI_create_custom():
             allow_multi_select=False,
             #todo layout=widgets.Layout(width='500px')
         )
-        #todo cv_grid.widget_style.description_width = '150px'
+        #todo cv_grid.widget.style.description_width = '150px'
         cv_grid.valid_opt_char = chr(int('27A4',base=16))
 
         self._btn_grid_view = widgets.Button(

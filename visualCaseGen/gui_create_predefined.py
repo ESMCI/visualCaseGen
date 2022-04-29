@@ -98,8 +98,8 @@ class GUI_create_predefined():
                 disabled=False,
                 layout=widgets.Layout(width='105px', max_height='120px')
             )
-            cv_comp_filter.widget_style.button_width = '85px'
-            cv_comp_filter.widget_style.description_width = '0px'
+            cv_comp_filter.widget.style.button_width = '85px'
+            cv_comp_filter.widget.style.description_width = '0px'
 
         self.keywords_widget = widgets.Textarea(
             value = '',
@@ -117,7 +117,7 @@ class GUI_create_predefined():
             disabled=True,
             layout=widgets.Layout(width='650px', padding='10px')
         )
-        cv_compset.widget_style.description_width = '90px'
+        cv_compset.widget.style.description_width = '90px'
         cv_compset.valid_opt_icon = chr(int('27A4',base=16))
 
         self.compset_desc_widget = widgets.Label("", layout = {'left':'160px', 'margin':'10px'})
@@ -206,7 +206,7 @@ class GUI_create_predefined():
         available_compsets_str = ['{}: {}'.format(ac.alias, ac.lname) for ac in self._available_compsets]
 
         cv_compset.options = available_compsets_str
-        cv_compset.set_widget_properties({'disabled': False })
+        cv_compset.widget.disabled = False
         n_available_compsets = len(cv_compset.options)
         if n_available_compsets > 0:
             self.compset_desc_widget.value = '{} Select from {} available compsets above.'.\

@@ -3,7 +3,6 @@ import ipywidgets as widgets
 
 from visualCaseGen.OutHandler import *
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.gui_create_custom import GUI_create_custom
 from visualCaseGen.gui_create_predefined import GUI_create_predefined
@@ -36,7 +35,6 @@ class GUI():
             self.prelim_tab.config_mode.disabled = True
             self.prelim_tab.confirm_prelim_widget.disabled = True
             self.prelim_tab.reset_prelim_widget.disabled = False
-            ConfigVar.reset()
 
             config_mode = self.prelim_tab.config_mode.value
 
@@ -53,7 +51,6 @@ class GUI():
             self.prelim_tab.confirm_prelim_widget.disabled = False
             self.prelim_tab.reset_prelim_widget.disabled = True
             self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
-            ConfigVar.reset()
         self.prelim_tab.reset_prelim_widget.on_click(reset_prelim_clicked)
 
     def help_tab_construct(self):

@@ -2,14 +2,14 @@ import logging
 from traitlets import Unicode, validate
 
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var_opt import ConfigVarOpt
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVarStr(ConfigVar):
+class ConfigVarStr(ConfigVarOpt):
     """A derived ConfigVar class with value of type String. Each instance can have a single
     string or None as its value.
 
@@ -29,7 +29,7 @@ class ConfigVarStr(ConfigVar):
         logger.debug("Assigning value %s=%s", self.name, new_val)
 
         # confirm the value validity
-        if self.has_options() and new_val in self._options:
+        if new_val in self._options:
             if self._options_validities[new_val] is False:
                 err_msg = logic.retrieve_error_msg(self, new_val)
                 raise AssertionError(err_msg)
@@ -75,7 +75,7 @@ class ConfigVarStr(ConfigVar):
         )
 
         # if an invalid selection, display error message and set widget value to old value
-        if self.has_options() and new_val_validity_char == self._invalid_opt_char:
+        if new_val_validity_char == self._invalid_opt_char:
             err_msg = logic.retrieve_error_msg(self, new_val)
             logger.critical("ERROR: %s", err_msg)
             alert_error(err_msg)
