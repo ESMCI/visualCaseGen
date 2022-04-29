@@ -9,7 +9,7 @@ from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
-from visualCaseGen.options_dependencies import get_options_setters
+from specs.options_dependencies import get_options_setters
 
 logger = logging.getLogger(__name__)
 

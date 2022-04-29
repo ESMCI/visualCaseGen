@@ -17,9 +17,9 @@ logger = logging.getLogger("cmdCaseGen")
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_str import ConfigVarStr
-from visualCaseGen.relational_assertions import relational_assertions_setter
-from visualCaseGen.options_dependencies import get_options_setters
 from visualCaseGen.logic import logic
+from specs.relational_assertions import relational_assertions_setter
+from specs.options_dependencies import get_options_setters
 
 class cmdCaseGen(cmd.Cmd):
 
