@@ -165,7 +165,7 @@ class ConfigVar(SeqRef, HasTraits):
     @staticmethod
     def reset():
         """Resets the ConfigVar class."""
-        ConfigVar.vdict = {}
+        ConfigVar.vdict.clear()
         ConfigVar._instantiation_allowed = True
         logic.reset()
 
@@ -481,3 +481,7 @@ class ConfigVar(SeqRef, HasTraits):
         raise NotImplementedError(
             "This method must be implemented in the derived class"
         )
+
+
+# An alias for the ConfigVar instances dictionary
+cvars = ConfigVar.vdict

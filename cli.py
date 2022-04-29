@@ -15,7 +15,7 @@ sys.path.append(pth)
 logger = logging.getLogger("cmdCaseGen")
 
 from visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.logic import logic
 from specs.relational_assertions import relational_assertions_setter
@@ -32,7 +32,7 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVar.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
-        options_setters = get_options_setters(ConfigVar.vdict, self.ci)
+        options_setters = get_options_setters(cvars, self.ci)
         ConfigVar.determine_interdependencies(
             relational_assertions_setter,
             options_setters)
@@ -58,7 +58,7 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarStr('GRID')
 
     def _init_configvar_options(self):
-        for varname, var in ConfigVar.vdict.items():
+        for varname, var in cvars.items():
             if var.has_options_setter():
                 var.refresh_options()
 
@@ -68,11 +68,11 @@ class cmdCaseGen(cmd.Cmd):
         vars -a: list all ConfigVars."""
         if arg in ['-a', 'a', '-all', 'all']:
             # list all variables
-            for varname, var in ConfigVarStr.vdict.items():
+            for varname, var in cvars.items():
                 print("{}={}".format(varname,var.value))
         else:
             # list set variables only
-            for varname, var in ConfigVarStr.vdict.items():
+            for varname, var in cvars.items():
                 if not var.is_none():
                     print("{}={}".format(varname,var.value))
 
@@ -80,7 +80,7 @@ class cmdCaseGen(cmd.Cmd):
         """ This gets called when a (partial or full) single word, i.e., param name,
         is to be completed. """
         complete_list = []
-        for varname in ConfigVarStr.vdict:
+        for varname in cvars:
             if varname.startswith(text.strip()):
                 complete_list.append(varname)
         return complete_list
@@ -92,7 +92,7 @@ class cmdCaseGen(cmd.Cmd):
             sline = line.split('=')
             varname = sline[0].strip()
             if ConfigVarStr.exists(varname):
-                var = ConfigVarStr.vdict[varname]
+                var = cvars[varname]
                 assert var.has_options()
                 options = var.options
                 val_begin = sline[1].strip()
@@ -105,7 +105,7 @@ class cmdCaseGen(cmd.Cmd):
 
     def _assign_var(self, varname, val):
         try:
-            var = ConfigVarStr.vdict[varname]
+            var = cvars[varname]
             var.value = val
         except Exception as e:
             self.printError("{}".format(e))
@@ -128,7 +128,7 @@ class cmdCaseGen(cmd.Cmd):
         elif re.search(r'^ *\b\w+ *$', line):
             varname = line.strip()
             if ConfigVarStr.exists(varname):
-                val = ConfigVarStr.vdict[varname].value
+                val = cvars[varname].value
                 print("{}".format(val))
             else:
                 self.printError("{} is not a variable name or a command".format(varname))
@@ -145,7 +145,7 @@ class cmdCaseGen(cmd.Cmd):
         if not re.search(r'^\b\w+\b$', varname):
             self.printError("Invalid syntax for the opts command. Provide a variable name.")
             return
-        var = ConfigVarStr.vdict[varname]
+        var = cvars[varname]
         if var.has_options():
             for opt in var._widget.options:
                 print('\t', opt)
@@ -158,7 +158,7 @@ class cmdCaseGen(cmd.Cmd):
         if not re.search(r'^\b\w+\b$', varname):
             self.printError("Invalid syntax for the nullify command. Provide a variable name.")
             return
-        var = ConfigVarStr.vdict[varname]
+        var = cvars[varname]
         var.value = None
 
     def close(self):

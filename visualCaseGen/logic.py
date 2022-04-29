@@ -29,7 +29,7 @@ class Logic():
         Layer.reset()
 
     @classmethod
-    def _initialize_layers(cls, new_assertions, options_setters, vdict):
+    def _initialize_layers(cls, new_assertions, options_setters, cvars):
         """Determines constraint hypergraph layer indices of assertions and variables appearing in those assertions."""
 
         if len(cls.layers) > 0:
@@ -45,7 +45,7 @@ class Logic():
             # Ordinary constraints
             if isinstance(asrt, BoolRef):
 
-                asrt_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt)]
+                asrt_vars = [cvars[var.sexpr()] for var in z3util.get_vars(asrt)]
                 for var in asrt_vars:
                     layer_indices[var] = Int("LayerIdx{}".format(var))
                 if len(asrt_vars)>1:
@@ -57,8 +57,8 @@ class Logic():
             # Preconditional constraints
             elif isinstance(asrt, When):
 
-                antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)]
-                consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt.consequent)]
+                antecedent_vars = [cvars[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)]
+                consequent_vars = [cvars[var.sexpr()] for var in z3util.get_vars(asrt.consequent)]
 
                 for a_var in antecedent_vars:
                     layer_indices[a_var] = Int("LayerIdx{}".format(a_var))
@@ -140,13 +140,13 @@ class Logic():
         lis.check()
 
     @classmethod
-    def _register_relational_assertions(cls, new_assertions, vdict):
+    def _register_relational_assertions(cls, new_assertions, cvars):
 
         # finally, set layer indices of assertions:
         for asrt in new_assertions:
             # Ordinary assertions
             if isinstance(asrt, BoolRef):
-                asrt_vars = [vdict[var.sexpr()] for var in z3util.get_vars(asrt)]
+                asrt_vars = [cvars[var.sexpr()] for var in z3util.get_vars(asrt)]
                 asrt.layer = asrt_vars[0].major_layer
                 asrt.layer.add_relational_assertion(asrt, new_assertions[asrt])
 
@@ -154,8 +154,8 @@ class Logic():
             elif isinstance(asrt, When):
                 antecedent = asrt.antecedent
                 consequent = asrt.consequent
-                antecedent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(antecedent)]
-                consequent_vars = [vdict[var.sexpr()] for var in z3util.get_vars(consequent)]
+                antecedent_vars = [cvars[var.sexpr()] for var in z3util.get_vars(antecedent)]
+                consequent_vars = [cvars[var.sexpr()] for var in z3util.get_vars(consequent)]
                 idx= max([c_var.major_layer.idx for c_var in consequent_vars])
                 asrt.layer = cls.layers[idx]
                 asrt.layer.add_relational_assertion(Implies(antecedent, consequent), new_assertions[asrt])
@@ -175,7 +175,7 @@ class Logic():
 
 
     @classmethod
-    def _gen_constraint_hypergraph(cls, new_assertions, options_setters, vdict):
+    def _gen_constraint_hypergraph(cls, new_assertions, options_setters, cvars):
         """ Given a dictionary of relational assertions, generates the constraint hypergraph. This method
         also sets the relational vars properties of variables appearing in relational assertions."""
 
@@ -192,7 +192,7 @@ class Logic():
             # Ordinary assertions
             if isinstance(asrt, BoolRef):
 
-                asrt_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt)}
+                asrt_vars = {cvars[var.sexpr()] for var in z3util.get_vars(asrt)}
                 for var in asrt_vars:
                     var.peer_vars_relational.update(asrt_vars - {var})
 
@@ -206,8 +206,8 @@ class Logic():
             # preconditional constraints
             elif isinstance(asrt, When):
 
-                antecedent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)}
-                consequent_vars = {vdict[var.sexpr()] for var in z3util.get_vars(asrt.consequent)}
+                antecedent_vars = {cvars[var.sexpr()] for var in z3util.get_vars(asrt.antecedent)}
+                consequent_vars = {cvars[var.sexpr()] for var in z3util.get_vars(asrt.consequent)}
 
                 # add preconditional assertion node
                 cls.chg.add_node(asrt, li=asrt.layer.idx, type="C") # C: preconditional relational assertion
@@ -248,18 +248,18 @@ class Logic():
         #todo     raise RuntimeError("Relational assertions not satisfiable!")
 
     @classmethod
-    def register_interdependencies(cls, relational_assertions_setter, options_setters, vdict):
+    def register_interdependencies(cls, relational_assertions_setter, options_setters, cvars):
 
         for layer in cls.layers:
             if len(layer._relational_assertions)>0:
                 raise RuntimeError("Attempted to call register_interdependencies method multiple times.")
 
         # Obtain all new assertions including preconditionals and ordinary assertions
-        _relational_assertions = relational_assertions_setter(vdict)
+        _relational_assertions = relational_assertions_setter(cvars)
 
-        cls._initialize_layers(_relational_assertions, options_setters, vdict)
-        cls._register_relational_assertions(_relational_assertions, vdict)
-        cls._gen_constraint_hypergraph(_relational_assertions, options_setters, vdict)
+        cls._initialize_layers(_relational_assertions, options_setters, cvars)
+        cls._register_relational_assertions(_relational_assertions, cvars)
+        cls._gen_constraint_hypergraph(_relational_assertions, options_setters, cvars)
 
     @classmethod
     def register_assignment(cls, var, new_value):

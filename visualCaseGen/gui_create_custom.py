@@ -2,7 +2,7 @@ import re
 import logging
 import ipywidgets as widgets
 
-from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
 from visualCaseGen.config_var_compset import ConfigVarCompset
@@ -22,7 +22,7 @@ class GUI_create_custom():
         ConfigVar.reset()
         self.ci = ci
         self._init_configvars()
-        options_setters = get_options_setters(ConfigVar.vdict, self.ci)
+        options_setters = get_options_setters(cvars, self.ci)
         ConfigVar.determine_interdependencies(
             relational_assertions_setter,
             options_setters)
@@ -30,7 +30,7 @@ class GUI_create_custom():
         self._init_widgets()
         self._construct_all_widget_observances()
         # set inittime to its default value
-        ConfigVarStr.vdict['INITTIME'].value = '2000'
+        cvars['INITTIME'].value = '2000'
 
     def _init_configvars(self):
         """ Define the ConfigVars and, by doing so, register them with the logic engine. """
@@ -44,12 +44,12 @@ class GUI_create_custom():
             ConfigVarStr('{}_GRID'.format(comp_class))
         ConfigVarCompset("COMPSET", always_set=True)
         ConfigVarStr('MASK_GRID')
-        ConfigVarStrMS('GRID')
-        ConfigVarStr.vdict['GRID'].view_mode = 'suggested' # or 'all'
+        cv_grid = ConfigVarStrMS('GRID')
+        cv_grid.view_mode = 'suggested' # or 'all'
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
-        for varname, var in ConfigVar.vdict.items():
+        for varname, var in cvars.items():
             if var.has_options_setter():
                 var.refresh_options()
 
@@ -66,7 +66,7 @@ class GUI_create_custom():
                 )
             )
 
-        cv_inittime = ConfigVarStr.vdict['INITTIME']
+        cv_inittime = cvars['INITTIME']
         cv_inittime.widget = widgets.ToggleButtons(
             description='Initialization Time:',
             layout={'width': 'max-content'}, # If the items' names are long
@@ -78,7 +78,7 @@ class GUI_create_custom():
         for comp_class in self.ci.comp_classes:
 
             # Get references to ConfigVars whose widgets are to be initialized
-            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
+            cv_comp = cvars['COMP_{}'.format(comp_class)]
             cv_comp.widget = widgets.ToggleButtons(
                     description=comp_class+':',
                     layout=widgets.Layout(width='105px', max_height='120px'),
@@ -88,7 +88,7 @@ class GUI_create_custom():
             cv_comp.widget_style.description_width = '0px'
 
 
-            cv_comp_phys = ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]
+            cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
             cv_comp_phys.widget = widgets.ToggleButtons(
                     description='{} physics:'.format(comp_class),
                     layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px'),
@@ -97,7 +97,7 @@ class GUI_create_custom():
             cv_comp_phys.widget_style.button_width = '90px'
             cv_comp_phys.widget_style.description_width = '90px'
 
-            cv_comp_option = ConfigVarStrMS.vdict['COMP_{}_OPTION'.format(comp_class)]
+            cv_comp_option = cvars['COMP_{}_OPTION'.format(comp_class)]
             cv_comp_option.widget = CheckboxMultiWidget(
                     description=comp_class+':',
                     placeholder="Options will be displayed here after a component selection.",
@@ -108,13 +108,13 @@ class GUI_create_custom():
             #todo cv_comp_option.widget_style.description_width = '0px'
             cv_comp_option.valid_opt_char = '%'
 
-        cv_compset = ConfigVar.vdict["COMPSET"] 
+        cv_compset = cvars["COMPSET"] 
         cv_compset.value = ""
         cv_compset.widget = widgets.HTML(
             "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
         )
 
-        cv_grid = ConfigVarStr.vdict['GRID']
+        cv_grid = cvars['GRID']
         cv_grid._widget.value = ()
         cv_grid.widget = CheckboxMultiWidget(
             options=[],
@@ -145,7 +145,7 @@ class GUI_create_custom():
             self._btn_grid_view.layout.display = 'none'
         else:
             # everytime the compset changes, reset the grid view mode to 'suggested'
-            cv_grid = ConfigVarStr.vdict['GRID']
+            cv_grid = cvars['GRID']
             cv_grid.view_mode = 'suggested'
             self._btn_grid_view.description = 'show all grids'
             self._btn_grid_view.icon = 'chevron-down'
@@ -156,27 +156,27 @@ class GUI_create_custom():
         self._create_case.disable()
         new_grid = change['new']
         if new_grid and len(new_grid)>0:
-            compset_text =  ConfigVar.vdict["COMPSET"].value 
+            compset_text =  cvars["COMPSET"].value 
             self._create_case.enable(compset_text, new_grid)
 
     def _construct_all_widget_observances(self):
 
         # Change component phys/options tab whenever a frontend component change is made
         for comp_class in self.ci.comp_classes:
-            cv_comp = ConfigVarStr.vdict['COMP_{}'.format(comp_class)]
+            cv_comp = cvars['COMP_{}'.format(comp_class)]
             cv_comp._widget.observe(
                 self._set_comp_options_tab,
                 names='_property_lock',
                 type='change')
 
-        cv_compset = ConfigVar.vdict["COMPSET"] 
+        cv_compset = cvars["COMPSET"] 
         cv_compset.observe(
             self._update_grid_view_button,
             names='value',
             type='change'
         )
 
-        cv_grid = ConfigVar.vdict['GRID']
+        cv_grid = cvars['GRID']
         cv_grid.observe(
             self._update_create_case,
             names='value',
@@ -190,14 +190,14 @@ class GUI_create_custom():
             return # change not finalized yet
         comp_class = change['owner'].description[0:3]
         comp_ix = self.ci.comp_classes.index(comp_class)
-        cv_comp_value = ConfigVarStr.vdict['COMP_{}'.format(comp_class)].value
+        cv_comp_value = cvars['COMP_{}'.format(comp_class)].value
         if cv_comp_value is not None:
             self._comp_options_tab.set_title(comp_ix, cv_comp_value.upper())
             self._comp_options_tab.selected_index = comp_ix
 
     def _change_grid_view_mode(self, change=None, new_mode=None):
 
-        cv_grid = ConfigVarStr.vdict['GRID']
+        cv_grid = cvars['GRID']
 
         if cv_grid.view_mode == 'all':
             cv_grid.view_mode = 'suggested'
@@ -221,7 +221,7 @@ class GUI_create_custom():
     def construct(self):
 
         def _constr_vbx_components():
-            hbx_components = widgets.HBox([ConfigVarStr.vdict['COMP_{}'.format(comp_class)]._widget\
+            hbx_components = widgets.HBox([cvars['COMP_{}'.format(comp_class)]._widget\
                  for comp_class in self.ci.comp_classes])
             vbx_components = widgets.VBox([widgets.HBox(self.comp_labels), hbx_components])
             vbx_components.layout.border = '1px solid silver'
@@ -233,8 +233,8 @@ class GUI_create_custom():
             self._comp_options_tab = widgets.Tab(layout=widgets.Layout(width="800px"))
             self._comp_options_tab.children = tuple(
                 widgets.VBox([
-                    ConfigVarStr.vdict['COMP_{}_PHYS'.format(comp_class)]._widget,
-                    ConfigVarStr.vdict['COMP_{}_OPTION'.format(comp_class)]._widget
+                    cvars['COMP_{}_PHYS'.format(comp_class)]._widget,
+                    cvars['COMP_{}_OPTION'.format(comp_class)]._widget
                 ])
                 for comp_class in self.ci.comp_classes
             )
@@ -244,7 +244,7 @@ class GUI_create_custom():
 
         def _constr_vbx_grids():
             vbx_grids = widgets.VBox([
-                    ConfigVarStr.vdict['GRID']._widget,
+                    cvars['GRID']._widget,
                     self._btn_grid_view
                 ],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
@@ -255,12 +255,12 @@ class GUI_create_custom():
         ## END -- functions to determine the GUI layout
 
         vbx_create_case = widgets.VBox([
-            ConfigVarStr.vdict['INITTIME']._widget,
+            cvars['INITTIME']._widget,
             HeaderWidget("Components:"),
             _constr_vbx_components(),
             HeaderWidget("Physics and Options:"),
             _constr_hbx_comp_options(),
-            ConfigVar.vdict['COMPSET']._widget,
+            cvars['COMPSET']._widget,
             HeaderWidget("Grids:"),
             _constr_vbx_grids(),
             HeaderWidget("Launch:"),
