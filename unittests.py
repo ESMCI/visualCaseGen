@@ -82,8 +82,8 @@ class TestParamGen(unittest.TestCase):
         self.assertEqual(out.getvalue().strip(), "None")
 
         # confirm COMP_ATM_PHYS and COMP_ATM_OPTION are initially empty
-        self.assertEqual(cvars['COMP_ATM_PHYS'].options, None)
-        self.assertEqual(cvars['COMP_ATM_OPTION'].options, None)
+        self.assertEqual(cvars['COMP_ATM_PHYS'].options, [])
+        self.assertEqual(cvars['COMP_ATM_OPTION'].options, [])
 
         # now set COMP_OCN and others successfully
         cmd.onecmd("COMP_OCN =mom")

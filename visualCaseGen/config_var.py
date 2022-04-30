@@ -38,7 +38,6 @@ class ConfigVar(SeqRef, HasTraits):
     def __init__(
         self,
         name,
-        value=None,
         widget_none_val=None,
     ):
         """
@@ -48,8 +47,6 @@ class ConfigVar(SeqRef, HasTraits):
         ----------
         name : str
             Name of the variable. Must be unique.
-        value : object, optional
-            The initial value of the variable.
         widget_none_val
             None value for the variable widget. Typically set to None, but for some widget types,
             e.g., those that can have multiple values, this must be set to ().
@@ -77,8 +74,12 @@ class ConfigVar(SeqRef, HasTraits):
         else:
             raise NotImplementedError
 
-        # Initialize members
+        # Initialize name
         self.name = name
+
+        # Set initial value to None. This means that derived class value traits must be initialized
+        # with the following argument: allow_none=True
+        self.value = None
 
         # variable properties managed by the logic module
         self._layers = []
@@ -94,8 +95,6 @@ class ConfigVar(SeqRef, HasTraits):
         self.child_vars_options = (
             set()
         )  # set of variables whose options are to be updated when the value of self changes.
-
-        self.value = value
 
         self.observe(self._post_value_change, names="value", type="change")
 

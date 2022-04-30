@@ -1,6 +1,4 @@
 import logging
-from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
-from traitlets import HasTraits, Any, default, validate
 
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.dummy_widget import DummyWidget
@@ -20,9 +18,6 @@ class ConfigVarOpt(ConfigVar):
     def __init__(
         self,
         name,
-        value=None,
-        options=None,
-        tooltips=(),
         widget_none_val=None,
         always_set=False,
         hide_invalid=False,
@@ -35,12 +30,6 @@ class ConfigVarOpt(ConfigVar):
         ----------
         name : str
             Name of the variable. Must be unique.
-        value : object, optional
-            The initial value of the variable.
-        options : tuple or None, optional
-            The initial list of options.
-        tooltips : tuple:
-            The initial list of options descriptions. Must be the same size as `options`.
         widget_none_val
             None value for the variable widget. Typically set to None, but for some widget types,
             e.g., those that can have multiple values, this must be set to ().
@@ -51,11 +40,11 @@ class ConfigVarOpt(ConfigVar):
             If True, the widget displays only the valid options.
         """
 
-        super().__init__(name, value, widget_none_val)
+        super().__init__(name, widget_none_val)
 
         # Temporarily set private members options and value to None. These will be
         # updated with special property setter below.
-        self._options = None
+        self._options = []
         self._options_setter = None
 
         # Initialize all other private members
@@ -63,19 +52,8 @@ class ConfigVarOpt(ConfigVar):
         self._error_messages = []
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
-        if len(tooltips) > 0:
-            if len(tooltips) != len(options):
-                raise RunError(
-                    f"Tooltips size {len(tooltips)} not equal to options size: {len(options)} for variable {self.name}"
-                )
-        self._widget.tooltips = tooltips
-
         self._always_set = always_set  # if a ConfigVar instance with options, make sure a value is always set
         self._hide_invalid = hide_invalid
-
-        # Now call property setters of options and value
-        if options is not None:
-            self.options = options
 
     @property
     def always_set(self):
@@ -132,7 +110,7 @@ class ConfigVarOpt(ConfigVar):
 
     def has_options(self):
         """Returns True if options have been assigned for this variable."""
-        return self._options is not None
+        return len(self._options)>0
 
     def has_options_setter(self):
         """Returns True if an options_setter function has been assigned for this variable."""

@@ -14,6 +14,7 @@ class DummyWidget(HasTraits):
         if options:
             self.set_trait('options',options)
         self.layout = DummyLayout()
+        self.tooltips = ()
 
 class DummyLayout():
     def __init__(self):
