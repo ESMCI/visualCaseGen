@@ -16,6 +16,7 @@ from visualCaseGen.gui_create_custom import GUI_create_custom
 from visualCaseGen.gui_create_predefined import GUI_create_predefined
 from visualCaseGen.config_var import cvars
 from visualCaseGen.create_case_widget import CreateCaseWidget
+from specs.gen_options_specs import OptionsSpec, gen_options_specs
 from cli import cmdCaseGen
 
 import argparse
@@ -178,16 +179,16 @@ class TestParamGen(unittest.TestCase):
         with self.assertLogs() as captured:
             cmd.onecmd("COMP_ROF = rtm")
         self.assertTrue(
-            '' in captured.records[0].getMessage() and  
-            'If running with RTM|MOSART, CLM must be selected as the land component.' in captured.records[0].getMessage() and  
-            'Asrt.3' not in captured.records[0].getMessage() 
+            '' in captured.records[0].getMessage() and
+            'If running with RTM|MOSART, CLM must be selected as the land component.' in captured.records[0].getMessage() and
+            'Asrt.3' not in captured.records[0].getMessage()
         )
         with self.assertLogs() as captured:
             cmd.onecmd("COMP_ROF = rtm")
         self.assertTrue(
-            'If CLM is coupled with DATM, then both ICE and OCN must be stub.' in captured.records[0].getMessage() and  
-            'If running with RTM|MOSART, CLM must be selected as the land component.' in captured.records[0].getMessage() and  
-            'Asrt.3' not in captured.records[0].getMessage() 
+            'If CLM is coupled with DATM, then both ICE and OCN must be stub.' in captured.records[0].getMessage() and
+            'If running with RTM|MOSART, CLM must be selected as the land component.' in captured.records[0].getMessage() and
+            'Asrt.3' not in captured.records[0].getMessage()
         )
 
         cmd.onecmd("COMP_OCN = docn")
@@ -208,7 +209,7 @@ class TestParamGen(unittest.TestCase):
         cvars['GRID'].value = "f09_t061"
 
         if ci.machine == "cheyenne" and getuser()=="altuntas":
-            casepath = "/glade/scratch/altuntas/TEMP.visualCaseGen_test.001" 
+            casepath = "/glade/scratch/altuntas/TEMP.visualCaseGen_test.001"
             if os.path.exists(casepath):
                 shutil.rmtree(casepath)
 
@@ -253,8 +254,8 @@ class TestParamGen(unittest.TestCase):
             except AssertionError as e:
                 print(e)
         self.assertTrue(
-            'If CLM is coupled with DATM, then both ICE and OCN must be stub.' in out.getvalue().strip() and  
-            'If running with RTM|MOSART, CLM must be selected as the land component.' in out.getvalue().strip() and  
+            'If CLM is coupled with DATM, then both ICE and OCN must be stub.' in out.getvalue().strip() and
+            'If running with RTM|MOSART, CLM must be selected as the land component.' in out.getvalue().strip() and
             'Asrt.3' not in out.getvalue().strip()
         )
 
@@ -325,7 +326,7 @@ class TestParamGen(unittest.TestCase):
                 comp_opt = cvars['{}_OPTION'.format(comp.name)]
 
                 # Phys
-                valid_opts = [opt for opt in comp_phys.options if comp_phys._options_validities[opt] is True] 
+                valid_opts = [opt for opt in comp_phys.options if comp_phys._options_validities[opt] is True]
                 if len(valid_opts)>0:
                     random_opt = random.choice(valid_opts)
                     comp_phys.value = random_opt
@@ -333,7 +334,7 @@ class TestParamGen(unittest.TestCase):
                     print("WARNING: encountered cases where there is no valid opt for "+comp_phys.name+", seed: "+str(sd))
 
                 # Options
-                valid_opts = [opt for opt in comp_opt.options if comp_opt._options_validities[opt] is True] 
+                valid_opts = [opt for opt in comp_opt.options if comp_opt._options_validities[opt] is True]
                 if len(valid_opts)>0:
                     random_opt = random.choice(valid_opts)
                     comp_opt.value = random_opt
@@ -346,7 +347,7 @@ class TestParamGen(unittest.TestCase):
                 comp_opt = cvars['{}_OPTION'.format(comp.name)]
 
                 # Options
-                valid_opts = [opt for opt in comp_opt.options if comp_opt._options_validities[opt] is True] 
+                valid_opts = [opt for opt in comp_opt.options if comp_opt._options_validities[opt] is True]
                 if len(valid_opts)>0:
                     random_opt = random.choice(valid_opts)
                     comp_opt.value = random_opt
@@ -364,12 +365,20 @@ class TestParamGen(unittest.TestCase):
         cmd = cmdCaseGen(exit_on_error=False)
         cmd.onecmd("chg")
 
+    def test_H_options_specs(self):
+        if 'H' in tests_to_skip:
+            return
+
+        GUI_create_custom(ci).construct()
+        gen_options_specs(cvars, ci)
+        OptionsSpec.write_all_options_specs(cvars, 'foo.txt')
+
 if __name__ == '__main__':
     tests_to_skip = ''
     if args.chg is True:
-        tests_to_skip = 'ABCDEF'
+        tests_to_skip = 'ABCDEFH'
     if args.t is not None:
         assert len(args.t)>0
-        tests_to_skip = ''.join([c for c in 'ABCDEF' if c not in args.t])
+        tests_to_skip = ''.join([c for c in 'ABCDEFGH' if c not in args.t])
     logging.getLogger().setLevel(logging.ERROR)
     unittest.main(argv=['-q'])
