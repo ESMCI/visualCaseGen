@@ -5,7 +5,7 @@ from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.logic_utils import When
 from specs.relational_assertions import relational_assertions_setter
-from specs.gen_options_specs import OptionsSpec, gen_options_specs
+from specs.options_specs import OptionsSpec, get_options_specs
 from z3 import Solver, Implies, sat, unsat
 
 ci = CIME_interface("nuopc")
@@ -41,7 +41,7 @@ def main():
 
 
     # Add options (domain) specifications
-    gen_options_specs(cvars, ci)
+    get_options_specs(cvars, ci)
     for varname, var in cvars.items():
         if hasattr(var, 'options_spec'):
             assertions = OptionsSpec.get_options_assertions(var)
@@ -50,23 +50,33 @@ def main():
 
 
     # Check that assertions are satisfiable
+    print("check 1: relational and optional assertions satisfiable?...")
     if s.check() == sat:
-        print("check 1: assertions satisfiable")
+        print("\tok")
     else:
         raise RuntimeError("Assertions not satisfiable")
 
     # Check that all options of all variables are part of at least one solution
+    print("check 2: All options satisfiable?...")
+    all_options_sat = True
     for varname, var in cvars.items():
         if hasattr(var, 'options_spec'):
-            if isinstance(var.options_spec.opts, tuple):
-                for opt in var.options_spec.opts[0]:
+            if isinstance(var.options_spec.options_and_tooltips, tuple):
+                for opt in var.options_spec.options_and_tooltips[0]:
                     if s.check(var==opt) == unsat:
                         print("NOT SATISFIABLE:", var, opt)
-            if isinstance(var.options_spec.opts, dict):
-                for proposition, opts in var.options_spec.opts.items():
-                    for opt in opts[0]:
+                        all_options_sat = False
+                        break
+            if isinstance(var.options_spec.options_and_tooltips, dict):
+                for proposition, options_and_tooltips in var.options_spec.options_and_tooltips.items():
+                    for opt in options_and_tooltips[0]:
                         if s.check(var==opt) == unsat:
                             print("NOT SATISFIABLE:", var, opt)
+                            all_options_sat = False
+                            break
+    if all_options_sat:
+        print("\tok")
+
     
 
 

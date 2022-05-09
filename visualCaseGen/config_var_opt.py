@@ -46,6 +46,7 @@ class ConfigVarOpt(ConfigVar):
         # updated with special property setter below.
         self._options = []
         self._options_setter = None
+        self._options_spec = None
 
         # Initialize all other private members
         self._options_validities = {}
@@ -76,6 +77,9 @@ class ConfigVarOpt(ConfigVar):
 
     def assign_options_setter(self, options_setter):
         self._options_setter = options_setter
+
+    def assign_options_spec(self, options_spec):
+        self._options_spec = options_spec
 
     def refresh_options(self, new_options=None, new_tooltips=None):
         """ This should only be called for variables whose options depend on other variables
@@ -115,6 +119,10 @@ class ConfigVarOpt(ConfigVar):
     def has_options_setter(self):
         """Returns True if an options_setter function has been assigned for this variable."""
         return self._options_setter is not None
+
+    def has_options_spec(self):
+        """Returns True if an options_setter function has been assigned for this variable."""
+        return self._options_spec is not None
 
     def update_options_validities(self, new_validities=None, options_changed=False):
         """ This method updates options validities, and displayed widget options.

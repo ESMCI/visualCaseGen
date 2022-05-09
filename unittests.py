@@ -16,7 +16,7 @@ from visualCaseGen.gui_create_custom import GUI_create_custom
 from visualCaseGen.gui_create_predefined import GUI_create_predefined
 from visualCaseGen.config_var import cvars
 from visualCaseGen.create_case_widget import CreateCaseWidget
-from specs.gen_options_specs import OptionsSpec, gen_options_specs
+from specs.options_specs import OptionsSpec, get_options_specs
 from cli import cmdCaseGen
 
 import argparse
@@ -370,8 +370,8 @@ class TestParamGen(unittest.TestCase):
             return
 
         GUI_create_custom(ci).construct()
-        gen_options_specs(cvars, ci)
-        OptionsSpec.write_all_options_specs(cvars, 'foo.txt')
+        get_options_specs(cvars, ci)
+        OptionsSpec.write_all_options_specs(cvars, 'log_opts_specs.txt')
 
 if __name__ == '__main__':
     tests_to_skip = ''

@@ -1,16 +1,44 @@
 import sys
-from z3 import Implies, And, Or, Not, Contains, Concat, If, Length, StringVal
+from z3 import Implies, And, Or, Not, Contains, Concat, If, is_expr, z3util
 from visualCaseGen.logic_utils import In
 
 sys.path.append('../')
 
 class OptionsSpec:
 
-    def __init__(self, var, opts):
+    def __init__(self, var, options_and_tooltips, inducing_vars=[]):
         self.var = var
         self.var.options_spec = self
-        assert isinstance(opts, (dict,tuple))
-        self.opts = opts
+        assert isinstance(options_and_tooltips, (dict,tuple))
+        self.options_and_tooltips = options_and_tooltips
+        self.var.assign_options_spec(self)
+        assert isinstance(inducing_vars, list), "inducing_vars parameter must be a list"
+        if len(inducing_vars) > 0:
+            self._inducing_vars = inducing_vars
+        else:
+            self._determine_inducing_vars()
+
+    def _determine_inducing_vars(self):
+
+        inducing_vars = set()
+
+        if isinstance(self.options_and_tooltips, tuple): # single options list with no propositions
+            for opt in self.options_and_tooltips[0]:
+                if is_expr(opt):
+                    inducing_vars.update(z3util.get_vars(opt))
+
+        elif isinstance(self.options_and_tooltips, dict): # multiple options list with propsitions
+            for proposition, options_and_tooltips in self.options_and_tooltips.items():
+                if is_expr(proposition):
+                    inducing_vars.update(z3util.get_vars(proposition))
+                for opt in options_and_tooltips[0]:
+                    if is_expr(opt):
+                        inducing_vars.update(z3util.get_vars(opt))
+
+        self._inducing_vars = list(inducing_vars)
+
+    def has_inducing_vars(self):
+        return len(self._inducing_vars)>0
 
     @staticmethod
     def get_options(var):
@@ -19,18 +47,18 @@ class OptionsSpec:
 
         if hasattr(var, 'options_spec'):
 
-            if isinstance(var.options_spec.opts, tuple):
+            if isinstance(var.options_spec.options_and_tooltips, tuple):
                 # single options list
-                options.extend(var.options_spec.opts[0])
-            elif isinstance(var.options_spec.opts, dict):
+                options.extend(var.options_spec.options_and_tooltips[0])
+            elif isinstance(var.options_spec.options_and_tooltips, dict):
                 # multiple options list with propositiions
-                for condition, opts_list in var.options_spec.opts.items():
-                    options.extend(opts_list[0])
+                for proposition, options_and_tooltips in var.options_spec.options_and_tooltips.items():
+                    options.extend(options_and_tooltips[0])
         else:
             raise RuntimeError("Variable doesn't have options_spec property.")
 
         return options
-    
+
     @staticmethod
     def get_options_assertions(var):
 
@@ -38,15 +66,15 @@ class OptionsSpec:
 
         if hasattr(var, 'options_spec'):
 
-            if isinstance(var.options_spec.opts, tuple):
+            if isinstance(var.options_spec.options_and_tooltips, tuple):
                 # single options list
-                assertions = [In(var, var.options_spec.opts[0])]
+                assertions = [In(var, var.options_spec.options_and_tooltips[0])]
 
-            elif isinstance(var.options_spec.opts, dict):
+            elif isinstance(var.options_spec.options_and_tooltips, dict):
                 # multiple options list with propositiions
                 assertions = [
-                    Implies(condition, In(var, opts_list[0]))
-                    for condition, opts_list in var.options_spec.opts.items()
+                    Implies(proposition, In(var, options_and_tooltips[0]))
+                    for proposition, options_and_tooltips in var.options_spec.options_and_tooltips.items()
                 ]
 
         return assertions
@@ -60,18 +88,18 @@ class OptionsSpec:
                     for assertion in assertions:
                         file.write(str(assertion))
                         file.write('\n')
-    
 
-def gen_options_specs(cvars, ci):
+
+def get_options_specs(cvars, ci):
 
     # INITTIME
     INITTIME = cvars['INITTIME']
     OptionsSpec(
         var = INITTIME,
-        opts = (
+        options_and_tooltips = (
             ['1850', '2000', 'HIST'],
             ['Pre-industrial', 'Present day', 'Historical']
-        ) 
+        )
     )
 
     # COMP_???
@@ -79,19 +107,19 @@ def gen_options_specs(cvars, ci):
         COMP = cvars[f'COMP_{comp_class}']
         OptionsSpec(
             var = COMP,
-            opts = (
+            options_and_tooltips = (
                 [model for model in ci.models[comp_class] if model[0] != 'x'],
                 None
             )
         )
-    
+
     # COMP_???_PHYS
     for comp_class in ci.comp_classes:
         COMP = cvars[f'COMP_{comp_class}']
         COMP_PHYS = cvars[f'COMP_{comp_class}_PHYS']
         OptionsSpec(
             var = COMP_PHYS,
-            opts = {
+            options_and_tooltips = {
                 COMP==model: (
                     ci.comp_phys[model],
                     ci.comp_phys_desc[model]
@@ -107,7 +135,7 @@ def gen_options_specs(cvars, ci):
         COMP_OPTION = cvars[f'COMP_{comp_class}_OPTION']
         OptionsSpec(
             var = COMP_OPTION,
-            opts = {
+            options_and_tooltips = {
                 COMP_PHYS==phys: (
                     ['(none)']+ci.comp_options[model][phys],
                     ['(none)']+ci.comp_options_desc[model][phys]
@@ -115,7 +143,7 @@ def gen_options_specs(cvars, ci):
                 for model in ci.models[comp_class] if model[0] != 'x' for phys in ci.comp_phys[model]
             }
         )
-    
+
     # COMPSET
     COMPSET = cvars['COMPSET']
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
@@ -127,7 +155,7 @@ def gen_options_specs(cvars, ci):
     COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
     OptionsSpec(
         var = COMPSET,
-        opts = (
+        options_and_tooltips = (
              [Concat(
                 INITTIME,
                 '_',
@@ -161,10 +189,11 @@ def gen_options_specs(cvars, ci):
 
         else:
             pass
-    
+
     OptionsSpec(
         var = GRID,
-        opts = grid_opts
+        options_and_tooltips = grid_opts,
+        inducing_vars=[COMPSET]
     )
 
 
@@ -183,7 +212,7 @@ def gen_options_specs(cvars, ci):
     ##         if not_compset_attr is not None:
     ##             guard += f" not {not_compset_attr}"
 
-    ##         if guard not in opts['GRID']: 
+    ##         if guard not in opts['GRID']:
     ##             opts['GRID'][guard] = []
 
     ##         opts['GRID'][guard].append(alias)

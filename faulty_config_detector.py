@@ -5,7 +5,7 @@ from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.logic_utils import When
 from specs.relational_assertions import relational_assertions_setter
-from specs.gen_options_specs import OptionsSpec, gen_options_specs
+from specs.options_specs import OptionsSpec, get_options_specs
 from z3 import Solver, Implies, And, sat, unsat, Not, unknown, simplify
 from z3 import z3util
 import subprocess
@@ -156,7 +156,7 @@ def main():
 
 
     # Add options (domain) specifications
-    gen_options_specs(cvars, ci)
+    get_options_specs(cvars, ci)
     for varname, var in cvars.items():
         if varname == "GRID":
             # grid assertions will be added later on (for each compset, after the compset is determined)
