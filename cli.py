@@ -4,7 +4,6 @@ import logging
 import os, sys
 import cmd
 import re
-import readline
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,8 +17,6 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.logic import logic
-from specs.relational_assertions import relational_assertions_setter
-from specs.options_dependencies import get_options_setters
 
 class cmdCaseGen(cmd.Cmd):
 
@@ -32,10 +29,7 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVar.reset()
         self.ci = CIME_interface("nuopc")
         self._init_configvars()
-        options_setters = get_options_setters(cvars, self.ci)
-        ConfigVar.determine_interdependencies(
-            relational_assertions_setter,
-            options_setters)
+        logic.determine_interdependencies(cvars, self.ci)
         self._init_configvar_options()
         self._exit_on_error = exit_on_error
 
@@ -56,6 +50,7 @@ class cmdCaseGen(cmd.Cmd):
         ConfigVarStr('MASK_GRID')
         ConfigVarStr('COMPSET')
         ConfigVarStr('GRID')
+        ConfigVar.lock()
 
     def _init_configvar_options(self):
         for varname, var in cvars.items():
@@ -150,7 +145,7 @@ class cmdCaseGen(cmd.Cmd):
             for opt in var._widget.options:
                 print('\t', opt)
         else:
-            printError("Variable {} doesn't have options".format(varname))
+            self.printError("Variable {} doesn't have options".format(varname))
     
     def do_nullify(self, line):
         """Set a given variable to None"""

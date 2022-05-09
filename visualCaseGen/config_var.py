@@ -32,8 +32,8 @@ class ConfigVar(SeqRef, HasTraits):
     # Trait
     value = Any()
 
-    # If _instantiation_allowed is False, no more ConfigVar instances may be constructed.
-    _instantiation_allowed = True
+    # If _lock is True, no more ConfigVar instances may be constructed.
+    _lock = False
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class ConfigVar(SeqRef, HasTraits):
             raise RuntimeError(f"Attempted to re-define ConfigVar instance {name}.")
 
         # Check if instantiation is allowed:
-        if ConfigVar._instantiation_allowed is False:
+        if ConfigVar._lock is True:
             raise RuntimeError(
                 f"Attempted to define a new ConfigVar {name}, but instantiation is not allowed anymore."
             )
@@ -122,7 +122,7 @@ class ConfigVar(SeqRef, HasTraits):
     def reset():
         """Resets the ConfigVar class."""
         ConfigVar.vdict.clear()
-        ConfigVar._instantiation_allowed = True
+        ConfigVar._lock = False
         logic.reset()
 
     @staticmethod
@@ -137,35 +137,19 @@ class ConfigVar(SeqRef, HasTraits):
         return varname in ConfigVar.vdict
 
     @classmethod
-    def determine_interdependencies(cls, relational_assertions_setter, options_setters):
-        """After all ConfigVar instances are constructed, this class method must be called to determine interdepencies
-        due to relational assertions and options setters.
-
-        Parameters
-        ----------
-        relational_assertions_setter : function
-            A function that expects an argument, that is the dictionary of ConfigVar instances, i.e., ConfigVar.vdict,
-            and returns a dictionary of relational assertions where keys are Boolean z3 expressions (assertions) and
-            values are strings corresponding to error messages to be displayed if assertions (keys) are violated.
-        options_setters : function
-            A function that expects two arguments, that are (1) the dictionary of ConfigVar instances and (2) the
-            cime interface object, and returns a list of OptionsSetters for ConfigVar instances whose options lists
-            depend on values of other ConfigVars.
+    def lock(cls):
+        """After all ConfigVar instances are initialized, this class method must be called to prevent
+        any additional ConfigVar declarations and to allow the logic module to determine interdepencies.
         """
-
-        # Lock in the ConfigVar instances before determining the interdependencies
-        ConfigVar._instantiation_allowed = False
 
         # Make sure some variables are instantiated.
         if len(ConfigVar.vdict) == 0:
             raise RunError(
-                "No variables defined yet, so cannot determine interdependencies"
+                "No variables defined yet, so cannot lock ConfigVar"
             )
 
-        # Now determine all interdependencies
-        logic.register_interdependencies(
-            relational_assertions_setter, options_setters, cls.vdict
-        )
+        # Lock in the ConfigVar instances before determining the interdependencies
+        ConfigVar._lock = True
 
     @default("value")
     def _default_value(self):

@@ -9,7 +9,7 @@ from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
-from specs.options_dependencies import get_options_setters
+from visualCaseGen.logic import logic
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +19,7 @@ class GUI_create_predefined():
         ConfigVar.reset()
         self.ci = ci
         self._init_configvars()
-        # an empty relational assertions setter
-        relational_assertions_setter = lambda cvars:{}
-        # an options_setter list with a single entry: GRID
-        options_setters = [os for os in get_options_setters(cvars, self.ci) if os.var.name == "GRID"]
-        ConfigVar.determine_interdependencies(
-            relational_assertions_setter,
-            options_setters)
+        logic.determine_interdependencies(cvars, self.ci, predefined_mode=True)
         self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
@@ -49,6 +43,7 @@ class GUI_create_predefined():
         ConfigVarStr('MASK_GRID')
         cv_grid = ConfigVarStrMS('GRID')
         cv_grid.view_mode = 'suggested' # or 'all'
+        ConfigVar.lock()
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""

@@ -4,6 +4,10 @@ from visualCaseGen.logic_utils import When, MinVal, MaxVal
 from visualCaseGen.dev_utils import debug, assignment_history, RunError
 from visualCaseGen.dialog import alert_warning
 
+from specs.relational_assertions import relational_assertions_setter
+from specs.options_dependencies import get_options_setters
+from specs.options_specs import get_options_specs
+
 from z3 import And, Or, Not, Implies, is_not
 from z3 import Solver, sat, unsat
 from z3 import BoolRef, Int
@@ -24,12 +28,12 @@ class Logic():
 
     @classmethod
     def reset(cls):
-        cls.layers = []
+        cls.layers.clear()
         assignment_history.clear()
         Layer.reset()
 
     @classmethod
-    def _initialize_layers(cls, new_assertions, options_setters, cvars):
+    def _initialize_layers(cls, new_assertions, options_specs, cvars):
         """Determines constraint hypergraph layer indices of assertions and variables appearing in those assertions."""
 
         if len(cls.layers) > 0:
@@ -77,7 +81,7 @@ class Logic():
 
         # After having taken into account the relational assertions, impose the layerconstraints due to
         # the options dependencies:
-        for os in options_setters:
+        for os in options_specs:
             if os.has_inducing_vars():
                 layer_indices[os.var] = Int("LayerIdx{}".format(os.var))
                 for inducing_var in os.inducing_vars:
@@ -175,7 +179,7 @@ class Logic():
 
 
     @classmethod
-    def _gen_constraint_hypergraph(cls, new_assertions, options_setters, cvars):
+    def _gen_constraint_hypergraph(cls, new_assertions, options_specs, cvars):
         """ Given a dictionary of relational assertions, generates the constraint hypergraph. This method
         also sets the relational vars properties of variables appearing in relational assertions."""
 
@@ -227,7 +231,7 @@ class Logic():
                     cls.chg.add_edge(c_var, asrt) # lower var to assertion
 
         # Edges and hyperedges due to options setters:
-        for os in options_setters:
+        for os in options_specs:
             if os.has_inducing_vars():
                 idx = os.var.major_layer.idx
                 hyperedge_str = '{} options setter'.format(os.var)
@@ -239,27 +243,36 @@ class Logic():
 
                 cls.chg.add_edge(hyperedge_str, os.var)
 
-        # Check if newly added relational assertions are sat:
-        #todo s = Solver()
-        #todo cls._apply_assignment_assertions(s)
-        #todo cls._apply_options_assertions(s)
-        #todo cls._apply_relational_assertions(s)
-        #todo if s.check() == unsat:
-        #todo     raise RuntimeError("Relational assertions not satisfiable!")
-
     @classmethod
-    def register_interdependencies(cls, relational_assertions_setter, options_setters, cvars):
+    def determine_interdependencies(cls, cvars, ci, predefined_mode=False):
 
         for layer in cls.layers:
             if len(layer._relational_assertions)>0:
                 raise RuntimeError("Attempted to call register_interdependencies method multiple times.")
 
-        # Obtain all new assertions including preconditionals and ordinary assertions
-        _relational_assertions = relational_assertions_setter(cvars)
+        get_options_setters(cvars, ci) # old
+        get_options_specs(cvars, ci) # new
 
-        cls._initialize_layers(_relational_assertions, options_setters, cvars)
-        cls._register_relational_assertions(_relational_assertions, cvars)
-        cls._gen_constraint_hypergraph(_relational_assertions, options_setters, cvars)
+        # Obtain all new assertions including preconditionals and ordinary assertions
+
+        relational_assertions = {}
+        options_specs = []
+
+        if predefined_mode:
+            # options specification should contain the GRID variable only
+            options_setters = [os for os in get_options_setters(cvars, ci) \
+                if os.var.name == "GRID"]
+            options_specs = [var._options_setter for varname, var in cvars.items() \
+                if var.has_options_spec() and varname=="GRID"] 
+        else:
+            relational_assertions = relational_assertions_setter(cvars)
+            options_specs = [var._options_setter for varname, var in cvars.items() \
+                if var.has_options_spec()]
+        
+
+        cls._initialize_layers(relational_assertions, options_specs, cvars)
+        cls._register_relational_assertions(relational_assertions, cvars)
+        cls._gen_constraint_hypergraph(relational_assertions, options_specs, cvars)
 
     @classmethod
     def register_assignment(cls, var, new_value):
