@@ -45,7 +45,6 @@ class ConfigVarOpt(ConfigVar):
         # Temporarily set private members options and value to None. These will be
         # updated with special property setter below.
         self._options = []
-        self._options_setter = None
         self._options_spec = None
 
         # Initialize all other private members
@@ -75,9 +74,6 @@ class ConfigVarOpt(ConfigVar):
         self.update_options_validities(options_changed=True)
         logger.debug("Done assigning the options of ConfigVar %s", self.name)
 
-    def assign_options_setter(self, options_setter):
-        self._options_setter = options_setter
-
     def assign_options_spec(self, options_spec):
         self._options_spec = options_spec
 
@@ -86,7 +82,7 @@ class ConfigVarOpt(ConfigVar):
         and are preset by the OptionsSetter mechanism."""
 
         if new_options is None:
-            new_options, new_tooltips = self._options_setter()
+            new_options, new_tooltips = self._options_spec()
 
         if new_options is not None:
             self.options = new_options
@@ -116,12 +112,8 @@ class ConfigVarOpt(ConfigVar):
         """Returns True if options have been assigned for this variable."""
         return len(self._options)>0
 
-    def has_options_setter(self):
-        """Returns True if an options_setter function has been assigned for this variable."""
-        return self._options_setter is not None
-
     def has_options_spec(self):
-        """Returns True if an options_setter function has been assigned for this variable."""
+        """Returns True if an OptionsSpec object has been assigned for this variable."""
         return self._options_spec is not None
 
     def update_options_validities(self, new_validities=None, options_changed=False):

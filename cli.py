@@ -54,7 +54,7 @@ class cmdCaseGen(cmd.Cmd):
 
     def _init_configvar_options(self):
         for varname, var in cvars.items():
-            if var.has_options_setter():
+            if var.has_options_spec():
                 var.refresh_options()
 
     def do_vars(self, arg):

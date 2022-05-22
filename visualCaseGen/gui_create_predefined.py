@@ -48,7 +48,7 @@ class GUI_create_predefined():
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""
         for varname, var in cvars.items():
-            if var.has_options_setter():
+            if var.has_options_spec():
                 var.refresh_options()
 
         for comp_class in self.ci.comp_classes:

@@ -5,7 +5,6 @@ from visualCaseGen.dev_utils import debug, assignment_history, RunError
 from visualCaseGen.dialog import alert_warning
 
 from specs.relational_assertions import relational_assertions_setter
-from specs.options_dependencies import get_options_setters
 from specs.options_specs import get_options_specs
 
 from z3 import And, Or, Not, Implies, is_not
@@ -250,7 +249,6 @@ class Logic():
             if len(layer._relational_assertions)>0:
                 raise RuntimeError("Attempted to call register_interdependencies method multiple times.")
 
-        get_options_setters(cvars, ci) # old
         get_options_specs(cvars, ci) # new
 
         # Obtain all new assertions including preconditionals and ordinary assertions
@@ -259,14 +257,11 @@ class Logic():
         options_specs = []
 
         if predefined_mode:
-            # options specification should contain the GRID variable only
-            options_setters = [os for os in get_options_setters(cvars, ci) \
-                if os.var.name == "GRID"]
-            options_specs = [var._options_setter for varname, var in cvars.items() \
+            options_specs = [var._options_spec for varname, var in cvars.items() \
                 if var.has_options_spec() and varname=="GRID"] 
         else:
             relational_assertions = relational_assertions_setter(cvars)
-            options_specs = [var._options_setter for varname, var in cvars.items() \
+            options_specs = [var._options_spec for varname, var in cvars.items() \
                 if var.has_options_spec()]
         
 
@@ -561,7 +556,7 @@ class Layer():
         # Add new optional assertions of variables whose options are to change due to invoker_var value change
         new_options_and_tooltips = {}
         for var in self.vars_refresh_options:
-            new_options, new_tooltips = var._options_setter()
+            new_options, new_tooltips = var._options_spec()
             new_options_and_tooltips[var] = new_options, new_tooltips
             if new_options is not None:
                 new_validities = {opt: s.check(var==opt)==sat for opt in new_options }

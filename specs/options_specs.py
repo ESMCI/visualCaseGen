@@ -1,12 +1,14 @@
 import sys
 from z3 import Implies, And, Or, Not, Contains, Concat, If, is_expr, z3util
 from visualCaseGen.logic_utils import In
+from visualCaseGen.dev_utils import RunError
+from z3 import Solver, sat, unsat
 
 sys.path.append('../')
 
 class OptionsSpec:
 
-    def __init__(self, var, options_and_tooltips, inducing_vars=[]):
+    def __init__(self, var, options_and_tooltips, inducing_vars=[], cvars=None, options_and_tooltips_dynamic=None):
         self.var = var
         self.var.options_spec = self
         assert isinstance(options_and_tooltips, (dict,tuple))
@@ -14,77 +16,106 @@ class OptionsSpec:
         self.var.assign_options_spec(self)
         assert isinstance(inducing_vars, list), "inducing_vars parameter must be a list"
         if len(inducing_vars) > 0:
-            self._inducing_vars = inducing_vars
+            self.inducing_vars = inducing_vars
         else:
-            self._determine_inducing_vars()
+            assert cvars is not None, "cvars dict must be provided if inducing vars is not provided"
+            self._determine_inducing_vars(cvars)
+        self._options_and_tooltips_dynamic = options_and_tooltips_dynamic
 
-    def _determine_inducing_vars(self):
+    def __call__(self):
+        # this method is only used in dynamic mode
+
+        if any([inducing_var.is_none() for inducing_var in self.inducing_vars]):
+            return None, None
+
+        if self._options_and_tooltips_dynamic is not None:
+            return self._options_and_tooltips_dynamic()
+
+        elif self.has_propositioned_options():
+
+            # todo, make the below check computationally more efficient
+            s = Solver()
+            for var in self.inducing_vars:
+                if var.value is not None:
+                    s.add(var==var.value)
+            valid_propositons = []
+            for proposition, options_and_tooltips in self.options_and_tooltips.items():
+                if s.check(proposition) == sat:
+                    valid_propositons.append(proposition)
+            assert len(valid_propositons) == 1, "Must have exactly one valid proposition"
+            return self.options_and_tooltips[valid_propositons[0]]
+        else:
+            return self.options_and_tooltips
+
+
+    def has_propositioned_options(self):
+        if isinstance(self.options_and_tooltips, tuple): # single options list with no propositions
+            return False
+        elif isinstance(self.options_and_tooltips, dict): # multiple options list with propsitions
+            return True 
+        else:
+            raise RunError("Unknown options list type encountered in an OptionsSpec instance.")
+
+
+    def _determine_inducing_vars(self,cvars):
 
         inducing_vars = set()
 
-        if isinstance(self.options_and_tooltips, tuple): # single options list with no propositions
-            for opt in self.options_and_tooltips[0]:
-                if is_expr(opt):
-                    inducing_vars.update(z3util.get_vars(opt))
-
-        elif isinstance(self.options_and_tooltips, dict): # multiple options list with propsitions
+        if self.has_propositioned_options():
             for proposition, options_and_tooltips in self.options_and_tooltips.items():
                 if is_expr(proposition):
-                    inducing_vars.update(z3util.get_vars(proposition))
+                    inducing_vars.update(
+                        {cvars[var.sexpr()] for var in z3util.get_vars(proposition)}
+                    )
                 for opt in options_and_tooltips[0]:
                     if is_expr(opt):
-                        inducing_vars.update(z3util.get_vars(opt))
+                        inducing_vars.update(
+                            {cvars[var.sexpr()] for var in z3util.get_vars(opt)}
+                        )
+        else:
+            for opt in self.options_and_tooltips[0]:
+                if is_expr(opt):
+                    inducing_vars.update(
+                        {cvars[var.sexpr()] for var in z3util.get_vars(opt)}
+                    )
 
-        self._inducing_vars = list(inducing_vars)
+
+        self.inducing_vars = list(inducing_vars)
 
     def has_inducing_vars(self):
-        return len(self._inducing_vars)>0
+        return len(self.inducing_vars)>0
 
-    @staticmethod
-    def get_options(var):
+    def get_options(self):
 
         options = []
 
-        if hasattr(var, 'options_spec'):
-
-            if isinstance(var.options_spec.options_and_tooltips, tuple):
-                # single options list
-                options.extend(var.options_spec.options_and_tooltips[0])
-            elif isinstance(var.options_spec.options_and_tooltips, dict):
-                # multiple options list with propositiions
-                for proposition, options_and_tooltips in var.options_spec.options_and_tooltips.items():
-                    options.extend(options_and_tooltips[0])
+        if self.has_propositioned_options():
+            for proposition, options_and_tooltips in self.options_and_tooltips.items():
+                options.extend(options_and_tooltips[0])
         else:
-            raise RuntimeError("Variable doesn't have options_spec property.")
+            options.extend(self.options_and_tooltips[0])
 
         return options
 
-    @staticmethod
-    def get_options_assertions(var):
+    def get_options_assertions(self):
 
         assertions = None
 
-        if hasattr(var, 'options_spec'):
-
-            if isinstance(var.options_spec.options_and_tooltips, tuple):
-                # single options list
-                assertions = [In(var, var.options_spec.options_and_tooltips[0])]
-
-            elif isinstance(var.options_spec.options_and_tooltips, dict):
-                # multiple options list with propositiions
-                assertions = [
-                    Implies(proposition, In(var, options_and_tooltips[0]))
-                    for proposition, options_and_tooltips in var.options_spec.options_and_tooltips.items()
-                ]
+        if self.has_propositioned_options():
+            assertions = [
+                Implies(proposition, In(self.var, options_and_tooltips[0]))
+                for proposition, options_and_tooltips in self.var.options_spec.options_and_tooltips.items()
+            ]
+        else:
+            assertions = [In(self.var, self.var.options_spec.options_and_tooltips[0])]
 
         return assertions
 
-    @staticmethod
     def write_all_options_specs(cvars, filename):
         with open(filename, 'w') as file:
             for varname, var in cvars.items():
                 if hasattr(var, 'options_spec'):
-                    assertions = OptionsSpec.get_options_assertions(var)
+                    assertions = var._options_spec.get_options_assertions()
                     for assertion in assertions:
                         file.write(str(assertion))
                         file.write('\n')
@@ -99,7 +130,8 @@ def get_options_specs(cvars, ci):
         options_and_tooltips = (
             ['1850', '2000', 'HIST'],
             ['Pre-industrial', 'Present day', 'Historical']
-        )
+        ),
+        cvars = cvars
     )
 
     # COMP_???
@@ -110,7 +142,8 @@ def get_options_specs(cvars, ci):
             options_and_tooltips = (
                 [model for model in ci.models[comp_class] if model[0] != 'x'],
                 None
-            )
+            ),
+            cvars = cvars
         )
 
     # COMP_???_PHYS
@@ -125,7 +158,8 @@ def get_options_specs(cvars, ci):
                     ci.comp_phys_desc[model]
                 )
                 for model in ci.models[comp_class] if model[0] != 'x'
-            }
+            },
+            cvars = cvars
         )
 
     # COMP_???_OPTION
@@ -141,10 +175,40 @@ def get_options_specs(cvars, ci):
                     ['(none)']+ci.comp_options_desc[model][phys]
                 )
                 for model in ci.models[comp_class] if model[0] != 'x' for phys in ci.comp_phys[model]
-            }
+            },
+            cvars = cvars
         )
 
     # COMPSET
+
+    def compset_func():
+
+        new_compset_text = cvars['INITTIME'].value
+
+        for comp_class in ci.comp_classes:
+
+            # Component Physics:
+            cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
+            if cv_comp_phys.is_none():
+                return [''] # not all component physics selected yet, so not ready to set COMPSET
+            
+            comp_phys_val = cv_comp_phys.value
+            if comp_phys_val == "Specialized":
+                comp_phys_val = "CAM"  # todo: generalize this special case
+            new_compset_text += '_' + comp_phys_val
+
+            # Component Option (optional)
+            cv_comp_option = cvars['COMP_{}_OPTION'.format(comp_class)]
+            if cv_comp_option.is_none():
+                return [''] # not all component options selected yet, so not ready to set COMPSET
+
+            comp_option_val = cv_comp_option.value
+            new_compset_text += '%'+comp_option_val
+        
+        new_compset_text = new_compset_text.replace('%(none)','')
+        return [new_compset_text], None
+
+
     COMPSET = cvars['COMPSET']
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
     COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
@@ -174,7 +238,9 @@ def get_options_specs(cvars, ci):
                 If(COMP_WAV_OPTION=="(none)", COMP_WAV_PHYS, Concat(COMP_WAV_PHYS,'%',COMP_WAV_OPTION)),
             )],
             None
-        )
+        ),
+        cvars = cvars,
+        options_and_tooltips_dynamic = compset_func
     )
 
     # GRID
@@ -195,9 +261,6 @@ def get_options_specs(cvars, ci):
         options_and_tooltips = grid_opts,
         inducing_vars=[COMPSET]
     )
-
-
-
 
 
     ## # GRID
