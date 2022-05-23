@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
@@ -44,7 +46,7 @@ def main():
     get_options_specs(cvars, ci)
     for varname, var in cvars.items():
         if hasattr(var, 'options_spec'):
-            assertions = OptionsSpec.get_options_assertions(var)
+            assertions = var.options_spec.get_options_assertions()
             for asrt in assertions:
                 s.add(asrt)
 
@@ -61,19 +63,12 @@ def main():
     all_options_sat = True
     for varname, var in cvars.items():
         if hasattr(var, 'options_spec'):
-            if isinstance(var.options_spec.options_and_tooltips, tuple):
-                for opt in var.options_spec.options_and_tooltips[0]:
-                    if s.check(var==opt) == unsat:
-                        print("NOT SATISFIABLE:", var, opt)
-                        all_options_sat = False
-                        break
-            if isinstance(var.options_spec.options_and_tooltips, dict):
-                for proposition, options_and_tooltips in var.options_spec.options_and_tooltips.items():
-                    for opt in options_and_tooltips[0]:
-                        if s.check(var==opt) == unsat:
-                            print("NOT SATISFIABLE:", var, opt)
-                            all_options_sat = False
-                            break
+            options = var.options_spec.get_options()
+            for opt in options:
+                if s.check(var==opt) == unsat:
+                    print("NOT SATISFIABLE:", var, opt)
+                    all_options_sat = False
+                    break
     if all_options_sat:
         print("\tok")
 

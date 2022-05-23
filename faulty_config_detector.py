@@ -1,4 +1,6 @@
-from visualCaseGen.config_var import ConfigVar, cvars
+#!/usr/bin/env python3
+
+from visualCaseGen.config_var import cvars
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
 from visualCaseGen.config_var_compset import ConfigVarCompset
@@ -6,10 +8,9 @@ from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.logic_utils import When
 from specs.relational_assertions import relational_assertions_setter
 from specs.options_specs import OptionsSpec, get_options_specs
-from z3 import Solver, Implies, And, sat, unsat, Not, unknown, simplify
-from z3 import z3util
+from z3 import Solver, Implies, And, sat, unsat, Not, unknown
 import subprocess
-import os, shutil
+import shutil
 from multiprocessing import Pool, Process, Array, Queue, current_process
 
 ci = CIME_interface("nuopc")
@@ -80,7 +81,7 @@ def find_a_grid(s, compset):
     s.push()
 
     GRID = cvars['GRID'] 
-    grid_opt_assertions = OptionsSpec.get_options_assertions(GRID)
+    grid_opt_assertions = GRID.options_spec.get_options_assertions()
     for asrt in grid_opt_assertions:
         s.add(asrt)
 
@@ -162,7 +163,7 @@ def main():
             # grid assertions will be added later on (for each compset, after the compset is determined)
             continue
         if hasattr(var, 'options_spec'):
-            assertions = OptionsSpec.get_options_assertions(var)
+            assertions = var.options_spec.get_options_assertions()
             for asrt in assertions:
                 s.add(asrt)
 
@@ -176,11 +177,11 @@ def main():
     assert s.check() == sat
 
     comp_atm_option = cvars['COMP_ATM_OPTION']
-    comp_atm_option_opts = OptionsSpec.get_options(comp_atm_option)
+    comp_atm_option_opts = comp_atm_option.options_spec.get_options()
     comp_lnd_option = cvars['COMP_LND_OPTION']
-    comp_lnd_option_opts = OptionsSpec.get_options(comp_lnd_option)
+    comp_lnd_option_opts = comp_lnd_option.options_spec.get_options()
     comp_ice_option = cvars['COMP_ICE_OPTION']
-    comp_ice_option_opts = OptionsSpec.get_options(comp_ice_option)
+    comp_ice_option_opts = comp_ice_option.options_spec.get_options()
 
     #for atm_option in comp_atm_option_opts:
     for lnd_option in comp_lnd_option_opts: 
@@ -191,7 +192,7 @@ def main():
             if s.check() == sat:
                 traverse_configs(And(s.assertions()), 18)
             s.pop()
-            break # todoooooooooooooooooooooooo removeooooooooooooooooooooooooooo
+            break # todo !!!!!!!!!!!!!!!! remove
         break
 
 

@@ -2,6 +2,8 @@
 # debug flag, turns on some checks during runtime
 debug = True
 
+mode = "dynamic" #or "static"
+
 # List of all ConfigVar assignments in chronological order. Used for debugging purposes
 assignment_history = []
 
