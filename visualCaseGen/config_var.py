@@ -2,10 +2,9 @@ import logging
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 from traitlets import HasTraits, Any, default, validate
 
-from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.logic import logic, Layer
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.dev_utils import debug, RunError
+from visualCaseGen.dev_utils import RunError
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -22,7 +21,7 @@ class ConfigVar(SeqRef, HasTraits):
     value : Trait
         The value trait of each ConfigVar object.
     widget
-        The visual representation of the variable instance. The user can view and change the value of variable
+        The frontend representation of the variable instance. The user can view and change the value of variable
         trough the widget.
     """
 
@@ -36,9 +35,7 @@ class ConfigVar(SeqRef, HasTraits):
     _lock = False
 
     def __init__(
-        self,
-        name,
-        widget_none_val=None,
+        self, name, widget_none_val=None,
     ):
         """
         ConfigVar constructor.
@@ -48,8 +45,8 @@ class ConfigVar(SeqRef, HasTraits):
         name : str
             Name of the variable. Must be unique.
         widget_none_val
-            None value for the variable widget. Typically set to None, but for some widget types,
-            e.g., those that can have multiple values, this must be set to ().
+            Null value for the variable widget. Typically set to None, but for some widget types,
+            e.g., those that can have multiple values, this may be set to ().
         """
 
         # Check if the variable has already been defined
@@ -80,6 +77,11 @@ class ConfigVar(SeqRef, HasTraits):
         # Set initial value to None. This means that derived class value traits must be initialized
         # with the following argument: allow_none=True
         self.value = None
+
+        self._widget = None
+
+        # Null value of the widget. Typically is None, but may be an emptly tuple too.
+        self._widget_none_val = widget_none_val
 
         # variable properties managed by the logic module
         self._layers = []
@@ -144,9 +146,7 @@ class ConfigVar(SeqRef, HasTraits):
 
         # Make sure some variables are instantiated.
         if len(ConfigVar.vdict) == 0:
-            raise RunError(
-                "No variables defined yet, so cannot lock ConfigVar"
-            )
+            raise RunError("No variables defined yet, so cannot lock ConfigVar")
 
         # Lock in the ConfigVar instances before determining the interdependencies
         ConfigVar._lock = True
@@ -204,6 +204,7 @@ class ConfigVar(SeqRef, HasTraits):
         self._layers.append(new_layer)
 
     def is_none(self):
+        """Returns True if value is None"""
         return self.value is None
 
     def is_relational(self):
@@ -220,6 +221,7 @@ class ConfigVar(SeqRef, HasTraits):
 
     @property
     def widget(self):
+        """Returns a reference of the widget instance."""
         return self._widget
 
     @widget.setter
@@ -243,7 +245,6 @@ class ConfigVar(SeqRef, HasTraits):
             names="_property_lock",  # instead of 'value', use '_property_lock' to capture frontend changes only
             type="change",
         )
-
 
     @validate("value")
     def _validate_value(self, proposal):
