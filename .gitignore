@@ -147,3 +147,5 @@ cython_debug/
 # faulty config search log
 fault_search.o*
 log_opts_specs.txt
+
+.DS_Store
