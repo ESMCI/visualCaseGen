@@ -50,19 +50,19 @@ def relational_assertions_setter(cvars):
 
         # Preconditioned assertions (When clause) ----------------------------------------------------
 
-        When(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
+        When(COMP_OCN_PHYS=="DOCN", COMP_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",
         
-        When(COMP_ICE=="dice", COMP_ICE_OPTION != "(none)"):
+        When(COMP_ICE_PHYS=="DICE", COMP_ICE_OPTION != "(none)"):
             "Must pick a valid DICE option.",
         
-        When(COMP_ATM=="datm", COMP_ATM_OPTION != "(none)"):
+        When(COMP_ATM_PHYS=="DATM", COMP_ATM_OPTION != "(none)"):
             "Must pick a valid DATM option.",
         
-        When(COMP_ROF=="drof", COMP_ROF_OPTION != "(none)"):
+        When(COMP_ROF_PHYS=="DROF", COMP_ROF_OPTION != "(none)"):
             "Must pick a valid DROF option.",
         
-        When(COMP_WAV=="dwav", COMP_WAV_OPTION != "(none)"):
+        When(COMP_WAV_PHYS=="DWAV", COMP_WAV_OPTION != "(none)"):
             "Must pick a valid DWAV option.",
         
         When(In(COMP_LND, ["clm", "dlnd"]), COMP_LND_OPTION != "(none)"):

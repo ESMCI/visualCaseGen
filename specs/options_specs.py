@@ -163,18 +163,18 @@ def get_options_specs(cvars, ci):
             options_and_tooltips_static={
                 COMP_PHYS
                 == phys: (
-                    ["(none)"] + ci.comp_options[model][phys],
-                    ["(none)"] + ci.comp_options_desc[model][phys],
+                    ["(none)"] + ci.comp_options[phys],
+                    ["no modifiers"] + ci.comp_options_desc[phys],
                 )
                 for model in ci.models[comp_class]
                 if model[0] != "x"
                 for phys in ci.comp_phys[model]
             },
-            options_and_tooltips_dynamic=lambda model, phys: (
-                ["(none)"] + ci.comp_options[model][phys],
-                ["no modifiers"] + ci.comp_options_desc[model][phys],
+            options_and_tooltips_dynamic=lambda phys: (
+                ["(none)"] + ci.comp_options[phys],
+                ["no modifiers"] + ci.comp_options_desc[phys],
             ),
-            inducing_vars=[COMP, COMP_PHYS],
+            inducing_vars=[COMP_PHYS],
         )
 
     # COMPSET

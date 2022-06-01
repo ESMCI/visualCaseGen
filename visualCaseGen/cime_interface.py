@@ -171,8 +171,6 @@ class CIME_interface():
         self.comp_phys_desc[model] = comp_physics_desc
 
         # Model physics options
-        self.comp_options[model] = dict()
-        self.comp_options_desc[model] = dict()
         for phys in comp_physics:
             # options are defined for this physics.
             if phys in comp_physics_options:
@@ -182,12 +180,12 @@ class CIME_interface():
                         phys_descriptions.append(comp_options_desc[opt])
                     else:
                         phys_descriptions.append('no description')
-                self.comp_options[model][phys] = comp_physics_options[phys]
-                self.comp_options_desc[model][phys] = phys_descriptions # phys options descriptions
+                self.comp_options[phys] = comp_physics_options[phys]
+                self.comp_options_desc[phys] = phys_descriptions # phys options descriptions
             else: # no options defined for this model physics
                 logger.debug("No options defined for physics %s...", phys)
-                self.comp_options[model][phys] = []
-                self.comp_options_desc[model][phys] = []
+                self.comp_options[phys] = []
+                self.comp_options_desc[phys] = []
 
     def _retrieve_models(self, comp_class):
         """ Retrieves the available models of a given component class. Retrieved models
