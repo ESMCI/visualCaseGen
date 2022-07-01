@@ -19,9 +19,10 @@ def relational_assertions_setter(cvars):
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
 
-        # Ordinary assertions (invariants) ----------------------------------------------------
+        Not(And(COMP_ATM=="satm", COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")) :
+            "Cannot set all components to stub models.",
 
-        Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) : 
+        Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) :
             "If COMP_ICE is stub, all other components must be stub (except for ATM)",
 
         Implies(COMP_OCN=="mom", COMP_WAV!="dwav") :
@@ -35,7 +36,7 @@ def relational_assertions_setter(cvars):
 
         Implies(Or(COMP_ROF=="rtm", COMP_ROF=="mosart"), COMP_LND=='clm') :
             "If running with RTM|MOSART, CLM must be selected as the land component.",
-        
+
         Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
             "When MOM|POP is forced with DATM, LND must be stub.",
 
@@ -44,37 +45,40 @@ def relational_assertions_setter(cvars):
 
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
-        
+
         Implies(COMP_OCN_OPTION=="SOM", COMP_ICE_OPTION!="PRES") :
            "TODO: remove this relation. Added for testing the logic module.",
 
-        # Preconditioned assertions (When clause) ----------------------------------------------------
+        Implies(In(COMP_OCN, ["mom", "pop"]), COMP_ATM!="satm") :
+            "If the ocean component is active, then the atmosphere component cannot be made stub.",
+
+        # Inter-layer assertions ----------------------------------------------------
 
         When(COMP_OCN_PHYS=="DOCN", COMP_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",
-        
+
         When(COMP_ICE_PHYS=="DICE", COMP_ICE_OPTION != "(none)"):
             "Must pick a valid DICE option.",
-        
+
         When(COMP_ATM_PHYS=="DATM", COMP_ATM_OPTION != "(none)"):
             "Must pick a valid DATM option.",
-        
+
         When(COMP_ROF_PHYS=="DROF", COMP_ROF_OPTION != "(none)"):
             "Must pick a valid DROF option.",
-        
+
         When(COMP_WAV_PHYS=="DWAV", COMP_WAV_OPTION != "(none)"):
             "Must pick a valid DWAV option.",
-        
+
         When(In(COMP_LND, ["clm", "dlnd"]), COMP_LND_OPTION != "(none)"):
             "Must pick a valid LND option.",
-        
+
         When(COMP_GLC=="cism", COMP_GLC_OPTION != "(none)"):
             "Must pick a valid GLC option.",
 
         When(And(COMP_ICE=="cice", COMP_OCN == "docn"), COMP_OCN_OPTION=="SOM"):
            "When DOCN is coupled with CICE, DOCN option must be set to SOM.",
 
-        When( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")), 
+        When( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")),
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
 
@@ -86,14 +90,14 @@ def relational_assertions_setter(cvars):
 
         When(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
-        
+
         When(COMP_OCN!="mom", WAV_GRID != "wtx0.66v1"):
             "wt066v1 wave grid is for MOM6 coupling only",
-        
+
         When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option."
 
-        
+
     }
 
     return assertions_dict
