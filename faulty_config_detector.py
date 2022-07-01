@@ -37,7 +37,7 @@ def test_compset(compset_and_grid):
     msg = "-------------------------------------------------------------------\n"
     msg += f"{pid}: Checking compset {compset} with grid {grid_alias}\n"
 
-    cmd = f"{ci.cimeroot}/scripts/create_test SMS_Lm0.{grid_alias}.{compset}.cheyenne_intel --no-run --test-root {testroot} --output-root {testroot}"
+    cmd = f"{ci.cimeroot}/scripts/create_test SMS_Lm0.{grid_alias}.{compset}.cheyenne_intel --no-build --test-root {testroot} --output-root {testroot}"
 
     timeout = False
     returncode = -1
@@ -124,8 +124,8 @@ def traverse_configs(f, k):
             compsets_and_grids = []
 
         # create new constraint to block the current model
-        block = Not(And([v() == m[v] for v in m]))
-        ###block = Not(And([cvars[f"COMP_{comp_class}_PHYS"] == m[cvars[f"COMP_{comp_class}_PHYS"]] for comp_class in ci.comp_classes]) )
+        ###block = Not(And([v() == m[v] for v in m]))
+        block = Not(And([cvars[f"COMP_{comp_class}_OPTION"] == m[cvars[f"COMP_{comp_class}_OPTION"]] for comp_class in ci.comp_classes]) )
         s.add(block)
 
     for p in processes: 
@@ -177,23 +177,22 @@ def main():
     assert s.check() == sat
 
     comp_atm_option = cvars['COMP_ATM_OPTION']
-    comp_atm_option_opts = comp_atm_option.options_spec.get_options()
+    comp_atm_option_opts = set(comp_atm_option.options_spec.get_options())
     comp_lnd_option = cvars['COMP_LND_OPTION']
-    comp_lnd_option_opts = comp_lnd_option.options_spec.get_options()
+    comp_lnd_option_opts = set(comp_lnd_option.options_spec.get_options())
     comp_ice_option = cvars['COMP_ICE_OPTION']
-    comp_ice_option_opts = comp_ice_option.options_spec.get_options()
+    comp_ice_option_opts = set(comp_ice_option.options_spec.get_options())
 
-    #for atm_option in comp_atm_option_opts:
-    for lnd_option in comp_lnd_option_opts: 
-        for ice_option in comp_ice_option_opts: 
-            s.push()
-            #s.add([comp_atm_option==atm_option, comp_lnd_option==lnd_option, comp_ice_option==ice_option])
-            s.add([comp_lnd_option==lnd_option, comp_ice_option==ice_option])
-            if s.check() == sat:
-                traverse_configs(And(s.assertions()), 18)
-            s.pop()
-            break # todo !!!!!!!!!!!!!!!! remove
-        break
+    for atm_option in comp_atm_option_opts:
+        for lnd_option in comp_lnd_option_opts: 
+            for ice_option in comp_ice_option_opts: 
+                s.push()
+                s.add([comp_atm_option==atm_option, comp_lnd_option==lnd_option, comp_ice_option==ice_option])
+                print(atm_option, lnd_option, ice_option, "---------------------------------------------------------------")
+                #s.add([comp_lnd_option==lnd_option, comp_ice_option==ice_option])
+                if s.check() == sat:
+                    traverse_configs(And(s.assertions()), 36)
+                s.pop()
 
 
 if __name__ == '__main__':
