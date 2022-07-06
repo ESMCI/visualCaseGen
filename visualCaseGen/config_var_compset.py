@@ -1,16 +1,13 @@
 import logging
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.config_var_str import ConfigVarStr
 from traitlets import Unicode, validate
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
-class ConfigVarCompset(ConfigVarOpt):
+class ConfigVarCompset(ConfigVarStr):
     """ A specialized ConfigVar type for Compset"""
     
-    # trait
-    value = Unicode(allow_none=True)
-
     @validate('value')
     def _validate_value(self, proposal):
         # Any COMPSET assignment is trivially valid, so don't do any validation here.

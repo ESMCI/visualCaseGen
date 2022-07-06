@@ -1,5 +1,6 @@
 import logging
 from traitlets import Unicode, validate
+from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.config_var_opt import ConfigVarOpt
@@ -9,7 +10,7 @@ from visualCaseGen.logic import logic
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVarStr(ConfigVarOpt):
+class ConfigVarStr(ConfigVarOpt, SeqRef):
     """A derived ConfigVar class with value of type String. Each instance can have a single
     string or None as its value.
 
@@ -19,6 +20,20 @@ class ConfigVarStr(ConfigVarOpt):
 
     # trait
     value = Unicode(allow_none=True)
+
+    def __init__(self, name, *args, **kwargs):
+
+        # Initialize the ConfigVarOpt super class
+        ConfigVarOpt.__init__(self, name, *args, **kwargs)
+
+        # Initialize the SeqRef super class, i.e., a Z3 string
+        # Below initialization mimics String() definition in z3.py
+        ctx = main_ctx()
+        SeqRef.__init__(
+                self, 
+                Z3_mk_const(ctx.ref(), to_symbol(name, ctx), StringSort(ctx).ast),
+                ctx
+            )
 
     @validate("value")
     def _validate_value(self, proposal):

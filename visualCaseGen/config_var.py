@@ -1,5 +1,4 @@
 import logging
-from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 from traitlets import HasTraits, Any, default, validate
 
 from visualCaseGen.logic import logic, Layer
@@ -9,7 +8,7 @@ from visualCaseGen.dev_utils import RunError
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVar(SeqRef, HasTraits):
+class ConfigVar(HasTraits):
     """
     A class to represent CESM configuration (xml) variables to be assigned by the user when creating an experiment.
     Examples include COMP_ATM, COMP_OCN_PHYS, COMP_ICE_OPTIONS, OCN_GRID, COMPSET, etc.
@@ -58,18 +57,6 @@ class ConfigVar(SeqRef, HasTraits):
             raise RuntimeError(
                 f"Attempted to define a new ConfigVar {name}, but instantiation is not allowed anymore."
             )
-
-        # z3 context
-        ctx = main_ctx()
-
-        # Instantiate the super class, i.e., a Z3 constant
-        if isinstance(self.value, str):
-            # Below instantiation mimics String() definition in z3.py
-            super().__init__(
-                Z3_mk_const(ctx.ref(), to_symbol(name, ctx), StringSort(ctx).ast), ctx
-            )
-        else:
-            raise NotImplementedError
 
         # Initialize name
         self.name = name

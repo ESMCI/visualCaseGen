@@ -2,7 +2,7 @@ import logging
 from traitlets import Unicode, validate
 
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.dev_utils import RunError
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
@@ -10,16 +10,13 @@ from visualCaseGen.logic import logic
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVarStrMS(ConfigVarOpt):
+class ConfigVarStrMS(ConfigVarStr):
     """A derived ConfigVar class with value(s) of type String. Each instance can have one or more
     strings or None as its value.
 
     self._widget.value  : values, each preceded by a validity char. (Tuple of Strings -- Trait)
     self.value:         : values, NOT preceded by a char. (A single String that joins multiple vals by '%')
     """
-
-    # trait
-    value = Unicode(allow_none=True)
 
     def __init__(self, *args, **kwargs):
         # Set widget_none_val to an empty tuple as opposed to the default, that is None.
