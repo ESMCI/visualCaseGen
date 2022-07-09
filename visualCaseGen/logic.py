@@ -243,7 +243,7 @@ class Logic():
                 cls.chg.add_edge(hyperedge_str, os.var)
 
     @classmethod
-    def determine_interdependencies(cls, cvars, ci, predefined_mode=False):
+    def initialize(cls, cvars, ci, predefined_mode=False):
 
         for layer in cls.layers:
             if len(layer._relational_assertions)>0:

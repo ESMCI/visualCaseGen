@@ -3,9 +3,7 @@ import logging
 import ipywidgets as widgets
 
 from visualCaseGen.config_var import ConfigVar, cvars
-from visualCaseGen.config_var_str import ConfigVarStr
-from visualCaseGen.config_var_str_ms import ConfigVarStrMS
-from visualCaseGen.config_var_compset import ConfigVarCompset
+from visualCaseGen.init_configvars import init_configvars
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
@@ -18,31 +16,15 @@ logger = logging.getLogger('\t'+__name__.split('.')[-1])
 class GUI_create_custom():
 
     def __init__(self, ci):
-        ConfigVar.reset()
         self.ci = ci
-        self._init_configvars()
-        logic.determine_interdependencies(cvars, self.ci)
+        ConfigVar.reset()
+        init_configvars(self.ci)
+        logic.initialize(cvars, self.ci)
         self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
         # set inittime to its default value
         cvars['INITTIME'].value = '2000'
-
-    def _init_configvars(self):
-        """ Define the ConfigVars and, by doing so, register them with the logic engine. """
-        logger.debug("Initializing ConfigVars...")
-
-        ConfigVarStr('INITTIME')
-        for comp_class in self.ci.comp_classes:
-            ConfigVarStr('COMP_'+str(comp_class))
-            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
-            ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
-            ConfigVarStr('{}_GRID'.format(comp_class))
-        ConfigVarCompset("COMPSET", always_set=True)
-        ConfigVarStr('MASK_GRID')
-        cv_grid = ConfigVarStrMS('GRID')
-        cv_grid.view_mode = 'suggested' # or 'all'
-        ConfigVar.lock()
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""

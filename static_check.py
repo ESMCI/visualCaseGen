@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 from visualCaseGen.config_var import ConfigVar, cvars
-from visualCaseGen.config_var_str import ConfigVarStr
-from visualCaseGen.config_var_str_ms import ConfigVarStrMS
-from visualCaseGen.config_var_compset import ConfigVarCompset
+from visualCaseGen.init_configvars import init_configvars
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.logic_utils import When
 from specs.relational_assertions import relational_assertions_setter
@@ -12,22 +10,9 @@ from z3 import Solver, Implies, sat, unsat
 
 ci = CIME_interface("nuopc")
 
-def init_configvars():
-
-    ConfigVarStr('INITTIME')
-    for comp_class in ci.comp_classes:
-        ConfigVarStr('COMP_'+str(comp_class))
-        ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
-        ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
-        ConfigVarStr('{}_GRID'.format(comp_class))
-    ConfigVarCompset("COMPSET", always_set=True)
-    ConfigVarStr('MASK_GRID')
-    cv_grid = ConfigVarStrMS('GRID')
-
-
 def main():
     print("Running visualCaseGen static check")
-    init_configvars()
+    init_configvars(ci)
 
     # Static Solver
     s = Solver()

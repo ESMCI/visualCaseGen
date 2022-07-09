@@ -3,9 +3,8 @@ import logging
 import ipywidgets as widgets
 
 from visualCaseGen.config_var import ConfigVar, cvars
+from visualCaseGen.init_configvars import init_configvars
 from visualCaseGen.config_var_str import ConfigVarStr
-from visualCaseGen.config_var_str_ms import ConfigVarStrMS
-from visualCaseGen.config_var_compset import ConfigVarCompset
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
@@ -16,34 +15,15 @@ logger = logging.getLogger(__name__)
 class GUI_create_predefined():
 
     def __init__(self, ci):
-        ConfigVar.reset()
         self.ci = ci
-        self._init_configvars()
-        logic.determine_interdependencies(cvars, self.ci, predefined_mode=True)
+        ConfigVar.reset()
+        init_configvars(self.ci, predefined_mode=True)
+        logic.initialize(cvars, self.ci, predefined_mode=True)
         self._init_configvar_options()
         self._init_widgets()
         self._construct_all_widget_observances()
         self._update_compsets(None)
         self._available_compsets = []
-
-    def _init_configvars(self):
-
-        ConfigVarStr('INITTIME')
-        for comp_class in self.ci.comp_classes:
-            # Note, COMP_???_FILTER are the only component-related variables shown in the frontend.
-            # The rest of the component-related variables are either used at backend or not used at all,
-            # but need to be defined so as to parse the option_setters and relational assertions.
-            ConfigVarStr('COMP_{}_FILTER'.format(comp_class))
-            ConfigVarStr('COMP_'+str(comp_class))
-            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
-            ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class), always_set=True)
-            ConfigVarStr('{}_GRID'.format(comp_class))
-
-        ConfigVarStr("COMPSET", always_set=True)
-        ConfigVarStr('MASK_GRID')
-        cv_grid = ConfigVarStrMS('GRID')
-        cv_grid.view_mode = 'suggested' # or 'all'
-        ConfigVar.lock()
 
     def _init_configvar_options(self):
         """ Initialize the options of all ConfigVars by calling their options setters."""

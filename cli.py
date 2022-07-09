@@ -16,6 +16,7 @@ logger = logging.getLogger("cmdCaseGen")
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.config_var_str import ConfigVarStr
+from visualCaseGen.init_configvars import init_configvars
 from visualCaseGen.logic import logic
 
 class cmdCaseGen(cmd.Cmd):
@@ -26,10 +27,10 @@ class cmdCaseGen(cmd.Cmd):
 
     def __init__(self, exit_on_error=False):
         cmd.Cmd.__init__(self)
-        ConfigVar.reset()
         self.ci = CIME_interface("nuopc")
-        self._init_configvars()
-        logic.determine_interdependencies(cvars, self.ci)
+        ConfigVar.reset()
+        init_configvars(self.ci)
+        logic.initialize(cvars, self.ci)
         self._init_configvar_options()
         self._exit_on_error = exit_on_error
 
@@ -38,19 +39,6 @@ class cmdCaseGen(cmd.Cmd):
             sys.exit("ERROR: "+msg)
         else:
             logger.error(msg)
-
-    def _init_configvars(self):
-
-        cv_inittime = ConfigVarStr('INITTIME')
-        for comp_class in self.ci.comp_classes:
-            ConfigVarStr('COMP_'+str(comp_class))
-            ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
-            ConfigVarStr('COMP_{}_OPTION'.format(comp_class), always_set=True)
-            ConfigVarStr('{}_GRID'.format(comp_class))
-        ConfigVarStr('MASK_GRID')
-        ConfigVarStr('COMPSET')
-        ConfigVarStr('GRID')
-        ConfigVar.lock()
 
     def _init_configvar_options(self):
         for varname, var in cvars.items():
