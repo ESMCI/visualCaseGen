@@ -71,7 +71,7 @@ class GUI_create_predefined():
             cv_comp_filter.widget = widgets.ToggleButtons(
                 description=comp_class,
                 disabled=False,
-                layout=widgets.Layout(width='105px', max_height='120px')
+                layout=widgets.Layout(width='105px', max_height='150px')
             )
             cv_comp_filter.widget.style.button_width = '85px'
             cv_comp_filter.widget.style.description_width = '0px'
