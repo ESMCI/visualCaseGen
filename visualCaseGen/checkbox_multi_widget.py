@@ -42,9 +42,7 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
                                                 # multiple options may still be selected via the backend.
 
         # auxiliary widgets: searchbar and selection mode switch
-        self._searchbar = widgets.Text(placeholder='Type in keywords to sort the options', layout={'margin':'3px'})
         self._init_selectmode()
-        self._searchbar.observe(self._sort_opts_by_relevance, names='value')
 
         # construct the widget display:
         self._construct_display()
@@ -60,17 +58,14 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
             self.children = [widgets.Label(self._placeholder)]
         else:
             if len(self._options) < 2:
-                self._searchbar.value = ''
                 self.children = [self._options_hbox]
             else:
                 if self._allow_multi_select:
                     self.children = [
-                        widgets.HBox([  self._searchbar,
-                                        self._selectmode],
-                                        layout=widgets.Layout(justify_content='space-between')),
+                        widgets.VBox([self._selectmode], layout={'display':'flex','align_items':'flex-end', 'margin':'5px'}),
                         widgets.VBox([self._options_hbox])]
                 else:
-                    self.children = [self._searchbar, self._options_hbox]
+                    self.children = [self._options_hbox]
 
     @property
     def disabled(self):
