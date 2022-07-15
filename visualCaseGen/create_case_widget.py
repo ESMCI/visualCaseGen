@@ -36,11 +36,13 @@ class CreateCaseWidget(widgets.VBox):
             disabled= (self.ci.machine is not None)
         )
         self.machines.style.description_width = '105px'
+        self.machines.layout.visibility = 'visible' if self.ci.machine is None else 'hidden'
         self.machine_validity = widgets.Valid(
             value=self.ci.machine is not None,
             readout="Invalid Machine!",
             layout=widgets.Layout(display='none')
             )
+        self.machine_validity.layout.visibility = 'visible' if self.ci.machine is None else 'hidden'
 
         self.case_create =  widgets.Button(
             description='Create new case',
