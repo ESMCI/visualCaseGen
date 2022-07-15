@@ -224,7 +224,8 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
             options_widgets_display = self._options_widgets
             tooltips_display = self._tooltips
 
-        self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+\
+        #self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+\
+        self._tooltips_widget.value = '<p>'+\
             '<br>'.join(tooltips_display)+'<br></p>'
 
         self._options_hbox.children = tuple([
