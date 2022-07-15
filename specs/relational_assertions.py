@@ -52,6 +52,9 @@ def relational_assertions_setter(cvars):
         Implies(In(COMP_OCN, ["mom", "pop"]), COMP_ATM!="satm") :
             "If the ocean component is active, then the atmosphere component cannot be made stub.",
 
+        # Assertions that break the logic module
+        ###When(COMP_OCN=="docn", COMP_LND_PHYS!="DLND") : "foo",
+
         # Inter-layer assertions ----------------------------------------------------
 
         When(COMP_OCN_PHYS=="DOCN", COMP_OCN_OPTION != "(none)"):
@@ -91,12 +94,14 @@ def relational_assertions_setter(cvars):
         When(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
+        When(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):
+            "When in aquaplanet mode, the ocean grid must be set to f09, f19, or f45",
+
         When(COMP_OCN!="mom", WAV_GRID != "wtx0.66v1"):
             "wt066v1 wave grid is for MOM6 coupling only",
 
         When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
-            "T42 grid can only be used with SCAM option."
-
+            "T42 grid can only be used with SCAM option.",
 
     }
 
