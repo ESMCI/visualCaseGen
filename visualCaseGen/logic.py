@@ -261,6 +261,8 @@ class Logic():
                 if var.has_options_spec() and varname=="GRID"] 
         else:
             relational_assertions = relational_assertions_setter(cvars)
+            if len(set(relational_assertions.values())) != len(relational_assertions.values()):
+                raise RuntimeError("Error messages associated with each relational assertion must be identical.")
             options_specs = [var._options_spec for varname, var in cvars.items() \
                 if var.has_options_spec()]
         
@@ -348,7 +350,7 @@ class Layer():
 
         # Set of variables whose options validities are to be updated only.
         # These are variables whose neighbors went through either a value change or an options validities change
-        self.vars_refresh_validities = list()
+        self.vars_refresh_validities = set()
         # set of variables whose options are to be updated.
         # These are variables who are options children of variables whose values are changed.
         self.vars_refresh_options = set()
@@ -412,15 +414,14 @@ class Layer():
         as variables whose options/validities are to be potentially updated."""
 
         major_layer = var.major_layer
-        major_layer.vars_refresh_validities.extend(
-            [var_other for var_other in var.peer_vars_relational if var_other not in major_layer.vars_refresh_validities]            
+        major_layer.vars_refresh_validities.update(
+            [var_other for var_other in var.peer_vars_relational]
         )
 
         # update set of child vars whose validities are to be refreshed:
         for child_var_rlt in var.child_vars_relational:
             child_layer = child_var_rlt.major_layer
-            if child_var_rlt not in child_layer.vars_refresh_validities:
-                child_layer.vars_refresh_validities.append(child_var_rlt)
+            child_layer.vars_refresh_validities.add(child_var_rlt)
 
         # update set of variables whose options are to be updated due to the value change of this var:
         if designate_opt_children:
@@ -496,10 +497,8 @@ class Layer():
         if not some_relational_impact():
             return
 
-        ivar = 0
-        while len(self.vars_refresh_validities) > ivar:
-            var = self.vars_refresh_validities[ivar]
-            ivar += 1
+        while len(self.vars_refresh_validities) > 0:
+            var = self.vars_refresh_validities.pop()
             if var.has_options():
 
                 # Determine new validities
@@ -521,8 +520,6 @@ class Layer():
                             format(var.name, var.value, invoker_var.name, invoker_var.value))
                     var.update_options_validities(new_validities=new_validities)
         
-        self.vars_refresh_validities.clear()
-
     
     def _sweep_subsq_layer(self, invoker_var):
 
@@ -600,10 +597,8 @@ class Layer():
         self.vars_refresh_options.clear()
 
         # refresh validities
-        ivar = 0
-        while len(self.vars_refresh_validities) > ivar:
-            var = self.vars_refresh_validities[ivar]
-            ivar += 1 
+        while len(self.vars_refresh_validities) > 0:
+            var = self.vars_refresh_validities.pop()
             if var.has_options():
                 # Determine new validities
                 s.push()
@@ -623,7 +618,6 @@ class Layer():
                         raise RunError("The {}={} assignment is no longer valid after {}={} assignment!".\
                             format(var.name, var.value, invoker_var.name, invoker_var.value))
                     var.update_options_validities(new_validities=new_validities)
-        self.vars_refresh_validities.clear()
 
         # set values of reset_variables, if need be
         for var in reset_variables:
@@ -631,10 +625,8 @@ class Layer():
                 var.value = var.get_first_valid_option()
 
         # refresh validities again if need be. 
-        ivar = 0
-        while len(self.vars_refresh_validities) > ivar:
-            var = self.vars_refresh_validities[ivar]
-            ivar += 1 
+        while len(self.vars_refresh_validities) > 0:
+            var = self.vars_refresh_validities.pop()
             if var.has_options():
                 # Determine new validities
                 s.push()
@@ -654,7 +646,6 @@ class Layer():
                         raise RunError("The {}={} assignment is no longer valid after {}={} assignment!".\
                             format(var.name, var.value, invoker_var.name, invoker_var.value))
                     var.update_options_validities(new_validities=new_validities)
-        self.vars_refresh_validities.clear()
 
         # finally, inform the user about the indirect value changes occured in this layer
         # due to the invoker value change:
