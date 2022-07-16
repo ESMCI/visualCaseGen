@@ -3,14 +3,14 @@ from traitlets import Unicode, validate
 from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
 
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVarStr(ConfigVarOpt, SeqRef):
+class ConfigVarStr(ConfigVar, SeqRef):
     """A derived ConfigVar class with value of type String. Each instance can have a single
     string or None as its value.
 
@@ -23,8 +23,8 @@ class ConfigVarStr(ConfigVarOpt, SeqRef):
 
     def __init__(self, name, *args, **kwargs):
 
-        # Initialize the ConfigVarOpt super class
-        ConfigVarOpt.__init__(self, name, *args, **kwargs)
+        # Initialize the ConfigVarsuper class
+        ConfigVar.__init__(self, name, *args, **kwargs)
 
         # Initialize the SeqRef super class, i.e., a Z3 string
         # Below initialization mimics String() definition in z3.py
@@ -44,11 +44,15 @@ class ConfigVarStr(ConfigVarOpt, SeqRef):
         logger.debug("Assigning value %s=%s", self.name, new_val)
 
         # confirm the value validity
-        if new_val in self._options:
-            if self._options_validities[new_val] is False:
-                err_msg = logic.retrieve_error_msg(self, new_val)
-                raise AssertionError(err_msg)
-        else:
+        if self.has_finite_options_list():
+            try:
+                if self._options_validities[new_val] is False:
+                    err_msg = logic.retrieve_error_msg(self, new_val)
+                    raise AssertionError(err_msg)
+            except KeyError:
+                raise AssertionError(f"{new_val} not an option for {self.name}")
+
+        else: # infinite domain
             logic.check_assignment(self, new_val)
 
         # finally, set self.value by returning new_vals
@@ -59,7 +63,8 @@ class ConfigVarStr(ConfigVarOpt, SeqRef):
         """This methods gets called by _post_value_change and other methods to update the
         displayed widget value whenever the internal value changes. In other words, this
         method propagates backend value change to frontend."""
-        if self.value is None:
+
+        if self.value is None or not self.has_finite_options_list():
             self._widget.value = self._widget_none_val
         else:
             self._widget.value = self._valid_opt_char + " " + self.value
@@ -74,37 +79,42 @@ class ConfigVarStr(ConfigVarOpt, SeqRef):
         if change["old"] == {}:
             return  # frontend-triggered change not finalized yet
 
-        # first check if valid selection
-        new_widget_val = change["owner"].value
-        new_val_validity_char = new_widget_val[0]
-        new_val = new_widget_val[1:].strip()
+        if self.has_finite_options_list():
 
-        if new_widget_val == self._widget_none_val and self._always_set is True:
-            # Attempted to set the value to None while always_set property is True.
-            # Revert the frontend change by calling _update_widget_value and return.
-            self._update_widget_value()
-            return
+            # first check if valid selection
+            new_widget_val = change["owner"].value
+            new_val_validity_char = new_widget_val[0]
+            new_val = new_widget_val[1:].strip()
 
-        logger.info(
-            "Frontend changing %s widget value to %s", self.name, new_widget_val
-        )
+            if new_widget_val == self._widget_none_val and self._always_set is True:
+                # Attempted to set the value to None while always_set property is True.
+                # Revert the frontend change by calling _update_widget_value and return.
+                self._update_widget_value()
+                return
 
-        # if an invalid selection, display error message and set widget value to old value
-        if new_val_validity_char == self._invalid_opt_char:
-            err_msg = logic.retrieve_error_msg(self, new_val)
-            logger.critical("ERROR: %s", err_msg)
-            alert_error(err_msg)
-
-            # set to old value:
-            self._widget.value = (
-                self._widget_none_val
-                if self.value is None
-                else f"{self._valid_opt_char} {self.value}"
+            logger.info(
+                "Frontend changing %s widget value to %s", self.name, new_widget_val
             )
-            return
-        else:
 
-            if new_val == self._widget_none_val:
-                self.value = None
+            # if an invalid selection, display error message and set widget value to old value
+            if new_val_validity_char == self._invalid_opt_char:
+                err_msg = logic.retrieve_error_msg(self, new_val)
+                logger.critical("ERROR: %s", err_msg)
+                alert_error(err_msg)
+
+                # set to old value:
+                self._widget.value = (
+                    self._widget_none_val
+                    if self.value is None
+                    else f"{self._valid_opt_char} {self.value}"
+                )
+                return
             else:
-                self.value = new_val
+
+                if new_val == self._widget_none_val:
+                    self.value = None
+                else:
+                    self.value = new_val
+
+        else: # infinite domain
+            raise NotImplementedError

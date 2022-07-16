@@ -3,14 +3,14 @@ from traitlets import Int, validate
 from z3 import ArithRef, main_ctx, Z3_mk_const, to_symbol, IntSort
 
 from visualCaseGen.OutHandler import handler as owh
-from visualCaseGen.config_var_opt import ConfigVarOpt
+from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class ConfigVarInt(ConfigVarOpt, ArithRef):
+class ConfigVarInt(ConfigVar, ArithRef):
     """A derived ConfigVar class with value of type Int.
     """
 
@@ -19,8 +19,8 @@ class ConfigVarInt(ConfigVarOpt, ArithRef):
 
     def __init__(self, name, *args, **kwargs):
 
-        # Initialize the ConfigVarOpt super class
-        ConfigVarOpt.__init__(self, name, *args, **kwargs)
+        # Initialize the ConfigVar super class
+        ConfigVar.__init__(self, name, *args, **kwargs)
 
         # Initialize the ArithRef super class, i.e., a Z3 int
         # Below initialization mimics Int() definition in z3.py
@@ -40,10 +40,8 @@ class ConfigVarInt(ConfigVarOpt, ArithRef):
         logger.debug("Assigning value %s=%s", self.name, new_val)
 
         # confirm the value validity
-        if new_val in self._options:
-            if self._options_validities[new_val] is False:
-                err_msg = logic.retrieve_error_msg(self, new_val)
-                raise AssertionError(err_msg)
+        if self.has_finite_options_list():
+            raise NotImplementedError
         else:
             logic.check_assignment(self, new_val)
 
