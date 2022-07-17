@@ -355,3 +355,14 @@ def get_options_specs(cvars, ci):
         options_and_tooltips_dynamic=grid_options_func,
         inducing_vars=[COMPSET],
     )
+
+
+    # GRID_MODE
+    GRID_MODE = cvars["CUSTOM_GRID_MODE"]
+    OptionsSpec(
+        var=GRID_MODE,
+        options_and_tooltips=(
+            ['Regional', 'Global'],
+            ['Regional', 'Global'],
+        ),
+    )

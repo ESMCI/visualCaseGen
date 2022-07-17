@@ -15,6 +15,8 @@ def relational_assertions_setter(cvars):
     OCN_GRID = cvars['OCN_GRID']
     WAV_GRID = cvars['WAV_GRID']
     GRID = cvars['GRID']
+    CUSTOM_GRID_MODE = cvars['CUSTOM_GRID_MODE']
+    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_CYCLIC_X = cvars['OCN_CYCLIC_X'];
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
@@ -85,12 +87,6 @@ def relational_assertions_setter(cvars):
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
 
-       ##Or(ATM_GRID==GRID, ATM_GRID!=GRID):
-       ##    "A dummy relational assertion to force all GRID vars to the same layer 1",
-       ##Or(OCN_GRID==GRID, OCN_GRID!=GRID):
-       ##    "A dummy relational assertion to force all GRID vars to the same layer 2",
-
-
         When(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
@@ -102,6 +98,20 @@ def relational_assertions_setter(cvars):
 
         When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
+
+        # Relational assertions for mom6_bathy settings -----------------------------
+
+        Implies(COMP_OCN=="mom", And(OCN_NX>8, OCN_NY>8, (OCN_NX*OCN_NY)>100 )):
+            "MOM6 grid dimensions too small.",
+
+        Implies(COMP_OCN=="mom", And(OCN_NX<10000, OCN_NY<10000)):
+            "MOM6 grid dimensions too big.",
+
+        Implies(CUSTOM_GRID_MODE=="Global", OCN_CYCLIC_X):
+            "If custom grid mode is global, the OCN_CYCLIC_X must be set to true",
+
+        Implies(CUSTOM_GRID_MODE=="Regional", Not(OCN_CYCLIC_X)):
+            "If custom grid mode is regional, the OCN_CYCLIC_X must be set to true",
 
     }
 

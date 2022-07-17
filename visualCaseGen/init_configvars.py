@@ -1,5 +1,6 @@
 import logging
 from visualCaseGen.config_var import ConfigVar
+from visualCaseGen.config_var_bool import ConfigVarBool
 from visualCaseGen.config_var_int import ConfigVarInt
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
@@ -11,7 +12,6 @@ def init_configvars(ci, predefined_mode=False):
     """ Define the ConfigVars and, by doing so, register them with the logic engine. """
     logger.debug("Initializing ConfigVars...")
 
-    ConfigVarInt('ILI')
     ConfigVarStr('INITTIME')
     for comp_class in ci.comp_classes:
         ConfigVarStr('COMP_'+str(comp_class))
@@ -30,4 +30,13 @@ def init_configvars(ci, predefined_mode=False):
     ConfigVarStr('MASK_GRID')
     cv_grid = ConfigVarStrMS('GRID')
     cv_grid.view_mode = 'suggested' # or 'all'
+
+    ConfigVarStr('CUSTOM_GRID_MODE')
+    ## # Ocean grid config vars:
+    ConfigVarInt('OCN_NX')
+    ConfigVarInt('OCN_NY')
+    ConfigVarStr('OCN_GRID_CONFIG')
+    ConfigVarBool('OCN_CYCLIC_X')
+    ####ConfigVarBool('OCN_GRID_TRIPOLAR')
+
     ConfigVar.lock()
