@@ -262,7 +262,7 @@ class ConfigVar(HasTraits):
             self.options = new_options
             if new_tooltips is not None:
                 self.tooltips = new_tooltips
-            self._widget.layout.visibility = "visible"
+            self._widget.layout.display = ""
             self._widget.disabled = False
 
     @property

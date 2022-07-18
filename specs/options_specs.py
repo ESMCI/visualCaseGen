@@ -376,3 +376,12 @@ def get_options_specs(cvars, ci):
             ['Regional', 'Global'],
         ),
     )
+    # OCN_GRID_CONFIG
+    OCN_GRID_CONFIG = cvars["OCN_GRID_CONFIG"]
+    OptionsSpec(
+        var=OCN_GRID_CONFIG,
+        options_and_tooltips=(
+            ['Cartesian', 'Mercator', 'Spherical'],
+            ['Cartesian', 'Mercator', 'Spherical'],
+        ),
+    )

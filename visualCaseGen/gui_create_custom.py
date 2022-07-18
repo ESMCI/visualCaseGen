@@ -6,6 +6,7 @@ from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.init_configvars import init_configvars
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
+from visualCaseGen.custom_grid_widget import CustomGridWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
@@ -70,7 +71,7 @@ class GUI_create_custom():
             cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
             cv_comp_phys.widget = widgets.ToggleButtons(
                     description='{} physics:'.format(comp_class),
-                    layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px'),
+                    layout=widgets.Layout(width='700px', max_height='100px', display='none', margin='20px'),
                     disabled=False,
                 )
             cv_comp_phys.widget.style.button_width = '90px'
@@ -122,6 +123,8 @@ class GUI_create_custom():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
+        self._custom_grid = CustomGridWidget()
+
         self._create_case = CreateCaseWidget(
             self.ci,
             layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
@@ -151,10 +154,12 @@ class GUI_create_custom():
             cv_grid.widget.layout.display = ''
             if not compset_text in [None,''] :
                 self._btn_grid_view.layout.display = ''
+            self._custom_grid.turn_off()
         
         elif new_grid_mode == "Custom":
             cv_grid.widget.layout.display = 'none'
             self._btn_grid_view.layout.display = 'none'
+            self._custom_grid.turn_on()
             cv_grid.value = None
 
         else:
@@ -261,7 +266,8 @@ class GUI_create_custom():
             vbx_grids = widgets.VBox([
                     cvars['GRID_MODE']._widget,
                     cvars['GRID']._widget,
-                    self._btn_grid_view
+                    self._btn_grid_view,
+                    self._custom_grid
                 ],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
             vbx_grids.layout.border = '1px solid silver'

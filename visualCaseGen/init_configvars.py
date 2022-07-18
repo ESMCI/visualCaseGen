@@ -38,6 +38,6 @@ def init_configvars(ci, predefined_mode=False):
     ConfigVarInt('OCN_NY')
     ConfigVarStr('OCN_GRID_CONFIG')
     ConfigVarBool('OCN_CYCLIC_X')
-    ####ConfigVarBool('OCN_GRID_TRIPOLAR')
+    ConfigVarBool('OCN_GRID_TRIPOLAR')
 
     ConfigVar.lock()
