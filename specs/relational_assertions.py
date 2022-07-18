@@ -15,7 +15,8 @@ def relational_assertions_setter(cvars):
     OCN_GRID = cvars['OCN_GRID']
     WAV_GRID = cvars['WAV_GRID']
     GRID = cvars['GRID']
-    CUSTOM_GRID_MODE = cvars['CUSTOM_GRID_MODE']
+    GRID_MODE = cvars['GRID_MODE']
+    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_CYCLIC_X = cvars['OCN_CYCLIC_X'];
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
@@ -101,16 +102,22 @@ def relational_assertions_setter(cvars):
 
         # Relational assertions for mom6_bathy settings -----------------------------
 
-        Implies(COMP_OCN=="mom", And(OCN_NX>8, OCN_NY>8, (OCN_NX*OCN_NY)>100 )):
+        Implies(COMP_OCN!="mom", GRID_MODE=="Predefined"):
+            "Custom grid mode can only be selected if the OCN component is MOM6",
+
+        Implies(COMP_OCN=="mom", And(OCN_NX>=2, OCN_NY>=2, (OCN_NX*OCN_NY)>=16 )):
             "MOM6 grid dimensions too small.",
 
         Implies(COMP_OCN=="mom", And(OCN_NX<10000, OCN_NY<10000)):
             "MOM6 grid dimensions too big.",
 
-        Implies(CUSTOM_GRID_MODE=="Global", OCN_CYCLIC_X):
+        Implies(COMP_WAV!="swav", OCN_GRID_EXTENT=="Global"):
+            "A regional ocean model cannot be coupled with a wave component.",
+
+        Implies(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
             "If custom grid mode is global, the OCN_CYCLIC_X must be set to true",
 
-        Implies(CUSTOM_GRID_MODE=="Regional", Not(OCN_CYCLIC_X)):
+        Implies(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
             "If custom grid mode is regional, the OCN_CYCLIC_X must be set to true",
 
     }

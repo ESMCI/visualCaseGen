@@ -358,9 +358,19 @@ def get_options_specs(cvars, ci):
 
 
     # GRID_MODE
-    GRID_MODE = cvars["CUSTOM_GRID_MODE"]
+    GRID_MODE = cvars["GRID_MODE"]
     OptionsSpec(
         var=GRID_MODE,
+        options_and_tooltips=(
+            ['Predefined', 'Custom'],
+            ['Select from the list of existing CESM grids', 'Create a new grid for one or more of the active components.'],
+        ),
+    )
+
+    # OCN_GRID_EXTENT
+    OCN_GRID_EXTENT = cvars["OCN_GRID_EXTENT"]
+    OptionsSpec(
+        var=OCN_GRID_EXTENT,
         options_and_tooltips=(
             ['Regional', 'Global'],
             ['Regional', 'Global'],
