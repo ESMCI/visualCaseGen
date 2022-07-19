@@ -59,6 +59,16 @@ class CustomGridWidget(widgets.VBox):
         cv_ocn_grid_config.widget.style.button_width = button_width
         cv_ocn_grid_config.widget.style.description_width = descr_width
 
+        # OCN_AXIS_UNITS -----------------------------
+        cv_ocn_axis_units = cvars['OCN_AXIS_UNITS']
+        cv_ocn_axis_units.widget = widgets.ToggleButtons(
+            description='Axis Units:',
+            layout={'width': 'max-content'}, # If the items' names are long
+            disabled=False
+        )
+        cv_ocn_axis_units.widget.style.button_width = button_width
+        cv_ocn_axis_units.widget.style.description_width = descr_width
+
         # OCN_CYCLIC_X -----------------------------
         cv_ocn_cyclic_x = cvars['OCN_CYCLIC_X']
         cv_ocn_cyclic_x.widget = widgets.ToggleButtons(
@@ -79,12 +89,61 @@ class CustomGridWidget(widgets.VBox):
         cv_ocn_cyclic_y.widget.style.button_width = button_width
         cv_ocn_cyclic_y.widget.style.description_width = descr_width
 
+        # OCN_NX -----------------------------
+        cv_ocn_nx = cvars['OCN_NX']
+        cv_ocn_nx.set_to_a_random_valid_value()
+        cv_ocn_nx.widget = widgets.IntText(
+            description='Number of cells in x direction:',
+            layout={'width': 'max-content'}, # If the items' names are long
+            disabled=False
+        )
+        cv_ocn_nx.widget.style.button_width = button_width
+        cv_ocn_nx.widget.style.description_width = '200px'
+
+        # OCN_NY -----------------------------
+        cv_ocn_ny = cvars['OCN_NY']
+        cv_ocn_ny.set_to_a_random_valid_value()
+        cv_ocn_ny.widget = widgets.IntText(
+            description='Number of cells in y direction:',
+            layout={'width': 'max-content'}, # If the items' names are long
+            disabled=False
+        )
+        cv_ocn_ny.widget.style.button_width = button_width
+        cv_ocn_ny.widget.style.description_width = '200px'
+
+        # OCN_LENX -----------------------------
+        cv_ocn_lenx = cvars['OCN_LENX']
+        cv_ocn_lenx.set_to_a_random_valid_value()
+        cv_ocn_lenx.widget = widgets.FloatText(
+            description='Grid length in x direction:',
+            layout={'width': 'max-content'}, # If the items' names are long
+            disabled=False
+        )
+        cv_ocn_lenx.widget.style.button_width = button_width
+        cv_ocn_lenx.widget.style.description_width = '200px'
+
+        # OCN_LENY -----------------------------
+        cv_ocn_leny = cvars['OCN_LENY']
+        cv_ocn_leny.set_to_a_random_valid_value()
+        cv_ocn_leny.widget = widgets.FloatText(
+            description='Grid length in y direction:',
+            layout={'width': 'max-content'}, # If the items' names are long
+            disabled=False
+        )
+        cv_ocn_leny.widget.style.button_width = button_width
+        cv_ocn_leny.widget.style.description_width = '200px'
+
         return widgets.VBox([
             header,
             cv_ocn_grid_extent.widget,
             cv_ocn_grid_config.widget,
+            cv_ocn_axis_units.widget,
             cv_ocn_cyclic_x.widget,
             cv_ocn_cyclic_y.widget,
+            cv_ocn_nx.widget,
+            cv_ocn_ny.widget,
+            cv_ocn_lenx.widget,
+            cv_ocn_leny.widget,
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
 
@@ -121,6 +180,8 @@ class CustomGridWidget(widgets.VBox):
             cvars['OCN_CYCLIC_Y'],
             cvars['OCN_NX'],
             cvars['OCN_NY'],
+            cvars['OCN_LENX'],
+            cvars['OCN_LENY'],
         ]
 
         for var in custom_grid_vars:

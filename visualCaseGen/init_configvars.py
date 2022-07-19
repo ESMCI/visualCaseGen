@@ -2,6 +2,7 @@ import logging
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.config_var_bool import ConfigVarBool
 from visualCaseGen.config_var_int import ConfigVarInt
+from visualCaseGen.config_var_real import ConfigVarReal
 from visualCaseGen.config_var_str import ConfigVarStr
 from visualCaseGen.config_var_str_ms import ConfigVarStrMS
 from visualCaseGen.config_var_compset import ConfigVarCompset
@@ -36,10 +37,13 @@ def init_configvars(ci, predefined_mode=False):
     ### Custom ocean grid variables
     ConfigVarStr('OCN_GRID_EXTENT') # 'Regional' | 'Global'
     ConfigVarStr('OCN_GRID_CONFIG')
+    ConfigVarStr('OCN_AXIS_UNITS')
     ConfigVarBool('OCN_CYCLIC_X')
     ConfigVarBool('OCN_CYCLIC_Y')
     ConfigVarBool('OCN_TRIPOLAR')
     ConfigVarInt('OCN_NX')
     ConfigVarInt('OCN_NY')
+    ConfigVarReal('OCN_LENX')
+    ConfigVarReal('OCN_LENY')
 
     ConfigVar.lock()

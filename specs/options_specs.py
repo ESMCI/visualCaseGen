@@ -385,3 +385,12 @@ def get_options_specs(cvars, ci):
             ['Cartesian', 'Mercator', 'Spherical'],
         ),
     )
+    # OCN_AXIS_UNITS
+    OCN_AXIS_UNITS = cvars["OCN_AXIS_UNITS"]
+    OptionsSpec(
+        var=OCN_AXIS_UNITS,
+        options_and_tooltips=(
+            ['degrees', 'm', 'km'],
+            ['degrees', 'meters', 'kilometers'],
+        ),
+    )
