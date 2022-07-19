@@ -31,6 +31,13 @@ class ConfigVarInt(ConfigVar, ArithRef):
                 ctx
             )
 
+    def set_to_a_random_valid_value(self):
+        #todo
+        #todo
+        #todo
+        #todo
+        self.value = 10 
+
     @validate("value")
     def _validate_value(self, proposal):
         """This method is called automatially to verify that the new value is valid.
@@ -53,7 +60,7 @@ class ConfigVarInt(ConfigVar, ArithRef):
         """This methods gets called by _post_value_change and other methods to update the
         displayed widget value whenever the internal value changes. In other words, this
         method propagates backend value change to frontend."""
-        raise NotImplementedError
+        self._widget.value = self.value
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):
@@ -61,4 +68,25 @@ class ConfigVarInt(ConfigVar, ArithRef):
         This method translates the widget value change to internal value change and ensures the
         widget value and the actual value are synched. In other words, this method propagates
         user-invoked frontend value change to backend."""
-        raise NotImplementedError
+
+        if change["old"] == {}:
+            return  # frontend-triggered change not finalized yet
+
+        if self.has_finite_options_list():
+            raise NotImplementedError
+
+        else:
+            new_val = change["owner"].value
+            outcome, err_msg = logic.check_assignment(self, new_val, return_outcome=True)
+
+            if outcome is False:
+                logger.critical("ERROR: %s", err_msg)
+                alert_error(err_msg)
+
+                # set to old value:
+                self._widget.value = self.value
+                return
+            
+            else:
+                self.value = new_val
+
