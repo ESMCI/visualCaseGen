@@ -261,6 +261,8 @@ class ConfigVar(HasTraits):
         if new_options is not None:
             self.options = new_options
             if new_tooltips is not None:
+                if not isinstance(new_tooltips[0],str):
+                    new_tooltips = [str(nt) for nt in new_tooltips]
                 self.tooltips = new_tooltips
             self._widget.layout.display = ""
             self._widget.disabled = False
@@ -317,6 +319,11 @@ class ConfigVar(HasTraits):
                 else f"{self._invalid_opt_char} {opt}"
                 for opt in self._options
             )
+
+        # If the value is None, make sure widget value is None too, because the above
+        # widget options assignment might have set the widget value to the first value.
+        if self.value is None:
+            self.widget.value = self.widget_none_val
 
         if options_changed:
             # if options have changed, then the value must be updated.
