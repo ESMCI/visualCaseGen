@@ -286,8 +286,8 @@ class Logic():
             layer.add_asrt_option(var, new_opts)
 
     @classmethod
-    def check_assignment(cls, var, new_value):
-        var.major_layer.check_assignment(var, new_value)
+    def check_assignment(cls, var, new_value, return_outcome=False):
+        return var.major_layer.check_assignment(var, new_value, return_outcome)
 
     @classmethod
     def get_options_validities(cls, var):
@@ -436,7 +436,7 @@ class Layer():
         self._solver.pop()
         return new_validities
 
-    def check_assignment(self, var, new_value):
+    def check_assignment(self, var, new_value, return_outcome=False):
 
         status = True
         err_msg = ''
@@ -458,7 +458,9 @@ class Layer():
                 if status is False:
                     err_msg = self.retrieve_error_msg(var, new_value)
 
-        if status is False:
+        if return_outcome:
+            return status, err_msg
+        elif status is False:
             raise AssertionError(err_msg)
 
     def retrieve_error_msg(self, var, value):
