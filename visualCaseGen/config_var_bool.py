@@ -6,6 +6,7 @@ from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.config_var import ConfigVar
 from visualCaseGen.dialog import alert_error
 from visualCaseGen.logic import logic
+from specs.options_specs import OptionsSpec
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -31,6 +32,16 @@ class ConfigVarBool(ConfigVar, BoolRef):
             ctx
         )
 
+        # Create an OptionsSpec instance for each ConfigVarBool object,
+        # so as to make sure that they have a finite options list: [True, False]
+        OptionsSpec(
+            var = self,
+            options_and_tooltips = (
+                [True, False],
+                [True, False]
+            )
+        )
+
     @validate("value")
     def _validate_value(self, proposal):
         """This method is called automatially to verify that the new value is valid.
@@ -41,8 +52,13 @@ class ConfigVarBool(ConfigVar, BoolRef):
 
         # confirm the value validity
         if self.has_finite_options_list():
-            raise NotImplementedError
+            if self._options_validities[new_val] is False:
+                err_msg = logic.retrieve_error_msg(self, new_val)
+                raise AssertionError(err_msg)
+
         else:
+            # actually, this should never be reached since boolean vars always have finite
+            # list of options.
             logic.check_assignment(self, new_val)
 
         # finally, set self.value by returning new_vals
@@ -53,7 +69,10 @@ class ConfigVarBool(ConfigVar, BoolRef):
         """This methods gets called by _post_value_change and other methods to update the
         displayed widget value whenever the internal value changes. In other words, this
         method propagates backend value change to frontend."""
-        raise NotImplementedError
+        if self.value is None:
+            self._widget.value = self._widget_none_val
+        else:
+            self._widget.value = self._valid_opt_char + " " + str(self.value)
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):
@@ -61,4 +80,54 @@ class ConfigVarBool(ConfigVar, BoolRef):
         This method translates the widget value change to internal value change and ensures the
         widget value and the actual value are synched. In other words, this method propagates
         user-invoked frontend value change to backend."""
-        raise NotImplementedError
+
+        if change["old"] == {}:
+            return  # frontend-triggered change not finalized yet
+
+        if self.has_finite_options_list():
+
+            # first check if valid selection
+            new_widget_val = change["owner"].value
+            new_val_validity_char = new_widget_val[0]
+            new_val = new_widget_val[1:].strip()
+
+            if new_val == "True":
+                new_val = True
+            elif new_val == "False":
+                new_val = False
+            else:
+                raise RuntimeError(f"Encountered an invalid value type for ConfigVarBool instance {self.name}")
+
+
+            if new_widget_val == self._widget_none_val and self._always_set is True:
+                # Attempted to set the value to None while always_set property is True.
+                # Revert the frontend change by calling _update_widget_value and return.
+                self._update_widget_value()
+                return
+
+            logger.info(
+                "Frontend changing %s widget value to %s", self.name, new_widget_val
+            )
+
+            # if an invalid selection, display error message and set widget value to old value
+            if new_val_validity_char == self._invalid_opt_char:
+                err_msg = logic.retrieve_error_msg(self, new_val)
+                logger.critical("ERROR: %s", err_msg)
+                alert_error(err_msg)
+
+                # set to old value:
+                self._widget.value = (
+                    self._widget_none_val
+                    if self.value is None
+                    else f"{self._valid_opt_char} {self.value}"
+                )
+                return
+            else:
+
+                if new_val == self._widget_none_val:
+                    self.value = None
+                else:
+                    self.value = new_val
+
+        else: # infinite domain
+            raise NotImplementedError

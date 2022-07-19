@@ -108,7 +108,7 @@ class GUI_create_custom():
         cv_grid._widget.value = ()
         cv_grid.widget = CheckboxMultiWidget(
             options=[],
-            placeholder = '(Finalize Compset First.)',
+            placeholder = '(A list of grids will appear here once the compset is finalized.)',
             description='Compatible Grids:',
             disabled=True,
             allow_multi_select=False,

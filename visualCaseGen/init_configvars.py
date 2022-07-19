@@ -32,12 +32,14 @@ def init_configvars(ci, predefined_mode=False):
     cv_grid.view_mode = 'suggested' # or 'all'
 
     ConfigVarStr('GRID_MODE') # 'Predefined' | 'Custom'
+    
+    ### Custom ocean grid variables
     ConfigVarStr('OCN_GRID_EXTENT') # 'Regional' | 'Global'
-    ## # Ocean grid config vars:
-    ConfigVarInt('OCN_NX')
-    ConfigVarInt('OCN_NY')
     ConfigVarStr('OCN_GRID_CONFIG')
     ConfigVarBool('OCN_CYCLIC_X')
-    ConfigVarBool('OCN_GRID_TRIPOLAR')
+    ConfigVarBool('OCN_CYCLIC_Y')
+    ###todo ConfigVarBool('OCN_TRIPOLAR')
+    ConfigVarInt('OCN_NX')
+    ConfigVarInt('OCN_NY')
 
     ConfigVar.lock()

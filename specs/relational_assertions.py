@@ -16,8 +16,9 @@ def relational_assertions_setter(cvars):
     WAV_GRID = cvars['WAV_GRID']
     GRID = cvars['GRID']
     GRID_MODE = cvars['GRID_MODE']
-    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
-    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_CYCLIC_X = cvars['OCN_CYCLIC_X'];
+    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_GRID_CONFIG = cvars['OCN_GRID_CONFIG']
+    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY'];
+    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];  
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
@@ -114,12 +115,17 @@ def relational_assertions_setter(cvars):
         Implies(COMP_WAV!="swav", OCN_GRID_EXTENT=="Global"):
             "A regional ocean model cannot be coupled with a wave component.",
 
-        Implies(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
-            "If custom grid mode is global, the OCN_CYCLIC_X must be set to true",
+        When(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
+            "If custom grid mode is global, the ocean grid must be reentrant in x direction.",
 
-        Implies(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
-            "If custom grid mode is regional, the OCN_CYCLIC_X must be set to true",
+        When(OCN_GRID_EXTENT=="Global", OCN_GRID_CONFIG != "Cartesian"):
+            "Cannot have a cartesian grid for a global ocean grid.",
 
+        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
+            "If the custom grid mode is set to be regional, the grid cannot be reentrant in x direction",
+
+        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_Y)):
+            "If the custom grid mode is set to be regional, the grid cannot be reentrant in y direction",
     }
 
     return assertions_dict
