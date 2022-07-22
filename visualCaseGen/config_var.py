@@ -36,7 +36,7 @@ class ConfigVar(HasTraits):
 
     # characters used in widgets to designate option validities (if the instance has a finite set of options)
     _invalid_opt_char = chr(int("274C", base=16))
-    _valid_opt_char = chr(int("2713", base=16))
+    _valid_opt_char = chr(int("200B", base=16))
 
     def __init__(
         self, name, widget_none_val=None, always_set=False, hide_invalid=False
