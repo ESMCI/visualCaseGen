@@ -92,8 +92,7 @@ class CustomGridWidget(widgets.VBox):
 
         # OCN_NX -----------------------------
         cv_ocn_nx = cvars['OCN_NX']
-        cv_ocn_nx.set_to_a_random_valid_value()
-        cv_ocn_nx.widget = widgets.IntText(
+        cv_ocn_nx.widget = widgets.Text(
             description='Number of cells in x direction:',
             layout={'width': 'max-content'}, # If the items' names are long
             disabled=False
@@ -103,8 +102,7 @@ class CustomGridWidget(widgets.VBox):
 
         # OCN_NY -----------------------------
         cv_ocn_ny = cvars['OCN_NY']
-        cv_ocn_ny.set_to_a_random_valid_value()
-        cv_ocn_ny.widget = widgets.IntText(
+        cv_ocn_ny.widget = widgets.Text(
             description='Number of cells in y direction:',
             layout={'width': 'max-content'}, # If the items' names are long
             disabled=False
@@ -114,8 +112,7 @@ class CustomGridWidget(widgets.VBox):
 
         # OCN_LENX -----------------------------
         cv_ocn_lenx = cvars['OCN_LENX']
-        cv_ocn_lenx.set_to_a_random_valid_value()
-        cv_ocn_lenx.widget = widgets.FloatText(
+        cv_ocn_lenx.widget = widgets.Text(
             description='Grid length in x direction:',
             layout={'width': 'max-content'}, # If the items' names are long
             disabled=False
@@ -125,8 +122,7 @@ class CustomGridWidget(widgets.VBox):
 
         # OCN_LENY -----------------------------
         cv_ocn_leny = cvars['OCN_LENY']
-        cv_ocn_leny.set_to_a_random_valid_value()
-        cv_ocn_leny.widget = widgets.FloatText(
+        cv_ocn_leny.widget = widgets.Text(
             description='Grid length in y direction:',
             layout={'width': 'max-content'}, # If the items' names are long
             disabled=False
