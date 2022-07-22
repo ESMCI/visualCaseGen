@@ -121,8 +121,11 @@ def relational_assertions_setter(cvars):
         When(OCN_GRID_EXTENT=="Global", OCN_AXIS_UNITS=="degrees"):
             "If custom grid mode is global, the ocean grid axis units must be set to 'degrees'.",
 
-        When(OCN_GRID_EXTENT=="Global", OCN_GRID_CONFIG != "Cartesian"):
+        When(OCN_GRID_EXTENT=="Global", OCN_GRID_CONFIG != "cartesian"):
             "Cannot have a cartesian grid for a global ocean grid.",
+
+        When(OCN_GRID_CONFIG == "cartesian", OCN_AXIS_UNITS != "degrees"):
+            "Cannot have a cartesian grid with axis units in degrees",
 
         When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
             "If the custom grid mode is set to be regional, the grid cannot be reentrant in x direction",

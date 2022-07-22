@@ -381,8 +381,8 @@ def get_options_specs(cvars, ci):
     OptionsSpec(
         var=OCN_GRID_CONFIG,
         options_and_tooltips=(
-            ['Cartesian', 'Mercator', 'Spherical'],
-            ['Cartesian', 'Mercator', 'Spherical'],
+            ['cartesian', 'mercator', 'spherical'],
+            ['cartesian', 'mercator', 'spherical'],
         ),
     )
     # OCN_AXIS_UNITS
