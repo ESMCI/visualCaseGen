@@ -17,7 +17,7 @@ def relational_assertions_setter(cvars):
     GRID = cvars['GRID']
     GRID_MODE = cvars['GRID_MODE']
     OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_GRID_CONFIG = cvars['OCN_GRID_CONFIG']; OCN_AXIS_UNITS = cvars['OCN_AXIS_UNITS']
-    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY'];
+    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
     OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];  
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
@@ -132,6 +132,13 @@ def relational_assertions_setter(cvars):
 
         When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_Y)):
             "If the custom grid mode is set to be regional, the grid cannot be reentrant in y direction",
+
+        When(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0 ):
+            "OCN grid length in X direction must be set to 360.0 when OCN grid extent is global.",
+
+        When(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
+            "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+
     }
 
     return assertions_dict
