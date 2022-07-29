@@ -13,9 +13,6 @@ from z3 import BoolRef, Int
 from z3 import z3util
 import networkx as nx
 
-import cProfile, pstats
-profiler = cProfile.Profile()
-
 logger = logging.getLogger('\t\t'+__name__.split('.')[-1])
 
 class Logic():

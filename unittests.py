@@ -279,12 +279,15 @@ class TestParamGen(unittest.TestCase):
             return
 
         import random
-        #from visualCaseGen.logic import profiler
-        #import cProfile, pstats
+        from visualCaseGen.dev_utils import profiler
+        import pstats
+
 
         N = 40; seeds = [8]
         if args.a is True:
             N = 60; seeds = [8, 10, 13, 20]
+
+        #profiler.enable()
 
         for sd in seeds:
             print("seed:", sd)
@@ -354,8 +357,10 @@ class TestParamGen(unittest.TestCase):
                 else:
                     print("WARNING: encountered cases where there is no valid opt for "+comp_opt.name+", seed: "+str(sd))
 
-        #stats = pstats.Stats(profiler).sort_stats('time')
-        #stats.print_stats()
+        #profiler.disable()
+
+        #stats = pstats.Stats(profiler).sort_stats(pstats.SortKey.CUMULATIVE)
+        #stats.print_stats(30)
 
     def test_G_chg(self):
         """Check constraint hypergraph generator."""

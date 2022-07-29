@@ -1,3 +1,5 @@
+import cProfile, pstats
+profiler = cProfile.Profile()
 
 # debug flag, turns on some checks during runtime
 debug = True
