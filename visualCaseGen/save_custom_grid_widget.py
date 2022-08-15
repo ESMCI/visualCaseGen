@@ -17,7 +17,7 @@ class SaveCustomGrid(widgets.VBox):
         self.filedir = widgets.Textarea(
             value='',
             placeholder='Type an existing directory',
-            description='Save custom grid file to:',
+            description='Save custom grid config to:',
             disabled=True,
             layout=widgets.Layout(height='40px', width='600px')
         )
