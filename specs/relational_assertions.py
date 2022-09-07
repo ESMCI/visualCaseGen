@@ -19,6 +19,7 @@ def relational_assertions_setter(cvars):
     OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_GRID_CONFIG = cvars['OCN_GRID_CONFIG']; OCN_AXIS_UNITS = cvars['OCN_AXIS_UNITS']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
     OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];  
+    LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
@@ -103,8 +104,11 @@ def relational_assertions_setter(cvars):
 
         # Relational assertions for mom6_bathy settings -----------------------------
 
-        Implies(COMP_OCN!="mom", GRID_MODE=="Predefined"):
-            "Custom grid mode can only be selected if the OCN component is MOM6",
+        Implies(COMP_OCN=="pop", GRID_MODE=="Predefined"):
+            "Custom grid mode cannot be selected if the OCN component is POP.",
+
+        Implies(GRID_MODE=="Custom", Or(COMP_OCN=="mom", COMP_LND=="clm")):
+            "At least one of OCN and LND must be active when Custom grid mode is selected.",
 
         Implies(COMP_OCN=="mom", And(OCN_NX>=2, OCN_NY>=2, (OCN_NX*OCN_NY)>=16 )):
             "MOM6 grid dimensions too small.",
@@ -138,6 +142,10 @@ def relational_assertions_setter(cvars):
 
         When(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
             "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+
+        And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
+            "Soil color must be set to an integer value between 0 and 20",
+
 
     }
 

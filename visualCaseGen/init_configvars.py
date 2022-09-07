@@ -46,4 +46,12 @@ def init_configvars(ci, predefined_mode=False):
     ConfigVarReal('OCN_LENX')
     ConfigVarReal('OCN_LENY')
 
+    ### Custom land grid variables
+    ConfigVarReal('LND_LAT_1')
+    ConfigVarReal('LND_LAT_2')
+    ConfigVarReal('LND_LON_1')
+    ConfigVarReal('LND_LON_2')
+    ConfigVarInt('LND_DOM_PFT')
+    ConfigVarInt('LND_SOIL_COLOR')
+
     ConfigVar.lock()
