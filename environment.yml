@@ -9,4 +9,5 @@ dependencies:
   #- xesmf
   - pip
   - pip:
+    - -e ./external/mom6_bathy/
     - -e ./ # visualCaseGen
