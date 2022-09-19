@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 button_width = '100px'
 descr_width = '140px'
 
-class CustomGridWidget(widgets.VBox):
+class CustomGridWidget(widgets.Tab):
 
     def __init__(self,layout=widgets.Layout()):
 
@@ -21,7 +21,6 @@ class CustomGridWidget(widgets.VBox):
         self.description = widgets.HTML(
             "<p style='text-align:left'>In custom grid mode, you can create new grids for the ocean and/or the land components by setting the below configuration variables. After having set all the variables, you can save grid configuration files to be read in by subsequent tools to further customize and complete the grids.</p>"
         )
-        self.horiz_line = widgets.HTML('<hr>')
 
         self.custom_ocn_grid_vars = [\
             cvars['OCN_GRID_EXTENT'],
@@ -120,49 +119,50 @@ class CustomGridWidget(widgets.VBox):
             self.children = [widgets.Label("(Custom grid dialogs will be displayed here after the LND component is determined.)")]
         else: # both ocean and lnd is determined.
 
-            children = [self.description, self.horiz_line]
+            #todo children = [self.description, self.horiz_line]
+            ocn_tab = () # first item is tab title, second item is list of widgets
+            lnd_tab = () # first item is tab title, second item is list of widgets
 
             # construct the ocean grid section layout
             if ocn == "mom":
-                children.append(self._mom6_grid_widgets)
-                children.append(self.horiz_line)
+                ocn_tab = ("Custom MOM6 Grid", [self._mom6_grid_widgets])
             elif ocn in ['docn', 'socn']:
                 pass
             else:
-                children.append(
-                    widgets.Label(f"ERROR: unsupported ocn component {ocn} for custom grid feature")
+                ocn_tab = (
+                    "ERROR",
+                    [widgets.Label(f"ERROR: unsupported ocn component {ocn} for custom grid feature")]
                 )
 
             if lnd == "clm":
                 
-                children.append(
-                    widgets.HTML(
-                        value="<u><b>Land Grid Settings</b></u>",
-                    )
-                )
+                lnd_tab = ("Custom CLM Grid", [])
 
                 if ocn != "mom":
-                    children.append(
+                    lnd_tab[1].append(
                         widgets.HTML(
                             value=" <b>mesh_mask_modifier</b><br> Since no active ocean component is selected, the mesh_mask_modifier tool must be used. Fill in the below fields to configure the mesh_mask modifier tools.",
                         )
                     )
-                    children.append(self._clm_mesh_mask_modifier_widgets)
+                    lnd_tab[1].append(self._clm_mesh_mask_modifier_widgets)
 
-                children.append(
+                lnd_tab[1].append(
                     widgets.HTML(
                         value=" <b>fsurdat_modifier</b><br> Set the following configuration variables to determine the CLM surface dataset.",
                     )
                 )
-                children.append(self._clm_fsurdat_widgets)
+                lnd_tab[1].append(self._clm_fsurdat_widgets)
             elif lnd in ['dlnd', 'slnd']:
                 pass
             else:
-                children.append(
-                    widgets.Label(f"ERROR: unsupported ocn component {ocn} for custom grid feature")
+                lnd_tab = (
+                    "ERROR",
+                    [widgets.Label(f"ERROR: unsupported ocn component {ocn} for custom grid feature")]
                 )
 
-            self.children = children
+            self.children = [widgets.VBox(tab[1]) for tab in [ocn_tab, lnd_tab] if len(tab)>0]
+            for i, tab in enumerate([tab for tab in [ocn_tab, lnd_tab] if len(tab)>0]):
+                self.set_title(i,tab[0])
 
 
     def refresh_lnd_specify_area(self, change):
@@ -222,10 +222,6 @@ class CustomGridWidget(widgets.VBox):
         )
     
     def _construct_mom_grid_widgets(self):
-
-        header = widgets.HTML(
-            value="<u><b>Custom MOM6 Grid Settings</b></u>",
-        )
 
         # From existing mesh? -----------------------------
         self.tbtn_ocn_mesh_mode = widgets.ToggleButtons(
@@ -343,7 +339,6 @@ class CustomGridWidget(widgets.VBox):
 
 
         self._mom6_grid_widgets = widgets.VBox([
-            header,
             self.tbtn_ocn_mesh_mode,
             self.read_ocn_mesh_file,
             cv_ocn_grid_extent.widget,
