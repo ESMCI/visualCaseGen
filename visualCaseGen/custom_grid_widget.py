@@ -1,15 +1,16 @@
 import os
 import re
-from pathlib import Path
-import subprocess
+import logging
 import ipywidgets as widgets
 from visualCaseGen.config_var import cvars
 from visualCaseGen.save_custom_grid_widget import SaveCustomGrid
 from visualCaseGen.read_mesh_file import ReadMeshFile
+from visualCaseGen.OutHandler import handler as owh
+
+logger = logging.getLogger(__name__)
 
 button_width = '100px'
 descr_width = '140px'
-
 
 class CustomGridWidget(widgets.VBox):
 
@@ -25,7 +26,7 @@ class CustomGridWidget(widgets.VBox):
         self.custom_ocn_grid_vars = [\
             cvars['OCN_GRID_EXTENT'],
             cvars['OCN_GRID_CONFIG'],
-            cvars['OCN_TRIPOLAR'],
+            #todo cvars['OCN_TRIPOLAR'],
             cvars['OCN_CYCLIC_X'],
             cvars['OCN_CYCLIC_Y'],
             cvars['OCN_AXIS_UNITS'],
@@ -55,11 +56,9 @@ class CustomGridWidget(widgets.VBox):
         self.refresh_display()
 
     
-    def update_from_existing_ocn_mesh(self, change):
+    def update_ocn_mesh_mode(self, change):
 
         selection = change['new']
-
-        #todo self.save_custom_grid.layout.display = ''
 
         if selection == None:
             # reset and disable variables
@@ -72,6 +71,7 @@ class CustomGridWidget(widgets.VBox):
             # hide and reset read_ocn_mesh_file 
             self.read_ocn_mesh_file.layout.display = 'none'
             self.read_ocn_mesh_file.filepath.value = ''
+            self.btn_launch_mom6_bathy.layout.display = 'none'
 
         elif selection == "Modify an existing mesh":
 
@@ -84,6 +84,7 @@ class CustomGridWidget(widgets.VBox):
             
             # display read_ocn_mesh_file 
             self.read_ocn_mesh_file.layout.display = 'flex'
+            self.btn_launch_mom6_bathy.layout.display = 'flex'
 
         elif selection == "Start from scratch":
             # enable variables
@@ -93,6 +94,7 @@ class CustomGridWidget(widgets.VBox):
             # hide and reset read_ocn_mesh_file 
             self.read_ocn_mesh_file.layout.display = 'none'
             self.read_ocn_mesh_file.filepath.value = ''
+            self.btn_launch_mom6_bathy.layout.display = 'flex'
 
         else:
             raise RuntimeError("Unknown selection")
@@ -181,8 +183,8 @@ class CustomGridWidget(widgets.VBox):
 
     def construct_observances(self):
 
-        self.ocn_mesh_mode.observe(
-            self.update_from_existing_ocn_mesh,
+        self.tbtn_ocn_mesh_mode.observe(
+            self.update_ocn_mesh_mode,
             names='value',
             type='change'
         )
@@ -192,6 +194,18 @@ class CustomGridWidget(widgets.VBox):
             self.refresh_display,
             names='value',
             type='change'
+        )
+
+        for cvar in self.custom_ocn_grid_vars:
+            cvar.observe(
+                self.refresh_btn_launch_mom6_bathy,
+                names='value',
+                type='change'
+            )
+
+
+        self.btn_launch_mom6_bathy.on_click(
+            self.launch_mom6_bathy
         )
 
         cv_comp_lnd = cvars['COMP_LND']
@@ -214,15 +228,15 @@ class CustomGridWidget(widgets.VBox):
         )
 
         # From existing mesh? -----------------------------
-        self.ocn_mesh_mode = widgets.ToggleButtons(
+        self.tbtn_ocn_mesh_mode = widgets.ToggleButtons(
             description='Ocean mesh:',
             options=['Start from scratch', 'Modify an existing mesh'],
             value=None,
             layout={'width':'max-content', 'padding':'20px'}, # If the items' names are long
             disabled=False
         )
-        self.ocn_mesh_mode.style.button_width = '200px'
-        self.ocn_mesh_mode.style.description_width = '100px'
+        self.tbtn_ocn_mesh_mode.style.button_width = '200px'
+        self.tbtn_ocn_mesh_mode.style.description_width = '100px'
 
         # Read ocn mesh file
         self.read_ocn_mesh_file = ReadMeshFile('OCN',
@@ -318,25 +332,19 @@ class CustomGridWidget(widgets.VBox):
         cv_ocn_leny.widget.style.button_width = button_width
         cv_ocn_leny.widget.style.description_width = '200px'
 
+        self.btn_launch_mom6_bathy = widgets.Button(
+            description = 'Launch mom6_bathy',
+            disabled = True,
+            tooltip = "When ready, click this button to launch the mom6_bathy tool to further customize the MOM6 grid.",
+            #icon = 'terminal',
+            button_style='success', # 'success', 'info', 'warning', 'danger' or ''
+            layout=widgets.Layout(display='none', width='170px', align_items='center'),
+        )
 
-        # save custom grid widget
-        #todo self.save_custom_grid = SaveCustomGrid('OCN',
-        #todo {var.name: var for var in [\
-        #todo     cv_ocn_grid_extent,
-        #todo     cv_ocn_grid_config,
-        #todo     cv_ocn_cyclic_x,
-        #todo     cv_ocn_cyclic_y,
-        #todo     cv_ocn_is_units,
-        #todo     cv_ocn_nx,
-        #todo     cv_ocn_ny,
-        #todo     cv_ocn_lenx,
-        #todo     cv_ocn_leny,
-        #todo ]},
-        #todo layout={'padding':'15px','display':'none','flex_flow':'column','align_items':'flex-start'})
 
         self._mom6_grid_widgets = widgets.VBox([
             header,
-            self.ocn_mesh_mode,
+            self.tbtn_ocn_mesh_mode,
             self.read_ocn_mesh_file,
             cv_ocn_grid_extent.widget,
             cv_ocn_grid_config.widget,
@@ -347,10 +355,133 @@ class CustomGridWidget(widgets.VBox):
             cv_ocn_ny.widget,
             cv_ocn_lenx.widget,
             cv_ocn_leny.widget,
-            #todo self.save_custom_grid,
+            widgets.HBox([],layout={'height':'20px'}),
+            widgets.VBox([self.btn_launch_mom6_bathy], layout={'align_items':'center', 'width':'700px'}),
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
     
+    def refresh_btn_launch_mom6_bathy(self, change):
+        if any([cvar.value is None for cvar in self.custom_ocn_grid_vars]):
+            self.btn_launch_mom6_bathy.disabled = True
+        else:
+            self.btn_launch_mom6_bathy.disabled = False
+
+
+    @owh.out.capture()
+    def launch_mom6_bathy(self, b):
+        
+        # Step 1 : Create a new notebook:
+        import nbformat as nbf
+        from datetime import datetime
+        from IPython.display import display, Javascript
+
+        # an example grid name
+        grid_name = "simple_1v1"
+        datestamp = f'{datetime.now().strftime("%Y%m%d")}'
+
+        # Jupyter notebook object
+        nb = nbf.v4.new_notebook()
+        nb['cells'] = [
+            nbf.v4.new_markdown_cell(
+                "# mom6_bathy\n"
+                "This notebook is auto-generated by visualCaseGen GUI. "
+                "Please review and execute all of the cells below to finalize your custom MOM6 grid."
+            ),
+            nbf.v4.new_markdown_cell(
+                "## 1. Import mom6_bathy"
+            ),
+            nbf.v4.new_code_cell(
+                "%%capture\n"
+                "from mom6_bathy.mom6grid import mom6grid\n"
+                "from mom6_bathy.mom6bathy import mom6bathy"
+            ),
+            nbf.v4.new_markdown_cell(
+                "## 2. Create horizontal grid\n"
+            ),
+            nbf.v4.new_code_cell(
+                """grd = mom6grid(
+                nx         = 100,         # Number of grid points in x direction
+                ny         = 50,          # Number of grid points in y direction
+                config     = "cartesian", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
+                axis_units = "degrees",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
+                lenx       = 100.0,        # grid length in x direction, e.g., 360.0 (degrees)
+                leny       = 50.0,        # grid length in y direction
+                cyclic_x   = "False",     # non-reentrant, rectangular domain
+                )
+                """
+            ),
+            nbf.v4.new_markdown_cell(
+                "## 3. Configure bathymetry\n"
+            ),
+            nbf.v4.new_markdown_cell(
+                "***mom6_bathy*** provides several idealized bathymetry options and customization methods. "
+                "Below, we show how to specify the simplest bathymetry configuration, a flat bottom. "
+                "Customize it as you see fit. See mom6_bathy documentation and example notebooks on how to create custom bathymetries. "
+            ),
+            nbf.v4.new_code_cell(
+                "# Instantiate the bathymetry object\n"
+                "bathy = mom6bathy(grd, min_depth = 10.0)"
+            ),
+            nbf.v4.new_code_cell(
+                "# Set the bathymetry to be a flat bottom with a uniform depth of 2000m\n"
+                "bathy.set_flat(D=2000.0)"
+            ),
+            nbf.v4.new_code_cell(
+                "bathy.depth.plot()"
+            ),
+            nbf.v4.new_markdown_cell(
+                "## 4. Save the grid and bathymetry files"
+            ),
+            nbf.v4.new_code_cell(
+                '# First, specify a unique name for your new grid, e.g.:\n'
+                f'grid_name = "{grid_name}"\n\n'
+                '# Save MOM6 supergrid file:\n'
+                f'grd.to_netcdf(supergrid_path = f"./ocean_grid_{{grid_name}}_{datestamp}.nc")\n\n'
+                '# Save MOM6 topography file:\n'
+                f'bathy.to_topog(f"./ocean_topog_{{grid_name}}_{datestamp}.nc")\n\n'
+                '# Save ESMF mesh file:\n'
+                f'bathy.to_ESMF_mesh(f"./ESMF_mesh_{{grid_name}}_{datestamp}.nc")'
+            ),
+            nbf.v4.new_markdown_cell(
+                "## 5. Print MOM6 runtime parameters\n\n"
+                "The final step of creating a new MOM6 grid and bathymetry files is to determine "
+                "the relevant MOM6 runtime parameters. To do so, simply run the "
+                "`print_MOM6_runtime_params` method of bathy to print out the grid and bathymetry "
+                "related MOM6 runtime parameters."
+            ),
+            nbf.v4.new_code_cell(
+                'bathy.print_MOM6_runtime_params()'
+            ),
+            nbf.v4.new_markdown_cell(
+                "This section conludes all of the `mom6_bathy steps.` After having executed all of the "
+                "cells above, you can switch back to the visualCaseGen GUI to finalize your experiment "
+                "configuration."
+            ),
+        ]
+
+
+
+        nb_filename = f'mom6_bathy_notebook_{datetime.now().strftime("%Y%m%d_%H%M%S")}.ipynb'
+        with open(nb_filename, 'w') as f:
+            nbf.write(nb, f)
+            nb_filepath = os.path.realpath(f.name)
+
+        logger.info(f"Generated a new mom6_bathy notebook at {nb_filepath}")
+
+        # Step 2 : Launch the notebook
+        js = f"""
+            var curr_url = window.location.href.split('/')
+            var new_url = curr_url[0] + '//'
+            for (var i = 1; i < curr_url.length - 1; i++) {{
+                console.log(curr_url[i], new_url)
+                new_url += curr_url[i] + '/'
+            }}
+            new_url += "{nb_filename}"
+            window.open(new_url)
+        """
+        display(Javascript(js))
+
+
     def _construct_clm_mesh_mask_modifier_widgets(self):
 
         mesh_mask_in = widgets.Textarea(
@@ -560,7 +691,7 @@ class CustomGridWidget(widgets.VBox):
                 var.widget.layout.display = 'none' # refreshing options turns the display on, so turn it off.
         
         # reset values of custom ocn grid widgets (that aren't defined as ConfigVar instances)
-        self.ocn_mesh_mode.value = None
+        self.tbtn_ocn_mesh_mode.value = None
         self.read_ocn_mesh_file.value = None
 
         # reset all custom lnd grid vars
