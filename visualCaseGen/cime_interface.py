@@ -8,16 +8,15 @@ from pathlib import Path
 # import CIME -----------------------------------------------------------
 filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
 CIMEROOT = Path(Path(filepath).parent.parent, 'cime').as_posix()
-sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+sys.path.append(os.path.join(CIMEROOT))
 
-from standard_script_setup import *
+from CIME.XML.standard_module_setup import *
 from CIME.XML.generic_xml           import GenericXML
 from CIME.XML.machines              import Machines
 from CIME.XML.files                 import Files
 from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
-from CIME.YML.compliances           import Compliances
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +41,6 @@ class CIME_interface():
         are 4xCO2, 1PCT, etc.
     model_grids: list of tuples
         List of model grids (alias, compset, not_compset)
-    compliances : CIME.YML.compliances.Compliances
-        An object that encapsulates CIME config variable compliances, i.e., logical constraints regarding
-        config variables.
     """
 
     def __init__(self, driver, loadbar=None):
@@ -82,10 +78,6 @@ class CIME_interface():
         increment_loadbar()
         self._retrieve_machines()
 
-        # Initialize the compliances instance
-        increment_loadbar()
-        self.compliances = Compliances.from_cime()
-        self.compliances.unfold_compliances()
         increment_loadbar()
 
     def _retrieve_cime_basics(self):
@@ -226,7 +218,7 @@ class CIME_interface():
             self.models[comp_class].append(model)
 
     def _retrieve_model_grids(self):
-        self._grids_obj = Grids()
+        self._grids_obj = Grids(comp_interface=self.driver)
         grids = self._grids_obj.get_child("grids")
         model_grids_xml = self._grids_obj.get_children("model_grid", root=grids)
 
