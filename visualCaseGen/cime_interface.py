@@ -77,7 +77,8 @@ class CIME_interface():
         self._retrieve_compsets()
         increment_loadbar()
         self._retrieve_machines()
-
+        increment_loadbar()
+        self._retrieve_clm_fsurdat()
         increment_loadbar()
 
     def _retrieve_cime_basics(self):
@@ -220,18 +221,24 @@ class CIME_interface():
     def _retrieve_model_grids(self):
         self._grids_obj = Grids(comp_interface=self.driver)
         grids = self._grids_obj.get_child("grids")
-        model_grids_xml = self._grids_obj.get_children("model_grid", root=grids)
+        model_grid_nodes = self._grids_obj.get_children("model_grid", root=grids)
 
         self.model_grids = []
-        for model_grid in model_grids_xml:
-            alias = self._grids_obj.get(model_grid,"alias")
-            compset = self._grids_obj.get(model_grid,"compset")
-            not_compset = self._grids_obj.get(model_grid,"not_compset")
+        self.component_grids = {comp:set() for comp in self._grids_obj._comp_gridnames}
+        for model_grid_node in model_grid_nodes:
+            alias = self._grids_obj.get(model_grid_node,"alias")
+            compset = self._grids_obj.get(model_grid_node,"compset")
+            not_compset = self._grids_obj.get(model_grid_node,"not_compset")
             desc = ''
-            desc_node = self._grids_obj.get_children("desc", root=model_grid)
+            desc_node = self._grids_obj.get_children("desc", root=model_grid_node)
             if desc_node:
                 desc = self._grids_obj.text(desc_node[0])
             self.model_grids.append((alias, compset, not_compset, desc))
+            grid_nodes = self._grids_obj.get_children("grid", root=model_grid_node)
+            for grid_node in grid_nodes:
+                comp_name = self._grids_obj.get(grid_node, "name")
+                value = self._grids_obj.text(grid_node)
+                self.component_grids[comp_name].add(value)
 
     def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         # todo: implement atmlev and lndnlev
@@ -282,3 +289,31 @@ class CIME_interface():
             for node in nodes:
                 mach = machines_obj.get(node, "MACH")
                 self.machines.append(mach)
+        
+        # Determine DIN_LOC_ROOT
+        self.din_loc_root = None
+        if self.machine in ['cheyenne', 'casper']:
+            self.din_loc_root = '/glade/p/cesm/cseg/inputdata/'
+        else:
+            try:
+                for machine_node in machines_obj.get_children("machine"):
+                    machine_name = machines_obj.get(machine_node, "MACH")
+                    if machine_name == self.machine:
+                        din_loc_root_node = machines_obj.get_child(root=machine_node, name="DIN_LOC_ROOT")
+                        self.din_loc_root = machines_obj.text(din_loc_root_node)
+            except:
+                logger.error("Couldn't determine DIN_LOC_ROOT")
+    
+    def _retrieve_clm_fsurdat(self):
+        clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
+        clm_namelist_defaults_file = Path(clm_root, "bld", "namelist_files", "namelist_defaults_ctsm.xml")
+        assert clm_namelist_defaults_file.is_file(), "Cannot find clm namelist file"
+
+        self.clm_fsurdat = {None:{}, '1850':{}, '2000':{}, 'PtVg':{}}
+
+        clm_namelist_xml = GenericXML(clm_namelist_defaults_file.as_posix())
+        for fsurdat_node in clm_namelist_xml.get_children("fsurdat"):
+            hgrid = clm_namelist_xml.get(fsurdat_node, "hgrid")
+            sim_year = clm_namelist_xml.get(fsurdat_node, "sim_year")
+            filedir = clm_namelist_xml.text(fsurdat_node)
+            self.clm_fsurdat[sim_year][hgrid] = filedir
