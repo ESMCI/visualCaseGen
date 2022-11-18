@@ -2,6 +2,10 @@ import os
 import re
 import logging
 import ipywidgets as widgets
+import nbformat as nbf
+from datetime import datetime
+from IPython.display import display, Javascript
+
 from visualCaseGen.config_var import cvars
 from visualCaseGen.save_custom_grid_widget import SaveCustomGrid
 from visualCaseGen.read_mesh_file import ReadMeshFile
@@ -14,9 +18,11 @@ descr_width = '140px'
 
 class CustomGridWidget(widgets.Tab):
 
-    def __init__(self,layout=widgets.Layout()):
+    def __init__(self,ci,layout=widgets.Layout()):
 
         super().__init__(layout=layout)
+
+        self.ci = ci
 
         self.description = widgets.HTML(
             "<p style='text-align:left'>In custom grid mode, you can create new grids for the ocean and/or the land components by setting the below configuration variables. After having set all the variables, you can save grid configuration files to be read in by subsequent tools to further customize and complete the grids.</p>"
@@ -44,7 +50,10 @@ class CustomGridWidget(widgets.Tab):
             cvars['LND_SOIL_COLOR'],
         ]
 
+        self.horiz_line = widgets.HTML('<hr>')
+
         self._construct_mom_grid_widgets()
+        self._construct_clm_grid_selector()
         self._construct_clm_mesh_mask_modifier_widgets()
         self._construct_clm_fsurdat_widgets()
 
@@ -54,7 +63,6 @@ class CustomGridWidget(widgets.Tab):
         self.turn_off() # by default, the display is off.
         self.refresh_display()
 
-    
     def update_ocn_mesh_mode(self, change):
 
         selection = change['new']
@@ -67,7 +75,7 @@ class CustomGridWidget(widgets.Tab):
                     var.refresh_options()
                 var.widget.layout.display = 'none'
 
-            # hide and reset read_ocn_mesh_file 
+            # hide and reset read_ocn_mesh_file
             self.read_ocn_mesh_file.layout.display = 'none'
             self.read_ocn_mesh_file.filepath.value = ''
             self.btn_launch_mom6_bathy.layout.display = 'none'
@@ -80,8 +88,8 @@ class CustomGridWidget(widgets.Tab):
                 if var.has_options_spec():
                     var.refresh_options()
                 var.widget.layout.display = 'none'
-            
-            # display read_ocn_mesh_file 
+
+            # display read_ocn_mesh_file
             self.read_ocn_mesh_file.layout.display = 'flex'
             self.btn_launch_mom6_bathy.layout.display = 'flex'
 
@@ -89,16 +97,16 @@ class CustomGridWidget(widgets.Tab):
             # enable variables
             for var in self.custom_ocn_grid_vars:
                 var.widget.layout.display = ''
-        
-            # hide and reset read_ocn_mesh_file 
+
+            # hide and reset read_ocn_mesh_file
             self.read_ocn_mesh_file.layout.display = 'none'
             self.read_ocn_mesh_file.filepath.value = ''
             self.btn_launch_mom6_bathy.layout.display = 'flex'
 
         else:
             raise RuntimeError("Unknown selection")
-        
-    
+
+
     def refresh_display(self, change=None):
 
         ocn = cvars['COMP_OCN'].value
@@ -119,13 +127,12 @@ class CustomGridWidget(widgets.Tab):
             self.children = [widgets.Label("(Custom grid dialogs will be displayed here after the LND component is determined.)")]
         else: # both ocean and lnd is determined.
 
-            #todo children = [self.description, self.horiz_line]
             ocn_tab = () # first item is tab title, second item is list of widgets
             lnd_tab = () # first item is tab title, second item is list of widgets
 
             # construct the ocean grid section layout
             if ocn == "mom":
-                ocn_tab = ("Custom MOM6 Grid", [self._mom6_grid_widgets])
+                ocn_tab = ("MOM6 Grid", [self._mom6_grid_widgets])
             elif ocn in ['docn', 'socn']:
                 pass
             else:
@@ -135,10 +142,20 @@ class CustomGridWidget(widgets.Tab):
                 )
 
             if lnd == "clm":
-                
-                lnd_tab = ("Custom CLM Grid", [])
+
+                lnd_tab = ("CLM Grid", [])
+
+                lnd_tab[1].append(
+                    widgets.HTML(
+                        value=" <b>Base CLM grid</b><br> Select a base land grid from the following menu. You can then customize its fsurdat specification in the below dialogs.",
+                    )
+                )
+                lnd_tab[1].append(
+                    self.drp_clm_grid
+                )
 
                 if ocn != "mom":
+                    lnd_tab[1].append(self.horiz_line)
                     lnd_tab[1].append(
                         widgets.HTML(
                             value=" <b>mesh_mask_modifier</b><br> Since no active ocean component is selected, the mesh_mask_modifier tool must be used. Fill in the below fields to configure the mesh_mask modifier tools.",
@@ -146,12 +163,25 @@ class CustomGridWidget(widgets.Tab):
                     )
                     lnd_tab[1].append(self._clm_mesh_mask_modifier_widgets)
 
+                lnd_tab[1].append(self.horiz_line)
                 lnd_tab[1].append(
                     widgets.HTML(
                         value=" <b>fsurdat_modifier</b><br> Set the following configuration variables to determine the CLM surface dataset.",
                     )
                 )
                 lnd_tab[1].append(self._clm_fsurdat_widgets)
+
+                lnd_tab[1].append(
+                    widgets.Button(
+                        description = 'Save .cfg files',
+                        #disabled = True,
+                        tooltip = "When ready, click this button to save the .cfg files for subsequent execution of land tools.",
+                        #icon = 'terminal',
+                        button_style='success', # 'success', 'info', 'warning', 'danger' or ''
+                        #layout=widgets.Layout(display='none', width='170px', align_items='center'),
+                    )
+                )
+
             elif lnd in ['dlnd', 'slnd']:
                 pass
             else:
@@ -180,6 +210,28 @@ class CustomGridWidget(widgets.Tab):
         else:
             raise RuntimeError(f"Unknown land specification selection {change['new']}")
 
+    def update_clm_grid_options(self, change):
+        new_inittime = change['new']
+
+        if new_inittime not in [None, '1850', '2000']:
+            raise RuntimeError("Unsupported INITTIME for custom clm grid options")
+
+        self.drp_clm_grid.options = list(self.ci.clm_fsurdat[new_inittime].keys())
+
+
+    def clm_grid_value_changed(self, change):
+        new_hgrid = change['new']
+        cv_inittime = cvars['INITTIME']
+        new_fsurdat_in_path = ''
+        try:
+            new_fsurdat_in_path = os.path.join(
+                self.ci.din_loc_root,
+                self.ci.clm_fsurdat[cv_inittime.value][new_hgrid].strip()
+            )
+            assert os.path.exists(new_fsurdat_in_path)
+        except:
+            pass
+        self.fsurdat_in.value = new_fsurdat_in_path
 
     def construct_observances(self):
 
@@ -220,7 +272,20 @@ class CustomGridWidget(widgets.Tab):
             names='value',
             type='change'
         )
-    
+
+        cv_inittime = cvars['INITTIME']
+        cv_inittime.observe(
+            self.update_clm_grid_options,
+            names='value',
+            type='change'
+        )
+
+        self.drp_clm_grid.observe(
+            self.clm_grid_value_changed,
+            names='value',
+            type='change'
+        )
+
     def _construct_mom_grid_widgets(self):
 
         # From existing mesh? -----------------------------
@@ -354,7 +419,7 @@ class CustomGridWidget(widgets.Tab):
             widgets.VBox([self.btn_launch_mom6_bathy], layout={'align_items':'center', 'width':'700px'}),
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
-    
+
     def refresh_btn_launch_mom6_bathy(self, change):
         if any([cvar.value is None for cvar in self.custom_ocn_grid_vars]):
             self.btn_launch_mom6_bathy.disabled = True
@@ -364,12 +429,8 @@ class CustomGridWidget(widgets.Tab):
 
     @owh.out.capture()
     def launch_mom6_bathy(self, b):
-        
-        # Step 1 : Create a new notebook:
-        import nbformat as nbf
-        from datetime import datetime
-        from IPython.display import display, Javascript
 
+        # Step 1 : Create a new notebook:
         # an example grid name
         grid_name = "simple_1v1"
         datestamp = f'{datetime.now().strftime("%Y%m%d")}'
@@ -394,14 +455,14 @@ class CustomGridWidget(widgets.Tab):
                 "## 2. Create horizontal grid\n"
             ),
             nbf.v4.new_code_cell(
-                """grd = mom6grid(
-                nx         = 100,         # Number of grid points in x direction
-                ny         = 50,          # Number of grid points in y direction
-                config     = "cartesian", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
-                axis_units = "degrees",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
-                lenx       = 100.0,        # grid length in x direction, e.g., 360.0 (degrees)
-                leny       = 50.0,        # grid length in y direction
-                cyclic_x   = "False",     # non-reentrant, rectangular domain
+                f"""grd = mom6grid(
+                nx         = {cvars['OCN_NX'].value},         # Number of grid points in x direction
+                ny         = {cvars['OCN_NY'].value},          # Number of grid points in y direction
+                config     = "{cvars['OCN_GRID_CONFIG'].value}", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
+                axis_units = "{cvars['OCN_AXIS_UNITS'].value}",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
+                lenx       = {cvars['OCN_LENX'].value},        # grid length in x direction, e.g., 360.0 (degrees)
+                leny       = {cvars['OCN_LENY'].value},        # grid length in y direction
+                cyclic_x   = "{cvars['OCN_CYCLIC_X'].value}",     # non-reentrant, rectangular domain
                 )
                 """
             ),
@@ -411,7 +472,8 @@ class CustomGridWidget(widgets.Tab):
             nbf.v4.new_markdown_cell(
                 "***mom6_bathy*** provides several idealized bathymetry options and customization methods. "
                 "Below, we show how to specify the simplest bathymetry configuration, a flat bottom. "
-                "Customize it as you see fit. See mom6_bathy documentation and example notebooks on how to create custom bathymetries. "
+                "Customize it as you see fit. See mom6_bathy documentation and example notebooks on how to "
+                "create custom bathymetries. "
             ),
             nbf.v4.new_code_cell(
                 "# Instantiate the bathymetry object\n"
@@ -476,6 +538,18 @@ class CustomGridWidget(widgets.Tab):
         """
         display(Javascript(js))
 
+    def _construct_clm_grid_selector(self):
+
+        cv_inittime = cvars['INITTIME']
+        if cv_inittime.value not in [None, '1850', '2000']:
+            raise RuntimeError(f"Unsupported INITTIME {cv_inittime.value} for custom clm grid options")
+
+        self.drp_clm_grid = widgets.Dropdown(
+            options = list(self.ci.clm_fsurdat[cv_inittime.value].keys()),
+            description='Base CLM grid:',
+            disabled=False,
+        )
+        self.drp_clm_grid.style.description_width = '100px'
 
     def _construct_clm_mesh_mask_modifier_widgets(self):
 
@@ -495,7 +569,6 @@ class CustomGridWidget(widgets.Tab):
         )
         mesh_mask_out.style.description_width = descr_width
 
-        
         landmask_file = widgets.Textarea(
             value='',
             placeholder='Type a new path',
@@ -550,7 +623,7 @@ class CustomGridWidget(widgets.Tab):
             value='',
             placeholder='Type fsurdat input file ',
             description='Input surface dataset',
-            layout=widgets.Layout(height='40px', width='600px')
+            layout=widgets.Layout(height='80px', width='600px')
         )
         self.fsurdat_in.style.description_width = '180px'
 
@@ -558,10 +631,10 @@ class CustomGridWidget(widgets.Tab):
             value='',
             placeholder='Type fsurdat output file ',
             description='Output surface dataset',
-            layout=widgets.Layout(height='40px', width='600px')
+            layout=widgets.Layout(height='80px', width='600px')
         )
         self.fsurdat_out.style.description_width = '180px'
-        
+
         self.lnd_idealized = widgets.ToggleButtons(
             description='Idealized?',
             options=['True', 'False'],
@@ -673,7 +746,7 @@ class CustomGridWidget(widgets.Tab):
             self.include_nonveg,
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
-    
+
     def turn_off(self):
         self.layout.display = 'none'
 
@@ -684,7 +757,7 @@ class CustomGridWidget(widgets.Tab):
             if var.has_options_spec():
                 var.refresh_options()
                 var.widget.layout.display = 'none' # refreshing options turns the display on, so turn it off.
-        
+
         # reset values of custom ocn grid widgets (that aren't defined as ConfigVar instances)
         self.tbtn_ocn_mesh_mode.value = None
         self.read_ocn_mesh_file.value = None
@@ -698,7 +771,7 @@ class CustomGridWidget(widgets.Tab):
                 var.widget.layout.display = 'none' # refreshing options turns the display on, so turn it off.
 
         # reset values of custom lnd grid widgets (that aren't defined as ConfigVar instances)
-        # reset fsurdat_in variables 
+        # reset fsurdat_in variables
         self.fsurdat_in.value = ''
         self.fsurdat_out.value = ''
         self.lnd_idealized.value = None

@@ -123,7 +123,7 @@ class GUI_create_custom():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
-        self._custom_grid = CustomGridWidget()
+        self._custom_grid = CustomGridWidget(self.ci)
 
         self._create_case = CreateCaseWidget(
             self.ci,
