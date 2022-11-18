@@ -4,6 +4,7 @@ from visualCaseGen.logic_utils import In, When
 def relational_assertions_setter(cvars):
 
     # define references to ConfigVars
+    INITTIME = cvars['INITTIME']
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
     COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
     COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_PHYS = cvars['COMP_ICE_PHYS'];  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
@@ -142,6 +143,11 @@ def relational_assertions_setter(cvars):
 
         When(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
             "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+
+        # Relational assertions for custom lnd grid settings -----------------------------
+
+        Implies(And(INITTIME=='HIST', COMP_LND=='clm'), GRID_MODE!="Custom"):
+            "When initialization time is set to HIST, cannot create custom clm grids.",
 
         And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
             "Soil color must be set to an integer value between 0 and 20",
