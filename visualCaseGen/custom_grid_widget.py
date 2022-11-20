@@ -158,7 +158,15 @@ class CustomGridWidget(widgets.Tab):
                     lnd_tab[1].append(self.horiz_line)
                     lnd_tab[1].append(
                         widgets.HTML(
-                            value=" <b>mesh_mask_modifier</b><br> Since no active ocean component is selected, the mesh_mask_modifier tool must be used. Fill in the below fields to configure the mesh_mask modifier tools.",
+                            value=" <b>mesh_mask_modifier</b><br>"
+                                "No active ocean component is selected, so the "
+                                "mesh_mask_modifier tool must be utilized. Fill in the "
+                                "below fields to configure the mesh_mask modifier tool. "
+                                "Note that the input mask mesh will be auto-filled to a "
+                                "default mesh path (if found), but the land mask file is user-generated "
+                                "and so its path must be provided by the user. Lat/Lon variable "
+                                "and dimension names should correspond to what is found in the "
+                                "land mask file."
                         )
                     )
                     lnd_tab[1].append(self._clm_mesh_mask_modifier_widgets)
@@ -222,6 +230,18 @@ class CustomGridWidget(widgets.Tab):
     def clm_grid_value_changed(self, change):
         new_hgrid = change['new']
         cv_inittime = cvars['INITTIME']
+
+        ## Auto-fill mask mesh
+        new_mesh_path = ''
+        try:
+            new_mesh_path = self.ci.retrieve_mesh_path(new_hgrid)
+            assert os.path.exists(new_mesh_path)
+        except:
+            new_mesh_path = ''
+        if cvars['COMP_OCN'].value != "mom":
+            self.mesh_mask_in.value = new_mesh_path
+
+        ## Auto-fill fsurdat_in:
         new_fsurdat_in_path = ''
         try:
             new_fsurdat_in_path = os.path.join(
@@ -230,7 +250,7 @@ class CustomGridWidget(widgets.Tab):
             )
             assert os.path.exists(new_fsurdat_in_path)
         except:
-            pass
+            new_fsurdat_in_path = ''
         self.fsurdat_in.value = new_fsurdat_in_path
 
     def construct_observances(self):
@@ -553,67 +573,66 @@ class CustomGridWidget(widgets.Tab):
 
     def _construct_clm_mesh_mask_modifier_widgets(self):
 
-        mesh_mask_in = widgets.Textarea(
+        self.mesh_mask_in = widgets.Textarea(
             value='',
             placeholder='Type an existing mask mesh directory',
             description='Input mask mesh:',
             layout=widgets.Layout(height='40px', width='600px')
         )
-        mesh_mask_in.style.description_width = descr_width
+        self.mesh_mask_in.style.description_width = descr_width
 
-        mesh_mask_out = widgets.Textarea(
-            value='',
-            placeholder='Type a new path',
-            description='Output mask mesh:',
-            layout=widgets.Layout(height='40px', width='600px')
-        )
-        mesh_mask_out.style.description_width = descr_width
-
-        landmask_file = widgets.Textarea(
+        self.landmask_file = widgets.Textarea(
             value='',
             placeholder='Type a new path',
             description='Land mask:',
             layout=widgets.Layout(height='40px', width='600px')
         )
-        landmask_file.style.description_width = descr_width
+        self.landmask_file.style.description_width = descr_width
 
-        lat_varname = widgets.Textarea(
+        self.lat_varname = widgets.Textarea(
             value='lsmlat',
             description='Latitude var. name',
             layout=widgets.Layout(height='40px', width='600px')
         )
-        lat_varname.style.description_width = descr_width
+        self.lat_varname.style.description_width = descr_width
 
-        lon_varname = widgets.Textarea(
+        self.lon_varname = widgets.Textarea(
             value='lsmlon',
             description='Longitude var. name',
             layout=widgets.Layout(height='40px', width='600px')
         )
-        lon_varname.style.description_width = descr_width
+        self.lon_varname.style.description_width = descr_width
 
-        lat_dimname = widgets.Textarea(
+        self.lat_dimname = widgets.Textarea(
             value='lsmlat',
             description='Latitude dim. name',
             layout=widgets.Layout(height='40px', width='600px')
         )
-        lat_dimname.style.description_width = descr_width
+        self.lat_dimname.style.description_width = descr_width
 
-        lon_dimname = widgets.Textarea(
+        self.lon_dimname = widgets.Textarea(
             value='lsmlon',
             description='Longitude dim. name',
             layout=widgets.Layout(height='40px', width='600px')
         )
-        lon_dimname.style.description_width = descr_width
+        self.lon_dimname.style.description_width = descr_width
 
+        self.mesh_mask_out = widgets.Textarea(
+            value='',
+            placeholder='Type a new path',
+            description='Output mask mesh:',
+            layout=widgets.Layout(height='40px', width='600px')
+        )
+        self.mesh_mask_out.style.description_width = descr_width
 
         self._clm_mesh_mask_modifier_widgets = widgets.VBox([
-            mesh_mask_in,
-            mesh_mask_out,
-            landmask_file,
-            lat_varname,
-            lon_varname,
-            lat_dimname,
-            lon_dimname,
+            self.mesh_mask_in,
+            self.landmask_file,
+            self.lat_varname,
+            self.lon_varname,
+            self.lat_dimname,
+            self.lon_dimname,
+            self.mesh_mask_out,
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
 
@@ -769,6 +788,18 @@ class CustomGridWidget(widgets.Tab):
             if var.has_options_spec():
                 var.refresh_options()
                 var.widget.layout.display = 'none' # refreshing options turns the display on, so turn it off.
+        
+        # reset clm grid selector
+        self.drp_clm_grid.value = None
+
+        # reset mesh mask modifier widgets (that aren't defined as ConfigVar instances)
+        self.mesh_mask_in.value = ''
+        self.landmask_file.value = ''
+        self.lat_varname.value = 'lsmlat'
+        self.lon_varname.value = 'lsmlon'
+        self.lat_dimname.value = 'lsmlat'
+        self.lon_dimname.value = 'lsmlon'
+        self.mesh_mask_out.value = ''
 
         # reset values of custom lnd grid widgets (that aren't defined as ConfigVar instances)
         # reset fsurdat_in variables
