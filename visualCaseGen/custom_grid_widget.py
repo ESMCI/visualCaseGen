@@ -202,9 +202,15 @@ class CustomGridWidget(widgets.Tab):
             for i, tab in enumerate([tab for tab in [ocn_tab, lnd_tab] if len(tab)>0]):
                 self.set_title(i,tab[0])
 
+            self.reset_vars()
+
+    def update_landmask_file_2(self, change):
+        """To be used for syncing landmask_file and landmask_file2 widgets only within observances."""
+        self.landmask_file_2.value = change['new']
 
     def refresh_lnd_specify_area(self, change):
 
+        # First, handle the display of coordinate textboxes
         if change['new'] == 'via corner coords':
             self.lnd_lat_1.widget.layout.display=''
             self.lnd_lat_2.widget.layout.display=''
@@ -215,6 +221,36 @@ class CustomGridWidget(widgets.Tab):
             self.lnd_lat_2.widget.layout.display='none'
             self.lnd_lon_1.widget.layout.display='none'
             self.lnd_lon_2.widget.layout.display='none'
+        else:
+            raise RuntimeError(f"Unknown land specification selection {change['new']}")
+
+        # Second, handle the display of landmask file textbox
+        if change['new'] == 'via corner coords' or change['new'] is None:
+            self.landmask_file_2.layout.display='none'
+        elif change['new'] == 'via mask file':
+            self.landmask_file_2.layout.display=''
+
+            if cvars['COMP_OCN'].value == "mom":
+                # decouple landmask_file and landmask_file2 and reset landmask_file2 value
+                if 'value' in self.landmask_file._trait_notifiers and 'change' in self.landmask_file._trait_notifiers['value'] and\
+                self.update_landmask_file_2 in self.landmask_file._trait_notifiers['value']['change']:
+                    self.landmask_file.unobserve(
+                        self.update_landmask_file_2,
+                        names='value',
+                        type='change'
+                    )
+                self.landmask_file_2.value = ''
+                self.landmask_file_2.disabled = False
+            
+            else:
+                # couple landmask_file and landmask_file2 and reset landmask_file2 value
+                self.landmask_file_2.value = self.landmask_file.value
+                self.landmask_file_2.disabled = True
+                self.landmask_file.observe(
+                    self.update_landmask_file_2,
+                    names='value',
+                    type='change'
+                )
         else:
             raise RuntimeError(f"Unknown land specification selection {change['new']}")
 
@@ -584,7 +620,7 @@ class CustomGridWidget(widgets.Tab):
         self.landmask_file = widgets.Textarea(
             value='',
             placeholder='Type a new path',
-            description='Land mask:',
+            description='Land mask (by user):',
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.landmask_file.style.description_width = descr_width
@@ -706,6 +742,15 @@ class CustomGridWidget(widgets.Tab):
         )
         self.lnd_lon_2.widget.style.description_width = '300px'
 
+        # this is a dubplicate of self.landmask_file if mesh_mask_modifier section is on:
+        self.landmask_file_2 = widgets.Textarea(
+            value='',
+            placeholder='Type a new path',
+            description='Land mask (by user):',
+            layout=widgets.Layout(display='none',height='40px', width='600px'),
+        )
+        self.landmask_file_2.style.description_width = descr_width
+
         lnd_dom_pft = cvars['LND_DOM_PFT']
         lnd_dom_pft.widget = widgets.Text(
             description='PFT/CFT',
@@ -757,6 +802,7 @@ class CustomGridWidget(widgets.Tab):
             self.lnd_lat_2.widget,
             self.lnd_lon_1.widget,
             self.lnd_lon_2.widget,
+            self.landmask_file_2,
             widgets.Label(''),
             lnd_dom_pft.widget,
             lnd_soil_color.widget,
@@ -766,16 +812,17 @@ class CustomGridWidget(widgets.Tab):
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
 
-    def turn_off(self):
-        self.layout.display = 'none'
+    def reset_vars(self):
 
         # reset all custom ocn grid vars
         for var in self.custom_ocn_grid_vars:
             var.value = None
         for var in self.custom_ocn_grid_vars:
             if var.has_options_spec():
+                display = var.widget.layout.display
                 var.refresh_options()
-                var.widget.layout.display = 'none' # refreshing options turns the display on, so turn it off.
+                var.widget.layout.display = display # refreshing options turns the display on,
+                                                    # so turn it off if it was turned off.
 
         # reset values of custom ocn grid widgets (that aren't defined as ConfigVar instances)
         self.tbtn_ocn_mesh_mode.value = None
@@ -786,8 +833,10 @@ class CustomGridWidget(widgets.Tab):
             var.value = None
         for var in self.custom_lnd_grid_vars:
             if var.has_options_spec():
+                display = var.widget.layout.display
                 var.refresh_options()
-                var.widget.layout.display = 'none' # refreshing options turns the display on, so turn it off.
+                var.widget.layout.display = display # refreshing options turns the display on,
+                                                    # so turn it off if it was turned off.
         
         # reset clm grid selector
         self.drp_clm_grid.value = None
@@ -807,8 +856,14 @@ class CustomGridWidget(widgets.Tab):
         self.fsurdat_out.value = ''
         self.lnd_idealized.value = None
         self.lnd_specify_area.value = None
+        self.landmask_file_2.value = ''
+        self.landmask_file_2.disabled = False
         self.std_elev.value = ''
         self.max_sat_area.value = ''
+
+    def turn_off(self):
+        self.layout.display = 'none'
+        self.reset_vars()
 
     def turn_on(self):
         self.layout.display = ''
