@@ -289,7 +289,7 @@ class CIME_interface():
             for node in nodes:
                 mach = machines_obj.get(node, "MACH")
                 self.machines.append(mach)
-        
+
         # Determine DIN_LOC_ROOT
         self.din_loc_root = None
         if self.machine in ['cheyenne', 'casper']:
@@ -303,7 +303,7 @@ class CIME_interface():
                         self.din_loc_root = machines_obj.text(din_loc_root_node)
             except:
                 logger.error("Couldn't determine DIN_LOC_ROOT")
-    
+
     def _retrieve_clm_fsurdat(self):
         clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
         clm_namelist_defaults_file = Path(clm_root, "bld", "namelist_files", "namelist_defaults_ctsm.xml")
@@ -317,3 +317,20 @@ class CIME_interface():
             sim_year = clm_namelist_xml.get(fsurdat_node, "sim_year")
             filedir = clm_namelist_xml.text(fsurdat_node)
             self.clm_fsurdat[sim_year][hgrid] = filedir
+
+    def retrieve_mesh_path(self, domain_name):
+        domain_node = self._grids_obj.get_optional_child(
+            "domain",
+            attributes = {"name":domain_name},
+            root = self._grids_obj.get_child("domains")
+        )
+
+        mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node)
+        mesh_file = ''
+        for mesh_node in mesh_nodes:
+            mesh_file = self._grids_obj.text(mesh_node)
+
+        if self.din_loc_root is not None and '$DIN_LOC_ROOT' in mesh_file:
+            mesh_file = mesh_file.replace('$DIN_LOC_ROOT', self.din_loc_root)
+
+        return mesh_file
