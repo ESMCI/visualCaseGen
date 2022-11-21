@@ -11,6 +11,7 @@ from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.logic import logic
+from visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
@@ -125,6 +126,11 @@ class GUI_create_custom():
 
         self._custom_grid = CustomGridWidget(self.ci)
 
+        self._vbx_grid_inner = widgets.VBox(
+            children=(cv_grid.widget, self._btn_grid_view),
+            layout={'display':'flex','flex_flow':'column','align_items':'center'}
+        )
+
         self._create_case = CreateCaseWidget(
             self.ci,
             layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
@@ -133,7 +139,7 @@ class GUI_create_custom():
 
     def _update_grid_view_button(self, change):
         new_compset = change['new']
-        if new_compset == "" or new_compset is None or cvars['GRID_MODE'].value=="Custom":
+        if new_compset == "" or new_compset is None:
             self._btn_grid_view.layout.display = 'none'
         else:
             # everytime the compset changes, reset the grid view mode to 'suggested'
@@ -146,21 +152,25 @@ class GUI_create_custom():
     
     def _grid_mode_change(self, change):
 
-        new_grid_mode = change['new']
+        new_grid_mode = change['new'] # Predefined | Custom
         cv_grid = cvars['GRID']
         compset_text =  cvars["COMPSET"].value 
 
         if new_grid_mode == "Predefined":
-            cv_grid.widget.layout.display = ''
-            if not compset_text in [None,''] :
-                self._btn_grid_view.layout.display = ''
             self._custom_grid.turn_off()
-        
+            if compset_text in [None, '']:
+                self._vbx_grid_inner.children = ()
+            self._vbx_grid_inner.children = (
+                cv_grid.widget,
+                self._btn_grid_view,
+            )
+
         elif new_grid_mode == "Custom":
-            cv_grid.widget.layout.display = 'none'
-            self._btn_grid_view.layout.display = 'none'
-            self._custom_grid.turn_on()
             cv_grid.value = None
+            self._custom_grid.turn_on()
+            self._vbx_grid_inner.children = (
+                self._custom_grid,
+            )
 
         else:
             raise RuntimeError(f"unknown grid mode: {new_grid_mode}")
@@ -265,9 +275,7 @@ class GUI_create_custom():
         def _constr_vbx_grids():
             vbx_grids = widgets.VBox([
                     cvars['GRID_MODE']._widget,
-                    cvars['GRID']._widget,
-                    self._btn_grid_view,
-                    self._custom_grid
+                    self._vbx_grid_inner
                 ],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
             vbx_grids.layout.border = '1px solid silver'
