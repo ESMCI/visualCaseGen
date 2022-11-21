@@ -170,6 +170,7 @@ class CustomGridWidget(widgets.Tab):
                         )
                     )
                     lnd_tab[1].append(self._clm_mesh_mask_modifier_widgets)
+                    lnd_tab[1].append(self.btn_run_mesh_mask_modifier)
 
                 lnd_tab[1].append(self.horiz_line)
                 lnd_tab[1].append(
@@ -241,11 +242,13 @@ class CustomGridWidget(widgets.Tab):
                     )
                 self.landmask_file_2.value = ''
                 self.landmask_file_2.disabled = False
+                self.landmask_file_2.placeholder = "Type a new path."
             
             else:
                 # couple landmask_file and landmask_file2 and reset landmask_file2 value
                 self.landmask_file_2.value = self.landmask_file.value
                 self.landmask_file_2.disabled = True
+                self.landmask_file_2.placeholder = "Auto-filled from mesh_mask_modifier"
                 self.landmask_file.observe(
                     self.update_landmask_file_2,
                     names='value',
@@ -311,6 +314,16 @@ class CustomGridWidget(widgets.Tab):
                 type='change'
             )
 
+        for widget in self._clm_mesh_mask_modifier_widgets.children:
+            widget.observe(
+                self.refresh_btn_run_mesh_mask_modifier,
+                names='value',
+                type='change'
+            )
+        
+        self.btn_run_mesh_mask_modifier.on_click(
+            self.run_mesh_mask_modifier
+        )
 
         self.btn_launch_mom6_bathy.on_click(
             self.launch_mom6_bathy
@@ -476,12 +489,22 @@ class CustomGridWidget(widgets.Tab):
         ],
         layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
 
+
+    def refresh_btn_run_mesh_mask_modifier(self, change):
+        if any([var.value in [None, ''] for var in self._clm_mesh_mask_modifier_widgets.children ]):
+            self.btn_run_mesh_mask_modifier.disabled = True
+        else:
+            self.btn_run_mesh_mask_modifier.disabled = False
+
     def refresh_btn_launch_mom6_bathy(self, change):
         if any([cvar.value is None for cvar in self.custom_ocn_grid_vars]):
             self.btn_launch_mom6_bathy.disabled = True
         else:
             self.btn_launch_mom6_bathy.disabled = False
 
+    @owh.out.capture()
+    def run_mesh_mask_modifier(self, b):
+        pass # TODO
 
     @owh.out.capture()
     def launch_mom6_bathy(self, b):
@@ -660,6 +683,15 @@ class CustomGridWidget(widgets.Tab):
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.mesh_mask_out.style.description_width = descr_width
+
+        self.btn_run_mesh_mask_modifier = widgets.Button(
+            description = 'Run mesh_mask_modifier',
+            disabled = True,
+            tooltip = "When ready, click this button to run the mesh_mask_modifier tool.",
+            icon = 'terminal',
+            button_style='success', # 'success', 'info', 'warning', 'danger' or ''
+            layout=widgets.Layout(width='250px', align_items='center'),
+        )
 
         self._clm_mesh_mask_modifier_widgets = widgets.VBox([
             self.mesh_mask_in,
