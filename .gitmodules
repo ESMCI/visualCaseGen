@@ -1,3 +1,6 @@
 [submodule "external/mom6_bathy"]
 	path = external/mom6_bathy
 	url = https://github.com/NCAR/mom6_bathy.git
+[submodule "external/ipyfilechooser"]
+	path = external/ipyfilechooser
+	url = https://github.com/alperaltuntas/ipyfilechooser.git
