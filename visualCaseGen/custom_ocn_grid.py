@@ -15,11 +15,9 @@ logger = logging.getLogger(__name__)
 button_width = '100px'
 descr_width = '140px'
 
-class CustomOcnGrid(widgets.VBox):
+class CustomOcnGrid():
 
-    def __init__(self,ci,layout=widgets.Layout()):
-
-        super().__init__(layout=layout)
+    def __init__(self,ci):
 
         self.ci = ci
 
