@@ -6,7 +6,6 @@ from datetime import datetime
 from IPython.display import display, Javascript
 
 from visualCaseGen.config_var import cvars
-from visualCaseGen.save_custom_grid_widget import SaveCustomGrid
 from visualCaseGen.read_mesh_file import ReadMeshFile
 from visualCaseGen.OutHandler import handler as owh
 
@@ -15,9 +14,13 @@ logger = logging.getLogger(__name__)
 button_width = '100px'
 descr_width = '140px'
 
-class CustomOcnGrid():
+class CustomOcnGridWidget(widgets.VBox):
 
     def __init__(self,ci):
+
+        super().__init__()
+        #    layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'}
+        #)
 
         self.ci = ci
 
@@ -223,7 +226,7 @@ class CustomOcnGrid():
         )
 
 
-        self._mom6_widgets = widgets.VBox([
+        self._mom6_widgets = [
             self.tbtn_ocn_mesh_mode,
             self.read_ocn_mesh_file,
             cv_ocn_grid_extent.widget,
@@ -237,8 +240,7 @@ class CustomOcnGrid():
             cv_ocn_leny.widget,
             widgets.HBox([],layout={'height':'20px'}),
             widgets.VBox([self.btn_launch_mom6_bathy], layout={'align_items':'center', 'width':'700px'}),
-        ],
-        layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
+        ]
 
 
     @owh.out.capture()
@@ -369,3 +371,14 @@ class CustomOcnGrid():
         self.tbtn_ocn_mesh_mode.value = None
         self.read_ocn_mesh_file.value = None
     
+
+    def construct(self):
+
+        comp_ocn = cvars['COMP_OCN'].value
+
+        if comp_ocn == "mom":
+            self.title = "MOM6 Grid"
+            self.children = self._mom6_widgets 
+        else:
+            self.title = "ERROR"
+            self.children = [widgets.Label(f"ERROR: unsupported ocn component {comp_ocn} for custom grid feature")]

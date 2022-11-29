@@ -483,13 +483,13 @@ class CustomLndGridWidget(widgets.VBox):
                 )
             )
 
-        elif lnd in ['dlnd', 'slnd']:
+        elif comp_lnd in ['dlnd', 'slnd']:
             self.title = "NotImplemented"
             pass
 
         else:
             self.title = "ERROR"
-            children = [widgets.Label(f"ERROR: unsupported ocn component {comp_ocn} for custom grid feature")]
+            children = [widgets.Label(f"ERROR: unsupported lnd component {comp_lnd} for custom grid feature")]
 
 
         self.children = children

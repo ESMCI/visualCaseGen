@@ -2,7 +2,7 @@ import logging
 import ipywidgets as widgets
 
 from visualCaseGen.config_var import cvars
-from visualCaseGen.custom_ocn_grid import CustomOcnGrid
+from visualCaseGen.custom_ocn_grid_widget import CustomOcnGridWidget
 from visualCaseGen.custom_lnd_grid_widget import CustomLndGridWidget
 from visualCaseGen.OutHandler import handler as owh
 
@@ -28,7 +28,7 @@ class CustomGridWidget(widgets.Tab):
             "customize and complete the grids.</p>"
         )
 
-        self._custom_ocn_grid= CustomOcnGrid(self.ci)
+        self._custom_ocn_grid= CustomOcnGridWidget(self.ci)
         self._custom_lnd_grid= CustomLndGridWidget(self.ci)
 
         self.horiz_line = widgets.HTML('<hr>')
@@ -59,15 +59,15 @@ class CustomGridWidget(widgets.Tab):
             self.children = [widgets.Label("(Custom grid dialogs will be displayed here after the LND component is determined.)")]
         else: # both ocean and lnd is determined.
 
+            self._custom_ocn_grid.reset_vars()
+            self._custom_lnd_grid.reset_vars()
+
             tabs = []
 
             # construct the ocean grid section layout
             if ocn == "mom":
-                tabs.append(("MOM6 Grid", widgets.VBox([self._custom_ocn_grid._mom6_widgets])))
-            elif ocn in ['docn', 'socn']:
-                pass
-            else:
-                tabs.append(("ERROR", widgets.Label(f"ERROR: unsupported ocn component {ocn} for custom grid feature")))
+                self._custom_ocn_grid.construct()
+                tabs.append((self._custom_ocn_grid.title, self._custom_ocn_grid))
             
             if lnd == 'clm':
                 self._custom_lnd_grid.construct()
@@ -76,9 +76,6 @@ class CustomGridWidget(widgets.Tab):
             self.children = [tab[1] for tab in tabs]
             for i, tab in enumerate(tabs):
                 self.set_title(i,tab[0])
-
-            self._custom_ocn_grid.reset_vars()
-            self._custom_lnd_grid.reset_vars()
 
     def construct_observances(self):
 
