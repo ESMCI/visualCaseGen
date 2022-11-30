@@ -56,6 +56,7 @@ class CIME_interface():
         self.compsets = dict()          # compsets defined at each component
         self._files = None
         self.cimeroot = CIMEROOT
+        self.srcroot = (Path(self.cimeroot).parent).as_posix()
 
         # Call _retrieve* methods to populate the data members defined above
 

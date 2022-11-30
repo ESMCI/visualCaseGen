@@ -1,14 +1,19 @@
 import os
 import logging
 import ipywidgets as widgets
+import subprocess
+import time
+import tempfile
 
 from visualCaseGen.config_var import cvars
 from visualCaseGen.OutHandler import handler as owh
 
+from ipyfilechooser import FileChooser
+
 logger = logging.getLogger(__name__)
 
 button_width = '100px'
-descr_width = '140px'
+descr_width = '150px'
 
 class CustomLndGridWidget(widgets.VBox):
 
@@ -74,7 +79,8 @@ class CustomLndGridWidget(widgets.VBox):
             
             else:
                 # couple landmask_file and landmask_file2 and reset landmask_file2 value
-                self.landmask_file_2.value = self.landmask_file.value
+                landmask_val = self.landmask_file.value
+                self.landmask_file_2.value = landmask_val if landmask_val else ''
                 self.landmask_file_2.disabled = True
                 self.landmask_file_2.placeholder = "Auto-filled from mesh_mask_modifier"
                 self.landmask_file.observe(
@@ -105,7 +111,7 @@ class CustomLndGridWidget(widgets.VBox):
             assert os.path.exists(new_mesh_path)
         except:
             new_mesh_path = ''
-        if cvars['COMP_OCN'].value != "mom":
+        if cvars['COMP_OCN'].value != "mom" and new_mesh_path:
             self.mesh_mask_in.value = new_mesh_path
 
         ## Auto-fill fsurdat_in:
@@ -118,7 +124,9 @@ class CustomLndGridWidget(widgets.VBox):
             assert os.path.exists(new_fsurdat_in_path)
         except:
             new_fsurdat_in_path = ''
-        self.fsurdat_in.value = new_fsurdat_in_path
+
+        if new_fsurdat_in_path:
+            self.fsurdat_in.value = new_fsurdat_in_path
 
     def _construct_observances(self):
 
@@ -161,7 +169,59 @@ class CustomLndGridWidget(widgets.VBox):
 
     @owh.out.capture()
     def run_mesh_mask_modifier(self, b):
-        pass # TODO
+
+        self.btn_run_mesh_mask_modifier.disabled = True
+
+        mesh_mask_modifier_path = os.path.join(self.ci.srcroot,
+            "components","clm","tools","modify_input_files","mesh_mask_modifier")
+
+        if not os.path.exists(mesh_mask_modifier_path):
+            raise RuntimeError("Cannot find mesh_mask_modifier tool!!!")
+        
+        cfg = tempfile.NamedTemporaryFile(mode="w") # create a temp file
+        cfg_ = open(cfg.name, 'w') # open it 
+        cfg_.write(
+            f"""
+            [modify_input]
+            mesh_mask_in = {self.mesh_mask_in.value}
+            mesh_mask_out = {self.mesh_mask_out.value}
+            landmask_file = {self.landmask_file.value}
+            lat_dimname = {self.lat_dimname.value}
+            lon_dimname = {self.lon_dimname.value}
+            lat_varname = {self.lat_varname.value}
+            lon_varname = {self.lon_varname.value}
+            """
+        )
+        cfg_.close()
+
+        proc = subprocess.Popen(
+            f"{mesh_mask_modifier_path} {cfg.name}",
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True)
+
+        self.mesh_mask_modifier_output.layout.border = '1px solid silver'
+        with self.mesh_mask_modifier_output:
+            print("Running mesh_mask_modifier. This may take a while.")
+            print("Please wait!")
+            while proc.poll() is None:
+                time.sleep(1)
+                print('.', end='')
+
+            stdout, stderr = proc.communicate()
+
+            print("\nDone.")
+            if stdout:
+                print(stdout)
+            if stderr:
+                print("mesh_mask_modifier was unsuccessful!!!\n")
+                print(stderr)
+            elif os.path.exists(self.mesh_mask_out.value):
+                    print(f"The output mesh mask file was successfully generated at {self.mesh_mask_out.value}")
+
+        # Clean up
+        self.mesh_mask_modifier_output.layout.border = ''
+        cfg.close() # remove the temp file
+        self.btn_run_mesh_mask_modifier.disabled = False
 
     def _construct_clm_grid_selector(self):
 
@@ -178,57 +238,69 @@ class CustomLndGridWidget(widgets.VBox):
 
     def _construct_clm_mesh_mask_modifier_widgets(self):
 
-        self.mesh_mask_in = widgets.Textarea(
-            value='',
-            placeholder='Type an existing mask mesh directory',
-            description='Input mask mesh:',
-            layout=widgets.Layout(height='40px', width='600px')
+        self.mesh_mask_in = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Input Mask Mesh:</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            existing_only=True,
+            layout=widgets.Layout(width='700px', padding='10px')
         )
-        self.mesh_mask_in.style.description_width = descr_width
 
-        self.landmask_file = widgets.Textarea(
-            value='',
-            placeholder='Type a new path',
-            description='Land mask (by user):',
-            layout=widgets.Layout(height='40px', width='600px')
+        self.landmask_file = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Land mask (pre-generated by user):</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            existing_only=True,
+            layout=widgets.Layout(width='700px', padding='10px')
         )
-        self.landmask_file.style.description_width = descr_width
 
         self.lat_varname = widgets.Textarea(
             value='lsmlat',
-            description='Latitude var. name',
+            description='<b>Latitude var. name:</b>',
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lat_varname.style.description_width = descr_width
 
         self.lon_varname = widgets.Textarea(
             value='lsmlon',
-            description='Longitude var. name',
+            description='<b>Longitude var. name:</b>',
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lon_varname.style.description_width = descr_width
 
         self.lat_dimname = widgets.Textarea(
             value='lsmlat',
-            description='Latitude dim. name',
+            description='<b>Latitude dim. name:</b>',
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lat_dimname.style.description_width = descr_width
 
         self.lon_dimname = widgets.Textarea(
             value='lsmlon',
-            description='Longitude dim. name',
+            description='<b>Longitude dim. name:</b>',
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lon_dimname.style.description_width = descr_width
 
-        self.mesh_mask_out = widgets.Textarea(
-            value='',
-            placeholder='Type a new path',
-            description='Output mask mesh:',
-            layout=widgets.Layout(height='40px', width='600px')
+        self.mesh_mask_out = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Output mask mesh:</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            new_only=True,
+            layout=widgets.Layout(width='700px', padding='10px')
         )
-        self.mesh_mask_out.style.description_width = descr_width
 
         self.btn_run_mesh_mask_modifier = widgets.Button(
             description = 'Run mesh_mask_modifier',
@@ -237,6 +309,10 @@ class CustomLndGridWidget(widgets.VBox):
             icon = 'terminal',
             button_style='success', # 'success', 'info', 'warning', 'danger' or ''
             layout=widgets.Layout(width='250px', align_items='center'),
+        )
+
+        self.mesh_mask_modifier_output = widgets.Output(
+            layout={'border': '1px solid silver'}
         )
 
         self._clm_mesh_mask_modifier_widgets = widgets.VBox([
@@ -248,25 +324,33 @@ class CustomLndGridWidget(widgets.VBox):
             self.lon_dimname,
             self.mesh_mask_out,
         ],
-        layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
+        layout={'padding':'5px','display':'flex','flex_flow':'column','align_items':'flex-start'})
 
     def _construct_clm_fsurdat_widgets(self):
 
-        self.fsurdat_in = widgets.Textarea(
-            value='',
-            placeholder='Type fsurdat input file ',
-            description='Input surface dataset',
-            layout=widgets.Layout(height='80px', width='600px')
+        self.fsurdat_in = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Input Surface Dataset:</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            existing_only=True,
+            layout=widgets.Layout(width='700px', padding='10px')
         )
-        self.fsurdat_in.style.description_width = '180px'
 
-        self.fsurdat_out = widgets.Textarea(
-            value='',
-            placeholder='Type fsurdat output file ',
-            description='Output surface dataset',
-            layout=widgets.Layout(height='80px', width='600px')
+        self.fsurdat_out = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Output Surface Dataset:</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            new_only=True,
+            layout=widgets.Layout(width='700px', padding='10px')
         )
-        self.fsurdat_out.style.description_width = '180px'
 
         self.lnd_idealized = widgets.ToggleButtons(
             description='Idealized?',
@@ -406,18 +490,18 @@ class CustomLndGridWidget(widgets.VBox):
         self.drp_clm_grid.value = None
 
         # reset mesh mask modifier widgets (that aren't defined as ConfigVar instances)
-        self.mesh_mask_in.value = ''
-        self.landmask_file.value = ''
+        self.mesh_mask_in.reset()
+        self.landmask_file.reset()
         self.lat_varname.value = 'lsmlat'
         self.lon_varname.value = 'lsmlon'
         self.lat_dimname.value = 'lsmlat'
         self.lon_dimname.value = 'lsmlon'
-        self.mesh_mask_out.value = ''
+        self.mesh_mask_out.reset()
 
         # reset values of custom lnd grid widgets (that aren't defined as ConfigVar instances)
         # reset fsurdat_in variables
-        self.fsurdat_in.value = ''
-        self.fsurdat_out.value = ''
+        self.fsurdat_in.reset()
+        self.fsurdat_out.reset()
         self.lnd_idealized.value = None
         self.lnd_specify_area.value = None
         self.landmask_file_2.value = ''
@@ -462,6 +546,7 @@ class CustomLndGridWidget(widgets.VBox):
 
                 children.append(self._clm_mesh_mask_modifier_widgets)
                 children.append(self.btn_run_mesh_mask_modifier)
+                children.append(self.mesh_mask_modifier_output)
 
             children.append(widgets.HTML('<hr>')) # horizontal line
             children.append(
