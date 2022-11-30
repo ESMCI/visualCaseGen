@@ -419,7 +419,7 @@ class CustomLndGridWidget(widgets.VBox):
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        lnd_dom_pft.widget.style.description_width = '300px'
+        lnd_dom_pft.widget.style.description_width = '200px'
 
         lnd_soil_color = cvars['LND_SOIL_COLOR']
         lnd_soil_color.widget = widgets.Text(
@@ -427,21 +427,21 @@ class CustomLndGridWidget(widgets.VBox):
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        lnd_soil_color.widget.style.description_width = '300px'
+        lnd_soil_color.widget.style.description_width = '200px'
 
         self.std_elev = widgets.Text(
             description='Std. dev. of elevation',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.std_elev.style.description_width = '300px'
+        self.std_elev.style.description_width = '200px'
 
         self.max_sat_area = widgets.Text(
             description='Max saturated area',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.max_sat_area.style.description_width = '300px'
+        self.max_sat_area.style.description_width = '200px'
 
         self.include_nonveg = widgets.ToggleButtons(
             description='Include non-vegetation land units?',
@@ -454,6 +454,28 @@ class CustomLndGridWidget(widgets.VBox):
         self.include_nonveg.style.description_width = '180px'
         self.include_nonveg.style.button_width = '200px'
 
+        cw = '50px'
+        gridbox_items = [widgets.Label(label, layout=widgets.Layout(width=cw)) for label in \
+            ['var.', 'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.']]
+
+        self.lai_widgets = [widgets.FloatText('3',layout=widgets.Layout(width=cw)) for i in range(12)]
+        gridbox_items.append(widgets.Label('LAI', layout=widgets.Layout(width=cw)))
+        gridbox_items.extend(self.lai_widgets)
+
+        self.sai_widgets = [widgets.FloatText('1',layout=widgets.Layout(width=cw)) for i in range(12)]
+        gridbox_items.append(widgets.Label('SAI', layout=widgets.Layout(width=cw)))
+        gridbox_items.extend(self.sai_widgets)
+
+        self.hgt_top_widgets = [widgets.FloatText('1',layout=widgets.Layout(width=cw)) for i in range(12)]
+        gridbox_items.append(widgets.Label('hgt_top', layout=widgets.Layout(width=cw)))
+        gridbox_items.extend(self.hgt_top_widgets)
+
+        self.hgt_bot_widgets = [widgets.FloatText('0.5',layout=widgets.Layout(width=cw)) for i in range(12)]
+        gridbox_items.append(widgets.Label('hgt_bot', layout=widgets.Layout(width=cw)))
+        gridbox_items.extend(self.hgt_bot_widgets)
+
+        self.fsurdat_gridbox = widgets.GridBox(gridbox_items,
+            layout=widgets.Layout(grid_template_columns=f"repeat(13, {cw})",width='665px',padding='5px'))
 
         self._clm_fsurdat_widgets = widgets.VBox([
             self.fsurdat_in,
@@ -471,8 +493,8 @@ class CustomLndGridWidget(widgets.VBox):
             self.std_elev,
             self.max_sat_area,
             self.include_nonveg,
-        ],
-        layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'})
+            self.fsurdat_gridbox,
+        ])
 
     def reset_vars(self):
 
