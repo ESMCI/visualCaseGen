@@ -53,5 +53,7 @@ def init_configvars(ci, predefined_mode=False):
     #ConfigVarReal('LND_LON_2')
     ConfigVarInt('LND_DOM_PFT')
     ConfigVarInt('LND_SOIL_COLOR')
+    ConfigVarReal('LND_MAX_SAT_AREA')
+    ConfigVarReal('LND_STD_ELEV')
 
     ConfigVar.lock()

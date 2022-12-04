@@ -19,8 +19,9 @@ def relational_assertions_setter(cvars):
     GRID_MODE = cvars['GRID_MODE']
     OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_GRID_CONFIG = cvars['OCN_GRID_CONFIG']; OCN_AXIS_UNITS = cvars['OCN_AXIS_UNITS']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
-    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];  
-    LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']
+    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];
+    LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']; LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']
+    LND_STD_ELEV = cvars['LND_STD_ELEV']
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
@@ -151,6 +152,18 @@ def relational_assertions_setter(cvars):
 
         And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
             "Soil color must be set to an integer value between 0 and 20",
+
+        And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
+            "Soil color must be set to an integer value between 0 and 20",
+
+        LND_DOM_PFT >= 0.0:
+            "PFT/CFT must be set to a nonnegative number",
+
+        And(0<=LND_MAX_SAT_AREA, LND_MAX_SAT_AREA<=1):
+            "Max fraction of saturated area must be set to a value between 0 and 1.",
+
+        LND_STD_ELEV >= 0.0:
+            "Standard deviation of elevation must be a nonnegative number."
 
 
     }

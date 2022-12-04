@@ -26,6 +26,8 @@ class CustomLndGridWidget(widgets.VBox):
         self._cvars = [\
             cvars['LND_DOM_PFT'],
             cvars['LND_SOIL_COLOR'],
+            cvars['LND_MAX_SAT_AREA'],
+            cvars['LND_STD_ELEV'],
         ]
 
         self._construct_clm_grid_selector()
@@ -522,19 +524,21 @@ class CustomLndGridWidget(widgets.VBox):
         )
         self.lnd_soil_color.widget.style.description_width = '200px'
 
-        self.std_elev = widgets.Text(
+        self.std_elev = cvars['LND_STD_ELEV']
+        self.std_elev.widget = widgets.Text(
             description='Std. dev. of elevation',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.std_elev.style.description_width = '200px'
+        self.std_elev.widget.style.description_width = '200px'
 
-        self.max_sat_area = widgets.Text(
+        self.max_sat_area = cvars['LND_MAX_SAT_AREA']
+        self.max_sat_area.widget = widgets.Text(
             description='Max fraction of saturated area',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.max_sat_area.style.description_width = '200px'
+        self.max_sat_area.widget.style.description_width = '200px'
 
         self.include_nonveg = widgets.ToggleButtons(
             description='Include non-vegetation land units?',
@@ -595,8 +599,8 @@ class CustomLndGridWidget(widgets.VBox):
             self.landmask_file_2,
             self.lnd_dom_pft.widget,
             self.lnd_soil_color.widget,
-            self.std_elev,
-            self.max_sat_area,
+            self.std_elev.widget,
+            self.max_sat_area.widget,
             self.include_nonveg,
             self.fsurdat_gridbox,
             self.fsurdat_output
@@ -651,8 +655,6 @@ class CustomLndGridWidget(widgets.VBox):
         self.lnd_lon_2.value = 360.0
         self.landmask_file_2.value = ''
         self.landmask_file_2.disabled = False
-        self.std_elev.value = ''
-        self.max_sat_area.value = ''
         self.include_nonveg.value = 'True'
 
     def construct(self):
