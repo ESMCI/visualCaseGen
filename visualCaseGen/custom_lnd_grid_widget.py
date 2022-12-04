@@ -24,10 +24,6 @@ class CustomLndGridWidget(widgets.VBox):
         self.ci = ci
 
         self._cvars = [\
-            cvars['LND_LAT_1'],
-            cvars['LND_LAT_2'],
-            cvars['LND_LON_1'],
-            cvars['LND_LON_2'],
             cvars['LND_DOM_PFT'],
             cvars['LND_SOIL_COLOR'],
         ]
@@ -46,15 +42,15 @@ class CustomLndGridWidget(widgets.VBox):
 
         # First, handle the display of coordinate textboxes
         if change['new'] == 'via corner coords':
-            self.lnd_lat_1.widget.layout.display=''
-            self.lnd_lat_2.widget.layout.display=''
-            self.lnd_lon_1.widget.layout.display=''
-            self.lnd_lon_2.widget.layout.display=''
+            self.lnd_lat_1.layout.display=''
+            self.lnd_lat_2.layout.display=''
+            self.lnd_lon_1.layout.display=''
+            self.lnd_lon_2.layout.display=''
         elif change['new'] == 'via mask file' or change['new'] is None:
-            self.lnd_lat_1.widget.layout.display='none'
-            self.lnd_lat_2.widget.layout.display='none'
-            self.lnd_lon_1.widget.layout.display='none'
-            self.lnd_lon_2.widget.layout.display='none'
+            self.lnd_lat_1.layout.display='none'
+            self.lnd_lat_2.layout.display='none'
+            self.lnd_lon_1.layout.display='none'
+            self.lnd_lon_2.layout.display='none'
         else:
             raise RuntimeError(f"Unknown land specification selection {change['new']}")
 
@@ -76,7 +72,7 @@ class CustomLndGridWidget(widgets.VBox):
                 self.landmask_file_2.value = ''
                 self.landmask_file_2.disabled = False
                 self.landmask_file_2.placeholder = "Type a new path."
-            
+
             else:
                 # couple landmask_file and landmask_file2 and reset landmask_file2 value
                 landmask_val = self.landmask_file.value
@@ -136,7 +132,13 @@ class CustomLndGridWidget(widgets.VBox):
                 names='value',
                 type='change'
             )
-        
+
+        for widget in self._clm_fsurdat_widgets_grp1 + [self.landmask_file_2]:
+            widget.observe(
+                self.refresh_btn_run_fsurdat_modifier,
+                names='value',
+                type='change'
+            )
         self.btn_run_mesh_mask_modifier.on_click(
             self.run_mesh_mask_modifier
         )
@@ -160,12 +162,25 @@ class CustomLndGridWidget(widgets.VBox):
             type='change'
         )
 
+        self.btn_run_fsurdat_modifier.on_click(
+            self.run_fsurdat_modifier
+        )
+
 
     def refresh_btn_run_mesh_mask_modifier(self, change):
         if any([var.value in [None, ''] for var in self._clm_mesh_mask_modifier_widgets.children ]):
             self.btn_run_mesh_mask_modifier.disabled = True
         else:
             self.btn_run_mesh_mask_modifier.disabled = False
+
+    def refresh_btn_run_fsurdat_modifier(self, change):
+        if all(var.value not in [None, ''] for var in self._clm_fsurdat_widgets_grp1) and \
+            (   self.lnd_specify_area.value == 'via corner coords' or
+                (self.lnd_specify_area.value == 'via mask file' and self.landmask_file_2.value not in [None, ''])
+            ):
+            self.btn_run_fsurdat_modifier.disabled = False
+        else:
+            self.btn_run_fsurdat_modifier.disabled = True
 
     @owh.out.capture()
     def run_mesh_mask_modifier(self, b):
@@ -177,9 +192,9 @@ class CustomLndGridWidget(widgets.VBox):
 
         if not os.path.exists(mesh_mask_modifier_path):
             raise RuntimeError("Cannot find mesh_mask_modifier tool!!!")
-        
+
         cfg = tempfile.NamedTemporaryFile(mode="w") # create a temp file
-        cfg_ = open(cfg.name, 'w') # open it 
+        cfg_ = open(cfg.name, 'w') # open it
         cfg_.write(
             f"""
             [modify_input]
@@ -216,12 +231,90 @@ class CustomLndGridWidget(widgets.VBox):
                 print("mesh_mask_modifier was unsuccessful!!!\n")
                 print(stderr)
             elif os.path.exists(self.mesh_mask_out.value):
-                    print(f"The output mesh mask file was successfully generated at {self.mesh_mask_out.value}")
+                print(f"The output mesh mask file was successfully generated at {self.mesh_mask_out.value}")
 
         # Clean up
         self.mesh_mask_modifier_output.layout.border = ''
         cfg.close() # remove the temp file
         self.btn_run_mesh_mask_modifier.disabled = False
+
+    @owh.out.capture()
+    def run_fsurdat_modifier(self, b):
+
+        self.btn_run_fsurdat_modifier.disabled = True
+
+        fsurdat_modifier_path = os.path.join(self.ci.srcroot,
+            "components","clm","tools","modify_input_files","fsurdat_modifier")
+
+        if not os.path.exists(fsurdat_modifier_path):
+            raise RuntimeError("Cannot find fsurdat_modifier tool!!!")
+
+        cfg = tempfile.NamedTemporaryFile(mode="w",
+            delete=False) # todo: set delete tu True
+        cfg_ = open(cfg.name, 'w') # open it
+
+
+        lai_str = ' '.join(str(w.value) for w in self.lai_widgets)
+        sai_str = ' '.join(str(w.value) for w in self.sai_widgets)
+        hgt_top_str = ' '.join(str(w.value) for w in self.hgt_top_widgets)
+        hgt_bot_str = ' '.join(str(w.value) for w in self.hgt_bot_widgets)
+
+        set_val = lambda val : str(val) if val not in [None, ''] else 'UNSET'
+
+        write_str = f"""
+            [modify_input]
+            fsurdat_in = {self.fsurdat_in.value}
+            fsurdat_out = {self.fsurdat_out.value}
+            idealized = {self.lnd_idealized.value}
+            lnd_lat_1 = {self.lnd_lat_1.value}
+            lnd_lat_2 = {self.lnd_lat_2.value}
+            lnd_lon_1 = {self.lnd_lon_1.value}
+            lnd_lon_2 = {self.lnd_lon_2.value}
+            landmask_file = {set_val(self.landmask_file_2.value)}
+            lat_dimname = UNSET
+            lon_dimname = UNSET
+            dom_pft = {set_val(self.lnd_dom_pft.value)}
+            lai = {lai_str}
+            sai = {sai_str}
+            hgt_top = {hgt_top_str}
+            hgt_bot = {hgt_bot_str}
+            soil_color = {set_val(self.lnd_soil_color.value)}
+            std_elev = {set_val(self.std_elev.value)}
+            max_sat_area = {set_val(self.max_sat_area.value)}
+            include_nonveg = {self.include_nonveg.value}
+        """
+        
+        cfg_.write(write_str)
+        cfg_.close()
+
+        proc = subprocess.Popen(
+            f"{fsurdat_modifier_path} {cfg.name}",
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True)
+
+        self.fsurdat_output.layout.border = '1px solid silver'
+        with self.fsurdat_output:
+            print("Running fsurdat_modifier. This may take a while.")
+            print("Please wait!")
+            while proc.poll() is None:
+                time.sleep(1)
+                print('.', end='')
+
+            stdout, stderr = proc.communicate()
+
+            print("\nDone.")
+            if stdout:
+                print(stdout)
+            if stderr:
+                print("fsurdat_modifier was unsuccessful!!!\n")
+                print(stderr)
+            elif os.path.exists(self.fsurdat_out.value):
+                print(f"The output fsurdat file was successfully generated at {self.fsurdat_out.value}")
+
+        # Clean up
+        self.fsurdat_out.layout.border = ''
+        cfg.close() # remove the temp file
+        self.btn_run_fsurdat_modifier.disabled = False
 
     def _construct_clm_grid_selector(self):
 
@@ -355,7 +448,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lnd_idealized = widgets.ToggleButtons(
             description='Idealized?',
             options=['True', 'False'],
-            value=None,
+            value='False',
             layout={'width':'max-content'}, # If the items' names are long
             disabled=False
         )
@@ -372,37 +465,37 @@ class CustomLndGridWidget(widgets.VBox):
         self.lnd_specify_area.style.description_width = '180px'
         self.lnd_specify_area.style.button_width = '200px'
 
-        self.lnd_lat_1 = cvars['LND_LAT_1']
-        self.lnd_lat_1.widget = widgets.Text(
+        self.lnd_lat_1= widgets.FloatText(
+            -90.0,
             description='Southernmost latitude for rectangle:',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.lnd_lat_1.widget.style.description_width = '300px'
+        self.lnd_lat_1.style.description_width = '300px'
 
-        self.lnd_lat_2 = cvars['LND_LAT_2']
-        self.lnd_lat_2.widget = widgets.Text(
+        self.lnd_lat_2 = widgets.FloatText(
+            90.0,
             description='Northernmost latitude for rectangle:',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.lnd_lat_2.widget.style.description_width = '300px'
+        self.lnd_lat_2.style.description_width = '300px'
 
-        self.lnd_lon_1 = cvars['LND_LON_1']
-        self.lnd_lon_1.widget = widgets.Text(
+        self.lnd_lon_1 = widgets.FloatText(
+            0.0,
             description='Westernmost longitude for rectangle:',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.lnd_lon_1.widget.style.description_width = '300px'
+        self.lnd_lon_1.style.description_width = '300px'
 
-        self.lnd_lon_2 = cvars['LND_LON_2']
-        self.lnd_lon_2.widget = widgets.Text(
+        self.lnd_lon_2 = widgets.FloatText(
+            360.0,
             description='Easternmost longitude for rectangle:',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        self.lnd_lon_2.widget.style.description_width = '300px'
+        self.lnd_lon_2.style.description_width = '300px'
 
         # this is a dubplicate of self.landmask_file if mesh_mask_modifier section is on:
         self.landmask_file_2 = widgets.Textarea(
@@ -413,21 +506,21 @@ class CustomLndGridWidget(widgets.VBox):
         )
         self.landmask_file_2.style.description_width = descr_width
 
-        lnd_dom_pft = cvars['LND_DOM_PFT']
-        lnd_dom_pft.widget = widgets.Text(
+        self.lnd_dom_pft = cvars['LND_DOM_PFT']
+        self.lnd_dom_pft.widget = widgets.Text(
             description='PFT/CFT',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        lnd_dom_pft.widget.style.description_width = '200px'
+        self.lnd_dom_pft.widget.style.description_width = '200px'
 
-        lnd_soil_color = cvars['LND_SOIL_COLOR']
-        lnd_soil_color.widget = widgets.Text(
+        self.lnd_soil_color = cvars['LND_SOIL_COLOR']
+        self.lnd_soil_color.widget = widgets.Text(
             description='Soil color (between 0-20)',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
-        lnd_soil_color.widget.style.description_width = '200px'
+        self.lnd_soil_color.widget.style.description_width = '200px'
 
         self.std_elev = widgets.Text(
             description='Std. dev. of elevation',
@@ -437,7 +530,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.std_elev.style.description_width = '200px'
 
         self.max_sat_area = widgets.Text(
-            description='Max saturated area',
+            description='Max fraction of saturated area',
             layout={'display':'', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
@@ -447,7 +540,7 @@ class CustomLndGridWidget(widgets.VBox):
             description='Include non-vegetation land units?',
             options=['True', 'False'],
             tooltips=['landunits unchanged if True', 'landunits set to 0 if False'],
-            value=None,
+            value='True',
             layout={'width':'max-content'}, # If the items' names are long
             disabled=False
         )
@@ -477,24 +570,50 @@ class CustomLndGridWidget(widgets.VBox):
         self.fsurdat_gridbox = widgets.GridBox(gridbox_items,
             layout=widgets.Layout(grid_template_columns=f"repeat(13, {cw})",width='665px',padding='5px'))
 
+        self.btn_run_fsurdat_modifier = widgets.Button(
+            description = 'Run fsurdat_modifier',
+            disabled = True,
+            tooltip = "When ready, click this button to run the fsurdat_modifier tool.",
+            icon = 'terminal',
+            button_style='success', # 'success', 'info', 'warning', 'danger' or ''
+            layout=widgets.Layout(width='250px', align_items='center'),
+        )
+
+        self.fsurdat_output = widgets.Output(
+            layout={'border': '1px solid silver'}
+        )
+
         self._clm_fsurdat_widgets = widgets.VBox([
             self.fsurdat_in,
             self.fsurdat_out,
             self.lnd_idealized,
             self.lnd_specify_area,
-            self.lnd_lat_1.widget,
-            self.lnd_lat_2.widget,
-            self.lnd_lon_1.widget,
-            self.lnd_lon_2.widget,
+            self.lnd_lat_1,
+            self.lnd_lat_2,
+            self.lnd_lon_1,
+            self.lnd_lon_2,
             self.landmask_file_2,
-            widgets.Label(''),
-            lnd_dom_pft.widget,
-            lnd_soil_color.widget,
+            self.lnd_dom_pft.widget,
+            self.lnd_soil_color.widget,
             self.std_elev,
             self.max_sat_area,
             self.include_nonveg,
             self.fsurdat_gridbox,
+            self.fsurdat_output
         ])
+
+        # these must all be set for the run fsurdat button to be enabled
+        self._clm_fsurdat_widgets_grp1 = [
+            self.fsurdat_in,
+            self.fsurdat_out,
+            self.lnd_idealized,
+            self.lnd_specify_area,
+            #self.lnd_dom_pft.widget,
+            #self.lnd_soil_color.widget,
+            #self.std_elev,
+            #self.max_sat_area,
+            self.include_nonveg
+        ]
 
     def reset_vars(self):
 
@@ -507,7 +626,7 @@ class CustomLndGridWidget(widgets.VBox):
                 var.refresh_options()
                 var.widget.layout.display = display # refreshing options turns the display on,
                                                     # so turn it off if it was turned off.
-        
+
         # reset clm grid selector
         self.drp_clm_grid.value = None
 
@@ -524,13 +643,18 @@ class CustomLndGridWidget(widgets.VBox):
         # reset fsurdat_in variables
         self.fsurdat_in.reset()
         self.fsurdat_out.reset()
-        self.lnd_idealized.value = None
+        self.lnd_idealized.value = 'False'
         self.lnd_specify_area.value = None
+        self.lnd_lat_1.value = -90.0
+        self.lnd_lat_2.value = 90.0
+        self.lnd_lon_1.value = 0.0
+        self.lnd_lon_2.value = 360.0
         self.landmask_file_2.value = ''
         self.landmask_file_2.disabled = False
         self.std_elev.value = ''
         self.max_sat_area.value = ''
-    
+        self.include_nonveg.value = 'True'
+
     def construct(self):
 
         comp_ocn = cvars['COMP_OCN'].value
@@ -545,7 +669,7 @@ class CustomLndGridWidget(widgets.VBox):
                 widgets.HTML(
                     value=" <b>Base CLM grid</b><br> Select a base land grid from the following menu. You can then customize its fsurdat specification in the below dialogs.",
                 )
-            )        
+            )
 
             children.append(self.drp_clm_grid)
 
@@ -578,17 +702,7 @@ class CustomLndGridWidget(widgets.VBox):
             )
 
             children.append(self._clm_fsurdat_widgets)
-
-            children.append(
-                widgets.Button(
-                    description = 'Save .cfg files',
-                    #disabled = True,
-                    tooltip = "When ready, click this button to save the .cfg files for subsequent execution of land tools.",
-                    #icon = 'terminal',
-                    button_style='success', # 'success', 'info', 'warning', 'danger' or ''
-                    #layout=widgets.Layout(display='none', width='170px', align_items='center'),
-                )
-            )
+            children.append(self.btn_run_fsurdat_modifier)
 
         elif comp_lnd in ['dlnd', 'slnd']:
             self.title = "NotImplemented"
