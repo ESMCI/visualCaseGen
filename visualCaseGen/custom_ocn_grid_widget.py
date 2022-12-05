@@ -302,6 +302,12 @@ class CustomOcnGridWidget(widgets.VBox):
             nbf.v4.new_code_cell(
                 "bathy.depth.plot()"
             ),
+            nbf.v4.new_code_cell(
+                "# Manually modify the bathymetry\n"
+                "%matplotlib ipympl\n"
+                "from mom6_bathy.depth_modifier import DepthModifier\n"
+                "DepthModifier(bathy)"
+            ),
             nbf.v4.new_markdown_cell(
                 "## 4. Save the grid and bathymetry files"
             ),
