@@ -29,8 +29,8 @@ def relational_assertions_setter(cvars):
         Not(And(COMP_ATM=="satm", COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")) :
             "Cannot set all components to stub models.",
 
-        Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) :
-            "If COMP_ICE is stub, all other components must be stub (except for ATM)",
+        #Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) :
+        #    "If COMP_ICE is stub, all other components must be stub (except for ATM)",
 
         Implies(COMP_OCN=="mom", COMP_WAV!="dwav") :
             "MOM6 cannot be coupled with data wave component.",
@@ -47,8 +47,8 @@ def relational_assertions_setter(cvars):
         Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
             "When MOM|POP is forced with DATM, LND must be stub.",
 
-        Implies(COMP_OCN=="mom", Or(COMP_LND!="slnd", COMP_ICE!="sice")) :
-             "LND or ICE must be present to hide MOM6 grid poles.",
+        Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
+             "LND or ICE must be present to hide Global MOM6 grid poles.",
 
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
