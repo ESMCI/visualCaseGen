@@ -4,6 +4,7 @@ import ipywidgets as widgets
 import subprocess
 import time
 import tempfile
+import xarray as xr
 
 from visualCaseGen.config_var import cvars
 from visualCaseGen.OutHandler import handler as owh
@@ -128,7 +129,7 @@ class CustomLndGridWidget(widgets.VBox):
 
     def _construct_observances(self):
 
-        for widget in self._clm_mesh_mask_modifier_widgets.children:
+        for widget in self._clm_mesh_mask_modifier_widgets_grp:
             widget.observe(
                 self.refresh_btn_run_mesh_mask_modifier,
                 names='value',
@@ -168,9 +169,82 @@ class CustomLndGridWidget(widgets.VBox):
             self.run_fsurdat_modifier
         )
 
+        self.landmask_file.observe(
+            self.enable_preview_landmask,
+            names='value',
+            type='change'
+        )
+
+        self.btn_preview_landmask.on_click(
+            self.preview_landmask
+        )
+
+        self.landmask_file_2.observe(
+            self.enable_preview_mod_lnd_props,
+            names='value',
+            type='change'
+        )
+
+        self.btn_preview_mod_lnd_props.on_click(
+            self.preview_mod_lnd_props
+        )
+
+    def enable_preview_landmask(self, change):
+        new_landmask_path = change['new']
+
+        self.out_preview_landmask.clear_output()
+        if new_landmask_path not in ['', None] and os.path.exists(new_landmask_path):
+            self.btn_preview_landmask.layout.display = ''
+        else:
+            self.btn_preview_landmask.layout.display = 'none'
+    
+    def enable_preview_mod_lnd_props(self, change):
+        landmask_path_2 = change['new']
+
+        self.out_preview_mod_lnd_props.clear_output()
+        if landmask_path_2 not in ['', None] and os.path.exists(landmask_path_2):
+            self.btn_preview_mod_lnd_props.layout.display = ''
+        else:
+            self.btn_preview_mod_lnd_props.layout.display = 'none'
+    
+    def preview_landmask(self, b):
+        self.btn_preview_landmask.layout.display = 'none'
+        landmask_path = self.landmask_file.value
+        with self.out_preview_landmask:
+            if landmask_path in ['', None] or not os.path.exists(landmask_path):
+                print("ERROR: couldn't find the landmask file.")
+                return
+            ds = xr.open_dataset(landmask_path)
+            fieldname = 'landmask'
+            if fieldname not in ds:
+                print(f"ERROR: couldn't find the '{fieldname}' field in {landmask_path}.")
+                return
+            import matplotlib.pyplot as plt
+            im = plt.imshow(ds[fieldname].data)
+            plt.gca().invert_yaxis()
+            plt.colorbar(im, fraction=0.025)
+            plt.show()
+
+    def preview_mod_lnd_props(self, b):
+        self.btn_preview_mod_lnd_props.layout.display = 'none'
+        landmask_path_2 = self.landmask_file_2.value
+        with self.out_preview_mod_lnd_props:
+            if landmask_path_2 in ['', None] or not os.path.exists(landmask_path_2):
+                print("ERROR: couldn't find the landmask file.")
+                return
+            ds = xr.open_dataset(landmask_path_2)
+            fieldname = 'mod_lnd_props'
+            if fieldname not in ds:
+                print(f"ERROR: couldn't find the '{fieldname}' field in {landmask_path_2}.")
+                return
+            import matplotlib.pyplot as plt
+            im = plt.imshow(ds[fieldname].data)
+            plt.gca().invert_yaxis()
+            plt.colorbar(im, fraction=0.025)
+            plt.show()
 
     def refresh_btn_run_mesh_mask_modifier(self, change):
-        if any([var.value in [None, ''] for var in self._clm_mesh_mask_modifier_widgets.children ]):
+        if any([var.value in [None, ''] for var in self._clm_mesh_mask_modifier_widgets_grp ]):
             self.btn_run_mesh_mask_modifier.disabled = True
         else:
             self.btn_run_mesh_mask_modifier.disabled = False
@@ -357,6 +431,15 @@ class CustomLndGridWidget(widgets.VBox):
             layout=widgets.Layout(width='700px', padding='10px')
         )
 
+        self.btn_preview_landmask = widgets.Button(
+            description = 'Preview landmask',
+            tooltip = "Click this button to preview the landmask field.",
+            #icon = 'magnifying-glass',
+            layout=widgets.Layout(display='none', left='50px'),
+        )
+
+        self.out_preview_landmask = widgets.Output()
+
         self.lat_varname = widgets.Textarea(
             value='lsmlat',
             description='<b>Latitude var. name:</b>',
@@ -410,9 +493,21 @@ class CustomLndGridWidget(widgets.VBox):
             layout={'border': '1px solid silver'}
         )
 
+        self._clm_mesh_mask_modifier_widgets_grp = [
+            self.mesh_mask_in,
+            self.landmask_file,
+            self.lat_varname,
+            self.lon_varname,
+            self.lat_dimname,
+            self.lon_dimname,
+            self.mesh_mask_out,
+        ]
+
         self._clm_mesh_mask_modifier_widgets = widgets.VBox([
             self.mesh_mask_in,
             self.landmask_file,
+            self.btn_preview_landmask,
+            self.out_preview_landmask,
             self.lat_varname,
             self.lon_varname,
             self.lat_dimname,
@@ -508,6 +603,14 @@ class CustomLndGridWidget(widgets.VBox):
         )
         self.landmask_file_2.style.description_width = descr_width
 
+        self.btn_preview_mod_lnd_props = widgets.Button(
+            description = 'Preview mod_lnd_props',
+            tooltip = "Click this button to preview the mod_lnd_props field.",
+            layout=widgets.Layout(display='none', left='50px'),
+        )
+
+        self.out_preview_mod_lnd_props = widgets.Output()
+
         self.lnd_dom_pft = cvars['LND_DOM_PFT']
         self.lnd_dom_pft.widget = widgets.Text(
             description='PFT/CFT',
@@ -589,20 +692,22 @@ class CustomLndGridWidget(widgets.VBox):
 
         self._clm_fsurdat_widgets = widgets.VBox([
             self.fsurdat_in,
-            self.fsurdat_out,
-            self.lnd_idealized,
             self.lnd_specify_area,
             self.lnd_lat_1,
             self.lnd_lat_2,
             self.lnd_lon_1,
             self.lnd_lon_2,
             self.landmask_file_2,
+            self.btn_preview_mod_lnd_props,
+            self.out_preview_mod_lnd_props,
+            self.lnd_idealized,
             self.lnd_dom_pft.widget,
             self.lnd_soil_color.widget,
             self.std_elev.widget,
             self.max_sat_area.widget,
             self.include_nonveg,
             self.fsurdat_gridbox,
+            self.fsurdat_out,
             self.fsurdat_output
         ])
 
