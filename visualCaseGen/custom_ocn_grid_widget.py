@@ -4,10 +4,12 @@ import ipywidgets as widgets
 import nbformat as nbf
 from datetime import datetime
 from IPython.display import display, Javascript
+import xarray as xr
 
 from visualCaseGen.config_var import cvars
-from visualCaseGen.read_mesh_file import ReadMeshFile
 from visualCaseGen.OutHandler import handler as owh
+from ipyfilechooser import FileChooser
+from visualCaseGen.dialog import alert_error
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ class CustomOcnGridWidget(widgets.VBox):
         self._cvars = [\
             cvars['OCN_GRID_EXTENT'],
             cvars['OCN_GRID_CONFIG'],
-            #todo cvars['OCN_TRIPOLAR'],
+            cvars['OCN_TRIPOLAR_N'],
             cvars['OCN_CYCLIC_X'],
             cvars['OCN_CYCLIC_Y'],
             cvars['OCN_AXIS_UNITS'],
@@ -52,12 +54,14 @@ class CustomOcnGridWidget(widgets.VBox):
                     var.refresh_options()
                 var.widget.layout.display = 'none'
 
-            # hide and reset read_ocn_mesh_file
-            self.read_ocn_mesh_file.layout.display = 'none'
-            self.read_ocn_mesh_file.filepath.value = ''
+            # hide and reset mom6_supergrid_in
+            self.mom6_supergrid_in.layout.display = 'none'
+            self.mom6_supergrid_in.reset()
+            self.mom6_topog_in.layout.display = 'none'
+            self.mom6_topog_in.reset()
             self.btn_launch_mom6_bathy.layout.display = 'none'
 
-        elif selection == "Modify an existing mesh":
+        elif selection == "Modify an existing grid":
 
             # reset and disable variables
             for var in self._cvars:
@@ -66,28 +70,61 @@ class CustomOcnGridWidget(widgets.VBox):
                     var.refresh_options()
                 var.widget.layout.display = 'none'
 
-            # display read_ocn_mesh_file
-            self.read_ocn_mesh_file.layout.display = 'flex'
+            # display mom6_supergrid_in and mom6_topog_in
+            self.mom6_supergrid_in.layout.display = 'flex'
+            self.mom6_topog_in.layout.display = 'flex'
             self.btn_launch_mom6_bathy.layout.display = 'flex'
+
+            # display other required configs:
+            cyclic_x = cvars['OCN_CYCLIC_X']
+            cyclic_x.widget.layout.display = ''
+            cyclic_y = cvars['OCN_CYCLIC_Y']
+            cyclic_y.widget.layout.display = ''
+            tripolar_n = cvars['OCN_TRIPOLAR_N']
+            tripolar_n.widget.layout.display = ''
+
 
         elif selection == "Start from scratch":
             # enable variables
             for var in self._cvars:
                 var.widget.layout.display = ''
 
-            # hide and reset read_ocn_mesh_file
-            self.read_ocn_mesh_file.layout.display = 'none'
-            self.read_ocn_mesh_file.filepath.value = ''
+            # hide and reset mom6_supergrid_in
+            self.mom6_supergrid_in.layout.display = 'none'
+            self.mom6_supergrid_in.reset()
+            self.mom6_topog_in.layout.display = 'none'
+            self.mom6_topog_in.reset()
+            # hide tripolar options, this is not yet supported in midas
+            tripolar_n = cvars['OCN_TRIPOLAR_N']
+            tripolar_n.widget.layout.display = 'none'
+            tripolar_n.value = None
+
             self.btn_launch_mom6_bathy.layout.display = 'flex'
 
         else:
             raise RuntimeError("Unknown selection")
 
     def refresh_btn_launch_mom6_bathy(self, change):
-        if any([cvar.value is None for cvar in self._cvars]):
-            self.btn_launch_mom6_bathy.disabled = True
+
+        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':    
+            if any([cvar.value is None and cvar.name != 'OCN_TRIPOLAR_N' for cvar in self._cvars]):
+                self.btn_launch_mom6_bathy.disabled = True
+            else:
+                self.btn_launch_mom6_bathy.disabled = False
+        elif self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+            required_vars = [
+                self.mom6_supergrid_in,
+                cvars['OCN_CYCLIC_X'],
+                cvars['OCN_CYCLIC_Y'],
+                cvars['OCN_TRIPOLAR_N'],
+            ] 
+            if any([var.value is None for var in required_vars]):
+                self.btn_launch_mom6_bathy.disabled = True
+            else:
+                self.btn_launch_mom6_bathy.disabled = False
         else:
-            self.btn_launch_mom6_bathy.disabled = False
+            raise RuntimeError("Unknown Ocn Mesh Mode selection")
+
 
     def _construct_observances(self):
 
@@ -104,6 +141,12 @@ class CustomOcnGridWidget(widgets.VBox):
                 type='change'
             )
 
+        self.mom6_supergrid_in.observe(
+            self.refresh_btn_launch_mom6_bathy,
+            names='value',
+            type='change'
+        )
+
         self.btn_launch_mom6_bathy.on_click(
             self.launch_mom6_bathy
         )
@@ -111,10 +154,10 @@ class CustomOcnGridWidget(widgets.VBox):
 
     def _construct_mom_grid_widgets(self):
 
-        # From existing mesh? -----------------------------
+        # From existing grid? -----------------------------
         self.tbtn_ocn_mesh_mode = widgets.ToggleButtons(
             description='Ocean mesh:',
-            options=['Start from scratch', 'Modify an existing mesh'],
+            options=['Start from scratch', 'Modify an existing grid'],
             value=None,
             layout={'width':'max-content', 'padding':'20px'}, # If the items' names are long
             disabled=False
@@ -122,9 +165,32 @@ class CustomOcnGridWidget(widgets.VBox):
         self.tbtn_ocn_mesh_mode.style.button_width = '200px'
         self.tbtn_ocn_mesh_mode.style.description_width = '100px'
 
-        # Read ocn mesh file
-        self.read_ocn_mesh_file = ReadMeshFile('OCN',
-            layout={'padding':'15px','display':'none','flex_flow':'column','align_items':'flex-start'})
+        # Read ocn supergrid file
+        self.mom6_supergrid_in = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Original MOM6 supergrid file:</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            existing_only=True,
+            layout=widgets.Layout(width='600px', padding='10px', left='40px', display='none',
+                flex_flow='column', align_items='flex-start')
+        )
+        # Read ocn topog file
+        self.mom6_topog_in = FileChooser(
+            path=os.getcwd(),
+            filename='',
+            title='<b>Original MOM6 topography file (optional):</b>',
+            show_hidden=True,
+            select_default=True,
+            show_only_dirs=False,
+            filter_pattern="*.nc",
+            existing_only=True,
+            layout=widgets.Layout(width='600px', padding='10px', left='40px', display='none',
+                flex_flow='column', align_items='flex-start')
+        )
 
         # OCN_GRID_EXTENT -----------------------------
         cv_ocn_grid_extent = cvars['OCN_GRID_EXTENT']
@@ -165,6 +231,16 @@ class CustomOcnGridWidget(widgets.VBox):
         )
         cv_ocn_cyclic_y.widget.style.button_width = button_width
         cv_ocn_cyclic_y.widget.style.description_width = descr_width
+
+        # OCN_TRIPOLAR_N -----------------------------
+        cv_ocn_tripolar_n = cvars['OCN_TRIPOLAR_N']
+        cv_ocn_tripolar_n.widget = widgets.ToggleButtons(
+            description='Tripolar?',
+            layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
+            disabled=False
+        )
+        cv_ocn_tripolar_n.widget.style.button_width = button_width
+        cv_ocn_tripolar_n.widget.style.description_width = descr_width
 
         # OCN_AXIS_UNITS -----------------------------
         cv_ocn_axis_units = cvars['OCN_AXIS_UNITS']
@@ -228,11 +304,13 @@ class CustomOcnGridWidget(widgets.VBox):
 
         self._mom6_widgets = [
             self.tbtn_ocn_mesh_mode,
-            self.read_ocn_mesh_file,
+            self.mom6_supergrid_in,
+            self.mom6_topog_in,
             cv_ocn_grid_extent.widget,
             cv_ocn_grid_config.widget,
             cv_ocn_cyclic_x.widget,
             cv_ocn_cyclic_y.widget,
+            cv_ocn_tripolar_n.widget,
             cv_ocn_axis_units.widget,
             cv_ocn_nx.widget,
             cv_ocn_ny.widget,
@@ -245,6 +323,48 @@ class CustomOcnGridWidget(widgets.VBox):
 
     @owh.out.capture()
     def launch_mom6_bathy(self, b):
+
+        nx = cvars['OCN_NX'].value
+        ny = cvars['OCN_NY'].value
+        config = cvars['OCN_GRID_CONFIG'].value
+        axis_units = cvars['OCN_AXIS_UNITS'].value
+        lenx = cvars['OCN_LENX'].value
+        leny = cvars['OCN_LENY'].value
+        cyclic_x = cvars['OCN_CYCLIC_X'].value
+        cyclic_y = cvars['OCN_CYCLIC_X'].value
+        tripolar_n = cvars['OCN_TRIPOLAR_N'].value
+
+        supergrid_path = self.mom6_supergrid_in.value
+        topog_path = self.mom6_topog_in.value
+
+        if self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+
+            from mom6_bathy.mom6grid import mom6grid
+            from mom6_bathy.mom6bathy import mom6bathy
+
+            # Check supergrid
+
+            if supergrid_path is None:
+                alert_error("Specify a MOM6 supergrid file path")
+                return None
+
+            try:
+                supergrid_ds = xr.open_dataset(supergrid_path)
+                mom6grid.check_supergrid(supergrid_ds)
+            except Exception as e:
+                logger.error(str(e))
+                alert_error("Error occured while attempting to read supergrid file. See error log in Help tab below.")
+                self.mom6_supergrid_in.reset()
+                return None
+
+            # Check topography file
+            if topog_path is not None:
+                try:
+                    xr.open_dataset(topog_path)
+                except Exception as e:
+                    alert_error("Error occured while attempting to read topography file. See error log in Help tab below.")
+                    self.mom6_topog_in.reset()
+                    return None
 
         # Step 1 : Create a new notebook:
         # an example grid name
@@ -269,36 +389,76 @@ class CustomOcnGridWidget(widgets.VBox):
             ),
             nbf.v4.new_markdown_cell(
                 "## 2. Create horizontal grid\n"
-            ),
-            nbf.v4.new_code_cell(
+            )]
+
+        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':    
+            nb['cells'].extend([
+                nbf.v4.new_code_cell(
                 f"""grd = mom6grid(
-                nx         = {cvars['OCN_NX'].value},         # Number of grid points in x direction
-                ny         = {cvars['OCN_NY'].value},          # Number of grid points in y direction
-                config     = "{cvars['OCN_GRID_CONFIG'].value}", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
-                axis_units = "{cvars['OCN_AXIS_UNITS'].value}",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
-                lenx       = {cvars['OCN_LENX'].value},        # grid length in x direction, e.g., 360.0 (degrees)
-                leny       = {cvars['OCN_LENY'].value},        # grid length in y direction
-                cyclic_x   = "{cvars['OCN_CYCLIC_X'].value}",     # non-reentrant, rectangular domain
+                nx         = {nx},         # Number of grid points in x direction
+                ny         = {ny},          # Number of grid points in y direction
+                config     = "{config}", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
+                axis_units = "{axis_units}",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
+                lenx       = {lenx},        # grid length in x direction, e.g., 360.0 (degrees)
+                leny       = {leny},        # grid length in y direction
+                cyclic_x   = {cyclic_x},
+                cyclic_y   = {cyclic_y},
                 )
                 """
-            ),
+                ),
+            ])
+        elif self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+            nb['cells'].append(
+                nbf.v4.new_code_cell(
+                f"""grd = mom6grid.from_supergrid(
+                "{supergrid_path}",
+                cyclic_x   = {cyclic_x},
+                cyclic_y   = {cyclic_y},
+                tripolar_n   = {tripolar_n},
+                )
+                """
+                )
+            )
+        else:
+            raise RuntimeError("Unknown Ocn Mesh Mode selection")
+
+        nb['cells'].append(
             nbf.v4.new_markdown_cell(
                 "## 3. Configure bathymetry\n"
-            ),
-            nbf.v4.new_markdown_cell(
-                "***mom6_bathy*** provides several idealized bathymetry options and customization methods. "
-                "Below, we show how to specify the simplest bathymetry configuration, a flat bottom. "
-                "Customize it as you see fit. See mom6_bathy documentation and example notebooks on how to "
-                "create custom bathymetries. "
-            ),
+            )
+        )
+
+        if topog_path is None or self.tbtn_ocn_mesh_mode.value != 'Modify an existing grid':
+            nb['cells'].extend([
+                nbf.v4.new_markdown_cell(
+                    "***mom6_bathy*** provides several idealized bathymetry options and customization methods. "
+                    "Below, we show how to specify the simplest bathymetry configuration, a flat bottom. "
+                    "Customize it as you see fit. See mom6_bathy documentation and example notebooks on how to "
+                    "create custom bathymetries. "
+                ),
+                nbf.v4.new_code_cell(
+                    "# Instantiate the bathymetry object\n"
+                    "bathy = mom6bathy(grd, min_depth = 10.0)"
+                ),
+                nbf.v4.new_code_cell(
+                    "# Set the bathymetry to be a flat bottom with a uniform depth of 2000m\n"
+                    "bathy.set_flat(D=2000.0)"
+                )
+            ])
+        else: # topog_path is not None
+            nb['cells'].extend([
+                nbf.v4.new_code_cell(
+                    "# Instantiate the bathymetry object\n"
+                    "bathy = mom6bathy(grd,\n"
+                    "    min_depth = 10.0)  # NOTE: update min_depth as you see fit."
+                ),
             nbf.v4.new_code_cell(
-                "# Instantiate the bathymetry object\n"
-                "bathy = mom6bathy(grd, min_depth = 10.0)"
-            ),
-            nbf.v4.new_code_cell(
-                "# Set the bathymetry to be a flat bottom with a uniform depth of 2000m\n"
-                "bathy.set_flat(D=2000.0)"
-            ),
+                    "# Set bathymetry via an existing topog file:\n"
+                    f'bathy.set_depth_via_topog_file("{topog_path}")'
+                ),
+            ])
+
+        nb['cells'].extend([
             nbf.v4.new_code_cell(
                 "bathy.depth.plot()"
             ),
@@ -336,9 +496,7 @@ class CustomOcnGridWidget(widgets.VBox):
                 "cells above, you can switch back to the visualCaseGen GUI to finalize your experiment "
                 "configuration."
             ),
-        ]
-
-
+        ])
 
         nb_filename = f'mom6_bathy_notebook_{datetime.now().strftime("%Y%m%d_%H%M%S")}.ipynb'
         with open(nb_filename, 'w') as f:
@@ -375,8 +533,9 @@ class CustomOcnGridWidget(widgets.VBox):
 
         # reset values of custom ocn grid widgets (that aren't defined as ConfigVar instances)
         self.tbtn_ocn_mesh_mode.value = None
-        self.read_ocn_mesh_file.value = None
-    
+        self.mom6_supergrid_in.reset()
+        self.mom6_topog_in.reset()
+
 
     def construct(self):
 
@@ -384,7 +543,7 @@ class CustomOcnGridWidget(widgets.VBox):
 
         if comp_ocn == "mom":
             self.title = "MOM6 Grid"
-            self.children = self._mom6_widgets 
+            self.children = self._mom6_widgets
         else:
             self.title = "ERROR"
             self.children = [widgets.Label(f"ERROR: unsupported ocn component {comp_ocn} for custom grid feature")]
