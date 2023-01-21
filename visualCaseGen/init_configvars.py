@@ -40,7 +40,7 @@ def init_configvars(ci, predefined_mode=False):
     ConfigVarStr('OCN_AXIS_UNITS')
     ConfigVarBool('OCN_CYCLIC_X')
     ConfigVarBool('OCN_CYCLIC_Y')
-    ConfigVarBool('OCN_TRIPOLAR')
+    ConfigVarBool('OCN_TRIPOLAR_N')
     ConfigVarInt('OCN_NX')
     ConfigVarInt('OCN_NY')
     ConfigVarReal('OCN_LENX')

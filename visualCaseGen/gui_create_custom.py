@@ -11,7 +11,6 @@ from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.logic import logic
-from visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
