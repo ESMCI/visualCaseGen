@@ -86,6 +86,8 @@ class CustomOcnGridWidget(widgets.VBox):
             # enable variables
             for var in self._cvars:
                 var.widget.layout.display = ''
+                if var.has_options_spec():
+                    var.refresh_options()
 
             # hide and reset mom6_supergrid_in
             self.mom6_supergrid_in.layout.display = 'none'
