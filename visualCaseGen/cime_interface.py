@@ -8,16 +8,15 @@ from pathlib import Path
 # import CIME -----------------------------------------------------------
 filepath = os.path.dirname(os.path.realpath(__file__)) # path of this module
 CIMEROOT = Path(Path(filepath).parent.parent, 'cime').as_posix()
-sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+sys.path.append(os.path.join(CIMEROOT))
 
-from standard_script_setup import *
+from CIME.XML.standard_module_setup import *
 from CIME.XML.generic_xml           import GenericXML
 from CIME.XML.machines              import Machines
 from CIME.XML.files                 import Files
 from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
-from CIME.YML.compliances           import Compliances
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +41,6 @@ class CIME_interface():
         are 4xCO2, 1PCT, etc.
     model_grids: list of tuples
         List of model grids (alias, compset, not_compset)
-    compliances : CIME.YML.compliances.Compliances
-        An object that encapsulates CIME config variable compliances, i.e., logical constraints regarding
-        config variables.
     """
 
     def __init__(self, driver, loadbar=None):
@@ -60,6 +56,7 @@ class CIME_interface():
         self.compsets = dict()          # compsets defined at each component
         self._files = None
         self.cimeroot = CIMEROOT
+        self.srcroot = (Path(self.cimeroot).parent).as_posix()
 
         # Call _retrieve* methods to populate the data members defined above
 
@@ -81,11 +78,8 @@ class CIME_interface():
         self._retrieve_compsets()
         increment_loadbar()
         self._retrieve_machines()
-
-        # Initialize the compliances instance
         increment_loadbar()
-        self.compliances = Compliances.from_cime()
-        self.compliances.unfold_compliances()
+        self._retrieve_clm_fsurdat()
         increment_loadbar()
 
     def _retrieve_cime_basics(self):
@@ -226,20 +220,26 @@ class CIME_interface():
             self.models[comp_class].append(model)
 
     def _retrieve_model_grids(self):
-        self._grids_obj = Grids()
+        self._grids_obj = Grids(comp_interface=self.driver)
         grids = self._grids_obj.get_child("grids")
-        model_grids_xml = self._grids_obj.get_children("model_grid", root=grids)
+        model_grid_nodes = self._grids_obj.get_children("model_grid", root=grids)
 
         self.model_grids = []
-        for model_grid in model_grids_xml:
-            alias = self._grids_obj.get(model_grid,"alias")
-            compset = self._grids_obj.get(model_grid,"compset")
-            not_compset = self._grids_obj.get(model_grid,"not_compset")
+        self.component_grids = {comp:set() for comp in self._grids_obj._comp_gridnames}
+        for model_grid_node in model_grid_nodes:
+            alias = self._grids_obj.get(model_grid_node,"alias")
+            compset = self._grids_obj.get(model_grid_node,"compset")
+            not_compset = self._grids_obj.get(model_grid_node,"not_compset")
             desc = ''
-            desc_node = self._grids_obj.get_children("desc", root=model_grid)
+            desc_node = self._grids_obj.get_children("desc", root=model_grid_node)
             if desc_node:
                 desc = self._grids_obj.text(desc_node[0])
             self.model_grids.append((alias, compset, not_compset, desc))
+            grid_nodes = self._grids_obj.get_children("grid", root=model_grid_node)
+            for grid_node in grid_nodes:
+                comp_name = self._grids_obj.get(grid_node, "name")
+                value = self._grids_obj.text(grid_node)
+                self.component_grids[comp_name].add(value)
 
     def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         # todo: implement atmlev and lndnlev
@@ -290,3 +290,48 @@ class CIME_interface():
             for node in nodes:
                 mach = machines_obj.get(node, "MACH")
                 self.machines.append(mach)
+
+        # Determine DIN_LOC_ROOT
+        self.din_loc_root = None
+        if self.machine in ['cheyenne', 'casper']:
+            self.din_loc_root = '/glade/p/cesm/cseg/inputdata/'
+        else:
+            try:
+                for machine_node in machines_obj.get_children("machine"):
+                    machine_name = machines_obj.get(machine_node, "MACH")
+                    if machine_name == self.machine:
+                        din_loc_root_node = machines_obj.get_child(root=machine_node, name="DIN_LOC_ROOT")
+                        self.din_loc_root = machines_obj.text(din_loc_root_node)
+            except:
+                logger.error("Couldn't determine DIN_LOC_ROOT")
+
+    def _retrieve_clm_fsurdat(self):
+        clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
+        clm_namelist_defaults_file = Path(clm_root, "bld", "namelist_files", "namelist_defaults_ctsm.xml")
+        assert clm_namelist_defaults_file.is_file(), "Cannot find clm namelist file"
+
+        self.clm_fsurdat = {None:{}, '1850':{}, '2000':{}, 'PtVg':{}}
+
+        clm_namelist_xml = GenericXML(clm_namelist_defaults_file.as_posix())
+        for fsurdat_node in clm_namelist_xml.get_children("fsurdat"):
+            hgrid = clm_namelist_xml.get(fsurdat_node, "hgrid")
+            sim_year = clm_namelist_xml.get(fsurdat_node, "sim_year")
+            filedir = clm_namelist_xml.text(fsurdat_node)
+            self.clm_fsurdat[sim_year][hgrid] = filedir
+
+    def retrieve_mesh_path(self, domain_name):
+        domain_node = self._grids_obj.get_optional_child(
+            "domain",
+            attributes = {"name":domain_name},
+            root = self._grids_obj.get_child("domains")
+        )
+
+        mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node)
+        mesh_file = ''
+        for mesh_node in mesh_nodes:
+            mesh_file = self._grids_obj.text(mesh_node)
+
+        if self.din_loc_root is not None and '$DIN_LOC_ROOT' in mesh_file:
+            mesh_file = mesh_file.replace('$DIN_LOC_ROOT', self.din_loc_root)
+
+        return mesh_file

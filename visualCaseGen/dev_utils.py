@@ -1,3 +1,5 @@
+import cProfile, pstats
+profiler = cProfile.Profile()
 
 # debug flag, turns on some checks during runtime
 debug = True
@@ -17,3 +19,14 @@ class RunError(Exception):
                 print(assignment)
         super().__init__(self.message)
 
+
+def is_integer(s):
+    ss = s.strip()
+    return ss.isdigit() or (ss[0]=='-' and ss[1:].isdigit())
+
+def is_number(s):
+    try:
+        float(s)
+    except ValueError:
+        return False
+    return True

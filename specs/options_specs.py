@@ -355,3 +355,42 @@ def get_options_specs(cvars, ci):
         options_and_tooltips_dynamic=grid_options_func,
         inducing_vars=[COMPSET],
     )
+
+
+    # GRID_MODE
+    GRID_MODE = cvars["GRID_MODE"]
+    OptionsSpec(
+        var=GRID_MODE,
+        options_and_tooltips=(
+            ['Predefined', 'Custom'],
+            ['Select from the list of existing CESM grids', 'Create a new grid for one or more of the active components.'],
+        ),
+    )
+
+    # OCN_GRID_EXTENT
+    OCN_GRID_EXTENT = cvars["OCN_GRID_EXTENT"]
+    OptionsSpec(
+        var=OCN_GRID_EXTENT,
+        options_and_tooltips=(
+            ['Regional', 'Global'],
+            ['Regional', 'Global'],
+        ),
+    )
+    # OCN_GRID_CONFIG
+    OCN_GRID_CONFIG = cvars["OCN_GRID_CONFIG"]
+    OptionsSpec(
+        var=OCN_GRID_CONFIG,
+        options_and_tooltips=(
+            ['cartesian', 'mercator', 'spherical'],
+            ['cartesian', 'mercator', 'spherical'],
+        ),
+    )
+    # OCN_AXIS_UNITS
+    OCN_AXIS_UNITS = cvars["OCN_AXIS_UNITS"]
+    OptionsSpec(
+        var=OCN_AXIS_UNITS,
+        options_and_tooltips=(
+            ['degrees', 'm', 'km'],
+            ['degrees', 'meters', 'kilometers'],
+        ),
+    )

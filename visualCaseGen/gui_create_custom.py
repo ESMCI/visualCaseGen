@@ -6,6 +6,7 @@ from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.init_configvars import init_configvars
 from visualCaseGen.dummy_widget import DummyWidget
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
+from visualCaseGen.custom_grid_widget import CustomGridWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
 from visualCaseGen.header_widget import HeaderWidget
 from visualCaseGen.OutHandler import handler as owh
@@ -70,7 +71,7 @@ class GUI_create_custom():
             cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
             cv_comp_phys.widget = widgets.ToggleButtons(
                     description='{} physics:'.format(comp_class),
-                    layout=widgets.Layout(width='700px', max_height='100px', visibility='hidden', margin='20px'),
+                    layout=widgets.Layout(width='700px', max_height='100px', display='none', margin='20px'),
                     disabled=False,
                 )
             cv_comp_phys.widget.style.button_width = '90px'
@@ -93,11 +94,21 @@ class GUI_create_custom():
             "<p style='text-align:right'><b><i>compset: </i><font color='red'>not all component physics selected yet.</b></p>"
         )
 
+        cv_grid_mode = cvars['GRID_MODE']
+        cv_grid_mode.value = "Predefined"
+        cv_grid_mode.widget = widgets.ToggleButtons(
+            description='Grid Selection Mode:',
+            layout={'width': 'max-content', 'margin':'15px'}, # If the items' names are long
+            disabled=False,
+        )
+        cv_grid_mode.widget.style.button_width = '100px'
+        cv_grid_mode.widget.style.description_width = '130px'
+
         cv_grid = cvars['GRID']
         cv_grid._widget.value = ()
         cv_grid.widget = CheckboxMultiWidget(
             options=[],
-            placeholder = '(Finalize Compset First.)',
+            placeholder = '(A list of grids will appear here once the compset is finalized.)',
             description='Compatible Grids:',
             disabled=True,
             allow_multi_select=False,
@@ -110,6 +121,13 @@ class GUI_create_custom():
             description='show all grids',
             icon='chevron-down',
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
+        )
+
+        self._custom_grid = CustomGridWidget(self.ci)
+
+        self._vbx_grid_inner = widgets.VBox(
+            children=(cv_grid.widget, self._btn_grid_view),
+            layout={'display':'flex','flex_flow':'column','align_items':'center'}
         )
 
         self._create_case = CreateCaseWidget(
@@ -130,6 +148,31 @@ class GUI_create_custom():
             self._btn_grid_view.icon = 'chevron-down'
             # turn on the grid view button display
             self._btn_grid_view.layout.display = ''
+    
+    def _grid_mode_change(self, change):
+
+        new_grid_mode = change['new'] # Predefined | Custom
+        cv_grid = cvars['GRID']
+        compset_text =  cvars["COMPSET"].value 
+
+        if new_grid_mode == "Predefined":
+            self._custom_grid.turn_off()
+            if compset_text in [None, '']:
+                self._vbx_grid_inner.children = ()
+            self._vbx_grid_inner.children = (
+                cv_grid.widget,
+                self._btn_grid_view,
+            )
+
+        elif new_grid_mode == "Custom":
+            cv_grid.value = None
+            self._custom_grid.turn_on()
+            self._vbx_grid_inner.children = (
+                self._custom_grid,
+            )
+
+        else:
+            raise RuntimeError(f"unknown grid mode: {new_grid_mode}")
 
     def _update_create_case(self, change):
         self._create_case.disable()
@@ -153,6 +196,13 @@ class GUI_create_custom():
             self._update_grid_view_button,
             names='value',
             type='change'
+        )
+
+        cv_grid_mode = cvars['GRID_MODE']
+        cv_grid_mode.observe(
+            self._grid_mode_change,
+            names = 'value',
+            type = 'change'
         )
 
         cv_grid = cvars['GRID']
@@ -223,8 +273,8 @@ class GUI_create_custom():
 
         def _constr_vbx_grids():
             vbx_grids = widgets.VBox([
-                    cvars['GRID']._widget,
-                    self._btn_grid_view
+                    cvars['GRID_MODE']._widget,
+                    self._vbx_grid_inner
                 ],
                 layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'center'})
             vbx_grids.layout.border = '1px solid silver'

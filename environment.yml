@@ -1,0 +1,14 @@
+name: visualCaseGen
+
+channels:
+  - conda-forge
+  - anaconda
+  
+dependencies:
+  - python==3.9
+  #- xesmf
+  - pip
+  - pip:
+    - -e ./external/mom6_bathy/
+    - -e ./external/ipyfilechooser/
+    - -e ./ # visualCaseGen

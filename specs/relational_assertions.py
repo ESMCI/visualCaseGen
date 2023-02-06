@@ -4,6 +4,7 @@ from visualCaseGen.logic_utils import In, When
 def relational_assertions_setter(cvars):
 
     # define references to ConfigVars
+    INITTIME = cvars['INITTIME']
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
     COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
     COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_PHYS = cvars['COMP_ICE_PHYS'];  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
@@ -15,6 +16,12 @@ def relational_assertions_setter(cvars):
     OCN_GRID = cvars['OCN_GRID']
     WAV_GRID = cvars['WAV_GRID']
     GRID = cvars['GRID']
+    GRID_MODE = cvars['GRID_MODE']
+    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_GRID_CONFIG = cvars['OCN_GRID_CONFIG']; OCN_AXIS_UNITS = cvars['OCN_AXIS_UNITS']
+    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
+    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];
+    LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']; LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']
+    LND_STD_ELEV = cvars['LND_STD_ELEV']
 
     # The dictionary of assertions where keys are the assertions and values are the associated error messages
     assertions_dict = {
@@ -22,8 +29,8 @@ def relational_assertions_setter(cvars):
         Not(And(COMP_ATM=="satm", COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")) :
             "Cannot set all components to stub models.",
 
-        Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) :
-            "If COMP_ICE is stub, all other components must be stub (except for ATM)",
+        #Implies(COMP_ICE=="sice", And(COMP_LND=="slnd", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc") ) :
+        #    "If COMP_ICE is stub, all other components must be stub (except for ATM)",
 
         Implies(COMP_OCN=="mom", COMP_WAV!="dwav") :
             "MOM6 cannot be coupled with data wave component.",
@@ -40,8 +47,8 @@ def relational_assertions_setter(cvars):
         Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
             "When MOM|POP is forced with DATM, LND must be stub.",
 
-        Implies(COMP_OCN=="mom", Or(COMP_LND!="slnd", COMP_ICE!="sice")) :
-             "LND or ICE must be present to hide MOM6 grid poles.",
+        Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
+             "LND or ICE must be present to hide Global MOM6 grid poles.",
 
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
@@ -85,12 +92,6 @@ def relational_assertions_setter(cvars):
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
 
-       ##Or(ATM_GRID==GRID, ATM_GRID!=GRID):
-       ##    "A dummy relational assertion to force all GRID vars to the same layer 1",
-       ##Or(OCN_GRID==GRID, OCN_GRID!=GRID):
-       ##    "A dummy relational assertion to force all GRID vars to the same layer 2",
-
-
         When(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
@@ -102,6 +103,68 @@ def relational_assertions_setter(cvars):
 
         When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
+
+        # Relational assertions for mom6_bathy settings -----------------------------
+
+        Implies(COMP_OCN=="pop", GRID_MODE=="Predefined"):
+            "Custom grid mode cannot be selected if the OCN component is POP.",
+
+        Implies(GRID_MODE=="Custom", Or(COMP_OCN=="mom", COMP_LND=="clm")):
+            "At least one of OCN and LND must be active when Custom grid mode is selected.",
+
+        Implies(COMP_OCN=="mom", And(OCN_NX>=2, OCN_NY>=2, (OCN_NX*OCN_NY)>=16 )):
+            "MOM6 grid dimensions too small.",
+
+        Implies(COMP_OCN=="mom", And(OCN_NX<10000, OCN_NY<10000)):
+            "MOM6 grid dimensions too big.",
+
+        Implies(COMP_WAV!="swav", OCN_GRID_EXTENT=="Global"):
+            "A regional ocean model cannot be coupled with a wave component.",
+
+        When(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
+            "If custom grid mode is global, the ocean grid must be reentrant in x direction.",
+
+        When(OCN_GRID_EXTENT=="Global", OCN_AXIS_UNITS=="degrees"):
+            "If custom grid mode is global, the ocean grid axis units must be set to 'degrees'.",
+
+        When(OCN_GRID_EXTENT=="Global", OCN_GRID_CONFIG != "cartesian"):
+            "Cannot have a cartesian grid for a global ocean grid.",
+
+        When(OCN_GRID_CONFIG == "cartesian", OCN_AXIS_UNITS != "degrees"):
+            "Cannot have a cartesian grid with axis units in degrees",
+
+        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
+            "If the custom grid mode is set to be regional, the grid cannot be reentrant in x direction",
+
+        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_Y)):
+            "If the custom grid mode is set to be regional, the grid cannot be reentrant in y direction",
+
+        When(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0 ):
+            "OCN grid length in X direction must be set to 360.0 when OCN grid extent is global.",
+
+        When(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
+            "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+
+        # Relational assertions for custom lnd grid settings -----------------------------
+
+        Implies(And(INITTIME=='HIST', COMP_LND=='clm'), GRID_MODE!="Custom"):
+            "When initialization time is set to HIST, cannot create custom clm grids.",
+
+        And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
+            "Soil color must be set to an integer value between 0 and 20",
+
+        And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
+            "Soil color must be set to an integer value between 0 and 20",
+
+        LND_DOM_PFT >= 0.0:
+            "PFT/CFT must be set to a nonnegative number",
+
+        And(0<=LND_MAX_SAT_AREA, LND_MAX_SAT_AREA<=1):
+            "Max fraction of saturated area must be set to a value between 0 and 1.",
+
+        LND_STD_ELEV >= 0.0:
+            "Standard deviation of elevation must be a nonnegative number."
+
 
     }
 

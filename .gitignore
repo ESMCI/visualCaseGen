@@ -149,3 +149,10 @@ fault_search.o*
 log_opts_specs.txt
 
 .DS_Store
+
+#vim
+*.swp
+
+# some temporary notebooks
+prototype.ipynb
+sandbox.ipynb
