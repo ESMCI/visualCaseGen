@@ -17,7 +17,7 @@ def relational_assertions_setter(cvars):
     WAV_GRID = cvars['WAV_GRID']
     GRID = cvars['GRID']
     GRID_MODE = cvars['GRID_MODE']
-    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_GRID_CONFIG = cvars['OCN_GRID_CONFIG']; OCN_AXIS_UNITS = cvars['OCN_AXIS_UNITS']
+    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
     OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];
     LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']; LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']
@@ -123,15 +123,6 @@ def relational_assertions_setter(cvars):
 
         When(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
             "If custom grid mode is global, the ocean grid must be reentrant in x direction.",
-
-        When(OCN_GRID_EXTENT=="Global", OCN_AXIS_UNITS=="degrees"):
-            "If custom grid mode is global, the ocean grid axis units must be set to 'degrees'.",
-
-        When(OCN_GRID_EXTENT=="Global", OCN_GRID_CONFIG != "cartesian"):
-            "Cannot have a cartesian grid for a global ocean grid.",
-
-        When(OCN_GRID_CONFIG == "cartesian", OCN_AXIS_UNITS != "degrees"):
-            "Cannot have a cartesian grid with axis units in degrees",
 
         When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
             "If the custom grid mode is set to be regional, the grid cannot be reentrant in x direction",

@@ -376,21 +376,3 @@ def get_options_specs(cvars, ci):
             ['Regional', 'Global'],
         ),
     )
-    # OCN_GRID_CONFIG
-    OCN_GRID_CONFIG = cvars["OCN_GRID_CONFIG"]
-    OptionsSpec(
-        var=OCN_GRID_CONFIG,
-        options_and_tooltips=(
-            ['cartesian', 'mercator', 'spherical'],
-            ['cartesian', 'mercator', 'spherical'],
-        ),
-    )
-    # OCN_AXIS_UNITS
-    OCN_AXIS_UNITS = cvars["OCN_AXIS_UNITS"]
-    OptionsSpec(
-        var=OCN_AXIS_UNITS,
-        options_and_tooltips=(
-            ['degrees', 'm', 'km'],
-            ['degrees', 'meters', 'kilometers'],
-        ),
-    )

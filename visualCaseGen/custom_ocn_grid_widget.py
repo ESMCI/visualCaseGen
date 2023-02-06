@@ -28,11 +28,9 @@ class CustomOcnGridWidget(widgets.VBox):
 
         self._cvars = [\
             cvars['OCN_GRID_EXTENT'],
-            cvars['OCN_GRID_CONFIG'],
             cvars['OCN_TRIPOLAR_N'],
             cvars['OCN_CYCLIC_X'],
             cvars['OCN_CYCLIC_Y'],
-            cvars['OCN_AXIS_UNITS'],
             cvars['OCN_NX'],
             cvars['OCN_NY'],
             cvars['OCN_LENX'],
@@ -202,16 +200,6 @@ class CustomOcnGridWidget(widgets.VBox):
         cv_ocn_grid_extent.widget.style.button_width = button_width
         cv_ocn_grid_extent.widget.style.description_width = descr_width
 
-        # OCN_GRID_CONFIG -----------------------------
-        cv_ocn_grid_config = cvars['OCN_GRID_CONFIG']
-        cv_ocn_grid_config.widget = widgets.ToggleButtons(
-            description='Grid Config:',
-            layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
-            disabled=False
-        )
-        cv_ocn_grid_config.widget.style.button_width = button_width
-        cv_ocn_grid_config.widget.style.description_width = descr_width
-
         # OCN_CYCLIC_X -----------------------------
         cv_ocn_cyclic_x = cvars['OCN_CYCLIC_X']
         cv_ocn_cyclic_x.widget = widgets.ToggleButtons(
@@ -242,16 +230,6 @@ class CustomOcnGridWidget(widgets.VBox):
         cv_ocn_tripolar_n.widget.style.button_width = button_width
         cv_ocn_tripolar_n.widget.style.description_width = descr_width
 
-        # OCN_AXIS_UNITS -----------------------------
-        cv_ocn_axis_units = cvars['OCN_AXIS_UNITS']
-        cv_ocn_axis_units.widget = widgets.ToggleButtons(
-            description='Axis Units:',
-            layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
-            disabled=False
-        )
-        cv_ocn_axis_units.widget.style.button_width = button_width
-        cv_ocn_axis_units.widget.style.description_width = descr_width
-
         # OCN_NX -----------------------------
         cv_ocn_nx = cvars['OCN_NX']
         cv_ocn_nx.widget = widgets.Text(
@@ -260,7 +238,7 @@ class CustomOcnGridWidget(widgets.VBox):
             disabled=False
         )
         cv_ocn_nx.widget.style.button_width = button_width
-        cv_ocn_nx.widget.style.description_width = '200px'
+        cv_ocn_nx.widget.style.description_width = '220px'
 
         # OCN_NY -----------------------------
         cv_ocn_ny = cvars['OCN_NY']
@@ -270,27 +248,27 @@ class CustomOcnGridWidget(widgets.VBox):
             disabled=False
         )
         cv_ocn_ny.widget.style.button_width = button_width
-        cv_ocn_ny.widget.style.description_width = '200px'
+        cv_ocn_ny.widget.style.description_width = '220px'
 
         # OCN_LENX -----------------------------
         cv_ocn_lenx = cvars['OCN_LENX']
         cv_ocn_lenx.widget = widgets.Text(
-            description='Grid length in x direction:',
+            description='Grid length in x direction (degrees):',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         cv_ocn_lenx.widget.style.button_width = button_width
-        cv_ocn_lenx.widget.style.description_width = '200px'
+        cv_ocn_lenx.widget.style.description_width = '220px'
 
         # OCN_LENY -----------------------------
         cv_ocn_leny = cvars['OCN_LENY']
         cv_ocn_leny.widget = widgets.Text(
-            description='Grid length in y direction:',
+            description='Grid length in y direction (degrees):',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         cv_ocn_leny.widget.style.button_width = button_width
-        cv_ocn_leny.widget.style.description_width = '200px'
+        cv_ocn_leny.widget.style.description_width = '220px'
 
         self.btn_launch_mom6_bathy = widgets.Button(
             description = 'Launch mom6_bathy',
@@ -307,11 +285,9 @@ class CustomOcnGridWidget(widgets.VBox):
             self.mom6_supergrid_in,
             self.mom6_topog_in,
             cv_ocn_grid_extent.widget,
-            cv_ocn_grid_config.widget,
             cv_ocn_cyclic_x.widget,
             cv_ocn_cyclic_y.widget,
             cv_ocn_tripolar_n.widget,
-            cv_ocn_axis_units.widget,
             cv_ocn_nx.widget,
             cv_ocn_ny.widget,
             cv_ocn_lenx.widget,
@@ -326,8 +302,6 @@ class CustomOcnGridWidget(widgets.VBox):
 
         nx = cvars['OCN_NX'].value
         ny = cvars['OCN_NY'].value
-        config = cvars['OCN_GRID_CONFIG'].value
-        axis_units = cvars['OCN_AXIS_UNITS'].value
         lenx = cvars['OCN_LENX'].value
         leny = cvars['OCN_LENY'].value
         cyclic_x = cvars['OCN_CYCLIC_X'].value
@@ -397,8 +371,8 @@ class CustomOcnGridWidget(widgets.VBox):
                 f"""grd = mom6grid(
                 nx         = {nx},         # Number of grid points in x direction
                 ny         = {ny},          # Number of grid points in y direction
-                config     = "{config}", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
-                axis_units = "{axis_units}",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
+                config     = "spherical",
+                axis_units = "degrees",
                 lenx       = {lenx},        # grid length in x direction, e.g., 360.0 (degrees)
                 leny       = {leny},        # grid length in y direction
                 cyclic_x   = {cyclic_x},
