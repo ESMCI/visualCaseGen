@@ -1,0 +1,1 @@
+This subdirectory is internally used by visualCaseGen to exchange information with mom6_bathy and other tools. Manually interfering with files in this directory may disrupt any active visualCaseGen session.
