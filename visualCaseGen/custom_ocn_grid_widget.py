@@ -18,12 +18,13 @@ descr_width = '140px'
 
 class CustomOcnGridWidget(widgets.VBox):
 
-    def __init__(self,ci):
+    def __init__(self, session_id, ci):
 
         super().__init__()
         #    layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'}
         #)
 
+        self.session_id = session_id
         self.ci = ci
 
         self._cvars = [\
@@ -106,7 +107,7 @@ class CustomOcnGridWidget(widgets.VBox):
 
     def refresh_btn_launch_mom6_bathy(self, change):
 
-        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':    
+        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':
             if any([cvar.value is None and cvar.name != 'OCN_TRIPOLAR_N' for cvar in self._cvars]):
                 self.btn_launch_mom6_bathy.disabled = True
             else:

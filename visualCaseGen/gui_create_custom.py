@@ -1,6 +1,6 @@
-import re
 import logging
 import ipywidgets as widgets
+import uuid
 
 from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.init_configvars import init_configvars
@@ -17,6 +17,7 @@ logger = logging.getLogger('\t'+__name__.split('.')[-1])
 class GUI_create_custom():
 
     def __init__(self, ci):
+        self.session_id = str(uuid.uuid1())[:8]
         self.ci = ci
         ConfigVar.reset()
         init_configvars(self.ci)
@@ -123,7 +124,7 @@ class GUI_create_custom():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
-        self._custom_grid = CustomGridWidget(self.ci)
+        self._custom_grid = CustomGridWidget(self.session_id, self.ci)
 
         self._vbx_grid_inner = widgets.VBox(
             children=(cv_grid.widget, self._btn_grid_view),
