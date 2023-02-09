@@ -124,11 +124,8 @@ def relational_assertions_setter(cvars):
         When(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
             "If custom grid mode is global, the ocean grid must be reentrant in x direction.",
 
-        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
-            "If the custom grid mode is set to be regional, the grid cannot be reentrant in x direction",
-
-        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_Y)):
-            "If the custom grid mode is set to be regional, the grid cannot be reentrant in y direction",
+        When(OCN_GRID_EXTENT=="Global", Not(OCN_CYCLIC_X)):
+            "If custom grid mode is global, the ocean grid cannot be reentrant in y direction.",
 
         When(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0 ):
             "OCN grid length in X direction must be set to 360.0 when OCN grid extent is global.",
