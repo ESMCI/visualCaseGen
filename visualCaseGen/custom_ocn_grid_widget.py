@@ -18,21 +18,20 @@ descr_width = '140px'
 
 class CustomOcnGridWidget(widgets.VBox):
 
-    def __init__(self,ci):
+    def __init__(self, session_id, ci):
 
         super().__init__()
         #    layout={'padding':'15px','display':'flex','flex_flow':'column','align_items':'flex-start'}
         #)
 
+        self.session_id = session_id
         self.ci = ci
 
         self._cvars = [\
             cvars['OCN_GRID_EXTENT'],
-            cvars['OCN_GRID_CONFIG'],
             cvars['OCN_TRIPOLAR_N'],
             cvars['OCN_CYCLIC_X'],
             cvars['OCN_CYCLIC_Y'],
-            cvars['OCN_AXIS_UNITS'],
             cvars['OCN_NX'],
             cvars['OCN_NY'],
             cvars['OCN_LENX'],
@@ -61,7 +60,7 @@ class CustomOcnGridWidget(widgets.VBox):
             self.mom6_topog_in.reset()
             self.btn_launch_mom6_bathy.layout.display = 'none'
 
-        elif selection == "Modify an existing grid":
+        elif selection == "Modify existing":
 
             # reset and disable variables
             for var in self._cvars:
@@ -88,6 +87,8 @@ class CustomOcnGridWidget(widgets.VBox):
             # enable variables
             for var in self._cvars:
                 var.widget.layout.display = ''
+                if var.has_options_spec():
+                    var.refresh_options()
 
             # hide and reset mom6_supergrid_in
             self.mom6_supergrid_in.layout.display = 'none'
@@ -106,18 +107,18 @@ class CustomOcnGridWidget(widgets.VBox):
 
     def refresh_btn_launch_mom6_bathy(self, change):
 
-        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':    
+        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':
             if any([cvar.value is None and cvar.name != 'OCN_TRIPOLAR_N' for cvar in self._cvars]):
                 self.btn_launch_mom6_bathy.disabled = True
             else:
                 self.btn_launch_mom6_bathy.disabled = False
-        elif self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+        elif self.tbtn_ocn_mesh_mode.value == 'Modify existing':
             required_vars = [
                 self.mom6_supergrid_in,
                 cvars['OCN_CYCLIC_X'],
                 cvars['OCN_CYCLIC_Y'],
                 cvars['OCN_TRIPOLAR_N'],
-            ] 
+            ]
             if any([var.value is None for var in required_vars]):
                 self.btn_launch_mom6_bathy.disabled = True
             else:
@@ -157,7 +158,7 @@ class CustomOcnGridWidget(widgets.VBox):
         # From existing grid? -----------------------------
         self.tbtn_ocn_mesh_mode = widgets.ToggleButtons(
             description='Ocean mesh:',
-            options=['Start from scratch', 'Modify an existing grid'],
+            options=['Start from scratch', 'Modify existing'],
             value=None,
             layout={'width':'max-content', 'padding':'20px'}, # If the items' names are long
             disabled=False
@@ -202,16 +203,6 @@ class CustomOcnGridWidget(widgets.VBox):
         cv_ocn_grid_extent.widget.style.button_width = button_width
         cv_ocn_grid_extent.widget.style.description_width = descr_width
 
-        # OCN_GRID_CONFIG -----------------------------
-        cv_ocn_grid_config = cvars['OCN_GRID_CONFIG']
-        cv_ocn_grid_config.widget = widgets.ToggleButtons(
-            description='Grid Config:',
-            layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
-            disabled=False
-        )
-        cv_ocn_grid_config.widget.style.button_width = button_width
-        cv_ocn_grid_config.widget.style.description_width = descr_width
-
         # OCN_CYCLIC_X -----------------------------
         cv_ocn_cyclic_x = cvars['OCN_CYCLIC_X']
         cv_ocn_cyclic_x.widget = widgets.ToggleButtons(
@@ -242,16 +233,6 @@ class CustomOcnGridWidget(widgets.VBox):
         cv_ocn_tripolar_n.widget.style.button_width = button_width
         cv_ocn_tripolar_n.widget.style.description_width = descr_width
 
-        # OCN_AXIS_UNITS -----------------------------
-        cv_ocn_axis_units = cvars['OCN_AXIS_UNITS']
-        cv_ocn_axis_units.widget = widgets.ToggleButtons(
-            description='Axis Units:',
-            layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
-            disabled=False
-        )
-        cv_ocn_axis_units.widget.style.button_width = button_width
-        cv_ocn_axis_units.widget.style.description_width = descr_width
-
         # OCN_NX -----------------------------
         cv_ocn_nx = cvars['OCN_NX']
         cv_ocn_nx.widget = widgets.Text(
@@ -260,7 +241,7 @@ class CustomOcnGridWidget(widgets.VBox):
             disabled=False
         )
         cv_ocn_nx.widget.style.button_width = button_width
-        cv_ocn_nx.widget.style.description_width = '200px'
+        cv_ocn_nx.widget.style.description_width = '220px'
 
         # OCN_NY -----------------------------
         cv_ocn_ny = cvars['OCN_NY']
@@ -270,27 +251,27 @@ class CustomOcnGridWidget(widgets.VBox):
             disabled=False
         )
         cv_ocn_ny.widget.style.button_width = button_width
-        cv_ocn_ny.widget.style.description_width = '200px'
+        cv_ocn_ny.widget.style.description_width = '220px'
 
         # OCN_LENX -----------------------------
         cv_ocn_lenx = cvars['OCN_LENX']
         cv_ocn_lenx.widget = widgets.Text(
-            description='Grid length in x direction:',
+            description='Grid length in x direction (degrees):',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         cv_ocn_lenx.widget.style.button_width = button_width
-        cv_ocn_lenx.widget.style.description_width = '200px'
+        cv_ocn_lenx.widget.style.description_width = '220px'
 
         # OCN_LENY -----------------------------
         cv_ocn_leny = cvars['OCN_LENY']
         cv_ocn_leny.widget = widgets.Text(
-            description='Grid length in y direction:',
+            description='Grid length in y direction (degrees):',
             layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         cv_ocn_leny.widget.style.button_width = button_width
-        cv_ocn_leny.widget.style.description_width = '200px'
+        cv_ocn_leny.widget.style.description_width = '220px'
 
         self.btn_launch_mom6_bathy = widgets.Button(
             description = 'Launch mom6_bathy',
@@ -307,11 +288,9 @@ class CustomOcnGridWidget(widgets.VBox):
             self.mom6_supergrid_in,
             self.mom6_topog_in,
             cv_ocn_grid_extent.widget,
-            cv_ocn_grid_config.widget,
             cv_ocn_cyclic_x.widget,
             cv_ocn_cyclic_y.widget,
             cv_ocn_tripolar_n.widget,
-            cv_ocn_axis_units.widget,
             cv_ocn_nx.widget,
             cv_ocn_ny.widget,
             cv_ocn_lenx.widget,
@@ -326,8 +305,6 @@ class CustomOcnGridWidget(widgets.VBox):
 
         nx = cvars['OCN_NX'].value
         ny = cvars['OCN_NY'].value
-        config = cvars['OCN_GRID_CONFIG'].value
-        axis_units = cvars['OCN_AXIS_UNITS'].value
         lenx = cvars['OCN_LENX'].value
         leny = cvars['OCN_LENY'].value
         cyclic_x = cvars['OCN_CYCLIC_X'].value
@@ -337,7 +314,7 @@ class CustomOcnGridWidget(widgets.VBox):
         supergrid_path = self.mom6_supergrid_in.value
         topog_path = self.mom6_topog_in.value
 
-        if self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+        if self.tbtn_ocn_mesh_mode.value == 'Modify existing':
 
             from mom6_bathy.mom6grid import mom6grid
             from mom6_bathy.mom6bathy import mom6bathy
@@ -391,23 +368,24 @@ class CustomOcnGridWidget(widgets.VBox):
                 "## 2. Create horizontal grid\n"
             )]
 
-        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':    
+        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':
             nb['cells'].extend([
                 nbf.v4.new_code_cell(
                 f"""grd = mom6grid(
                 nx         = {nx},         # Number of grid points in x direction
                 ny         = {ny},          # Number of grid points in y direction
-                config     = "{config}", # Grid configuration. Valid values: 'cartesian', 'mercator', 'spherical'
-                axis_units = "{axis_units}",   # Grid axis units. Valid values: 'degrees', 'm', 'km'
+                config     = "spherical",
+                axis_units = "degrees",
                 lenx       = {lenx},        # grid length in x direction, e.g., 360.0 (degrees)
                 leny       = {leny},        # grid length in y direction
                 cyclic_x   = {cyclic_x},
                 cyclic_y   = {cyclic_y},
+                session_id   = "{self.session_id}", # do not modify
                 )
                 """
                 ),
             ])
-        elif self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+        elif self.tbtn_ocn_mesh_mode.value == 'Modify existing':
             nb['cells'].append(
                 nbf.v4.new_code_cell(
                 f"""grd = mom6grid.from_supergrid(
@@ -428,7 +406,7 @@ class CustomOcnGridWidget(widgets.VBox):
             )
         )
 
-        if topog_path is None or self.tbtn_ocn_mesh_mode.value != 'Modify an existing grid':
+        if topog_path is None or self.tbtn_ocn_mesh_mode.value != 'Modify existing':
             nb['cells'].extend([
                 nbf.v4.new_markdown_cell(
                     "***mom6_bathy*** provides several idealized bathymetry options and customization methods. "
@@ -480,21 +458,6 @@ class CustomOcnGridWidget(widgets.VBox):
                 f'bathy.to_topog(f"./ocean_topog_{{grid_name}}_{datestamp}.nc")\n\n'
                 '# Save ESMF mesh file:\n'
                 f'bathy.to_ESMF_mesh(f"./ESMF_mesh_{{grid_name}}_{datestamp}.nc")'
-            ),
-            nbf.v4.new_markdown_cell(
-                "## 5. Print MOM6 runtime parameters\n\n"
-                "The final step of creating a new MOM6 grid and bathymetry files is to determine "
-                "the relevant MOM6 runtime parameters. To do so, simply run the "
-                "`print_MOM6_runtime_params` method of bathy to print out the grid and bathymetry "
-                "related MOM6 runtime parameters."
-            ),
-            nbf.v4.new_code_cell(
-                'bathy.print_MOM6_runtime_params()'
-            ),
-            nbf.v4.new_markdown_cell(
-                "This section conludes all of the `mom6_bathy steps.` After having executed all of the "
-                "cells above, you can switch back to the visualCaseGen GUI to finalize your experiment "
-                "configuration."
             ),
         ])
 
