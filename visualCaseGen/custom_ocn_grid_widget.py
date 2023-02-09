@@ -60,7 +60,7 @@ class CustomOcnGridWidget(widgets.VBox):
             self.mom6_topog_in.reset()
             self.btn_launch_mom6_bathy.layout.display = 'none'
 
-        elif selection == "Modify an existing grid":
+        elif selection == "Modify existing":
 
             # reset and disable variables
             for var in self._cvars:
@@ -112,13 +112,13 @@ class CustomOcnGridWidget(widgets.VBox):
                 self.btn_launch_mom6_bathy.disabled = True
             else:
                 self.btn_launch_mom6_bathy.disabled = False
-        elif self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+        elif self.tbtn_ocn_mesh_mode.value == 'Modify existing':
             required_vars = [
                 self.mom6_supergrid_in,
                 cvars['OCN_CYCLIC_X'],
                 cvars['OCN_CYCLIC_Y'],
                 cvars['OCN_TRIPOLAR_N'],
-            ] 
+            ]
             if any([var.value is None for var in required_vars]):
                 self.btn_launch_mom6_bathy.disabled = True
             else:
@@ -158,7 +158,7 @@ class CustomOcnGridWidget(widgets.VBox):
         # From existing grid? -----------------------------
         self.tbtn_ocn_mesh_mode = widgets.ToggleButtons(
             description='Ocean mesh:',
-            options=['Start from scratch', 'Modify an existing grid'],
+            options=['Start from scratch', 'Modify existing'],
             value=None,
             layout={'width':'max-content', 'padding':'20px'}, # If the items' names are long
             disabled=False
@@ -314,7 +314,7 @@ class CustomOcnGridWidget(widgets.VBox):
         supergrid_path = self.mom6_supergrid_in.value
         topog_path = self.mom6_topog_in.value
 
-        if self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+        if self.tbtn_ocn_mesh_mode.value == 'Modify existing':
 
             from mom6_bathy.mom6grid import mom6grid
             from mom6_bathy.mom6bathy import mom6bathy
@@ -368,7 +368,7 @@ class CustomOcnGridWidget(widgets.VBox):
                 "## 2. Create horizontal grid\n"
             )]
 
-        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':    
+        if self.tbtn_ocn_mesh_mode.value == 'Start from scratch':
             nb['cells'].extend([
                 nbf.v4.new_code_cell(
                 f"""grd = mom6grid(
@@ -380,11 +380,12 @@ class CustomOcnGridWidget(widgets.VBox):
                 leny       = {leny},        # grid length in y direction
                 cyclic_x   = {cyclic_x},
                 cyclic_y   = {cyclic_y},
+                session_id   = "{self.session_id}", # do not modify
                 )
                 """
                 ),
             ])
-        elif self.tbtn_ocn_mesh_mode.value == 'Modify an existing grid':    
+        elif self.tbtn_ocn_mesh_mode.value == 'Modify existing':
             nb['cells'].append(
                 nbf.v4.new_code_cell(
                 f"""grd = mom6grid.from_supergrid(
@@ -405,7 +406,7 @@ class CustomOcnGridWidget(widgets.VBox):
             )
         )
 
-        if topog_path is None or self.tbtn_ocn_mesh_mode.value != 'Modify an existing grid':
+        if topog_path is None or self.tbtn_ocn_mesh_mode.value != 'Modify existing':
             nb['cells'].extend([
                 nbf.v4.new_markdown_cell(
                     "***mom6_bathy*** provides several idealized bathymetry options and customization methods. "
@@ -457,21 +458,6 @@ class CustomOcnGridWidget(widgets.VBox):
                 f'bathy.to_topog(f"./ocean_topog_{{grid_name}}_{datestamp}.nc")\n\n'
                 '# Save ESMF mesh file:\n'
                 f'bathy.to_ESMF_mesh(f"./ESMF_mesh_{{grid_name}}_{datestamp}.nc")'
-            ),
-            nbf.v4.new_markdown_cell(
-                "## 5. Print MOM6 runtime parameters\n\n"
-                "The final step of creating a new MOM6 grid and bathymetry files is to determine "
-                "the relevant MOM6 runtime parameters. To do so, simply run the "
-                "`print_MOM6_runtime_params` method of bathy to print out the grid and bathymetry "
-                "related MOM6 runtime parameters."
-            ),
-            nbf.v4.new_code_cell(
-                'bathy.print_MOM6_runtime_params()'
-            ),
-            nbf.v4.new_markdown_cell(
-                "This section conludes all of the `mom6_bathy steps.` After having executed all of the "
-                "cells above, you can switch back to the visualCaseGen GUI to finalize your experiment "
-                "configuration."
             ),
         ])
 
