@@ -151,13 +151,14 @@ class GUI_create_custom():
             # turn on the grid view button display
             self._btn_grid_view.layout.display = ''
     
-    def _grid_mode_change(self, change):
+    def _on_grid_mode_change(self, change):
 
         new_grid_mode = change['new'] # Predefined | Custom
         cv_grid = cvars['GRID']
         compset_text =  cvars["COMPSET"].value 
 
         if new_grid_mode == "Predefined":
+            self._create_case.disable()
             self._custom_grid.turn_off()
             if compset_text in [None, '']:
                 self._vbx_grid_inner.children = ()
@@ -172,11 +173,13 @@ class GUI_create_custom():
             self._vbx_grid_inner.children = (
                 self._custom_grid,
             )
+            self._create_case.enable(compset_text, "custom")
 
         else:
             raise RuntimeError(f"unknown grid mode: {new_grid_mode}")
 
-    def _update_create_case(self, change):
+    def _on_cv_grid_change(self, change):
+
         self._create_case.disable()
         new_grid = change['new']
         if new_grid and len(new_grid)>0:
@@ -202,14 +205,14 @@ class GUI_create_custom():
 
         cv_grid_mode = cvars['GRID_MODE']
         cv_grid_mode.observe(
-            self._grid_mode_change,
+            self._on_grid_mode_change,
             names = 'value',
             type = 'change'
         )
 
         cv_grid = cvars['GRID']
         cv_grid.observe(
-            self._update_create_case,
+            self._on_cv_grid_change,
             names='value',
             type='change'
         )

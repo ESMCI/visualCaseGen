@@ -29,6 +29,7 @@ class CreateCaseWidget(widgets.VBox):
             filename_placeholder='Enter case name',
             layout=widgets.Layout(width='700px', padding='10px')
         )
+        self.casepath.disable()
 
         self.machines = widgets.Dropdown(
             options=self.ci.machines,
@@ -76,20 +77,18 @@ class CreateCaseWidget(widgets.VBox):
                         ]
 
         self.casepath.observe(self._on_casepath_change)
-        self.casepath.observe(self._on_validity_change)
         self.machines.observe(self._on_machine_change)
-        self.machine_validity.observe(self._on_validity_change)
         self.dry_run.on_click(self._dry_run_method)
         self.case_create.on_click(self._case_create_method)
 
     def enable(self, compset, grid):
         self.compset = compset
         self.grid = grid
+        self.casepath.enable()
         self.output.clear_output()
 
     def disable(self, clear_output=True):
-        self.casepath.reset()
-        self.case_create.disabled = True
+        self.casepath.disable()
         self.dry_run.disabled = True
         self.machine_validity.layout.display = 'none'
         if clear_output:
@@ -111,11 +110,11 @@ class CreateCaseWidget(widgets.VBox):
                     #todo: when create case button is clicked, throw an error if no write access 
                     print(f"ERROR: no write access in {new_casedir.as_posix()}")
 
-
             if is_valid_path:
                 self.machine_validity.layout.display = ''
             else:
                 self.machine_validity.layout.display = 'none'
+            self._refresh_case_create_button()
 
 
     def _on_machine_change(self, change):
@@ -126,15 +125,15 @@ class CreateCaseWidget(widgets.VBox):
                 #todo: when create case button is clicked, throw an error if machine is not selected 
             else:
                 self.machine_validity.value = True
+            self._refresh_case_create_button()
 
-    def _on_validity_change(self, change):
-        if change['type'] == 'change' and change['name'] == 'value':
-            if self.casepath.value not in [None, '']  and self.machine_validity.value is True:
-                self.case_create.disabled = False
-                self.dry_run.disabled = False
-            else:
-                self.case_create.disabled = True
-                self.dry_run.disabled = True
+    def _refresh_case_create_button(self):
+        if self.casepath.value not in [None, '']  and self.machine_validity.value is True:
+            self.case_create.disabled = False
+            self.dry_run.disabled = False
+        else:
+            self.case_create.disabled = True
+            self.dry_run.disabled = True
 
     def _dry_run_method(self, b):
         self.output.clear_output()
