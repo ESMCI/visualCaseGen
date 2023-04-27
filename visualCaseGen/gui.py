@@ -11,7 +11,7 @@ from visualCaseGen.header_widget import HeaderWidget
 
 logger = logging.getLogger(__name__)
 
-class GUI():
+class GUI(widgets.Accordion):
 
     def construct_tab_observances(self):
         """ Construct links between tabs: (1) Preliminaries, (2) Create Case, ...
@@ -31,7 +31,7 @@ class GUI():
             )
 
             self.create_tab.children = [loadbar,]
-            self.main_dialog.selected_index=1
+            self.selected_index=1
             self.prelim_tab.config_mode.disabled = True
             self.prelim_tab.confirm_prelim_widget.disabled = True
             self.prelim_tab.reset_prelim_widget.disabled = False
@@ -104,7 +104,7 @@ class GUI():
 
 
     @owh.out.capture()
-    def display(self):
+    def __init__(self):
 
         logger.info("Displaying visualCaseGen GUI")
 
@@ -112,15 +112,13 @@ class GUI():
         self.create_tab = widgets.HBox()
         self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
 
-        self.main_dialog = widgets.Accordion(children=[
+        super().__init__(children = [
             self.prelim_tab.construct(),
             self.create_tab,
-            self.help_tab_construct()]
-        )
-        self.main_dialog.set_title(0,'Step 1: Select Mode')
-        self.main_dialog.set_title(1,'Step 2: Create Case')
-        self.main_dialog.set_title(2,'Help')
+            self.help_tab_construct()])
+
+        self.set_title(0,'Step 1: Select Mode')
+        self.set_title(1,'Step 2: Create Case')
+        self.set_title(2,'Help')
 
         self.construct_tab_observances()
-
-        return self.main_dialog
