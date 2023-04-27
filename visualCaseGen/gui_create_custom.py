@@ -4,7 +4,7 @@ import uuid
 
 from visualCaseGen.config_var import ConfigVar, cvars
 from visualCaseGen.init_configvars import init_configvars
-from visualCaseGen.dummy_widget import DummyWidget
+from visualCaseGen.sdb import SDB
 from visualCaseGen.checkbox_multi_widget import CheckboxMultiWidget
 from visualCaseGen.custom_grid_widget import CustomGridWidget
 from visualCaseGen.create_case_widget import CreateCaseWidget
@@ -18,6 +18,7 @@ class GUI_create_custom():
 
     def __init__(self, ci):
         self.session_id = str(uuid.uuid1())[:8]
+        self.sdb = SDB(self.session_id, owner=True)
         self.ci = ci
         ConfigVar.reset()
         init_configvars(self.ci)

@@ -1,12 +1,10 @@
 import logging
 import ipywidgets as widgets
-from datetime import datetime, timedelta
-import os
-import json
 
 from visualCaseGen.config_var import cvars
 from visualCaseGen.custom_ocn_grid_widget import CustomOcnGridWidget
 from visualCaseGen.custom_lnd_grid_widget import CustomLndGridWidget
+from visualCaseGen.sdb import SDB
 from visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
@@ -42,41 +40,6 @@ class CustomGridWidget(widgets.Tab):
 
         self.turn_off() # by default, the display is off.
         self.refresh_display()
-
-        self._gen_session_stat_files()
-    
-    def _gen_session_stat_files(self):
-        
-        date_str = datetime.today().strftime('%Y-%m-%d_%H:%M:%S')
-        fname_prefix = 'mbs_'
-        fname_suffix = 'json'
-
-        # mom6_bathy stat file
-        internal_dir =  os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            'internal'
-        )
-
-        # first, clean up mbs files older than a couple of days
-        files_to_remove = []
-        for filename in os.listdir(internal_dir):
-            if not (filename.startswith(fname_prefix) and filename.endswith(fname_suffix)):
-                continue
-            filepath = os.path.join(internal_dir, filename)
-            last_accessed = datetime.fromtimestamp(os.stat(filepath).st_atime)
-            if last_accessed < datetime.today() - timedelta(days=3):
-                files_to_remove.append(filepath)
-        for filepath in files_to_remove:
-            os.remove(filepath)
-            
-        # stat dict to be written to json file
-        mbs = {'created': date_str}
-
-        # write json file
-        mbs_path = os.path.join(internal_dir, f'{fname_prefix}{self.session_id}.{fname_suffix}')
-        with open(mbs_path, 'w') as mbs_file:
-            json.dump(mbs, mbs_file)
 
     def refresh_display(self, change=None):
 
