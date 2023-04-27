@@ -276,6 +276,9 @@ class CIME_interface():
     def _retrieve_machines(self):
         machs_file = self._files.get_value("MACHINES_SPEC_FILE")
         self.machine = None
+        self.cime_output_root = None
+        self.din_loc_root = None
+
         try:
             machines_obj = Machines(machs_file)
             self.machine = machines_obj.machine
@@ -291,8 +294,26 @@ class CIME_interface():
                 mach = machines_obj.get(node, "MACH")
                 self.machines.append(mach)
 
+        if self.machine is None:
+            return
+        
+        # Determine CIME_OUTPUT_ROOT (scratch space)
+        try:
+            for machine_node in machines_obj.get_children("machine"):
+                machine_name = machines_obj.get(machine_node, "MACH")
+                if machine_name == self.machine:
+                    cime_output_root = machines_obj.get_child(root=machine_node, name="CIME_OUTPUT_ROOT")
+                    cime_output_root = machines_obj.text(cime_output_root)
+                    cime_output_root = cime_output_root.replace('$USER', os.getlogin())
+                    cime_output_root = cime_output_root.replace('${USER}', os.getlogin())
+                    assert os.path.exists(cime_output_root)
+                    self.cime_output_root = cime_output_root
+                    break
+        except:
+            logger.error(f"Couldn't determine CIME_OUTPUT_ROOT for {self.machine}")
+
+
         # Determine DIN_LOC_ROOT
-        self.din_loc_root = None
         if self.machine in ['cheyenne', 'casper']:
             self.din_loc_root = '/glade/p/cesm/cseg/inputdata/'
         else:
@@ -302,6 +323,7 @@ class CIME_interface():
                     if machine_name == self.machine:
                         din_loc_root_node = machines_obj.get_child(root=machine_node, name="DIN_LOC_ROOT")
                         self.din_loc_root = machines_obj.text(din_loc_root_node)
+                        break
             except:
                 logger.error("Couldn't determine DIN_LOC_ROOT")
 
