@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import ipywidgets as widgets
 
+from ipyfilechooser import FileChooser
+
 class CreateCaseWidget(widgets.VBox):
 
     def __init__(self,ci,layout=widgets.Layout()):
@@ -13,21 +15,21 @@ class CreateCaseWidget(widgets.VBox):
         self.compset = None
         self.grid = None
         self.ci = ci
-        self._default_case_dir = Path(self.ci.cimeroot).parent.parent.as_posix()
 
-        self.casepath = widgets.Textarea(
-            value='',
-            placeholder='Type case name',
-            description='Case name:',
-            disabled=True,
-            layout=widgets.Layout(height='40px', width='590px')
+        default_case_dir = self.ci.cime_output_root
+        if default_case_dir is None:
+            default_case_dir = Path(self.ci.cimeroot).parent.parent.as_posix()
+
+        self.casepath = FileChooser(
+            path=default_case_dir,
+            filename='',
+            title='<b>Select New Case Path:</b>',
+            show_hidden=True,
+            new_only=True,
+            filename_placeholder='Enter case name',
+            layout=widgets.Layout(width='700px', padding='10px')
         )
-        self.casepath.style.description_width = '105px'
-        self.casepath_validity = widgets.Valid(
-            value=False,
-            readout="Empty casename!",
-            layout=widgets.Layout(display='none')
-            )
+
         self.machines = widgets.Dropdown(
             options=self.ci.machines,
             value=self.ci.machine,
@@ -66,98 +68,68 @@ class CreateCaseWidget(widgets.VBox):
             layout={'border': '1px solid silver'}
         )
 
-        self.children = [widgets.HBox([self.casepath, self.casepath_validity]),
+        self.children = [self.casepath,
                          widgets.HBox([self.machines, self.machine_validity]),
                          widgets.HBox([self.case_create, self.dry_run],
                                      layout= widgets.Layout(display='flex',justify_content='flex-end')),
                          self.output
                         ]
 
-        self.casepath.observe(self._on_casename_change)
+        self.casepath.observe(self._on_casepath_change)
+        self.casepath.observe(self._on_validity_change)
         self.machines.observe(self._on_machine_change)
-        self.casepath_validity.observe(self._on_validity_change)
         self.machine_validity.observe(self._on_validity_change)
         self.dry_run.on_click(self._dry_run_method)
         self.case_create.on_click(self._case_create_method)
 
     def enable(self, compset, grid):
-        self.casepath.disabled = False
-        self.casepath_validity.layout.display = ''
         self.compset = compset
         self.grid = grid
         self.output.clear_output()
 
     def disable(self, clear_output=True):
-        self.casepath.disabled = True
-        self.casepath.value = ''
+        self.casepath.reset()
         self.case_create.disabled = True
         self.dry_run.disabled = True
-        self.casepath_validity.layout.display = 'none'
         self.machine_validity.layout.display = 'none'
         if clear_output:
             self.output.clear_output()
 
-    def _on_casename_change(self, change):
+    def _on_casepath_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            new_casepath_in = change['new'].strip()
+            new_casepath_in = change['new']
+
             is_valid_path = False
 
-            if new_casepath_in == '':
-                self.casepath_validity.readout = "Empty casename!"
-            else:
-
-                # obtanin the absolute path
-                if os.path.isabs(new_casepath_in):
-                    new_casepath = Path(new_casepath_in)
-                else:
-                    new_casepath = Path(Path.home(), new_casepath_in)
-
-                # check if the parent directory is valid
+            if new_casepath_in not in [None, '']:
+                new_casepath = Path(new_casepath_in)
                 new_casedir = new_casepath.parent
-                # first check if given dir is actually an existing directory.
-                if new_casedir.is_dir() and new_casedir.as_posix() != '.':
-                    # now, check if the user has write permissions:
-                    if os.access(new_casedir.as_posix(), os.W_OK):
-                        is_valid_path = True
-                    else:
-                        self.casepath_validity.readout = 'Invalid case path'
+                # check if the user has write permissions:
+                if os.access(new_casedir.as_posix(), os.W_OK):
+                    is_valid_path = True
                 else:
-                    self.casepath_validity.readout = 'Invalid case path!'
+                    #todo: when create case button is clicked, throw an error if no write access 
+                    print(f"ERROR: no write access in {new_casedir.as_posix()}")
 
-            if is_valid_path:
-                is_valid_path = False # temporarily set to False. Will be reset to True if casename is valid.
-                if new_casepath.exists():
-                    if Path(new_casepath, 'env_case.xml').exists():
-                        self.casepath_validity.readout = 'Case exists!'
-                    else:
-                        self.casepath_validity.readout = 'Path exists!'
-                else:
-                    new_casename = new_casepath.name
-                    if bool(re.match('^[a-zA-Z0-9\.\-_%]+$', new_casename)) is False:
-                        self.casepath_validity.readout = 'Invalid case name!'
-                    else:
-                        is_valid_path = True
 
             if is_valid_path:
                 self.machine_validity.layout.display = ''
             else:
                 self.machine_validity.layout.display = 'none'
 
-            if self.casepath_validity.value != is_valid_path:
-                self.casepath_validity.value = is_valid_path
 
     def _on_machine_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
             new_machine = change['new'].strip()
             if new_machine == '':
                 self.machine_validity.value = False
-                self.casepath_validity.readout = "Select machine!"
+                #todo: when create case button is clicked, throw an error if machine is not selected 
             else:
                 self.machine_validity.value = True
 
     def _on_validity_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            if self.casepath_validity.value is True and self.machine_validity.value is True:
+            if self.casepath.value not in [None, '']  and self.machine_validity.value is True:
                 self.case_create.disabled = False
                 self.dry_run.disabled = False
             else:
