@@ -308,7 +308,7 @@ class CustomOcnGridWidget(widgets.VBox):
         lenx = cvars['OCN_LENX'].value
         leny = cvars['OCN_LENY'].value
         cyclic_x = cvars['OCN_CYCLIC_X'].value
-        cyclic_y = cvars['OCN_CYCLIC_X'].value
+        cyclic_y = cvars['OCN_CYCLIC_Y'].value
         tripolar_n = cvars['OCN_TRIPOLAR_N'].value
 
         supergrid_path = self.mom6_supergrid_in.value

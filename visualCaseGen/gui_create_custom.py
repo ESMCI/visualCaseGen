@@ -134,6 +134,7 @@ class GUI_create_custom():
 
         self._create_case = CreateCaseWidget(
             self.ci,
+            self.session_id,
             layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
         )
 

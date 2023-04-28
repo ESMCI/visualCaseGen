@@ -1,20 +1,23 @@
 import os
-import re
+import shutil
 from pathlib import Path
 import subprocess
 import ipywidgets as widgets
 
+from visualCaseGen.sdb import SDB
+from visualCaseGen.cime_interface import Case
 from ipyfilechooser import FileChooser
 
 class CreateCaseWidget(widgets.VBox):
 
-    def __init__(self,ci,layout=widgets.Layout()):
+    def __init__(self, ci, session_id=None, layout=widgets.Layout()):
 
         super().__init__(layout=layout)
 
         self.compset = None
         self.grid = None
         self.ci = ci
+        self.session_id = session_id
 
         default_case_dir = self.ci.cime_output_root
         if default_case_dir is None:
@@ -170,3 +173,75 @@ class CreateCaseWidget(widgets.VBox):
             else:
                 print(runout.stdout)
                 print("ERROR: {} ".format(runout.stderr))
+                return
+    
+        self._apply_mods(casepath)
+        
+
+    def _apply_mods(self, casepath):
+
+        if self.session_id is None:
+            return # No xmlchange or user_nl change is needed
+        d = SDB(self.session_id).get_data()
+        
+
+        # xmlchange commands
+        if "mesh_path" in d:
+            with self.output:
+                print("\n Running xmlchange commands (if any needed)...")
+                cmd = f"./xmlchange OCN_DOMAIN_MESH={d['mesh_path']}" 
+                print(cmd)
+                runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=casepath)
+                if runout.returncode == 0:
+                    print(f"\nsuccess: {runout.stdout}")
+                else:
+                    print(f"{runout.stdout}\nERROR: {runout.stderr}")
+                    return
+
+        case = Case(casepath)
+        rundir = case.get_value('RUNDIR')
+
+        # run case.setup
+        with self.output:
+            print("\n Running ./case.setup ...")
+            runout = subprocess.run('./case.setup', shell=True, capture_output=True, cwd=casepath)
+            if runout.returncode == 0:
+                print(f"\nsuccess: {runout.stdout}")
+            else:
+                print(f"{runout.stdout}\nERROR: {runout.stderr}")
+                return
+
+        # write to user_nl_mom
+        with self.output:
+            print("\n Updating user_nl_mom (if needed) ...")
+            if 'runtime_params' in d:
+                with open(os.path.join(casepath,'user_nl_mom'), 'a') as f:
+                    for key, val in d['runtime_params'].items():
+                        f.write(f"{key} = {val}\n")
+
+
+
+        # copy input files
+        if "supergrid_path" in d:
+            assert "topog_path" in d, "Cannot find MOM6 topo file directory while attempting to modify the case"
+            assert "runtime_params" in d, "Cannot find MOM6 the necessary MOM6 runtime input params while attempting to modify the case"
+
+            with self.output:
+                print("\n Copying input files...")
+
+            try:
+                inputdir = os.path.join(rundir, d['runtime_params']['INPUTDIR'])
+                if not os.path.exists(inputdir):
+                    os.mkdir(inputdir)
+            
+                shutil.copy(d['supergrid_path'], inputdir)
+                shutil.copy(d['topog_path'], inputdir)
+            except:
+                with self.output:
+                    print("ERROR: encountered error while attempting to copy input files. exiting...")
+            
+
+        with self.output:
+            print("done.")
+
+

@@ -17,6 +17,7 @@ from CIME.XML.files                 import Files
 from CIME.XML.component             import Component
 from CIME.XML.compsets              import Compsets
 from CIME.XML.grids                 import Grids
+from CIME.case.case                 import Case
 
 logger = logging.getLogger(__name__)
 

@@ -55,7 +55,7 @@ class SDB():
             json.dump(d, f)
     
 
-    def append(self, d_new):
+    def update(self, d_new):
 
         # first read the original data
         d = self.get_data()
