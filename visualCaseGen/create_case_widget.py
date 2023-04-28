@@ -100,20 +100,7 @@ class CreateCaseWidget(widgets.VBox):
     def _on_casepath_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
             new_casepath_in = change['new']
-
-            is_valid_path = False
-
             if new_casepath_in not in [None, '']:
-                new_casepath = Path(new_casepath_in)
-                new_casedir = new_casepath.parent
-                # check if the user has write permissions:
-                if os.access(new_casedir.as_posix(), os.W_OK):
-                    is_valid_path = True
-                else:
-                    #todo: when create case button is clicked, throw an error if no write access 
-                    print(f"ERROR: no write access in {new_casedir.as_posix()}")
-
-            if is_valid_path:
                 self.machine_validity.layout.display = ''
             else:
                 self.machine_validity.layout.display = 'none'
@@ -125,7 +112,6 @@ class CreateCaseWidget(widgets.VBox):
             new_machine = change['new'].strip()
             if new_machine == '':
                 self.machine_validity.value = False
-                #todo: when create case button is clicked, throw an error if machine is not selected 
             else:
                 self.machine_validity.value = True
             self._refresh_case_create_button()
@@ -157,6 +143,29 @@ class CreateCaseWidget(widgets.VBox):
         casepath = Path(self.casepath.value)
         if not casepath.is_absolute():
             casepath = Path(Path.home(), self.casepath.value)
+
+        # Make sure all MOM6 custom grid files are generated (if MOM6 is active and in custom grid mode)
+        if self.session_id is not None:
+
+            if 'MOM6' in self.compset and self.grid == 'custom':
+                d = SDB(self.session_id).get_data()
+                if any([entry not in d for entry in ['mesh_path', 'supergrid_path', 'topog_path', 'runtime_params']]):
+                    with self.output:
+                        print("ERROR: MOM6 custom grid has not been constructed yet. Make sure all mom6_bathy steps are completed.")
+                        return
+            
+        # check if machine is selected
+        if self.machines.value in [None, '']:
+            with self.output:
+                print("ERROR: machine is invalid")
+                return
+
+        # check if user has write access
+        if not os.access(casepath.parent.as_posix(), os.W_OK):
+            with self.output:
+                print(f"ERROR: no write access in {casepath.parent.as_posix()}")
+                return
+
         with self.output:
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
             self.ci.cimeroot,
