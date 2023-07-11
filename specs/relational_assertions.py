@@ -121,6 +121,9 @@ def relational_assertions_setter(cvars):
         Implies(COMP_WAV!="swav", OCN_GRID_EXTENT=="Global"):
             "A regional ocean model cannot be coupled with a wave component.",
 
+        Implies(COMP_WAV!="sice", OCN_GRID_EXTENT=="Global"):
+            "A regional ocean model cannot be coupled with an ice component.",
+
         When(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
             "If custom grid mode is global, the ocean grid must be reentrant in x direction.",
 
