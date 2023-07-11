@@ -4,7 +4,6 @@ import ipywidgets as widgets
 from visualCaseGen.config_var import cvars
 from visualCaseGen.custom_ocn_grid_widget import CustomOcnGridWidget
 from visualCaseGen.custom_lnd_grid_widget import CustomLndGridWidget
-from visualCaseGen.sdb import SDB
 from visualCaseGen.OutHandler import handler as owh
 
 logger = logging.getLogger(__name__)
