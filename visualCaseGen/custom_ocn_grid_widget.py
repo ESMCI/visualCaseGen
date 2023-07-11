@@ -310,6 +310,7 @@ class CustomOcnGridWidget(widgets.VBox):
         cyclic_x = cvars['OCN_CYCLIC_X'].value
         cyclic_y = cvars['OCN_CYCLIC_Y'].value
         tripolar_n = cvars['OCN_TRIPOLAR_N'].value
+        comp_ice = cvars['COMP_ICE'].value
 
         supergrid_path = self.mom6_supergrid_in.value
         topog_path = self.mom6_topog_in.value
@@ -445,20 +446,31 @@ class CustomOcnGridWidget(widgets.VBox):
                 "%matplotlib ipympl\n"
                 "from mom6_bathy.depth_modifier import DepthModifier\n"
                 "DepthModifier(bathy)"
-            ),
+            )
+        ])
+
+        save_code_str = \
+            '# First, specify a unique name for your new grid, e.g.:\n'\
+            f'grid_name = "{grid_name}"\n\n'\
+            '# Save MOM6 supergrid file:\n'\
+            f'grd.to_netcdf(supergrid_path = f"./ocean_grid_{{grid_name}}_{datestamp}.nc")\n\n'\
+            '# Save MOM6 topography file:\n'\
+            f'bathy.to_topog(f"./ocean_topog_{{grid_name}}_{datestamp}.nc")\n\n'
+
+        if "cice" in comp_ice:
+            save_code_str += \
+                '# Save CICE grid file:\n'\
+                f'bathy.to_cice_grid(f"./domain.{{grid_name}}_{datestamp}.nc")\n\n'
+
+        save_code_str += \
+           '# Save ESMF mesh file:\n'\
+           f'bathy.to_ESMF_mesh(f"./ESMF_mesh_{{grid_name}}_{datestamp}.nc")'
+
+        nb['cells'].extend([
             nbf.v4.new_markdown_cell(
                 "## 4. Save the grid and bathymetry files"
             ),
-            nbf.v4.new_code_cell(
-                '# First, specify a unique name for your new grid, e.g.:\n'
-                f'grid_name = "{grid_name}"\n\n'
-                '# Save MOM6 supergrid file:\n'
-                f'grd.to_netcdf(supergrid_path = f"./ocean_grid_{{grid_name}}_{datestamp}.nc")\n\n'
-                '# Save MOM6 topography file:\n'
-                f'bathy.to_topog(f"./ocean_topog_{{grid_name}}_{datestamp}.nc")\n\n'
-                '# Save ESMF mesh file:\n'
-                f'bathy.to_ESMF_mesh(f"./ESMF_mesh_{{grid_name}}_{datestamp}.nc")'
-            ),
+            nbf.v4.new_code_cell(save_code_str)
         ])
 
         nb_filename = f'mom6_bathy_notebook_{datetime.now().strftime("%Y%m%d_%H%M%S")}.ipynb'

@@ -44,25 +44,15 @@ class CustomGridWidget(widgets.Tab):
 
         ocn = cvars['COMP_OCN'].value
         lnd = cvars['COMP_LND'].value
+        ice = cvars['COMP_ICE'].value
 
-        # first determine how to align items
-        if ocn is None or lnd is None:
+        # determine if ready to turn on custom grid dialog:
+        if any([comp is None for comp in [ocn, lnd, ice]]):
             self.layout.align_items = 'center'
-        else:
-            self.layout.align_items = None
+            self.children = [widgets.Label("(All of the following components must be set before configuring the custom grid: OCN, LND, ICE)")]
 
-        # now, determine what items to display
-        if ocn is None and lnd is None:
-            self.children = [widgets.Label("(Custom grid dialogs will appear here after both the OCN and LND components are determined.)")]
-        elif ocn is None:
-            self.children = [widgets.Label("(Custom grid dialogs will be displayed here after the OCN component is determined.)")]
-        elif lnd is None:
-            self.children = [widgets.Label("(Custom grid dialogs will be displayed here after the LND component is determined.)")]
-        else: # both ocean and lnd is determined.
-
-            self._custom_ocn_grid.reset_vars()
+        else: # ocn, lnd, and ice are set by the user.
             self._custom_lnd_grid.reset_vars()
-
             tabs = []
 
             # construct the ocean grid section layout
@@ -89,6 +79,13 @@ class CustomGridWidget(widgets.Tab):
 
         cv_comp_lnd = cvars['COMP_LND']
         cv_comp_lnd.observe(
+            self.refresh_display,
+            names='value',
+            type='change'
+        )
+
+        cv_comp_ice = cvars['COMP_ICE']
+        cv_comp_ice.observe(
             self.refresh_display,
             names='value',
             type='change'
