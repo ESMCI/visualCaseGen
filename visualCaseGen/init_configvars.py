@@ -37,7 +37,6 @@ def init_configvars(ci, predefined_mode=False):
     ### Custom ocean grid variables
     ConfigVarStr('OCN_GRID_EXTENT') # 'Regional' | 'Global'
     ConfigVarBool('OCN_CYCLIC_X')
-    ConfigVarBool('OCN_CYCLIC_Y')
     ConfigVarBool('OCN_TRIPOLAR_N')
     ConfigVarInt('OCN_NX')
     ConfigVarInt('OCN_NY')

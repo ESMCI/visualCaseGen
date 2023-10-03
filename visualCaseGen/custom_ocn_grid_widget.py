@@ -31,7 +31,6 @@ class CustomOcnGridWidget(widgets.VBox):
             cvars['OCN_GRID_EXTENT'],
             cvars['OCN_TRIPOLAR_N'],
             cvars['OCN_CYCLIC_X'],
-            cvars['OCN_CYCLIC_Y'],
             cvars['OCN_NX'],
             cvars['OCN_NY'],
             cvars['OCN_LENX'],
@@ -77,8 +76,6 @@ class CustomOcnGridWidget(widgets.VBox):
             # display other required configs:
             cyclic_x = cvars['OCN_CYCLIC_X']
             cyclic_x.widget.layout.display = ''
-            cyclic_y = cvars['OCN_CYCLIC_Y']
-            cyclic_y.widget.layout.display = ''
             tripolar_n = cvars['OCN_TRIPOLAR_N']
             tripolar_n.widget.layout.display = ''
 
@@ -116,7 +113,6 @@ class CustomOcnGridWidget(widgets.VBox):
             required_vars = [
                 self.mom6_supergrid_in,
                 cvars['OCN_CYCLIC_X'],
-                cvars['OCN_CYCLIC_Y'],
                 cvars['OCN_TRIPOLAR_N'],
             ]
             if any([var.value is None for var in required_vars]):
@@ -213,16 +209,6 @@ class CustomOcnGridWidget(widgets.VBox):
         cv_ocn_cyclic_x.widget.style.button_width = button_width
         cv_ocn_cyclic_x.widget.style.description_width = descr_width
 
-        # OCN_CYCLIC_Y -----------------------------
-        cv_ocn_cyclic_y = cvars['OCN_CYCLIC_Y']
-        cv_ocn_cyclic_y.widget = widgets.ToggleButtons(
-            description='Meridionally reentrant?',
-            layout={'display':'none', 'width': 'max-content'}, # If the items' names are long
-            disabled=False
-        )
-        cv_ocn_cyclic_y.widget.style.button_width = button_width
-        cv_ocn_cyclic_y.widget.style.description_width = descr_width
-
         # OCN_TRIPOLAR_N -----------------------------
         cv_ocn_tripolar_n = cvars['OCN_TRIPOLAR_N']
         cv_ocn_tripolar_n.widget = widgets.ToggleButtons(
@@ -289,7 +275,6 @@ class CustomOcnGridWidget(widgets.VBox):
             self.mom6_topog_in,
             cv_ocn_grid_extent.widget,
             cv_ocn_cyclic_x.widget,
-            cv_ocn_cyclic_y.widget,
             cv_ocn_tripolar_n.widget,
             cv_ocn_nx.widget,
             cv_ocn_ny.widget,
@@ -308,7 +293,6 @@ class CustomOcnGridWidget(widgets.VBox):
         lenx = cvars['OCN_LENX'].value
         leny = cvars['OCN_LENY'].value
         cyclic_x = cvars['OCN_CYCLIC_X'].value
-        cyclic_y = cvars['OCN_CYCLIC_Y'].value
         tripolar_n = cvars['OCN_TRIPOLAR_N'].value
         comp_ice = cvars['COMP_ICE'].value
 
@@ -380,7 +364,7 @@ class CustomOcnGridWidget(widgets.VBox):
                 lenx       = {lenx},        # grid length in x direction, e.g., 360.0 (degrees)
                 leny       = {leny},        # grid length in y direction
                 cyclic_x   = {cyclic_x},
-                cyclic_y   = {cyclic_y},
+                cyclic_y   = False,
                 session_id   = "{self.session_id}", # do not modify
                 )
                 """
@@ -392,7 +376,7 @@ class CustomOcnGridWidget(widgets.VBox):
                 f"""grd = mom6grid.from_supergrid(
                 "{supergrid_path}",
                 cyclic_x   = {cyclic_x},
-                cyclic_y   = {cyclic_y},
+                cyclic_y   = False,
                 tripolar_n   = {tripolar_n},
                 )
                 """

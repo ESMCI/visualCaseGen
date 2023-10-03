@@ -19,7 +19,7 @@ def relational_assertions_setter(cvars):
     GRID_MODE = cvars['GRID_MODE']
     OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
-    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']; OCN_CYCLIC_Y = cvars['OCN_CYCLIC_Y'];
+    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
     LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']; LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']
     LND_STD_ELEV = cvars['LND_STD_ELEV']
 
@@ -121,20 +121,20 @@ def relational_assertions_setter(cvars):
         Implies(COMP_WAV!="swav", OCN_GRID_EXTENT=="Global"):
             "A regional ocean model cannot be coupled with a wave component.",
 
-        Implies(COMP_WAV!="sice", OCN_GRID_EXTENT=="Global"):
+        Implies(COMP_ICE!="sice", OCN_GRID_EXTENT=="Global"):
             "A regional ocean model cannot be coupled with an ice component.",
 
         When(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X):
             "If custom grid mode is global, the ocean grid must be reentrant in x direction.",
-
-        When(OCN_GRID_EXTENT=="Global", Not(OCN_CYCLIC_Y)):
-            "If custom grid mode is global, the ocean grid cannot be reentrant in y direction.",
 
         When(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0 ):
             "OCN grid length in X direction must be set to 360.0 when OCN grid extent is global.",
 
         When(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
             "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+
+        When(OCN_GRID_EXTENT=="Regional", Not(OCN_CYCLIC_X)):
+            "When a custom regional grid is selected, ocn domain cannot be reentrant (due to an ESMF limitation.)",
 
         # Relational assertions for custom lnd grid settings -----------------------------
 
