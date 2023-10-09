@@ -2,6 +2,8 @@ import os
 import sys
 import re
 import logging
+import socket
+import getpass
 from collections import namedtuple
 from pathlib import Path
 
@@ -280,53 +282,54 @@ class CIME_interface():
         self.cime_output_root = None
         self.din_loc_root = None
 
-        try:
-            machines_obj = Machines(machs_file)
-            self.machine = machines_obj.machine
-            self.machines = machines_obj.list_available_machines()
-        except:
-            # CIME couldn't determine the machine. Set machine to None and manually determine the list of machines
+        # casper jupyter hub patch
+        fqdn = socket.getfqdn()
+        if fqdn.startswith('crhtc') and fqdn.endswith('hpc.ucar.edu'):
+            self.machine = "casper"
+
+        machines_obj = Machines(machs_file, machine=self.machine)
+        self.machine = machines_obj.get_machine_name()
+
+        if self.machine is None:
+            #todo: this is unreachable because get_machine_name call above throws
+            # an error if machine is not found. also unsure how returning early
+            # from this this method impacts the rest of visualCaseGen, so thoroughly
+            # assess this method before enabling this if-branch and returning early.
             machines_obj = GenericXML(machs_file)
-            self.machine = None
-            # list_available_machines
             self.machines = []
             nodes  = machines_obj.get_children("machine")
             for node in nodes:
                 mach = machines_obj.get(node, "MACH")
                 self.machines.append(mach)
-
-        if self.machine is None:
             return
-        
+        else:
+            self.machines = machines_obj.list_available_machines()
+
         # Determine CIME_OUTPUT_ROOT (scratch space)
-        try:
-            for machine_node in machines_obj.get_children("machine"):
-                machine_name = machines_obj.get(machine_node, "MACH")
-                if machine_name == self.machine:
-                    cime_output_root = machines_obj.get_child(root=machine_node, name="CIME_OUTPUT_ROOT")
-                    cime_output_root = machines_obj.text(cime_output_root)
-                    cime_output_root = cime_output_root.replace('$USER', os.getlogin())
-                    cime_output_root = cime_output_root.replace('${USER}', os.getlogin())
-                    assert os.path.exists(cime_output_root)
-                    self.cime_output_root = cime_output_root
-                    break
-        except:
+        cime_output_root = None
+        for machine_node in machines_obj.get_children("machine"):
+            machine_name = machines_obj.get(machine_node, "MACH")
+            if machine_name == self.machine:
+                cime_output_root = machines_obj.get_child(root=machine_node, name="CIME_OUTPUT_ROOT")
+                cime_output_root = machines_obj.text(cime_output_root)
+                cime_output_root = self.expand_env_vars(cime_output_root)
+                assert os.path.exists(cime_output_root)
+                self.cime_output_root = cime_output_root
+                break
+        if cime_output_root is None:
             logger.error(f"Couldn't determine CIME_OUTPUT_ROOT for {self.machine}")
 
 
         # Determine DIN_LOC_ROOT
-        if self.machine in ['cheyenne', 'casper']:
-            self.din_loc_root = '/glade/p/cesm/cseg/inputdata/'
-        else:
-            try:
-                for machine_node in machines_obj.get_children("machine"):
-                    machine_name = machines_obj.get(machine_node, "MACH")
-                    if machine_name == self.machine:
-                        din_loc_root_node = machines_obj.get_child(root=machine_node, name="DIN_LOC_ROOT")
-                        self.din_loc_root = machines_obj.text(din_loc_root_node)
-                        break
-            except:
-                logger.error("Couldn't determine DIN_LOC_ROOT")
+        self.din_loc_root = None
+        for machine_node in machines_obj.get_children("machine"):
+            machine_name = machines_obj.get(machine_node, "MACH")
+            if machine_name == self.machine:
+                din_loc_root_node = machines_obj.get_child(root=machine_node, name="DIN_LOC_ROOT")
+                self.din_loc_root = machines_obj.text(din_loc_root_node)
+                self.din_loc_root = self.expand_env_vars(self.din_loc_root)
+        if self.din_loc_root is None:
+            logger.error("Couldn't determine DIN_LOC_ROOT")
 
     def _retrieve_clm_fsurdat(self):
         clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
@@ -358,3 +361,29 @@ class CIME_interface():
             mesh_file = mesh_file.replace('$DIN_LOC_ROOT', self.din_loc_root)
 
         return mesh_file
+    
+    def expand_env_vars(self, expr):
+        """Given an expression (of type string) read from a CIME xml file, 
+        attempt to expand encountered environment variables."""
+
+        # first, attempt to expand any env vars:
+        regex = r"\$ENV\{\w+\}"
+        matches = re.findall(regex, expr)
+        for match in matches:
+            var = match[5:-1]
+            val = os.getenv(var) 
+            if val is not None:
+                expr = expr.replace(match, val)
+
+        try:
+            user = os.getlogin()
+        except OSError:
+            user = getpass.getuser()
+
+        # now, attempt to expand any occurences of $USER or ${USER}
+        regex = r"\$USER\b"
+        expr = re.sub(regex, user, expr)
+        regex = r"\$\{USER\}"
+        expr = re.sub(regex, user, expr)
+
+        return expr
