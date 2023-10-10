@@ -139,8 +139,9 @@ class GUI_create_custom():
         )
 
 
-    def _update_grid_view_button(self, change):
+    def _on_compset_change(self, change):
         new_compset = change['new']
+        self.sdb.update({'compset':new_compset})
         if new_compset == "" or new_compset is None:
             self._btn_grid_view.layout.display = 'none'
         else:
@@ -199,7 +200,7 @@ class GUI_create_custom():
 
         cv_compset = cvars["COMPSET"] 
         cv_compset.observe(
-            self._update_grid_view_button,
+            self._on_compset_change,
             names='value',
             type='change'
         )

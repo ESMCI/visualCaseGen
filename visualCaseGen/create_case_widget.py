@@ -216,14 +216,29 @@ class CreateCaseWidget(widgets.VBox):
         # write to user_nl_mom
         with self.output:
             if 'mom6_params' in d:
+                mom6_params = d['mom6_params']
+                mom6_params['GRID_FILE'] = os.path.split(d['supergrid_path'])[1]  
+                mom6_params['TOPO_FILE'] = os.path.split(d['topog_path'])[1]
+
                 print("\nAdd parameters to user_nl_mom ...\n")
                 if do_exec:
                     with open(os.path.join(casepath,'user_nl_mom'), 'a') as f:
-                        for key, val in d['mom6_params'].items():
+                        for key, val in mom6_params.items():
                             f.write(f"{key} = {val}\n")
-                for key, val in d['mom6_params'].items():
+                for key, val in mom6_params.items():
                     print(f"  {key} = {val}")
 
+
+        # write to user_nl_cice
+        with self.output:
+            if 'cice_params' in d:
+                print("\nAdd parameters to user_nl_cice ...\n")
+                if do_exec:
+                    with open(os.path.join(casepath,'user_nl_cice'), 'a') as f:
+                        for key, val in d['cice_params'].items():
+                            f.write(f'{key} = "{val}"\n')
+                for key, val in d['cice_params'].items():
+                    print(f'  {key} = "{val}"')
 
         # copy input files
         if "supergrid_path" in d:

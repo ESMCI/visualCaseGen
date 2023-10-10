@@ -444,7 +444,7 @@ class CustomOcnGridWidget(widgets.VBox):
         if "cice" in comp_ice:
             save_code_str += \
                 '# Save CICE grid file:\n'\
-                f'bathy.to_cice_grid(f"./domain.{{grid_name}}_{datestamp}.nc")\n\n'
+                f'bathy.to_cice_grid(f"./cice_grid.{{grid_name}}_{datestamp}.nc")\n\n'
 
         save_code_str += \
            '# Save ESMF mesh file:\n'\
