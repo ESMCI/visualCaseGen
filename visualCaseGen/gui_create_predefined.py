@@ -119,6 +119,10 @@ class GUI_create_predefined():
             self.ci,
             layout=widgets.Layout(width='800px', border='1px solid silver', padding='10px')
         )
+    
+    def _on_scientific_only_change(self, b):
+        self._update_compsets(b)
+        self._filter_grids(b)
 
     def _update_compsets(self, b):
 
@@ -132,7 +136,7 @@ class GUI_create_predefined():
             # add scientifically supported compsets only
             for component in self.ci.compsets:
                 for compset in self.ci.compsets[component]:
-                    if len(compset.sci_supported_grids)>0:
+                    if len(self.ci.sci_supported_grids[compset.alias])>0:
                         self._available_compsets.append(compset)
         else:
             # add all compsets regardless of support level
@@ -190,6 +194,21 @@ class GUI_create_predefined():
             self.compset_desc_widget.value = '{} Cannot find any compsets with the above filters/keywords.'.\
                 format(chr(int("2757",base=16)))
 
+    def _filter_grids(self, b):
+        """If scientific only option is chosen, list only scientifically supported grids"""
+
+        if self.scientific_only_widget.value is True:
+            cv_compset = cvars['COMPSET']
+            if isinstance(cv_compset.value, str) and ':' in cv_compset.value:
+                filtered_opts = self.ci.sci_supported_grids.get(cv_compset.value.split(':')[0]) 
+                if filtered_opts is not None:
+                    cv_grid = cvars['GRID']
+                    cv_grid.options = filtered_opts
+    
+    def _on_compset_change(self, change):
+        self._filter_grids(change)
+        self._update_grid_view_button( change)
+
     def _update_grid_view_button(self, change):
         new_compset = change['new']
         cv_grid = cvars['GRID']
@@ -223,6 +242,7 @@ class GUI_create_predefined():
             self._btn_grid_view.description = 'show suggested grids'
             self._btn_grid_view.icon = 'chevron-up'
         else:
+            self._filter_grids(None) # filter grids in case scientifically supported configs requested.
             self._btn_grid_view.description = 'show all grids'
             self._btn_grid_view.icon = 'chevron-down'
 
@@ -237,13 +257,13 @@ class GUI_create_predefined():
     def _construct_all_widget_observances(self):
 
         self.scientific_only_widget.observe(
-            self._update_compsets,
+            self._on_scientific_only_change,
             names='value'
         )
 
         cv_compset = cvars['COMPSET']
         cv_compset.observe(
-            self._update_grid_view_button,
+            self._on_compset_change,
             names='value',
             type='change'
         )

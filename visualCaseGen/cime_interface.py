@@ -23,7 +23,7 @@ from CIME.case.case                 import Case
 
 logger = logging.getLogger(__name__)
 
-Compset = namedtuple('Compset', ['alias', 'lname', 'sci_supported_grids'])
+Compset = namedtuple('Compset', ['alias', 'lname'])
 
 class CIME_interface():
     """CIME_interface class is an interface from visualCaseGen to conventional CIME.
@@ -247,18 +247,26 @@ class CIME_interface():
     def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         # todo: implement atmlev and lndnlev
         grid_long_name = self._grids_obj._read_config_grids(grid_alias, compset, atmnlev, lndnlev)
-        component_grids = {}
-        for comp_grid in grid_long_name.split('_'):
-            p_ix = comp_grid.index('%')
-            comp_id = comp_grid[:p_ix+1]
-            grid_name = comp_grid[p_ix+1:]
-            component_grids[comp_id] = grid_name
+        component_grids = {} # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
+
+        delimiters = re.findall('[a-z]+%', grid_long_name) # e.g., ['a%', 'oi%', ...]
+        ixbegin = [None] * len(delimiters)
+        ixend = [None] * len(delimiters)
+        for i, delimiter in enumerate(delimiters):
+            ix = grid_long_name.index(delimiter) 
+            ixbegin[i] = ix + len(delimiter)
+            ixend[i-1] = ix - 1
+        grid_long_name += ' ' # add a padding (for the last comp grid section)
+        for i, delimiter in enumerate(delimiters):
+            component_grids[delimiter] = grid_long_name[ixbegin[i] : ixend[i]]
+
         return component_grids # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
 
 
     def _retrieve_compsets(self):
         cc = self._files.get_components("COMPSETS_SPEC_FILE")
 
+        self.sci_supported_grids = {}
         for component in cc:
             compsets_filename = self._files.get_value("COMPSETS_SPEC_FILE", {"component":component})
 
@@ -268,13 +276,13 @@ class CIME_interface():
                 c = Compsets(compsets_filename)
                 compsets_xml = c.get_children("compset")
                 for compset in compsets_xml:
-                    sci_supported_grids = []
                     alias  = c.text(c.get_child("alias", root=compset))
                     lname  = c.text(c.get_child("lname", root=compset))
                     science_support_nodes = c.get_children("science_support", root=compset)
+                    self.sci_supported_grids[alias] = []
                     for snode in science_support_nodes:
-                        sci_supported_grids.append(c.get(snode,"grid"))
-                    self.compsets[component].append(Compset(alias,lname, sci_supported_grids))
+                        self.sci_supported_grids[alias].append(c.get(snode,"grid"))
+                    self.compsets[component].append(Compset(alias,lname))
 
     def _retrieve_machines(self):
         machs_file = self._files.get_value("MACHINES_SPEC_FILE")
