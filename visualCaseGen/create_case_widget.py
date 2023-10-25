@@ -50,6 +50,13 @@ class CreateCaseWidget(widgets.VBox):
             )
         self.machine_validity.layout.visibility = 'visible' if self.ci.machine is None else 'hidden'
 
+        self.project = widgets.Text(
+            description = 'Project ID:',
+            value = os.getenv('PROJECT') or ''
+        )
+        self.project.style.description_width = '105px'
+        self.project.layout.visibility = 'visible' if (self.ci.machine is not None and self.ci.project_required[self.ci.machine] == True) else 'hidden'
+
         self.case_create =  widgets.Button(
             description='Create new case',
             disabled=True,
@@ -74,6 +81,7 @@ class CreateCaseWidget(widgets.VBox):
 
         self.children = [self.casepath,
                          widgets.HBox([self.machines, self.machine_validity]),
+                         self.project,
                          widgets.HBox([self.case_create, self.dry_run],
                                      layout= widgets.Layout(display='flex',justify_content='flex-end')),
                          self.output
@@ -81,6 +89,7 @@ class CreateCaseWidget(widgets.VBox):
 
         self.casepath.observe(self._on_casepath_change)
         self.machines.observe(self._on_machine_change)
+        self.project.observe(self._on_project_change)
         self.dry_run.on_click(self._dry_run_method)
         self.case_create.on_click(self._case_create_method)
 
@@ -115,9 +124,29 @@ class CreateCaseWidget(widgets.VBox):
             else:
                 self.machine_validity.value = True
             self._refresh_case_create_button()
+        
+            # also update project dialog
+            self.project.value = ''
+            self.project.layout.visibility = 'visible' if (new_machine is not None and self.ci.project_required[new_machine] == True) else 'hidden'
+
+    def _on_project_change(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            self._refresh_case_create_button()
 
     def _refresh_case_create_button(self):
-        if self.casepath.value not in [None, '']  and self.machine_validity.value is True:
+
+        def _ready_to_create():
+            if self.casepath.value in [None, '']:
+                return False
+            if self.machine_validity.value is False:
+                return False
+            if self.machines.value in [None, '']:
+                return False 
+            if self.ci.project_required[self.machines.value] and self.project.value == '':
+                return False
+            return True 
+
+        if _ready_to_create():
             self.case_create.disabled = False
             self.dry_run.disabled = False
         else:
@@ -143,12 +172,6 @@ class CreateCaseWidget(widgets.VBox):
                         print("ERROR: MOM6 custom grid has not been constructed yet. Make sure all mom6_bathy steps are completed.")
                         return
             
-        # check if machine is selected
-        if self.machines.value in [None, '']:
-            with self.output:
-                print("ERROR: machine is invalid")
-                return
-
         # check if user has write access
         if not os.access(casepath.parent.as_posix(), os.W_OK):
             with self.output:
@@ -157,11 +180,15 @@ class CreateCaseWidget(widgets.VBox):
 
         with self.output:
             cmd = "{}/scripts/create_newcase --res {} --compset {} --case {} --machine {} --run-unsupported".format(
-            self.ci.cimeroot,
-            self.grid,
-            self.compset,
-            casepath,
-            self.machines.value)
+                self.ci.cimeroot,
+                self.grid,
+                self.compset,
+                casepath,
+                self.machines.value)
+            
+            if self.project.value != '':
+                cmd += f' --project {self.project.value}'
+
             print("Run create case command...\n")
             print(f"  > {cmd}")
             if do_exec:

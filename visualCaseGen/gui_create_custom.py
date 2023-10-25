@@ -63,7 +63,7 @@ class GUI_create_custom():
             cv_comp = cvars['COMP_{}'.format(comp_class)]
             cv_comp.widget = widgets.ToggleButtons(
                     description=comp_class+':',
-                    layout=widgets.Layout(width='105px', max_height='120px'),
+                    layout=widgets.Layout(width='105px', max_height='145px'),
                     disabled=False,
                 )
             cv_comp.widget.style.button_width = '85px'

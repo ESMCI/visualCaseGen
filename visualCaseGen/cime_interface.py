@@ -281,6 +281,7 @@ class CIME_interface():
         self.machine = None
         self.cime_output_root = None
         self.din_loc_root = None
+        self.project_required = {}
 
         # casper jupyter hub patch
         fqdn = socket.getfqdn()
@@ -289,47 +290,40 @@ class CIME_interface():
 
         machines_obj = Machines(machs_file, machine=self.machine)
         self.machine = machines_obj.get_machine_name()
+        self.machines = machines_obj.list_available_machines()
 
-        if self.machine is None:
-            #todo: this is unreachable because get_machine_name call above throws
-            # an error if machine is not found. also unsure how returning early
-            # from this this method impacts the rest of visualCaseGen, so thoroughly
-            # assess this method before enabling this if-branch and returning early.
-            machines_obj = GenericXML(machs_file)
-            self.machines = []
-            nodes  = machines_obj.get_children("machine")
-            for node in nodes:
-                mach = machines_obj.get(node, "MACH")
-                self.machines.append(mach)
-            return
-        else:
-            self.machines = machines_obj.list_available_machines()
-
-        # Determine CIME_OUTPUT_ROOT (scratch space)
-        cime_output_root = None
         for machine_node in machines_obj.get_children("machine"):
             machine_name = machines_obj.get(machine_node, "MACH")
             if machine_name == self.machine:
-                cime_output_root = machines_obj.get_child(root=machine_node, name="CIME_OUTPUT_ROOT")
-                cime_output_root = machines_obj.text(cime_output_root)
-                cime_output_root = self.expand_env_vars(cime_output_root)
-                assert os.path.exists(cime_output_root)
-                self.cime_output_root = cime_output_root
-                break
-        if cime_output_root is None:
-            logger.error(f"Couldn't determine CIME_OUTPUT_ROOT for {self.machine}")
 
+                # Determine CIME_OUTPUT_ROOT (scratch space)
+                cime_output_root_node = machines_obj.get_child(root=machine_node, name="CIME_OUTPUT_ROOT")
+                self.cime_output_root = machines_obj.text(cime_output_root_node)
+                self.cime_output_root = self.expand_env_vars(self.cime_output_root)
+                if self.cime_output_root is None:
+                    logger.error(f"Couldn't determine CIME_OUTPUT_ROOT for {self.machine}")
+                if not os.path.exists(self.cime_output_root):
+                    logger.error(f"CIME_OUTPUT_ROOT doesn't exist: {self.cime_output_root}")
 
-        # Determine DIN_LOC_ROOT
-        self.din_loc_root = None
-        for machine_node in machines_obj.get_children("machine"):
-            machine_name = machines_obj.get(machine_node, "MACH")
-            if machine_name == self.machine:
+                # Determine DIN_LOC_ROOT
                 din_loc_root_node = machines_obj.get_child(root=machine_node, name="DIN_LOC_ROOT")
                 self.din_loc_root = machines_obj.text(din_loc_root_node)
                 self.din_loc_root = self.expand_env_vars(self.din_loc_root)
-        if self.din_loc_root is None:
-            logger.error("Couldn't determine DIN_LOC_ROOT")
+                if self.din_loc_root is None:
+                    logger.error(f"Couldn't determine DIN_LOC_ROOT for {self.machine}")
+                if not os.path.exists(self.din_loc_root):
+                    logger.error(f"DIN_LOC_ROOT doesn't exist: {self.din_loc_root}")
+
+                break
+
+        # Is a PROJECT variable required by this machine?
+        for machine_node in machines_obj.get_children("machine"):
+            machine_name = machines_obj.get(machine_node, "MACH")
+            try:
+                project_required_node = machines_obj.get_child(root=machine_node, name="PROJECT_REQUIRED") 
+                self.project_required[machine_name] = machines_obj.text(project_required_node).lower() == "true"
+            except:
+                self.project_required[machine_name] = False
 
     def _retrieve_clm_fsurdat(self):
         clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
