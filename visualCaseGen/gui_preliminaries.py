@@ -7,35 +7,13 @@ class GUI_preliminaries():
 
     def __init__(self):
 
-        self.config_mode = widgets.ToggleButtons(
-            options=['Predefined', 'Build Custom'],
-            tooltips=['Select from configurations predefined within CESM.',
-                      'Allows maximum flexibility. For advanced users and breakthrough applications.'],
-            value="Build Custom",
-            #description='mode:',
-            disabled=False,
-            layout = {'height':'60px','left':'-10px'}
+        self.btn_predefined = widgets.Button(
+            description = 'Predefined',
+            tooltip = 'Select from configurations predefined within CESM.'
         )
-        self.config_mode.style.button_width='160px'
-        self.config_mode.style.description_width = '0px'
-        self.config_mode.style.font_weight = 'bold'
-
-        self.confirm_prelim_widget = widgets.Button(
-            description='Confirm',
-            disabled=False,
-            button_style='', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Confirm',
-            icon='check',
-            layout = {'width':'100px'},
-        )
-
-        self.reset_prelim_widget = widgets.Button(
-            description='Reset',
-            disabled=True,
-            button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Reset',
-            icon='undo',
-            layout = {'width':'100px'},
+        self.btn_custom = widgets.Button(
+            description = 'Custom',
+            tooltip = 'Allows maximum flexibility. For advanced users and breakthrough applications.'
         )
 
     def construct(self):
@@ -44,12 +22,13 @@ class GUI_preliminaries():
             widgets.HTML(value="""
                 <p style='text-align:center;font-size:140%'><b><i>Welcome to visualCaseGen!</i></b></p>
                 <p style='text-align:center'>
-                Select your desired configuration mode and hit <b>Confirm</b> to start creating your CESM case.</p>
-            """, layout={'left':'-10px'}),
-            widgets.VBox([self.config_mode], layout={'display':'flex','align_items':'center', 'margin':'10px'}),
+                Select your desired configuration mode below to start creating your CESM case. <br>
+                <b>Predefined</b>: Select from predefined CESM component sets and grids. <br>
+                <b>Custom</b>: Create custom component sets and grids.<br></p>
+            """, layout={'left':'-10px', 'top':'20px'}),
             widgets.VBox([
-                widgets.HBox([self.confirm_prelim_widget, self.reset_prelim_widget])],
-                layout={'align_items':'flex-end'})
+                widgets.HBox([self.btn_predefined, self.btn_custom])],
+                layout={'display':'flex','align_items':'center', 'margin':'30px'}),
         ])
         #hbx_basics.layout.border = '2px dotted lightgray'
 

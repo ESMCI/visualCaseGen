@@ -1,7 +1,6 @@
 import logging
 import ipywidgets as widgets
 
-from visualCaseGen.OutHandler import *
 from visualCaseGen.OutHandler import handler as owh
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.gui_create_custom import GUI_create_custom
@@ -11,49 +10,113 @@ from visualCaseGen.header_widget import HeaderWidget
 
 logger = logging.getLogger(__name__)
 
-class GUI(widgets.Accordion):
+class GUI(widgets.VBox):
 
-    def construct_tab_observances(self):
-        """ Construct links between tabs: (1) Preliminaries, (2) Create Case, ...
-        """
+    @owh.out.capture()
+    def on_mode_selection(self, b):
+        """This is called when either Predefined or Custom mode is selected."""
 
-        @owh.out.capture()
-        def confirm_prelim_clicked(b):
+        loadbar = widgets.FloatProgress(
+            value=0.0,
+            min=0,
+            max=10.0,
+            description='Loading',
+            bar_style='info',
+            style={'bar_color': '#00ff00'},
+            orientation='horizontal'
+        )
 
-            loadbar = widgets.FloatProgress(
-                value=0.0,
-                min=0,
-                max=10.0,
-                description='Loading',
-                bar_style='info',
-                style={'bar_color': '#00ff00'},
-                orientation='horizontal'
-            )
+        self.children = [loadbar,]
 
-            self.create_tab.children = [loadbar,]
-            self.selected_index=1
-            self.prelim_tab.config_mode.disabled = True
-            self.prelim_tab.confirm_prelim_widget.disabled = True
-            self.prelim_tab.reset_prelim_widget.disabled = False
+        ci = CIME_interface("nuopc", loadbar)
+        if b.description == "Predefined":
+            self.header.value = "<p style='font-size:120%'><b><font color='dimgrey'>{}</b></p>".format("visualCaseGen - Predefined Mode")
+            self.create_case_dialog = [self.menubar, GUI_create_predefined(ci).construct(),]
+        elif b.description == "Custom":
+            self.header.value = "<p style='font-size:120%'><b><font color='dimgrey'>{}</b></p>".format("visualCaseGen - Custom Mode")
+            self.create_case_dialog = [self.menubar, GUI_create_custom(ci).construct(),]
+        
+        self.children = self.create_case_dialog
 
-            config_mode = self.prelim_tab.config_mode.value
+    def on_reset_click(self, b):
+        """Called when the reset button is clicked"""
+        self.children = [self.welcome_dialog.construct(),]
 
-            if config_mode=='Predefined':
-                ci = CIME_interface("nuopc", loadbar)
-                self.create_tab.children = (GUI_create_predefined(ci).construct(),)
-            elif config_mode=='Build Custom':
-                ci = CIME_interface("nuopc", loadbar)
-                self.create_tab.children = (GUI_create_custom(ci).construct(),)
-        self.prelim_tab.confirm_prelim_widget.on_click(confirm_prelim_clicked)
+    def on_help_click(self, b):
+        self.children = [
+            widgets.HBox([HeaderWidget(value='Help'), self.btn_return]
+                ,layout={'display':'flex', 'justify_content':'space-between'}),
+            self.help_description,
+            widgets.HBox([self.verbose_widget, self.btn_clear_log]
+                ,layout={'display':'flex', 'justify_content':'flex-end'}),
+            owh.out
+        ]
+    
+    def on_return_click(self, b):
+        if self.create_case_dialog is not None:
+            self.children = self.create_case_dialog
+        else:
+            self.children = [self.welcome_dialog.construct(),] 
 
-        def reset_prelim_clicked(b):
-            self.prelim_tab.config_mode.disabled = False
-            self.prelim_tab.confirm_prelim_widget.disabled = False
-            self.prelim_tab.reset_prelim_widget.disabled = True
-            self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
-        self.prelim_tab.reset_prelim_widget.on_click(reset_prelim_clicked)
+    @owh.out.capture()
+    def on_verbose_change(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            new_verbose = change['new']
+            owh.out.clear_output()
+            if new_verbose=='On (slow)':
+                logger.info("Verbose Mode On")
+                logging.getLogger().setLevel(logging.DEBUG)
+            elif new_verbose=='Off':
+                logger.info("Verbose Mode Off")
+                logging.getLogger().setLevel(logging.INFO)
 
-    def help_tab_construct(self):
+    def clear_log(self, b):
+        owh.out.clear_output()
+
+    def construct_observances(self):
+        self.welcome_dialog.btn_predefined.on_click(self.on_mode_selection)
+        self.welcome_dialog.btn_custom.on_click(self.on_mode_selection)
+        self.btn_reset.on_click(self.on_reset_click)
+        self.btn_help.on_click(self.on_help_click)
+        self.btn_return.on_click(self.on_return_click)
+        self.verbose_widget.observe(self.on_verbose_change)
+        self.btn_clear_log.on_click(self.clear_log)
+
+
+    def init_menubar_widgets(self):
+
+        self.header = widgets.HTML('<b>visualCaseGen</b>')
+
+        self.btn_help = widgets.Button(
+            description='Help',
+            button_style='info',
+            icon='bug',
+            layout = {'width':'100px'},
+        )
+
+        self.btn_reset = widgets.Button(
+            description='Reset',
+            button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
+            tooltip='Reset',
+            icon='undo',
+            layout = {'width':'100px'},
+        )
+
+        self.menubar = widgets.HBox([
+                self.header,
+                widgets.HBox([self.btn_help, self.btn_reset,])
+        ], layout={'display':'flex', 'justify_content':'space-between'})
+    
+    def init_help_dialog_widgets(self):
+
+        self.btn_return = widgets.Button(
+            description='Return',
+            disabled=False,
+            button_style='danger',
+            icon='chevron-left',
+            layout = {'width':'100px'}
+        ) 
+
         self.verbose_widget = widgets.Dropdown(
             options=['On (slow)', 'Off'],
             tooltips=['Turn on the verbose GUI logging. This significantly slows down the GUI.',
@@ -64,9 +127,8 @@ class GUI(widgets.Accordion):
             disabled=False
         )
         self.verbose_widget.style.description_width = '150px'
-        self.verbose_widget.observe(self.on_verbose_change)
 
-        self.clear_log_button = widgets.Button(
+        self.btn_clear_log = widgets.Button(
             description='Clear Log',
             disabled=False,
             button_style='warning',
@@ -74,51 +136,23 @@ class GUI(widgets.Accordion):
             layout = {'width':'100px'}
         )
 
-        def clear_log(b):
-            handler.out.clear_output()
-        self.clear_log_button.on_click(clear_log)
-
-        return widgets.VBox([
-            widgets.Label("To report a bug or to request help:"),
-            widgets.Label(" (1) Turn on verbose logging below and start over."),
-            widgets.Label(" (2) Repeat the steps that led to the error."),
-            widgets.Label(" (3) Send the description of the eror with the generated log below to: altuntas@ucar.edu"),
-            HeaderWidget("Logs:"),
-            widgets.VBox([
-                widgets.HBox([self.verbose_widget, self.clear_log_button])]
-                ,layout={'align_items':'flex-end'}),
-            handler.out
-        ])
-
-    @owh.out.capture()
-    def on_verbose_change(self, change):
-        if change['type'] == 'change' and change['name'] == 'value':
-            new_verbose = change['new']
-            handler.out.clear_output()
-            if new_verbose=='On (slow)':
-                logger.info("Verbose Mode On")
-                logging.getLogger().setLevel(logging.DEBUG)
-            elif new_verbose=='Off':
-                logger.info("Verbose Mode Off")
-                logging.getLogger().setLevel(logging.INFO)
-
+        self.help_description = widgets.HTML(value = """
+        For bug reporting or assistance requests, please send an email to altuntas@ucar.edu<br>
+        with a description of the error or issue and include the log messages provided below.
+            """
+        )
 
     @owh.out.capture()
     def __init__(self):
 
         logger.info("Displaying visualCaseGen GUI")
 
-        self.prelim_tab = GUI_preliminaries()
-        self.create_tab = widgets.HBox()
-        self.create_tab.children = (widgets.Label("Confirm preliminaries first."),)
+        self.welcome_dialog = GUI_preliminaries()
+        self.create_case_dialog = None
+        self.init_menubar_widgets()
+        self.init_help_dialog_widgets()
 
-        super().__init__(children = [
-            self.prelim_tab.construct(),
-            self.create_tab,
-            self.help_tab_construct()])
+        super().__init__(children = [self.welcome_dialog.construct()], 
+                         layout={'border':'1px solid lightgray', 'width':'830px', 'padding':'10px'})
 
-        self.set_title(0,'Step 1: Select Mode')
-        self.set_title(1,'Step 2: Create Case')
-        self.set_title(2,'Help')
-
-        self.construct_tab_observances()
+        self.construct_observances()

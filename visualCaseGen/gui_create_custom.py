@@ -51,11 +51,11 @@ class GUI_create_custom():
         cv_inittime = cvars['INITTIME']
         cv_inittime.widget = widgets.ToggleButtons(
             description='Initialization Time:',
-            layout={'width': 'max-content'}, # If the items' names are long
+            layout={'width': 'max-content', 'padding':'15px', 'bottom':'-15px'}, # If the items' names are long
             disabled=False
         )
         cv_inittime.widget.style.button_width='50px'
-        cv_inittime.widget.style.description_width = '140px'
+        cv_inittime.widget.style.description_width = '120px'
 
         for comp_class in self.ci.comp_classes:
 
