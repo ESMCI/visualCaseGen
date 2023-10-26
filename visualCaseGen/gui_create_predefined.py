@@ -71,7 +71,7 @@ class GUI_create_predefined():
             cv_comp_filter.widget = widgets.ToggleButtons(
                 description=comp_class,
                 disabled=False,
-                layout=widgets.Layout(width='105px', max_height='150px')
+                layout=widgets.Layout(width='105px', max_height='170px')
             )
             cv_comp_filter.widget.style.button_width = '85px'
             cv_comp_filter.widget.style.description_width = '0px'
@@ -304,7 +304,7 @@ class GUI_create_predefined():
             self.keywords_widget,
             cvars['COMPSET']._widget,
             self.compset_desc_widget],
-                layout = {'border':'1px solid silver', 'overflow': 'hidden', 'height':'310px'}
+                layout = {'border':'1px solid silver', 'overflow': 'hidden', 'height':'330px'}
         )
 
         vbx_grids = widgets.VBox([
