@@ -6,6 +6,7 @@ import ipywidgets as widgets
 
 from visualCaseGen.sdb import SDB
 from visualCaseGen.cime_interface import Case
+from visualCaseGen.config_var import cvars
 from ipyfilechooser import FileChooser
 
 class CreateCaseWidget(widgets.VBox):
@@ -165,6 +166,13 @@ class CreateCaseWidget(widgets.VBox):
         # Make sure all MOM6 custom grid files are generated (if MOM6 is active and in custom grid mode)
         if self.session_id is not None:
 
+            if self.grid == 'custom' and cvars['COMP_ATM'].value in ['cam', 'datm']:
+                custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value 
+                if custom_atm_grid is None:
+                    with self.output:
+                        print("ERROR: ATM custom grid has not been selected yet. Make sure all custom grid selections are made.")
+                        return
+
             if 'MOM6' in self.compset and self.grid == 'custom':
                 d = SDB(self.session_id).get_data()
                 if any([entry not in d for entry in ['mesh_path', 'supergrid_path', 'topog_path', 'mom6_params']]):
@@ -211,21 +219,31 @@ class CreateCaseWidget(widgets.VBox):
             return # No xmlchange or user_nl change is needed
         d = SDB(self.session_id).get_data()
         
+        def exec_xmlchange(var, new_val):
+            cmd = f"./xmlchange {var}={new_val}"
+            print(f'  > {cmd}')
+            if do_exec:
+                runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=casepath)
+                if runout.returncode == 0:
+                    pass
+                else:
+                    print(f"{runout.stdout}\nERROR: {runout.stderr}")
+                    return
 
         # xmlchange commands
         with self.output:
-          if 'xmlchanges' in d and len(d['xmlchanges'])>0:
-            print("\nApply xml changes...\n")
-            for var, new_val in d['xmlchanges'].items():
-                cmd = f"./xmlchange {var}={new_val}"
-                print(f'  > {cmd}')
-                if do_exec:
-                    runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=casepath)
-                    if runout.returncode == 0:
-                        pass
-                    else:
-                        print(f"{runout.stdout}\nERROR: {runout.stderr}")
-                        return
+            # first, apply xmlchanges from the SDB
+            if 'xmlchanges' in d and len(d['xmlchanges'])>0:
+                print("\nApply xml changes...\n")
+                for var, new_val in d['xmlchanges'].items():
+                    exec_xmlchange(var, new_val)
+            # also, apply xmlchange for the custom ATM grid, if specified
+            if self.grid == 'custom' and cvars['COMP_ATM'].value in ['cam', 'datm']:
+                custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value 
+                if custom_atm_grid is not None:
+                    mesh_filepath = self.ci.get_mesh_filepath(custom_atm_grid)
+                    exec_xmlchange('ATM_GRID', custom_atm_grid)
+                    exec_xmlchange('ATM_DOMAIN_MESH', mesh_filepath)
 
         # run case.setup
         with self.output:

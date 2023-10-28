@@ -17,6 +17,7 @@ def relational_assertions_setter(cvars):
     WAV_GRID = cvars['WAV_GRID']
     GRID = cvars['GRID']
     GRID_MODE = cvars['GRID_MODE']
+    CUSTOM_ATM_GRID = cvars['CUSTOM_ATM_GRID']
     OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
     OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
@@ -103,6 +104,14 @@ def relational_assertions_setter(cvars):
 
         When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
+
+        # Relational assertions for custom atm grid settings -----------------------------
+
+        When(Not(Contains(COMP_ATM_OPTION, "SCAM")), CUSTOM_ATM_GRID != "T42"):
+            "T42 custom grid can only be used with SCAM option.",
+
+        When(COMP_ATM == "cam", Not(Contains(CUSTOM_ATM_GRID,"T"))):
+            "CAM cannot be run with T?? grids",
 
         # Relational assertions for mom6_bathy settings -----------------------------
 

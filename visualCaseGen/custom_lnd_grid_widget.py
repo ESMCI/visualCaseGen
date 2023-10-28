@@ -770,7 +770,7 @@ class CustomLndGridWidget(widgets.VBox):
         children = []
 
         if comp_lnd == "clm":
-            self.title = "CLM Grid"
+            self.title = "CLM Grid..."
 
             children.append(
                 widgets.HTML(

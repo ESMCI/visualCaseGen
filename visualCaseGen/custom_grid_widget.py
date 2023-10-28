@@ -2,6 +2,7 @@ import logging
 import ipywidgets as widgets
 
 from visualCaseGen.config_var import cvars
+from visualCaseGen.custom_atm_grid_widget import CustomAtmGridWidget
 from visualCaseGen.custom_ocn_grid_widget import CustomOcnGridWidget
 from visualCaseGen.custom_lnd_grid_widget import CustomLndGridWidget
 from visualCaseGen.OutHandler import handler as owh
@@ -29,6 +30,7 @@ class CustomGridWidget(widgets.Tab):
             "customize and complete the grids.</p>"
         )
 
+        self._custom_atm_grid= CustomAtmGridWidget(self.ci)
         self._custom_ocn_grid= CustomOcnGridWidget(session_id, self.ci)
         self._custom_lnd_grid= CustomLndGridWidget(self.ci)
 
@@ -42,20 +44,24 @@ class CustomGridWidget(widgets.Tab):
 
     def refresh_display(self, change=None):
 
+        atm = cvars['COMP_ATM'].value
         ocn = cvars['COMP_OCN'].value
         lnd = cvars['COMP_LND'].value
         ice = cvars['COMP_ICE'].value
 
         # determine if ready to turn on custom grid dialog:
-        if any([comp is None for comp in [ocn, lnd, ice]]):
+        if any([comp is None for comp in [atm, ocn, lnd, ice]]):
             self.layout.align_items = 'center'
-            self.children = [widgets.Label("(All of the following components must be set before configuring the custom grid: OCN, LND, ICE)")]
+            self.children = [widgets.Label("(All of the following components must be set before configuring the custom grid: ATM, OCN, LND, ICE)")]
 
-        else: # ocn, lnd, and ice are set by the user.
+        else: # atm, ocn, lnd, and ice are set by the user.
             self._custom_lnd_grid.reset_vars()
             tabs = []
 
-            # construct the ocean grid section layout
+            if atm in ["cam", "datm"]:
+                self._custom_atm_grid.construct()
+                tabs.append((self._custom_atm_grid.title, self._custom_atm_grid))
+            
             if ocn == "mom":
                 self._custom_ocn_grid.construct()
                 tabs.append((self._custom_ocn_grid.title, self._custom_ocn_grid))
@@ -69,6 +75,13 @@ class CustomGridWidget(widgets.Tab):
                 self.set_title(i,tab[0])
 
     def construct_observances(self):
+
+        cv_comp_atm = cvars['COMP_ATM']
+        cv_comp_atm.observe(
+            self.refresh_display,
+            names='value',
+            type='change'
+        )
 
         cv_comp_ocn = cvars['COMP_OCN']
         cv_comp_ocn.observe(
@@ -93,6 +106,7 @@ class CustomGridWidget(widgets.Tab):
 
     def turn_off(self):
         self.layout.display = 'none'
+        self._custom_atm_grid.reset_vars()
         self._custom_ocn_grid.reset_vars()
         self._custom_lnd_grid.reset_vars()
 

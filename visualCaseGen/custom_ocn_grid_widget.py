@@ -501,7 +501,7 @@ class CustomOcnGridWidget(widgets.VBox):
         comp_ocn = cvars['COMP_OCN'].value
 
         if comp_ocn == "mom":
-            self.title = "MOM6 Grid"
+            self.title = "MOM6 Grid..."
             self.children = self._mom6_widgets
         else:
             self.title = "ERROR"

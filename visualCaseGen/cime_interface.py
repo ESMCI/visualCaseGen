@@ -58,6 +58,8 @@ class CIME_interface():
         self.model_grids = dict()       # model grids (alias, compset, not_compset)
         self.compsets = dict()          # compsets defined at each component
         self._files = None
+        self._grids_obj = None
+        self.din_loc_root = None
         self.cimeroot = CIMEROOT
         self.srcroot = (Path(self.cimeroot).parent).as_posix()
 
@@ -243,24 +245,48 @@ class CIME_interface():
                 comp_name = self._grids_obj.get(grid_node, "name")
                 value = self._grids_obj.text(grid_node)
                 self.component_grids[comp_name].add(value)
+        
+    def get_mesh_filepath(self, domain_name):
 
-    def retrieve_component_grids(self, grid_alias, compset, atmnlev=None, lndnlev=None):
+        if self._grids_obj is None:
+            logger.error("In CIME interface module, get_mesh_filepath called before grids_obj is initialized.") 
+        if self.din_loc_root is None:
+            logger.error("In CIME interface module, get_mesh_filepath called before DIN_LOC_ROOT is retrieved.") 
+
+        domain_node = self._grids_obj.get_optional_child(
+            "domain",
+            attributes = {"name": domain_name},
+            root = self._grids_obj.get_child("domains"))
+        mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node) 
+        if len(mesh_nodes)>1:
+            logger.warning(f"Multiples mesh files encountered for the {domain_name} domain.")
+
+        mesh_filepath = self._grids_obj.text(mesh_nodes[0]) 
+        mesh_filepath = mesh_filepath.\
+            replace('$DIN_LOC_ROOT',self.din_loc_root).\
+            replace('${DIN_LOC_ROOT}',self.din_loc_root)
+
+        return mesh_filepath
+
+    def get_grid_lname_parts(self, grid_alias, compset, atmnlev=None, lndnlev=None):
+        """Returns a dictionary of parts of grid long name for a grid whose alias is provided as the function arg."""
+
         # todo: implement atmlev and lndnlev
-        grid_long_name = self._grids_obj._read_config_grids(grid_alias, compset, atmnlev, lndnlev)
-        component_grids = {} # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
+        grid_lname = self._grids_obj._read_config_grids(grid_alias, compset, atmnlev, lndnlev)
+        grid_lname_parts = {} # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
 
-        delimiters = re.findall('[a-z]+%', grid_long_name) # e.g., ['a%', 'oi%', ...]
+        delimiters = re.findall('[a-z]+%', grid_lname) # e.g., ['a%', 'oi%', ...]
         ixbegin = [None] * len(delimiters)
         ixend = [None] * len(delimiters)
         for i, delimiter in enumerate(delimiters):
-            ix = grid_long_name.index(delimiter) 
+            ix = grid_lname.index(delimiter) 
             ixbegin[i] = ix + len(delimiter)
             ixend[i-1] = ix - 1
-        grid_long_name += ' ' # add a padding (for the last comp grid section)
+        grid_lname += ' ' # add a padding (for the last comp grid section)
         for i, delimiter in enumerate(delimiters):
-            component_grids[delimiter] = grid_long_name[ixbegin[i] : ixend[i]]
+            grid_lname_parts[delimiter] = grid_lname[ixbegin[i] : ixend[i]]
 
-        return component_grids # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
+        return grid_lname_parts # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
 
 
     def _retrieve_compsets(self):

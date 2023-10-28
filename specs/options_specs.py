@@ -303,32 +303,32 @@ def get_options_specs(cvars, ci):
             if GRID.view_mode == "suggested" and desc == "":
                 continue
 
-            comp_grid_dict = ci.retrieve_component_grids(alias, compset)
+            grid_lname_parts = ci.get_grid_lname_parts(alias, compset)
 
             try:
                 cvars["ATM_GRID"].major_layer.check_assignment(
-                    cvars["ATM_GRID"], comp_grid_dict["a%"]
+                    cvars["ATM_GRID"], grid_lname_parts["a%"]
                 )
                 cvars["LND_GRID"].major_layer.check_assignment(
-                    cvars["LND_GRID"], comp_grid_dict["l%"]
+                    cvars["LND_GRID"], grid_lname_parts["l%"]
                 )
                 cvars["OCN_GRID"].major_layer.check_assignment(
-                    cvars["OCN_GRID"], comp_grid_dict["oi%"]
+                    cvars["OCN_GRID"], grid_lname_parts["oi%"]
                 )
                 cvars["ICE_GRID"].major_layer.check_assignment(
-                    cvars["ICE_GRID"], comp_grid_dict["oi%"]
+                    cvars["ICE_GRID"], grid_lname_parts["oi%"]
                 )
                 cvars["ROF_GRID"].major_layer.check_assignment(
-                    cvars["ROF_GRID"], comp_grid_dict["r%"]
+                    cvars["ROF_GRID"], grid_lname_parts["r%"]
                 )
                 cvars["GLC_GRID"].major_layer.check_assignment(
-                    cvars["GLC_GRID"], comp_grid_dict["g%"]
+                    cvars["GLC_GRID"], grid_lname_parts["g%"]
                 )
                 cvars["WAV_GRID"].major_layer.check_assignment(
-                    cvars["WAV_GRID"], comp_grid_dict["w%"]
+                    cvars["WAV_GRID"], grid_lname_parts["w%"]
                 )
                 cvars["MASK_GRID"].major_layer.check_assignment(
-                    cvars["MASK_GRID"], comp_grid_dict["m%"]
+                    cvars["MASK_GRID"], grid_lname_parts["m%"]
                 )
             except AssertionError:
                 continue
@@ -374,5 +374,15 @@ def get_options_specs(cvars, ci):
         options_and_tooltips=(
             ['Regional', 'Global'],
             ['Regional', 'Global'],
+        ),
+    )
+
+    # INITTIME
+    CUSTOM_ATM_GRID = cvars["CUSTOM_ATM_GRID"]
+    OptionsSpec(
+        var=CUSTOM_ATM_GRID,
+        options_and_tooltips=(
+            ["T42", "T62", "TL319", "0.9x1.25", "1.9x2.5", "4x5", "ne30np4"],
+            ["T42 Gaussian grid", "T62 Gaussian Grid", "JRA55 datm grid", "FV 2-deg grid", "FV 1-deg grid", "FV 4-deg grid", "Spectral Elem 1-deg grid"],
         ),
     )
