@@ -153,8 +153,8 @@ log_opts_specs.txt
 #vim
 *.swp
 
-# some temporary notebooks
-prototype.ipynb
-sandbox.ipynb
+# internal session data base files
+internal/sdb_*.json
 
-internal/mbs_*.json
+# netcdf files
+*.nc
