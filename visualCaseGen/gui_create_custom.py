@@ -147,11 +147,19 @@ class GUI_create_custom():
         else:
             # everytime the compset changes, reset the grid view mode to 'suggested'
             cv_grid = cvars['GRID']
+            cv_grid_mode = cvars['GRID_MODE']
             cv_grid.view_mode = 'suggested'
             self._btn_grid_view.description = 'show all grids'
             self._btn_grid_view.icon = 'chevron-down'
             # turn on the grid view button display
             self._btn_grid_view.layout.display = ''
+            if cv_grid_mode.value == "Custom":
+                self._create_case.disable()
+                self._create_case.enable(new_compset, "custom")
+            elif cv_grid.value is not None and len(cv_grid.value)>0:
+                self._create_case.disable()
+                self._create_case.enable(new_compset, cv_grid.value)
+
     
     def _on_grid_mode_change(self, change):
 
