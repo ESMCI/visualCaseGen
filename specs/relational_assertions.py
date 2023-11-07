@@ -102,16 +102,13 @@ def relational_assertions_setter(cvars):
         When(COMP_OCN!="mom", WAV_GRID != "wtx0.66v1"):
             "wt066v1 wave grid is for MOM6 coupling only",
 
-        When(Not(Contains(COMP_ATM_OPTION, "SCAM")), ATM_GRID != "T42"):
+        When(COMP_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
 
         # Relational assertions for custom atm grid settings -----------------------------
 
-        When(Not(Contains(COMP_ATM_OPTION, "SCAM")), CUSTOM_ATM_GRID != "T42"):
+        When(COMP_ATM_OPTION != "SCAM", CUSTOM_ATM_GRID != "T42"):
             "T42 custom grid can only be used with SCAM option.",
-
-        When(COMP_ATM == "cam", Not(Contains(CUSTOM_ATM_GRID,"T"))):
-            "CAM cannot be run with T?? grids",
 
         # Relational assertions for mom6_bathy settings -----------------------------
 
