@@ -785,15 +785,14 @@ class CustomLndGridWidget(widgets.VBox):
 
                 children.append(
                     widgets.HTML(
-                        value=" <b>mesh_mask_modifier</b><br>"
-                            "No active ocean component is selected, so the "
-                            "mesh_mask_modifier tool must be utilized. Fill in the "
-                            "below fields to configure the mesh_mask modifier tool. "
-                            "Note that the input mask mesh will be auto-filled to a "
-                            "default mesh path (if found), but the land mask file is user-generated "
-                            "and so its path must be provided by the user. Lat/Lon variable "
-                            "and dimension names should correspond to what is found in the "
-                            "land mask file."
+                        value=""" <b>mesh_mask_modifier</b><br>
+                            No active ocean component is selected, so the mesh_mask_modifier tool must be utilized. Fill in the 
+                            below fields to configure the mesh_mask modifier tool. Note that the input mask mesh will be 
+                            auto-filled to a default mesh path (if found), but the land mask file is user-generated and so its
+                            path must be provided by the user. Lat/Lon variable and dimension names should correspond to what is 
+                            found in the land mask file. See the following link for instructions for how to find a default land mask:
+                            <a href="https://www.cesm.ucar.edu/models/simple/coupled/land" target="_blank" rel="noreferrer noopener"><u>https://www.cesm.ucar.edu/models/simple/coupled/land</u></a> <br>
+                            """
                     )
                 )
 

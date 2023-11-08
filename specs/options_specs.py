@@ -382,7 +382,7 @@ def get_options_specs(cvars, ci):
     OptionsSpec(
         var=CUSTOM_ATM_GRID,
         options_and_tooltips=(
-            ["T62", "TL319", "0.9x1.25", "1.9x2.5", "4x5", "ne30np4"],
-            ["T62 Gaussian Grid", "JRA55 datm grid", "FV 2-deg grid", "FV 1-deg grid", "FV 4-deg grid", "Spectral Elem 1-deg grid"],
+            ["T62", "TL319", "0.9x1.25", "1.9x2.5", "4x5", "ne30np4", "ne60np4", "ne120np4"],
+            ["T62 Gaussian Grid", "JRA55 datm grid", "FV 1-deg grid", "FV 2-deg grid", "FV 4-deg grid", "Spectral Elem 1/2-deg grid", "Spectral Elem 1/4-deg grid"],
         ),
     )
