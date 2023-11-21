@@ -263,15 +263,6 @@ class TestParamGen(unittest.TestCase):
         self.assertIn("DOCN", COMP_OCN_PHYS.options)
         self.assertIn("DOM", COMP_OCN_OPTION.options)
 
-        COMP_OCN.value = 'docn'
-        COMP_OCN.value = 'socn'
-        COMP_OCN.value = 'docn'
-
-        # make sure that dependent variable override feature works by setting COMP_ICE to CICE,
-        # which should change the value of COMP_OCN_OPTION implicitly due to a preconditioned relation.
-        self.assertEqual(COMP_OCN_OPTION.value, "DOM")
-        COMP_ICE.value = 'cice'
-        self.assertEqual(COMP_OCN_OPTION.value, "SOM")
 
     def test_F_gui_custom_random(self):
         """Test GUI (custom mode) by randomly assigning component values many times"""
@@ -378,12 +369,34 @@ class TestParamGen(unittest.TestCase):
         get_options_specs(cvars, ci)
         OptionsSpec.write_all_options_specs(cvars, 'log_opts_specs.txt')
 
+
+    def test_I_dependent_var_override(self):
+        """Check dependent variable override feature"""
+        if 'I' in tests_to_skip:
+            return
+
+        GUI_create_custom(ci).construct()
+
+        COMP_ATM = cvars['COMP_ATM']
+        COMP_ATM_PHYS = cvars['COMP_ATM_PHYS']
+        COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
+        COMP_OCN = cvars['COMP_OCN']
+
+        # make sure that dependent variable override feature works by setting COMP_OCN to mom,
+        # which should change the value of COMP_ATM_OPTION implicitly due to a preconditioned relation.
+        COMP_ATM.value = 'cam'
+        COMP_ATM_PHYS.value = 'Specialized'
+        COMP_ATM_OPTION.value = 'ADIAB'
+        self.assertEqual(COMP_ATM_OPTION.value, "ADIAB")
+        COMP_OCN.value = 'mom'
+        self.assertEqual(COMP_ATM_OPTION.value, "(none)")
+
 if __name__ == '__main__':
     tests_to_skip = ''
     if args.chg is True:
         tests_to_skip = 'ABCDEFH'
     if args.t is not None:
         assert len(args.t)>0
-        tests_to_skip = ''.join([c for c in 'ABCDEFGH' if c not in args.t])
+        tests_to_skip = ''.join([c for c in 'ABCDEFGHI' if c not in args.t])
     logging.getLogger().setLevel(logging.ERROR)
     unittest.main(argv=['-q'])

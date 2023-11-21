@@ -53,9 +53,6 @@ def relational_assertions_setter(cvars):
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
 
-        Implies(COMP_OCN_OPTION=="SOM", COMP_ICE_OPTION!="PRES") :
-           "TODO: remove this relation. Added for testing the logic module.",
-
         Implies(In(COMP_OCN, ["mom", "pop"]), COMP_ATM!="satm") :
             "If the ocean component is active, then the atmosphere component cannot be made stub.",
 
@@ -84,9 +81,6 @@ def relational_assertions_setter(cvars):
 
         When(COMP_GLC=="cism", COMP_GLC_OPTION != "(none)"):
             "Must pick a valid GLC option.",
-
-        When(And(COMP_ICE=="cice", COMP_OCN == "docn"), COMP_OCN_OPTION=="SOM"):
-           "When DOCN is coupled with CICE, DOCN option must be set to SOM.",
 
         When( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")),
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
