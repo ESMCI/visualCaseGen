@@ -338,10 +338,12 @@ class CustomLndGridWidget(widgets.VBox):
         set_val = lambda val : str(val) if val not in [None, ''] else 'UNSET'
 
         write_str = f"""
-            [modify_input]
+            [modify_fsurdat_basic_options]
             fsurdat_in = {self.fsurdat_in.value}
             fsurdat_out = {self.fsurdat_out.value}
             idealized = {self.lnd_idealized.value}
+            process_subgrid_section = False
+            process_var_list_section = False
             lnd_lat_1 = {self.lnd_lat_1.value}
             lnd_lat_2 = {self.lnd_lat_2.value}
             lnd_lon_1 = {self.lnd_lon_1.value}
@@ -350,6 +352,7 @@ class CustomLndGridWidget(widgets.VBox):
             lat_dimname = UNSET
             lon_dimname = UNSET
             dom_pft = {set_val(self.lnd_dom_pft.value)}
+            evenly_split_cropland = False
             lai = {lai_str}
             sai = {sai_str}
             hgt_top = {hgt_top_str}
@@ -358,6 +361,7 @@ class CustomLndGridWidget(widgets.VBox):
             std_elev = {set_val(self.std_elev.value)}
             max_sat_area = {set_val(self.max_sat_area.value)}
             include_nonveg = {self.include_nonveg.value}
+
         """
         
         cfg_.write(write_str)
