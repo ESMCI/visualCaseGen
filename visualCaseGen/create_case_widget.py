@@ -40,20 +40,14 @@ class CreateCaseWidget(widgets.VBox):
             value=self.ci.machine,
             layout={'width': 'max-content'}, # If the items' names are long
             description='Machine:',
-            disabled= (self.ci.machine is not None)
+            disabled=True
         )
         self.machines.style.description_width = '105px'
-        self.machines.layout.visibility = 'visible' if self.ci.machine is None else 'hidden'
-        self.machine_validity = widgets.Valid(
-            value=self.ci.machine is not None,
-            readout="Invalid Machine!",
-            layout=widgets.Layout(display='none')
-            )
-        self.machine_validity.layout.visibility = 'visible' if self.ci.machine is None else 'hidden'
 
         self.project = widgets.Text(
             description = 'Project ID:',
-            value = os.getenv('PROJECT') or ''
+            value = os.getenv('PROJECT') or '',
+            disabled=True
         )
         self.project.style.description_width = '105px'
         self.project.layout.visibility = 'visible' if (self.ci.machine is not None and self.ci.project_required[self.ci.machine] == True) else 'hidden'
@@ -81,7 +75,7 @@ class CreateCaseWidget(widgets.VBox):
         )
 
         self.children = [self.casepath,
-                         widgets.HBox([self.machines, self.machine_validity]),
+                         self.machines,
                          self.project,
                          widgets.HBox([self.case_create, self.dry_run],
                                      layout= widgets.Layout(display='flex',justify_content='flex-end')),
@@ -98,35 +92,27 @@ class CreateCaseWidget(widgets.VBox):
         self.compset = compset
         self.grid = grid
         self.casepath.enable()
+        self.machines.disabled = False
+        self.project.disabled = False
         self.output.clear_output()
 
     def disable(self, clear_output=True):
         self.casepath.disable()
+        self.machines.disabled = True
+        self.project.disabled = True
         self.dry_run.disabled = True
-        self.machine_validity.layout.display = 'none'
         if clear_output:
             self.output.clear_output()
 
     def _on_casepath_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            new_casepath_in = change['new']
-            if new_casepath_in not in [None, '']:
-                self.machine_validity.layout.display = ''
-            else:
-                self.machine_validity.layout.display = 'none'
             self._refresh_case_create_button()
 
 
     def _on_machine_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
+            # update project dialog
             new_machine = change['new'].strip()
-            if new_machine == '':
-                self.machine_validity.value = False
-            else:
-                self.machine_validity.value = True
-            self._refresh_case_create_button()
-        
-            # also update project dialog
             self.project.value = ''
             self.project.layout.visibility = 'visible' if (new_machine is not None and self.ci.project_required[new_machine] == True) else 'hidden'
 
@@ -134,12 +120,15 @@ class CreateCaseWidget(widgets.VBox):
         if change['type'] == 'change' and change['name'] == 'value':
             self._refresh_case_create_button()
 
+    def _is_non_local(self):
+        '''Returns true if case is being constructed at a machine that is different
+           than the machine visualCaseGen is being run.'''
+        return self.ci.machine is not None and self.ci.machine != self.machines.value
+
     def _refresh_case_create_button(self):
 
         def _ready_to_create():
             if self.casepath.value in [None, '']:
-                return False
-            if self.machine_validity.value is False:
                 return False
             if self.machines.value in [None, '']:
                 return False 
@@ -197,6 +186,9 @@ class CreateCaseWidget(widgets.VBox):
             if self.project.value != '':
                 cmd += f' --project {self.project.value}'
 
+            if self._is_non_local() is True:
+                cmd += ' --non-local'
+
             print("Run create case command...\n")
             print(f"  > {cmd}")
             if do_exec:
@@ -220,7 +212,10 @@ class CreateCaseWidget(widgets.VBox):
         d = SDB(self.session_id).get_data()
         
         def exec_xmlchange(var, new_val):
-            cmd = f"./xmlchange {var}={new_val}"
+            cmd = f"./xmlchange {var}={new_val} "
+            if self._is_non_local() is True:
+                cmd += ' --non-local'
+
             print(f'  > {cmd}')
             if do_exec:
                 runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=casepath)
@@ -249,7 +244,10 @@ class CreateCaseWidget(widgets.VBox):
         with self.output:
             print("\nRun ./case.setup ...")
             if do_exec:
-                runout = subprocess.run('./case.setup', shell=True, capture_output=True, cwd=casepath)
+                cmd = './case.setup'
+                if self._is_non_local() is True:
+                    cmd += ' --non-local'
+                runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=casepath)
                 stdout = runout.stdout.decode('UTF-8') if type(runout.stdout) is bytes else runout.stdout
                 if runout.returncode == 0:
                     print(f"\nSUCCESS: {stdout}")
@@ -295,7 +293,7 @@ class CreateCaseWidget(widgets.VBox):
 
             if do_exec:
                 # override inputdir with its actual value
-                case = Case(casepath)
+                case = Case(casepath, non_local = self._is_non_local())
                 rundir = case.get_value('RUNDIR')
                 inputdir = os.path.join(rundir, d['mom6_params']['INPUTDIR'])
                 try:
