@@ -103,6 +103,11 @@ class CreateCaseWidget(widgets.VBox):
         self.dry_run.disabled = True
         if clear_output:
             self.output.clear_output()
+    
+    def reset(self):
+        self.casepath.enable()
+        self.machines.disabled = False
+        self.project.disabled = False
 
     def _on_casepath_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
@@ -111,7 +116,7 @@ class CreateCaseWidget(widgets.VBox):
 
     def _on_machine_change(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
-            # update project dialog
+            # no need to call self._refresh_case_create_button because the below assignment of self.project.value will call it.
             new_machine = change['new'].strip()
             self.project.value = ''
             self.project.layout.visibility = 'visible' if (new_machine is not None and self.ci.project_required[new_machine] == True) else 'hidden'
@@ -204,6 +209,9 @@ class CreateCaseWidget(widgets.VBox):
     
         self._apply_mods(casepath, do_exec)
         
+        # After a successful case creation, reset and re-enable create_case widget.
+        if do_exec:
+            self.reset()
 
     def _apply_mods(self, casepath, do_exec):
 
