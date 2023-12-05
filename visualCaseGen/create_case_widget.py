@@ -233,6 +233,11 @@ class CreateCaseWidget(widgets.VBox):
                     print(f"{runout.stdout}\nERROR: {runout.stderr}")
                     return
 
+        # inform user to navigate to casepath
+        with self.output:
+            print("\nNavigate to the case directory...\n")
+            print(f'  > cd {casepath}')
+
         # xmlchange commands
         with self.output:
             # first, apply xmlchanges from the SDB
