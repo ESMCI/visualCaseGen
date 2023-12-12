@@ -125,7 +125,7 @@ class GUI_create_custom():
             layout = {'display':'none', 'width':'200px', 'margin':'10px'}
         )
 
-        self._custom_grid = CustomGridWidget(self.session_id, self.ci)
+        self._custom_grid = CustomGridWidget(self.session_id, self.ci, self.sdb)
 
         self._vbx_grid_inner = widgets.VBox(
             children=(cv_grid.widget, self._btn_grid_view),

@@ -240,18 +240,34 @@ class CreateCaseWidget(widgets.VBox):
 
         # xmlchange commands
         with self.output:
-            # first, apply xmlchanges from the SDB
-            if 'xmlchanges' in d and len(d['xmlchanges'])>0:
-                print("\nApply xml changes...\n")
-                for var, new_val in d['xmlchanges'].items():
+
+            # apply custom ocn/ice grid xml changes
+            if 'ocnice_xmlchanges' in d and len(d['ocnice_xmlchanges'])>0:
+                print("\nApply custom ocn/ice grid xml changes...\n")
+                for var, new_val in d['ocnice_xmlchanges'].items():
                     exec_xmlchange(var, new_val)
-            # also, apply xmlchange for the custom ATM grid, if specified
+
+            # apply custom ATM grid xml changes
+            atm_mesh = 'UNSET'
             if self.grid == 'custom' and cvars['COMP_ATM'].value in ['cam', 'datm']:
                 custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value 
                 if custom_atm_grid is not None:
-                    mesh_filepath = self.ci.get_mesh_filepath(custom_atm_grid)
+                    print("\nApply custom atm grid xml changes...\n")
+                    atm_mesh = self.ci.get_mesh_filepath(custom_atm_grid)
                     exec_xmlchange('ATM_GRID', custom_atm_grid)
-                    exec_xmlchange('ATM_DOMAIN_MESH', mesh_filepath)
+                    exec_xmlchange('ATM_DOMAIN_MESH', atm_mesh)
+
+            # apply custom LND grid xml changes
+            if 'mesh_mask_modifier' in d:
+                mesh_mask_out = d['mesh_mask_modifier'].get('mesh_mask_out')
+                if mesh_mask_out is not None:
+                    print("\nApply custom lnd grid xml changes...\n")
+                    exec_xmlchange('MASK_MESH', mesh_mask_out)
+                    exec_xmlchange('LND_DOMAIN_MESH', mesh_mask_out) # should this actually be set to ATM_DOMAIN_MESH:
+                    # existence of mesh_mask_out in sdb indicates that mesh_mask_modfier has been utilizes, and, thus,
+                    # ocn/ince meshes should be set to atm_mesh
+                    exec_xmlchange('OCN_DOMAIN_MESH', atm_mesh)
+                    exec_xmlchange('ICE_DOMAIN_MESH', atm_mesh)
 
         # run case.setup
         with self.output:
@@ -269,8 +285,10 @@ class CreateCaseWidget(widgets.VBox):
                     print(f"{stdout}\nERROR: {stderr}")
                     return
 
-        # write to user_nl_mom
+        # user namelist changes
         with self.output:
+
+            # write to user_nl_mom
             if 'mom6_params' in d:
                 mom6_params = d['mom6_params']
                 mom6_params['GRID_FILE'] = os.path.split(d['supergrid_path'])[1]  
@@ -284,9 +302,7 @@ class CreateCaseWidget(widgets.VBox):
                 for key, val in mom6_params.items():
                     print(f"  {key} = {val}")
 
-
-        # write to user_nl_cice
-        with self.output:
+            # write to user_nl_cice
             if 'cice_params' in d:
                 print("\nAdd parameters to user_nl_cice ...\n")
                 if do_exec:
@@ -295,6 +311,16 @@ class CreateCaseWidget(widgets.VBox):
                             f.write(f'{key} = "{val}"\n')
                 for key, val in d['cice_params'].items():
                     print(f'  {key} = "{val}"')
+
+            # write to user_nl_clm
+            if 'fsurdat_modifier' in d:
+                fsurdat_out = d['fsurdat_modifier'].get('fsurdat_out')
+                if fsurdat_out is not None:
+                    print("\nAdd parameters to user_nl_clm ...\n")
+                    if do_exec:
+                        with open(os.path.join(casepath,'user_nl_clm'), 'a') as f:
+                            f.write(f'fsurdat = "{fsurdat_out}"\n')
+                    print(f'fsurdat = "{fsurdat_out}"\n')
 
         # copy input files
         if "supergrid_path" in d:

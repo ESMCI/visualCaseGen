@@ -18,11 +18,12 @@ descr_width = '150px'
 
 class CustomLndGridWidget(widgets.VBox):
 
-    def __init__(self,ci):
+    def __init__(self,ci,sdb):
 
         super().__init__()
 
         self.ci = ci
+        self.sdb = sdb
 
         self._cvars = [\
             cvars['LND_DOM_PFT'],
@@ -309,6 +310,11 @@ class CustomLndGridWidget(widgets.VBox):
             elif os.path.exists(self.mesh_mask_out.value):
                 print(f"The output mesh mask file was successfully generated at {self.mesh_mask_out.value}")
 
+        # record mesh_mask_modifier settings that will be needed by the create case widget
+        self.sdb.update({'mesh_mask_modifier':{
+            'mesh_mask_out' : self.mesh_mask_out.value 
+        }})
+
         # Clean up
         self.mesh_mask_modifier_output.layout.border = ''
         cfg.close() # remove the temp file
@@ -390,6 +396,11 @@ class CustomLndGridWidget(widgets.VBox):
                 print(stderr)
             elif os.path.exists(self.fsurdat_out.value):
                 print(f"The output fsurdat file was successfully generated at {self.fsurdat_out.value}")
+
+        # record fsurdat_modifier settings that will be needed by the create case widget
+        self.sdb.update({'fsurdat_modifier':{
+            'fsurdat_out': self.fsurdat_out.value
+        }})
 
         # Clean up
         self.fsurdat_out.layout.border = ''

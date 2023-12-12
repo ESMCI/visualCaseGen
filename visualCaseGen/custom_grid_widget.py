@@ -14,7 +14,7 @@ descr_width = '140px'
 
 class CustomGridWidget(widgets.Tab):
 
-    def __init__(self,session_id,ci,layout=widgets.Layout()):
+    def __init__(self,session_id,ci,sdb,layout=widgets.Layout()):
 
         super().__init__(layout=layout)
 
@@ -32,7 +32,7 @@ class CustomGridWidget(widgets.Tab):
 
         self._custom_atm_grid= CustomAtmGridWidget(self.ci)
         self._custom_ocn_grid= CustomOcnGridWidget(session_id, self.ci)
-        self._custom_lnd_grid= CustomLndGridWidget(self.ci)
+        self._custom_lnd_grid= CustomLndGridWidget(self.ci, sdb)
 
         self.horiz_line = widgets.HTML('<hr>')
 
