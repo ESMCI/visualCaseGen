@@ -468,10 +468,19 @@ class CustomOcnGridWidget(widgets.VBox):
         js = f"""
             var curr_url = window.location.href.split('/')
             var new_url = curr_url[0] + '//'
+            let update_url = true
             for (var i = 1; i < curr_url.length - 1; i++) {{
                 console.log(curr_url[i], new_url)
                 new_url += curr_url[i] + '/'
+                if (curr_url[i] === "tree") {{
+                    update_url = false
+                }}
             }}
+    
+            if (update_url === true) {{
+                new_url += "tree/"
+            }}
+    
             new_url += "{nb_filename}"
             window.open(new_url)
         """
