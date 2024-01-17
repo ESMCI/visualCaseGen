@@ -92,9 +92,10 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
             options=['single', 'multi'], description='Selection:',
             tooltips=['The user is allowed to pick one option only. This is the safe mode.',
               'The user may select multiple options. Options compatibility NOT ensured. Use with caution.'],
+            layout={'display':'flex'},
             #icons=['shield-alt', 'exclamation-triangle']
             )
-        self._selectmode.style.button_width='40px'
+        self._selectmode.style.button_width='60px'
         self._selectmode.style.height='30px'
 
         @owh.out.capture()
@@ -231,7 +232,7 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
         self._options_hbox.children = tuple([
             widgets.VBox(options_widgets_display, layout={'max_width':_checkbox_clm_width,
                 'min_width':_checkbox_clm_width, 'overflow': 'hidden'}),
-            widgets.VBox((self._tooltips_widget,), layout={'overflow': 'hidden'})
+            widgets.VBox((self._tooltips_widget,), layout={'overflow': 'hidden', 'top':'-13px'})
         ])
 
     def _sort_opts_by_relevance(self,change):

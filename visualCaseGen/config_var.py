@@ -264,7 +264,7 @@ class ConfigVar(HasTraits):
                 if not isinstance(new_tooltips[0],str):
                     new_tooltips = [str(nt) for nt in new_tooltips]
                 self.tooltips = new_tooltips
-            self._widget.layout.display = ""
+            self._widget.layout.display = "flex"
             self._widget.disabled = False
 
     @property

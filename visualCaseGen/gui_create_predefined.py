@@ -62,7 +62,7 @@ class GUI_create_predefined():
                 widgets.Label(
                     value = '{} {} {}'.format(
                         chr(int("2000",base=16)), chr(int("25BC",base=16)), comp_class),
-                    layout = widgets.Layout(width='105px',display='flex',justify_content='center')
+                    layout = widgets.Layout(width='108px',display='flex',justify_content='center')
                 )
             )
 
@@ -71,9 +71,9 @@ class GUI_create_predefined():
             cv_comp_filter.widget = widgets.ToggleButtons(
                 description=comp_class,
                 disabled=False,
-                layout=widgets.Layout(width='105px', max_height='170px')
+                layout=widgets.Layout(display='flex',width='125px', max_height='170px')
             )
-            cv_comp_filter.widget.style.button_width = '85px'
+            cv_comp_filter.widget.style.button_width = '105px'
             cv_comp_filter.widget.style.description_width = '0px'
 
         self.keywords_widget = widgets.Textarea(

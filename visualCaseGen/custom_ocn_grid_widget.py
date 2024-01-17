@@ -75,15 +75,15 @@ class CustomOcnGridWidget(widgets.VBox):
 
             # display other required configs:
             cyclic_x = cvars['OCN_CYCLIC_X']
-            cyclic_x.widget.layout.display = ''
+            cyclic_x.widget.layout.display = 'flex'
             tripolar_n = cvars['OCN_TRIPOLAR_N']
-            tripolar_n.widget.layout.display = ''
+            tripolar_n.widget.layout.display = 'flex'
 
 
         elif selection == "Start from scratch":
             # enable variables
             for var in self._cvars:
-                var.widget.layout.display = ''
+                var.widget.layout.display = 'flex'
                 if var.has_options_spec():
                     var.refresh_options()
 
@@ -156,7 +156,7 @@ class CustomOcnGridWidget(widgets.VBox):
             description='Ocean mesh:',
             options=['Start from scratch', 'Modify existing'],
             value=None,
-            layout={'width':'max-content', 'padding':'20px'}, # If the items' names are long
+            layout={'display':'flex','width':'max-content', 'padding':'20px'}, # If the items' names are long
             disabled=False
         )
         self.tbtn_ocn_mesh_mode.style.button_width = '200px'

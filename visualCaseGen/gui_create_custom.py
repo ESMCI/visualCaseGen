@@ -44,30 +44,30 @@ class GUI_create_custom():
                 widgets.Label(
                     value = '{} {} {}'.format(
                         chr(int("2000",base=16)), chr(int("25BC",base=16)), comp_class),
-                    layout = widgets.Layout(width='105px',display='flex',justify_content='center')
+                    layout = widgets.Layout(width='108px',display='flex',justify_content='center')
                 )
             )
 
         cv_inittime = cvars['INITTIME']
         cv_inittime.widget = widgets.ToggleButtons(
             description='Initialization Time:',
-            layout={'width': 'max-content', 'padding':'15px', 'bottom':'-15px'}, # If the items' names are long
+            layout={'width': 'max-content', 'padding':'10px', 'bottom':'-5px'}, # If the items' names are long
             disabled=False
         )
-        cv_inittime.widget.style.button_width='50px'
-        cv_inittime.widget.style.description_width = '120px'
+        cv_inittime.widget.style.button_width='100px'
+        cv_inittime.widget.style.description_width = '0px'
 
         for comp_class in self.ci.comp_classes:
 
             # Get references to ConfigVars whose widgets are to be initialized
             cv_comp = cvars['COMP_{}'.format(comp_class)]
             cv_comp.widget = widgets.ToggleButtons(
-                    description=comp_class+':',
-                    layout=widgets.Layout(width='105px', max_height='145px'),
+                    layout=widgets.Layout(width='125px', max_height='145px'),
                     disabled=False,
                 )
-            cv_comp.widget.style.button_width = '85px'
+            cv_comp.widget.style.button_width = '105px'
             cv_comp.widget.style.description_width = '0px'
+            cv_comp.widget.comp_class = comp_class
 
 
             cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
@@ -100,7 +100,7 @@ class GUI_create_custom():
         cv_grid_mode.value = "Predefined"
         cv_grid_mode.widget = widgets.ToggleButtons(
             description='Grid Selection Mode:',
-            layout={'width': 'max-content', 'margin':'15px'}, # If the items' names are long
+            layout={'display':'flex', 'width': 'max-content', 'margin':'15px'}, # If the items' names are long
             disabled=False,
         )
         cv_grid_mode.widget.style.button_width = '100px'
@@ -232,7 +232,7 @@ class GUI_create_custom():
     def _set_comp_options_tab(self, change):
         if change['old'] == {}:
             return # change not finalized yet
-        comp_class = change['owner'].description[0:3]
+        comp_class = change['owner'].comp_class
         comp_ix = self.ci.comp_classes.index(comp_class)
         cv_comp_value = cvars['COMP_{}'.format(comp_class)].value
         if cv_comp_value is not None:

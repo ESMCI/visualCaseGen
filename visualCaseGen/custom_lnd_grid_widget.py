@@ -46,10 +46,10 @@ class CustomLndGridWidget(widgets.VBox):
 
         # First, handle the display of coordinate textboxes
         if change['new'] == 'via corner coords':
-            self.lnd_lat_1.layout.display=''
-            self.lnd_lat_2.layout.display=''
-            self.lnd_lon_1.layout.display=''
-            self.lnd_lon_2.layout.display=''
+            self.lnd_lat_1.layout.display='flex'
+            self.lnd_lat_2.layout.display='flex'
+            self.lnd_lon_1.layout.display='flex'
+            self.lnd_lon_2.layout.display='flex'
         elif change['new'] == 'via mask file' or change['new'] is None:
             self.lnd_lat_1.layout.display='none'
             self.lnd_lat_2.layout.display='none'
@@ -62,7 +62,7 @@ class CustomLndGridWidget(widgets.VBox):
         if change['new'] == 'via corner coords' or change['new'] is None:
             self.landmask_file_2.layout.display='none'
         elif change['new'] == 'via mask file':
-            self.landmask_file_2.layout.display=''
+            self.landmask_file_2.layout.display='flex'
 
             if cvars['COMP_OCN'].value == "mom":
                 # decouple landmask_file and landmask_file2 and reset landmask_file2 value
@@ -195,7 +195,7 @@ class CustomLndGridWidget(widgets.VBox):
 
         self.out_preview_landmask.clear_output()
         if new_landmask_path not in ['', None] and os.path.exists(new_landmask_path):
-            self.btn_preview_landmask.layout.display = ''
+            self.btn_preview_landmask.layout.display = 'flex'
         else:
             self.btn_preview_landmask.layout.display = 'none'
     
@@ -204,7 +204,7 @@ class CustomLndGridWidget(widgets.VBox):
 
         self.out_preview_mod_lnd_props.clear_output()
         if landmask_path_2 not in ['', None] and os.path.exists(landmask_path_2):
-            self.btn_preview_mod_lnd_props.layout.display = ''
+            self.btn_preview_mod_lnd_props.layout.display = 'flex'
         else:
             self.btn_preview_mod_lnd_props.layout.display = 'none'
     
@@ -561,7 +561,7 @@ class CustomLndGridWidget(widgets.VBox):
             description='Idealized?',
             options=['True', 'False'],
             value='False',
-            layout={'width':'max-content'}, # If the items' names are long
+            layout={'display':'flex','width':'max-content'}, # If the items' names are long
             disabled=False
         )
         self.lnd_idealized.style.description_width = '180px'
@@ -571,7 +571,7 @@ class CustomLndGridWidget(widgets.VBox):
             description='Specify area of customization',
             options=['via corner coords', 'via mask file'],
             value=None,
-            layout={'width':'max-content'}, # If the items' names are long
+            layout={'display':'flex','width':'max-content'}, # If the items' names are long
             disabled=False
         )
         self.lnd_specify_area.style.description_width = '180px'
@@ -629,7 +629,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lnd_dom_pft = cvars['LND_DOM_PFT']
         self.lnd_dom_pft.widget = widgets.Text(
             description='PFT/CFT',
-            layout={'display':'', 'width': 'max-content'}, # If the items' names are long
+            layout={'display':'flex', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         self.lnd_dom_pft.widget.style.description_width = '200px'
@@ -637,7 +637,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lnd_soil_color = cvars['LND_SOIL_COLOR']
         self.lnd_soil_color.widget = widgets.Text(
             description='Soil color (between 0-20)',
-            layout={'display':'', 'width': 'max-content'}, # If the items' names are long
+            layout={'display':'flex', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         self.lnd_soil_color.widget.style.description_width = '200px'
@@ -645,7 +645,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.std_elev = cvars['LND_STD_ELEV']
         self.std_elev.widget = widgets.Text(
             description='Std. dev. of elevation',
-            layout={'display':'', 'width': 'max-content'}, # If the items' names are long
+            layout={'display':'flex', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         self.std_elev.widget.style.description_width = '200px'
@@ -653,7 +653,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.max_sat_area = cvars['LND_MAX_SAT_AREA']
         self.max_sat_area.widget = widgets.Text(
             description='Max fraction of saturated area',
-            layout={'display':'', 'width': 'max-content'}, # If the items' names are long
+            layout={'display':'flex', 'width': 'max-content'}, # If the items' names are long
             disabled=False
         )
         self.max_sat_area.widget.style.description_width = '200px'
@@ -663,7 +663,7 @@ class CustomLndGridWidget(widgets.VBox):
             options=['True', 'False'],
             tooltips=['landunits unchanged if True', 'landunits set to 0 if False'],
             value='True',
-            layout={'width':'max-content'}, # If the items' names are long
+            layout={'display':'flex','width':'max-content'}, # If the items' names are long
             disabled=False
         )
         self.include_nonveg.style.description_width = '180px'
