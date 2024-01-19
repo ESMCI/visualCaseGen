@@ -458,6 +458,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lat_varname = widgets.Textarea(
             value='lsmlat',
             description='<b>Latitude var. name:</b>',
+            description_allow_html=True,
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lat_varname.style.description_width = descr_width
@@ -465,6 +466,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lon_varname = widgets.Textarea(
             value='lsmlon',
             description='<b>Longitude var. name:</b>',
+            description_allow_html=True,
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lon_varname.style.description_width = descr_width
@@ -472,6 +474,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lat_dimname = widgets.Textarea(
             value='lsmlat',
             description='<b>Latitude dim. name:</b>',
+            description_allow_html=True,
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lat_dimname.style.description_width = descr_width
@@ -479,6 +482,7 @@ class CustomLndGridWidget(widgets.VBox):
         self.lon_dimname = widgets.Textarea(
             value='lsmlon',
             description='<b>Longitude dim. name:</b>',
+            description_allow_html=True,
             layout=widgets.Layout(height='40px', width='600px')
         )
         self.lon_dimname.style.description_width = descr_width
