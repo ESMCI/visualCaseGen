@@ -469,9 +469,11 @@ class CustomOcnGridWidget(widgets.VBox):
             var curr_url = window.location.href.split('/')
             var new_url = curr_url[0] + '//'
             let update_url = true
-            for (var i = 1; i < curr_url.length - 1; i++) {{
+            for (var i = 1; i < curr_url.length; i++) {{
                 console.log(curr_url[i], new_url)
-                new_url += curr_url[i] + '/'
+                if (!curr_url[i].endsWith("ipynb")) {{
+                    new_url += curr_url[i] + '/'
+                }}
                 if (curr_url[i] === "tree") {{
                     update_url = false
                 }}
