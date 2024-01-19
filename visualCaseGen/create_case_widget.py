@@ -103,7 +103,7 @@ class CreateCaseWidget(widgets.VBox):
         self.dry_run.disabled = True
         if clear_output:
             self.output.clear_output()
-    
+
     def reset(self):
         self.casepath.enable()
         self.machines.disabled = False
@@ -136,10 +136,10 @@ class CreateCaseWidget(widgets.VBox):
             if self.casepath.value in [None, '']:
                 return False
             if self.machines.value in [None, '']:
-                return False 
+                return False
             if self.ci.project_required[self.machines.value] and self.project.value == '':
                 return False
-            return True 
+            return True
 
         if _ready_to_create():
             self.case_create.disabled = False
@@ -161,7 +161,7 @@ class CreateCaseWidget(widgets.VBox):
         if self.session_id is not None:
 
             if self.grid == 'custom' and cvars['COMP_ATM'].value in ['cam', 'datm']:
-                custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value 
+                custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value
                 if custom_atm_grid is None:
                     with self.output:
                         print("ERROR: ATM custom grid has not been selected yet. Make sure all custom grid selections are made.")
@@ -173,7 +173,7 @@ class CreateCaseWidget(widgets.VBox):
                     with self.output:
                         print("ERROR: MOM6 custom grid has not been constructed yet. Make sure all mom6_bathy steps are completed.")
                         return
-            
+
         # check if user has write access
         if not os.access(casepath.parent.as_posix(), os.W_OK):
             with self.output:
@@ -187,7 +187,7 @@ class CreateCaseWidget(widgets.VBox):
                 self.compset,
                 casepath,
                 self.machines.value)
-            
+
             if self.project.value != '':
                 cmd += f' --project {self.project.value}'
 
@@ -206,9 +206,9 @@ class CreateCaseWidget(widgets.VBox):
                     print(runout.stdout)
                     print("ERROR: {} ".format(runout.stderr))
                     return
-    
+
         self._apply_mods(casepath, do_exec)
-        
+
         # After a successful case creation, reset and re-enable create_case widget.
         if do_exec:
             self.reset()
@@ -218,7 +218,7 @@ class CreateCaseWidget(widgets.VBox):
         if self.session_id is None:
             return # No xmlchange or user_nl change is needed
         d = SDB(self.session_id).get_data()
-        
+
         def exec_xmlchange(var, new_val):
             cmd = f"./xmlchange {var}={new_val} "
             if self._is_non_local() is True:
@@ -250,7 +250,7 @@ class CreateCaseWidget(widgets.VBox):
             # apply custom ATM grid xml changes
             atm_mesh = 'UNSET'
             if self.grid == 'custom' and cvars['COMP_ATM'].value in ['cam', 'datm']:
-                custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value 
+                custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value
                 if custom_atm_grid is not None:
                     print("\nApply custom atm grid xml changes...\n")
                     atm_mesh = self.ci.get_mesh_filepath(custom_atm_grid)
@@ -264,10 +264,17 @@ class CreateCaseWidget(widgets.VBox):
                     print("\nApply custom lnd grid xml changes...\n")
                     exec_xmlchange('MASK_MESH', mesh_mask_out)
                     exec_xmlchange('LND_DOMAIN_MESH', mesh_mask_out) # should this actually be set to ATM_DOMAIN_MESH:
-                    # existence of mesh_mask_out in sdb indicates that mesh_mask_modfier has been utilizes, and, thus,
+                    # Existence of mesh_mask_out in sdb indicates that mesh_mask_modfier has been utilizes, and, thus,
                     # ocn/ince meshes should be set to atm_mesh
                     exec_xmlchange('OCN_DOMAIN_MESH', atm_mesh)
                     exec_xmlchange('ICE_DOMAIN_MESH', atm_mesh)
+            elif cvars['COMP_LND'].value == 'clm' and atm_mesh != 'UNSET':
+                # if LND_DOMAIN_MESH was not set via mesh_mask_modifier, set it to ATM mesh.
+                exec_xmlchange('LND_DOMAIN_MESH', atm_mesh)
+
+            if cvars['COMP_LND'].value:
+                exec_xmlchange('CLM_FORCE_COLDSTART', 'True') # TODO :This should be applied based on a condition,
+                                                              # possibly set by the user via a widget.
 
         # run case.setup
         with self.output:
@@ -291,7 +298,7 @@ class CreateCaseWidget(widgets.VBox):
             # write to user_nl_mom
             if 'mom6_params' in d:
                 mom6_params = d['mom6_params']
-                mom6_params['GRID_FILE'] = os.path.split(d['supergrid_path'])[1]  
+                mom6_params['GRID_FILE'] = os.path.split(d['supergrid_path'])[1]
                 mom6_params['TOPO_FILE'] = os.path.split(d['topog_path'])[1]
 
                 print("\nAdd parameters to user_nl_mom ...\n")
@@ -338,7 +345,7 @@ class CreateCaseWidget(widgets.VBox):
                 try:
                     if not os.path.exists(inputdir):
                         os.mkdir(inputdir)
-            
+
                     shutil.copy(d['supergrid_path'], inputdir)
                     shutil.copy(d['topog_path'], inputdir)
                 except:
@@ -349,7 +356,7 @@ class CreateCaseWidget(widgets.VBox):
                 print("\nCopy input files...\n")
                 print(f"  > cp {d['supergrid_path']} {inputdir}")
                 print(f"  > cp {d['topog_path']} {inputdir}")
-            
+
 
         with self.output:
             print("\nDone.")

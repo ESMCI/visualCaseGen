@@ -198,7 +198,7 @@ class CustomLndGridWidget(widgets.VBox):
             self.btn_preview_landmask.layout.display = 'flex'
         else:
             self.btn_preview_landmask.layout.display = 'none'
-    
+
     def enable_preview_mod_lnd_props(self, change):
         landmask_path_2 = change['new']
 
@@ -207,7 +207,7 @@ class CustomLndGridWidget(widgets.VBox):
             self.btn_preview_mod_lnd_props.layout.display = 'flex'
         else:
             self.btn_preview_mod_lnd_props.layout.display = 'none'
-    
+
     def preview_landmask(self, b):
         self.btn_preview_landmask.layout.display = 'none'
         landmask_path = self.landmask_file.value
@@ -305,14 +305,18 @@ class CustomLndGridWidget(widgets.VBox):
             if stdout:
                 print(stdout)
             if stderr:
-                print("mesh_mask_modifier was unsuccessful!!!\n")
+                if os.path.exists(self.mesh_mask_out.value):
+                    print(f"The mask mesh file has been created at {self.mesh_mask_out.value},"
+                          " but the process encountered the following error/warning messages:")
+                else:
+                    print("ERROR: couldn't generate the mask mesh file!")
                 print(stderr)
             elif os.path.exists(self.mesh_mask_out.value):
                 print(f"The output mesh mask file was successfully generated at {self.mesh_mask_out.value}")
 
         # record mesh_mask_modifier settings that will be needed by the create case widget
         self.sdb.update({'mesh_mask_modifier':{
-            'mesh_mask_out' : self.mesh_mask_out.value 
+            'mesh_mask_out' : self.mesh_mask_out.value
         }})
 
         # Clean up
@@ -369,7 +373,7 @@ class CustomLndGridWidget(widgets.VBox):
             include_nonveg = {self.include_nonveg.value}
 
         """
-        
+
         cfg_.write(write_str)
         cfg_.close()
 
@@ -392,7 +396,11 @@ class CustomLndGridWidget(widgets.VBox):
             if stdout:
                 print(stdout)
             if stderr:
-                print("fsurdat_modifier was unsuccessful!!!\n")
+                if os.path.exists(self.fsurdat_out.value):
+                    print(f"The fsurdat output file has been created at {self.fsurdat_out.value},"
+                          " but the process encountered the following error/warning messages:")
+                else:
+                    print("ERROR: couldn't generate the fsurdat file!")
                 print(stderr)
             elif os.path.exists(self.fsurdat_out.value):
                 print(f"The output fsurdat file was successfully generated at {self.fsurdat_out.value}")
