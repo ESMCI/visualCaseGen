@@ -272,8 +272,8 @@ class CreateCaseWidget(widgets.VBox):
                 # if LND_DOMAIN_MESH was not set via mesh_mask_modifier, set it to ATM mesh.
                 exec_xmlchange('LND_DOMAIN_MESH', atm_mesh)
 
-            if cvars['COMP_LND'].value == 'clm':
-                exec_xmlchange('CLM_FORCE_COLDSTART', 'True') # TODO :This should be applied based on a condition,
+            if cvars['COMP_LND'].value:
+                exec_xmlchange('CLM_FORCE_COLDSTART', 'on') # TODO :This should be applied based on a condition,
                                                               # possibly set by the user via a widget.
 
         # run case.setup
