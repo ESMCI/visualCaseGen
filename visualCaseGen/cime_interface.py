@@ -246,17 +246,18 @@ class CIME_interface():
                 value = self._grids_obj.text(grid_node)
                 self.component_grids[comp_name].add(value)
         
-    def get_mesh_filepath(self, domain_name):
+    def get_domain_properties(self, domain_name):
 
         if self._grids_obj is None:
-            logger.error("In CIME interface module, get_mesh_filepath called before grids_obj is initialized.") 
+            logger.error("In CIME interface module, get_domain_properties called before grids_obj is initialized.") 
         if self.din_loc_root is None:
-            logger.error("In CIME interface module, get_mesh_filepath called before DIN_LOC_ROOT is retrieved.") 
+            logger.error("In CIME interface module, get_domain_properties called before DIN_LOC_ROOT is retrieved.") 
 
         domain_node = self._grids_obj.get_optional_child(
             "domain",
             attributes = {"name": domain_name},
             root = self._grids_obj.get_child("domains"))
+
         mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node) 
         if len(mesh_nodes)>1:
             logger.warning(f"Multiples mesh files encountered for the {domain_name} domain.")
@@ -265,8 +266,18 @@ class CIME_interface():
         mesh_filepath = mesh_filepath.\
             replace('$DIN_LOC_ROOT',self.din_loc_root).\
             replace('${DIN_LOC_ROOT}',self.din_loc_root)
+        
+        nx_node = self._grids_obj.get_children("nx", root=domain_node)
+        nx = self._grids_obj.text(nx_node[0]) 
 
-        return mesh_filepath
+        ny_node = self._grids_obj.get_children("ny", root=domain_node)
+        ny = self._grids_obj.text(ny_node[0]) 
+
+        return {
+            'mesh' : mesh_filepath,
+            'nx' : nx,
+            'ny' : ny
+        }
 
     def get_grid_lname_parts(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         """Returns a dictionary of parts of grid long name for a grid whose alias is provided as the function arg."""
@@ -373,23 +384,6 @@ class CIME_interface():
             filedir = clm_namelist_xml.text(fsurdat_node)
             self.clm_fsurdat[sim_year][hgrid] = filedir
 
-    def retrieve_mesh_path(self, domain_name):
-        domain_node = self._grids_obj.get_optional_child(
-            "domain",
-            attributes = {"name":domain_name},
-            root = self._grids_obj.get_child("domains")
-        )
-
-        mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node)
-        mesh_file = ''
-        for mesh_node in mesh_nodes:
-            mesh_file = self._grids_obj.text(mesh_node)
-
-        if self.din_loc_root is not None and '$DIN_LOC_ROOT' in mesh_file:
-            mesh_file = mesh_file.replace('$DIN_LOC_ROOT', self.din_loc_root)
-
-        return mesh_file
-    
     def expand_env_vars(self, expr):
         """Given an expression (of type string) read from a CIME xml file, 
         attempt to expand encountered environment variables."""

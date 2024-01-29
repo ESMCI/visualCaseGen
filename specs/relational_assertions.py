@@ -133,7 +133,7 @@ def relational_assertions_setter(cvars):
         # Relational assertions for custom lnd grid settings -----------------------------
 
         Implies(And(INITTIME=='HIST', COMP_LND=='clm'), GRID_MODE!="Custom"):
-            "Cannot create custom clm grids when INITTIME is set to 'HIST' since no fsurdat is available for 'HIST' simulation time.",
+            "Cannot create custom clm grids when INITTIME is HIST, since no fsurdat is available for HIST.",
 
         And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
             "Soil color must be set to an integer value between 0 and 20",

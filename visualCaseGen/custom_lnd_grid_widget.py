@@ -107,7 +107,7 @@ class CustomLndGridWidget(widgets.VBox):
         ## Auto-fill mask mesh
         new_mesh_path = ''
         try:
-            new_mesh_path = self.ci.retrieve_mesh_path(new_hgrid)
+            new_mesh_path = self.ci.get_domain_properties(new_hgrid)['mesh']
             assert os.path.exists(new_mesh_path)
         except:
             new_mesh_path = ''
@@ -316,6 +316,7 @@ class CustomLndGridWidget(widgets.VBox):
 
         # record mesh_mask_modifier settings that will be needed by the create case widget
         self.sdb.update({'mesh_mask_modifier':{
+            'mesh_mask_in' : self.mesh_mask_in.value,
             'mesh_mask_out' : self.mesh_mask_out.value
         }})
 

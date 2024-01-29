@@ -233,6 +233,12 @@ class CreateCaseWidget(widgets.VBox):
                     print(f"{runout.stdout}\nERROR: {runout.stderr}")
                     return
 
+        def apply_user_nl_change(var, new_val, user_nl_filename):
+            if do_exec:
+                with open(os.path.join(casepath, user_nl_filename), 'a') as f:
+                    f.write(f"{var} = {new_val}\n")
+            print(f"  {var} = {new_val}")
+
         # inform user to navigate to casepath
         with self.output:
             print("\nNavigate to the case directory...\n")
@@ -249,32 +255,43 @@ class CreateCaseWidget(widgets.VBox):
 
             # apply custom ATM grid xml changes
             atm_mesh = 'UNSET'
+            atm_nx = 10
+            atm_ny = 10
             if self.grid == 'custom' and cvars['COMP_ATM'].value in ['cam', 'datm']:
                 custom_atm_grid = cvars['CUSTOM_ATM_GRID'].value
                 if custom_atm_grid is not None:
                     print("\nApply custom atm grid xml changes...\n")
-                    atm_mesh = self.ci.get_mesh_filepath(custom_atm_grid)
+                    atm_domain = self.ci.get_domain_properties(custom_atm_grid)
+                    atm_mesh = atm_domain['mesh']
+                    atm_nx = atm_domain['nx']
+                    atm_ny = atm_domain['ny']
                     exec_xmlchange('ATM_GRID', custom_atm_grid)
                     exec_xmlchange('ATM_DOMAIN_MESH', atm_mesh)
+                    exec_xmlchange('ATM_NX', atm_nx)
+                    exec_xmlchange('ATM_NY', atm_ny)
 
             # apply custom LND grid xml changes
             if 'mesh_mask_modifier' in d:
+                mesh_mask_in = d['mesh_mask_modifier'].get('mesh_mask_in')
                 mesh_mask_out = d['mesh_mask_modifier'].get('mesh_mask_out')
                 if mesh_mask_out is not None:
                     print("\nApply custom lnd grid xml changes...\n")
+                    exec_xmlchange('LND_DOMAIN_MESH', mesh_mask_in)
                     exec_xmlchange('MASK_MESH', mesh_mask_out)
-                    exec_xmlchange('LND_DOMAIN_MESH', mesh_mask_out) # should this actually be set to ATM_DOMAIN_MESH:
-                    # Existence of mesh_mask_out in sdb indicates that mesh_mask_modfier has been utilizes, and, thus,
+                    # Existence of mesh_mask_out in sdb indicates that mesh_mask_modfier has been utilized, and, thus,
                     # ocn/ince meshes should be set to atm_mesh
                     exec_xmlchange('OCN_DOMAIN_MESH', atm_mesh)
+                    exec_xmlchange('OCN_NX', atm_nx)
+                    exec_xmlchange('OCN_NY', atm_ny)
                     exec_xmlchange('ICE_DOMAIN_MESH', atm_mesh)
+                    exec_xmlchange('ICE_NX', atm_nx)
+                    exec_xmlchange('ICE_NY', atm_ny)
             elif cvars['COMP_LND'].value == 'clm' and atm_mesh != 'UNSET':
                 # if LND_DOMAIN_MESH was not set via mesh_mask_modifier, set it to ATM mesh.
                 exec_xmlchange('LND_DOMAIN_MESH', atm_mesh)
 
-            if cvars['COMP_LND'].value:
-                exec_xmlchange('CLM_FORCE_COLDSTART', 'on') # TODO :This should be applied based on a condition,
-                                                              # possibly set by the user via a widget.
+            if cvars['COMP_LND'].value == "clm" and cvars["INITTIME"] not in ['1850', '2000']:
+                exec_xmlchange('CLM_FORCE_COLDSTART', 'on')
 
         # run case.setup
         with self.output:
@@ -302,32 +319,27 @@ class CreateCaseWidget(widgets.VBox):
                 mom6_params['TOPO_FILE'] = os.path.split(d['topog_path'])[1]
 
                 print("\nAdd parameters to user_nl_mom ...\n")
-                if do_exec:
-                    with open(os.path.join(casepath,'user_nl_mom'), 'a') as f:
-                        for key, val in mom6_params.items():
-                            f.write(f"{key} = {val}\n")
                 for key, val in mom6_params.items():
-                    print(f"  {key} = {val}")
+                    apply_user_nl_change(key, val, "user_nl_mom")
 
             # write to user_nl_cice
             if 'cice_params' in d:
                 print("\nAdd parameters to user_nl_cice ...\n")
-                if do_exec:
-                    with open(os.path.join(casepath,'user_nl_cice'), 'a') as f:
-                        for key, val in d['cice_params'].items():
-                            f.write(f'{key} = "{val}"\n')
                 for key, val in d['cice_params'].items():
-                    print(f'  {key} = "{val}"')
+                    apply_user_nl_change(key, f'"{val}"', "user_nl_cice")
 
             # write to user_nl_clm
             if 'fsurdat_modifier' in d:
                 fsurdat_out = d['fsurdat_modifier'].get('fsurdat_out')
                 if fsurdat_out is not None:
+                
+                    # fsurdat
                     print("\nAdd parameters to user_nl_clm ...\n")
-                    if do_exec:
-                        with open(os.path.join(casepath,'user_nl_clm'), 'a') as f:
-                            f.write(f'fsurdat = "{fsurdat_out}"\n')
-                    print(f'fsurdat = "{fsurdat_out}"\n')
+                    apply_user_nl_change("fsurdat", f'"{fsurdat_out}"', "user_nl_clm")
+
+                    # set check_dynpft_consistency to false for transient cases:
+                    if cvars["INITTIME"] in ['HIST', 'SSP']:
+                        apply_user_nl_change("check_dynpft_consistency", ".false.", "user_nl_clm")
 
         # copy input files
         if "supergrid_path" in d:
