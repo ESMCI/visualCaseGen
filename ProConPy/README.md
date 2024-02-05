@@ -1,0 +1,1 @@
+An SMT-based PROduct CONfiguration Library 
