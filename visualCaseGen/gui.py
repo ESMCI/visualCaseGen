@@ -4,9 +4,6 @@ import ipywidgets as widgets
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.gui_case_configurator import GUI_case_configurator
 from visualCaseGen.gui_help_dialog import GUI_help_dialog
-from visualCaseGen.cime_interface import CIME_interface
-from visualCaseGen.initialize_configvars import initialize_configvars
-from visualCaseGen.options_specifications import set_options
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
@@ -19,11 +16,6 @@ class GUI(widgets.VBox):
     @owh.out.capture()
     def __init__(self):
         logger.info("Constructing visualCaseGen GUI")
-
-        cime = CIME_interface()
-        owh.set_verbosity(verbose=True) # TODO: remove
-        initialize_configvars(cime)
-        set_options(cime)
 
         self.construct_menubar_widgets()
         self.construct_main_body()
@@ -55,7 +47,7 @@ class GUI(widgets.VBox):
             button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
             tooltip='Reset',
             icon='undo',
-            layout = {'width':'100px'},
+            layout = {'width':'100px', 'display':'none'},
         )
 
         self.btn_return = widgets.Button(

@@ -25,3 +25,5 @@ def initialize_compset_variables(cime):
         ConfigVarStr('COMP_'+str(comp_class))
         ConfigVarStr('COMP_{}_PHYS'.format(comp_class), always_set=True)
 
+
+    ConfigVarStr('GRID_MODE')

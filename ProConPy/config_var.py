@@ -3,6 +3,7 @@ from traitlets import HasTraits, Any, default, validate
 
 from ProConPy.out_handler import handler as owh
 from ProConPy.csp_solver import csp
+from ProConPy.options_spec import OptionsSpec
 from ProConPy.dummy_widget import DummyWidget
 from ProConPy.dev_utils import ProConPyError, DEBUG
 
@@ -76,8 +77,8 @@ class ConfigVar(HasTraits):
 
         # CSP solver instance that this variable is associated with
         assert (
-            not csp.operational
-        ), f"Cannot introduce new variable {self.name} to an already initialized (operational) CSP solver."
+            not csp.initialized
+        ), f"Cannot introduce new variable {self.name} after CSP solver is initialized."
 
         # Set initial value to None. This means that derived class value traits must be initialized
         # with the following argument: allow_none=True
@@ -89,6 +90,7 @@ class ConfigVar(HasTraits):
         # properties for instances that have finite options
         self._options = []
         self._options_validities = {}
+        self._options_spec = None
         self._always_set = always_set  # if the instance has finite set of options, make sure a value is always set
         self._hide_invalid = hide_invalid
 
@@ -183,6 +185,26 @@ class ConfigVar(HasTraits):
         self._options = new_options
         csp.register_options(self, new_options)
         self.update_options_validities()
+    
+    @property
+    def options_spec(self):
+        """The options specification of the variable."""
+        return self._options_spec
+    
+    @options_spec.setter
+    def options_spec(self, new_options_spec):
+        """Set the options specification of the variable. In doing so, also register the options with the CSP solver
+        and update options validities (which entail updating the widget options list as well).
+
+        Parameters
+        ----------
+        new_options_spec: OptionsSpec
+            The new options specification
+        """
+        assert isinstance(new_options_spec, OptionsSpec), "new_options_spec must be an OptionsSpec instance"
+        assert all(isinstance(arg, ConfigVar) for arg in new_options_spec._args), "all OptionsSpec args must be config_vars"
+        self._options_spec = new_options_spec
+        self._options_spec.var = self
 
     def update_options_validities(self):
         """This method updates options validities, and displayed widget options.
