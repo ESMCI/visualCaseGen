@@ -87,10 +87,21 @@ class ConfigVar(HasTraits):
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
 
+        # The rank of a ConfigVar indicates the order of the Stage it belongs to. The lower the
+        # rank, the earlier the Stage is in the sequence of Stages and thus the higher the
+        # the precedence of the ConfigVar in CSP solver. The rank is set by the Stage class.
+        self._rank = 1e6  # initialize to an arbitrarily large number
+
         # properties for instances that have finite options
         self._options = []
         self._options_validities = {}
         self._options_spec = None
+        self._dependent_vars = (
+            set()
+        )  # ConfigVar instances whose options depend on the value of this instance
+        self._related_vars = (
+            set()
+        )  # ConfigVar instances in the same relational constraints as this instance
         self._always_set = always_set  # if the instance has finite set of options, make sure a value is always set
         self._hide_invalid = hide_invalid
 
@@ -185,12 +196,12 @@ class ConfigVar(HasTraits):
         self._options = new_options
         csp.register_options(self, new_options)
         self.update_options_validities()
-    
+
     @property
     def options_spec(self):
         """The options specification of the variable."""
         return self._options_spec
-    
+
     @options_spec.setter
     def options_spec(self, new_options_spec):
         """Set the options specification of the variable. In doing so, also register the options with the CSP solver
@@ -201,14 +212,25 @@ class ConfigVar(HasTraits):
         new_options_spec: OptionsSpec
             The new options specification
         """
-        assert isinstance(new_options_spec, OptionsSpec), "new_options_spec must be an OptionsSpec instance"
-        assert all(isinstance(arg, ConfigVar) for arg in new_options_spec._args), "all OptionsSpec args must be config_vars"
+        assert isinstance(
+            new_options_spec, OptionsSpec
+        ), "new_options_spec must be an OptionsSpec instance"
+        assert all(
+            isinstance(arg, ConfigVar) for arg in new_options_spec._args
+        ), "all OptionsSpec args must be config_vars"
         self._options_spec = new_options_spec
-        self._options_spec.var = self
+
+        for arg in new_options_spec._args:
+            arg._dependent_vars.add(self)
 
     def update_options_validities(self):
         """This method updates options validities, and displayed widget options.
         If needed, value is also updated according to the options update.
+
+        Returns
+        -------
+        bool
+            True if the validities have changed, False otherwise.
         """
 
         old_widget_value = self._widget.value
@@ -217,24 +239,29 @@ class ConfigVar(HasTraits):
         # First, update self._options_validities.
         self._options_validities = csp.get_options_validities(self)
 
+        # check if options list have changed since the last time validities were updated
+        options_changed = old_validities.keys() != self._options_validities.keys()
+        validities_changed = options_changed or (
+            old_validities != self._options_validities
+        )
+
         # If no change has occurred, return.
-        if self._options_validities == old_validities:
+        if not (options_changed or validities_changed):
             logger.debug(
                 "ConfigVar %s options or validities unchanged. Not updating widget",
                 self.name,
             )
             return  # neither the validities nor the options have changed, so return.
-        logger.debug(
-            "ConfigVar %s options an/or validities changed. Updating widget", self.name
-        )
+        elif options_changed:
+            logger.debug("ConfigVar %s options changed. Updating widget", self.name)
+        else:
+            logger.debug("ConfigVar %s validities changed. Updating widget", self.name)
 
         # After updating the internal options validities, refresh widget options list.
         self._refresh_widget_options()
 
         # Finally, update the value if necessary.
-        if (
-            old_validities.keys() != self._options_validities.keys()
-        ):  # i.e., if options have changed
+        if options_changed:
             if self._always_set is True:
                 self.value = None  # reset the value to ensure that _post_value_change() gets called
                 # when options change, but the first valid option happens to be the
@@ -256,6 +283,8 @@ class ConfigVar(HasTraits):
                     )
             else:
                 self._widget.value = old_widget_value
+
+        return validities_changed
 
     def _refresh_widget_options(self):
         """Refresh the widget options list based on information in the current self._options_validities."""

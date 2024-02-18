@@ -42,16 +42,8 @@ class ConfigVarStr(ConfigVar, SeqRef):
         new_val = proposal["value"]
         logger.debug("Validating %s=%s", self.name, new_val)
 
-        # confirm the value validity
-        if self.has_options():
-            try:
-                if self._options_validities[new_val] is False:
-                    err_msg = csp.retrieve_error_msg(self, new_val)
-                    raise ConstraintViolation(err_msg)
-            except KeyError:
-                raise ConstraintViolation(f"{new_val} not an option for {self.name}")
-        else:  # infinite domain
-            csp.check_assignment(self, new_val)
+        # confirm the value validity. If not valid, the below call will raise an exception.
+        csp.check_assignment(self, new_val)
 
         # finally, set self.value by returning new_vals
         logger.debug("Validation done. Assigning %s=%s", self.name, new_val)

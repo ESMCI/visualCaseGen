@@ -8,6 +8,7 @@ def get_relational_constraints(cvars):
 
     # define references to ConfigVars
     INITTIME = cvars['INITTIME']
+    COMPSET_MODE = cvars['COMPSET_MODE']
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS']; #  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
     COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS']; #  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
     COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_PHYS = cvars['COMP_ICE_PHYS']; #  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
@@ -19,6 +20,8 @@ def get_relational_constraints(cvars):
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
     return {
+
+        COMPSET_MODE != "Standard" : "Standart compset option is not available yet. Please select Custom compset.",
 
         Not(And(COMP_ATM=="satm", COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")) :
             "At least one component must be an active or a data model",

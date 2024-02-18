@@ -28,6 +28,9 @@ class Stage:
     # Top level stages, i.e., stages that have no parent stage
     _top_level = []
 
+    # Rank of the current stage. This is used to keep track of order in which the Stages are enabled.
+    _current_rank = 0
+
     def __init__(
         self,
         title: str,
@@ -138,12 +141,14 @@ class Stage:
     def _complete_stage(self):
         """Disable the stage and hand over control to the next stage."""
         self._disable()
-        self._hand_over_control()
+        self._progress()
 
-    def _hand_over_control(self):
-        """Determine which stage to hand over the control. This may be a child stage or the next stage.
+    def _progress(self):
+        """End this stage and move on to the following stage. This may be a child stage or the next stage.
         If no child or next stage is found, backtrack to an ancestor stage that has a next stage.
         """
+
+        Stage._current_rank += 1
 
         if self.has_children():
 
@@ -165,6 +170,9 @@ class Stage:
         else:
             # No subsequent stage found. Backtrack.
             self._backtrack()
+        
+        # Progress the csp solver too:
+        csp.progress()
 
     def _backtrack(self):
         """Recursively backtrack until a stage that has a next stage is found.
@@ -187,6 +195,7 @@ class Stage:
         """Determine the child stage to activate."""
         child_to_activate = None
         for child in self._children:
+            logger.debug("Checking activation constraint of child stage %s: %s", child, child._activation_constr)
             if csp.check_expression(child._activation_constr) is True:
                 assert (
                     child_to_activate is None
@@ -205,8 +214,10 @@ class Stage:
 
     def _enable(self):
         """Activate the stage, allowing the user to set the parameters in the varlist."""
+
         for var in self._varlist:
             var.widget.disabled = False
+            var._rank = Stage._current_rank
 
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:

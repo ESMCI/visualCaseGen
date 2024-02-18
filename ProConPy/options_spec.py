@@ -44,23 +44,21 @@ class OptionsSpec:
             #todo assert isinstance(static_options_expr, BoolRef), "static_options_expr must be a z3.BoolRef."
             #todo self._static_options_constraint = static_options_expr
         
-        # Define a reference to the variable that will be updated by this options_spec
-        # The variable itself must set this reference when OptionsSpec instance is created.
-        self._var = None
 
     def __call__(self):
         """ Call the function with the current values of the arguments"""
-        options, tooltips = self.self._func(*[arg.value for arg in self._args])
 
-        # Check if this OptionsSpec is associated with a config_var
-        assert self._var is not None, "This OptionsSpec is not associated with a config_var."
+        if any([arg.value is None for arg in self._args]):
+            return None, None
+
+        options, tooltips = self._func(*[arg.value for arg in self._args])
 
         # options must be a list of tuple
         assert isinstance(options, (list, tuple)), "options must be a list or tuple"
 
         if tooltips is not None:
             assert isinstance(tooltips, (list, tuple)), "tooltips must be a list or tuple"
-            assert len(options) == len(tooltips), "options and tooltips must have the same length"
+            #todo:uncomment assert len(options) == len(tooltips), "options and tooltips must have the same length"
         
         return options, tooltips
         

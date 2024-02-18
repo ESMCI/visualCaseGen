@@ -58,18 +58,19 @@ class GUI_case_configurator(widgets.VBox):
         # disable btn_start:
         self.btn_start.disabled = True
 
+        # Initialize progress bar:
         self.progress_bar.layout.display = 'flex'
-        self.progress_bar.value = 1
         def pb(i=1): # increment progress bar
-            self.progress_bar.value += i
+            self.progress_bar.value = min(10, self.progress_bar.value + i)
+        pb()
 
+        # Construct and display the case configurator:
         cime = CIME_interface() ; pb(2)
-        owh.set_verbosity(verbose=True) # TODO: remove
         initialize_configvars(cime) ; pb()
         initialize_widgets(cime) ; pb()
         initialize_stages(cime) ; pb()
-        set_options(cime) ; pb()
-        csp.initialize(cvars, get_relational_constraints(cvars)) ; pb()
+        set_options(cime) ; pb(2)
+        csp.initialize(cvars, get_relational_constraints(cvars)) ; pb(2)
 
         self.children = Stage.first().level_widgets()
 

@@ -35,7 +35,7 @@ def initialize_stages(cime):
         description="Select the custom component set and its options",
         widget = widgets.VBox(),
         parent = stg_compset,
-        activation_constr = cvars["COMPSET_MODE"] == "custom"
+        activation_constr = cvars["COMPSET_MODE"] == "Custom"
     )
 
     stg_inittime = Stage(
@@ -48,12 +48,20 @@ def initialize_stages(cime):
         ],
     )
 
-    stg_components = Stage(
+    stg_comp= Stage(
         title="Components",
         description="Select the components",
         widget = widgets.HBox(),
         parent = stg_custom_compset,
         varlist = [cvars[f"COMP_{comp_class}"] for comp_class in cime.comp_classes]
+    )
+
+    stg_comp_phys = Stage(
+        title="Component Physics",
+        description="Select the component physics",
+        widget = widgets.HBox(),
+        parent = stg_custom_compset,
+        varlist = [cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes]
     )
 
     stg_grid = Stage(

@@ -15,7 +15,6 @@ def initialize_compset_widgets(cime):
         description="Compset Selection Mode:",
         layout={"display": "flex", "width": "max-content", "padding": "10px"},
         style = {'button_width':'100px', 'description_width':description_width},
-        disabled=False,
     )
 
     cv_inittime = cvars['INITTIME']
@@ -23,14 +22,20 @@ def initialize_compset_widgets(cime):
         description='Initialization Time:',
         layout={'display':'flex', 'width': 'max-content', 'padding':'10px'},
         style = {'button_width':'100px', 'description_width':description_width},
-        disabled=False
     )
 
     for comp_class in cime.comp_classes:
 
         cv_comp = cvars['COMP_{}'.format(comp_class)]
         cv_comp.widget = widgets.ToggleButtons(
-            layout = {'width':'120px', 'max_height':'145px'},
+            description=f'{chr(int("2000",base=16))*5}{chr(int("25BC",base=16))} {comp_class}',
+            layout = {'width':'120px'},#, 'max_height':'145px'},
             style = {'button_width':'105px', 'description_width':'0px'},
-            disabled=False,
         )
+
+        cv_comp_phys = cvars['COMP_{}_PHYS'.format(comp_class)]
+        cv_comp_phys.widget = widgets.ToggleButtons(
+                description=f'{chr(int("2000",base=16))*5}{chr(int("25BC",base=16))} {comp_class}',
+                layout = {'width':'120px'},#, 'max_height':'145px'},
+                style = {'button_width':'105px', 'description_width':'90px'},
+            )

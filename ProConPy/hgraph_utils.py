@@ -14,8 +14,8 @@ def hgraph_to_nxgraph(hgraph):
         nxgraph.add_node(node)
     
     # Add edges
-    for node, neighbors in hgraph.items():
-        for neighbor in neighbors:
+    for node, vars2constraints in hgraph.items():
+        for neighbor in vars2constraints:
             nxgraph.add_edge(node, neighbor)
     
     return nxgraph
