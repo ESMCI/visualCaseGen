@@ -4,31 +4,6 @@ from z3 import BoolRef, Or
 from z3 import If as z3_If
 
 
-###todo:remove class While:
-###todo:remove     """A When object is a logical clause that is used to specify hierarchical relational assertions,
-###todo:remove     where antecedent is the precondition and consequent is the assertion to be checked iff antecedent
-###todo:remove     evaulates to True."""
-###
-###todo:remove     def __init__(self, antecedent, consequent):
-###todo:remove         assert isinstance(
-###todo:remove             antecedent, BoolRef
-###todo:remove         ), "The antecedent of When clause must be of type BoolRef"
-###todo:remove         assert isinstance(
-###todo:remove             consequent, BoolRef
-###todo:remove         ), "The consequent of When clause must be of type BoolRef"
-###todo:remove         self.antecedent = antecedent
-###todo:remove         self.consequent = consequent
-###
-###todo:remove     def __getitem__(self, key):
-###todo:remove         """Return the antecedent (key==0) or the consequent (key==1)"""
-###todo:remove         if key == 0:
-###todo:remove             return self.antecedent
-###todo:remove         elif key == 1:
-###todo:remove             return self.consequent
-###todo:remove         else:
-###todo:remove             raise IndexError
-
-
 def In(var, value_list):
     """Expression to check whether the value of a variable is in a given list."""
     return Or([var == value for value in value_list])
@@ -48,3 +23,31 @@ def MaxVal(varlist):
     for val in varlist[1:]:
         max_val = z3_If(val > max_val, val, max_val)
     return max_val
+
+
+class TraversalLock:
+    """A context manager to prevent recursive traversal of the constraint hypergraph of CSP solver."""
+
+    def __init__(self):
+        """Initializes the lock."""
+        self._locked = False
+
+    def __enter__(self):
+        """Acquires the lock."""
+        if self._locked:
+            raise RuntimeError("Attempted to acquire a locked TraversalLock.")
+        self._locked = True
+
+    def __exit__(self, *args):
+        """Releases the lock."""
+        if self._locked is False:
+            raise RuntimeError("Attempted to release an unlocked TraversalLock.")
+        self._locked = False
+
+    def __bool__(self):
+        """Returns the current state of the lock."""
+        return self._locked
+    
+    def is_locked(self):
+        """Returns the current state of the lock."""
+        return self._locked

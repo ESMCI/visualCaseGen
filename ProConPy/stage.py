@@ -150,6 +150,8 @@ class Stage:
 
         Stage._current_rank += 1
 
+        stage_to_enable = None
+
         if self.has_children():
 
             # Determine the child stage to enable
@@ -160,46 +162,52 @@ class Stage:
 
             # Display the child stage and its subsequent stages
             self._widget.children += tuple(child.level_widgets())
-
-            child._enable()
+            stage_to_enable = child
 
         elif self._next is not None:
-            # Enable the next stage
-            self._next._enable()
+            stage_to_enable = self._next
 
         else:
             # No subsequent stage found. Backtrack.
-            self._backtrack()
+            stage_to_enable = self._backtrack()
+        
+        if stage_to_enable is None:
+            logger.info("SUCCESS: All stages are complete.")
+            return
 
-        # Progress the csp solver too:
+        # Progress the csp solver before enabling the next stage
         csp.progress()
+
+        # Enable the following stage
+        stage_to_enable._enable()
 
     def _backtrack(self):
         """Recursively backtrack until a stage that has a next stage is found.
-        When such a stage is found, enable its next stage. Otherwise, the stage
-        tree is complete."""
+        When such a stage is found, return its next stage for activation. If
+        no such stage is found, return None to indicate that the stage tree is complete.
+
+        Returns
+        -------
+        Stage or None
+            The next stage to activate, if found. Otherwise, None.
+        """
 
         if self._prev is not None:
-            self._prev._backtrack()
+            return self._prev._backtrack()
 
         elif self._parent is not None:
             if self._parent._next is not None:
-                self._parent._next._enable()
+                return self._parent._next
             else:
-                self._parent._backtrack()
+                return self._parent._backtrack()
 
-        else:
-            logger.debug("SUCCESS: All stages are complete.")
+        return None # The stage tree is complete
 
     def _determine_child_to_enable(self):
         """Determine the child stage to activate."""
         child_to_activate = None
         for child in self._children:
-            logger.debug(
-                "Checking activation constraint of child stage %s: %s",
-                child,
-                child._activation_constr,
-            )
+            logger.debug("Checking activation constraint of child stage %s: %s", child, child._activation_constr)
             if csp.check_expression(child._activation_constr) is True:
                 assert (
                     child_to_activate is None
@@ -223,20 +231,22 @@ class Stage:
             var.widget.disabled = False
             var._rank = Stage._current_rank
 
-            # if var has exactly one valid option, set its value to that option:
+        # if the stage doesn't have any ConfigVars, it is already complete
+        if len(self._varlist) == 0:
+            self._complete_stage()
+    
+        # Check if any ConfigVars in the newly enabled stage have exactly one valid option.
+        # If so, set their values to those options.
+        for var in self._varlist:
             if var.has_options():
                 svo = Stage.single_valid_option(var)
                 if svo is not None:
                     var.value = svo
 
-        # if the stage doesn't have any ConfigVars, it is already complete
-        if len(self._varlist) == 0:
-            self._complete_stage()
-
     @staticmethod
     def single_valid_option(var):
         """Check if a ConfigVar has exactly one valid option. If so, return that option.
-
+        
         Parameters
         ----------
         var : ConfigVar
@@ -252,7 +262,7 @@ class Stage:
             if validity is True:
                 valid_opts.append(opt)
                 if len(valid_opts) == 2:
-                    break  # there are more than one valid options. No need to check further.
+                    break # there are more than one valid options. No need to check further.
         if len(valid_opts) == 1:
             return valid_opts[0]
         return None

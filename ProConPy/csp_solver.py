@@ -5,6 +5,7 @@ from z3 import BoolRef
 from z3 import z3util
 
 from ProConPy.dev_utils import ConstraintViolation
+from ProConPy.csp_utils import TraversalLock
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
@@ -22,7 +23,7 @@ class CspSolver:
         )  # assignment assertions for the past stages
         self._options_assertions = {}  # options assertions for the current stage
         self._past_options_assertions = []  # options assertions for the past stages
-        self._traversal_lock = False
+        self._tlock = TraversalLock()
 
     def progress(self):
         """This method is called by Stage when the current stage is completed and the next
@@ -265,7 +266,7 @@ class CspSolver:
                 )
 
             error_messages = [str(err_msg) for err_msg in s.unsat_core()]
-            return f'Invalid assignment of {var} to {new_value}. Reason(s): {", ".join(error_messages)}'
+            return f'Invalid assignment of {var} to {new_value}. Reason(s): {". ".join(error_messages)}'
 
     def register_assignment(self, var, new_value):
         """Register the assignment of the given variable to the given value. The assignment is
@@ -286,64 +287,64 @@ class CspSolver:
 
         logger.debug(f"Registering assignment of {var} to {new_value}.")
 
-        # Below lock ensures that this method is not called recursively from within itself
-        # (which can happen if the assignment of a variable triggers the assignment of another variable.)
-        if self._traversal_lock is True:
+        if self._tlock.is_locked():
+            # Traversal lock is acquired, so return without doing anything. This happens when
+            # the assignment of a variable triggers the assignment of another variable from within this function.
+            logger.debug("Traversal lock is already acquired. Returning without doing anything.")
             return
-        self._traversal_lock = True
 
-        # First, confirm that assignment is indeed valid and doesn't lead to infeasibilities in future stages
-        new_options_and_tooltips = {}
-        with self._solver as s:
+        with self._tlock: # acquire the lock to prevent recursive traversal of constraint hypergraph
 
-            # apply all the assignments at current stage except for the variable being assigned.
-            self.apply_assignment_assertions(s, exclude_var=var)
+            # a dictionary to store the new options and tooltips of dependent variables
+            new_options_and_tooltips = {}
 
-            # apply the assignment assertion for the variable being assigned.
-            s.add(var == new_value)
+            # First, confirm that assignment is indeed valid and doesn't lead to infeasibilities in future stages
+            with self._solver as s:
 
-            # todo: below intermediate check is likely redundant.
-            if s.check() == unsat:
-                raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
+                # apply all the assignments at current stage except for the variable being assigned.
+                self.apply_assignment_assertions(s, exclude_var=var)
 
-            # apply all current options assertions for variables that are not dependent on the variable being assigned.
-            self.apply_options_assertions(s, exclude_vars=var._dependent_vars)
+                # apply the assignment assertion for the variable being assigned.
+                s.add(var == new_value)
 
-            # determine new options for dependent variables and temporarily apply the options assertions
-            for dependent_var in var._dependent_vars:
-                new_options, new_tooltips = dependent_var._options_spec()
+                # todo: below intermediate check is likely redundant.
+                if s.check() == unsat:
+                    raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
 
-                if new_options is not None:
-                    new_options_and_tooltips[dependent_var] = (
-                        new_options,
-                        new_tooltips,
+                # apply all current options assertions for variables that are not dependent on the variable being assigned.
+                self.apply_options_assertions(s, exclude_vars=var._dependent_vars)
+
+                # determine new options for dependent variables and temporarily apply the options assertions
+                for dependent_var in var._dependent_vars:
+                    new_options, new_tooltips = dependent_var._options_spec()
+
+                    if new_options is not None:
+                        new_options_and_tooltips[dependent_var] = (
+                            new_options,
+                            new_tooltips,
+                        )
+                        s.add(Or([dependent_var == opt for opt in new_options]))
+
+                if s.check() == unsat:
+                    # The new value for the variable being assigned led to infeasible options for dependent variables.
+                    # Set variable value to None, and raise an exception.
+                    var.value = None
+                    raise ConstraintViolation(
+                        f"The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
+                        + f"Please choose a different value for {var}."
                     )
-                    s.add(Or([dependent_var == opt for opt in new_options]))
 
-            if s.check() == unsat:
-                logger.info("The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
-                    + f"Please choose a different value for {var}. Current assertions in the solver are:")
-                for asrt in s.assertions():
-                    print(str(asrt)+',')
-                raise ConstraintViolation(
-                    f"The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
-                    + f"Please choose a different value for {var}."
-                )
+            # Getting here means that the assignment is feasible. Now, indeed register the assignment:
+            self._assignment_assertions[var] = var == new_value
 
-        # Getting here means that the assignment is feasible. Now, indeed register the assignment:
-        self._assignment_assertions[var] = var == new_value
+            # Having confirmed the feasibility of the assignment, update the options of the dependent variables
+            self._update_options_of_dependent_vars(new_options_and_tooltips)
 
-        # Having confirmed the feasibility of the assignment, update the options of the dependent variables
-        self._update_options_of_dependent_vars(new_options_and_tooltips)
+            # refresh the options validities of affected variables
+            self._refresh_options_validities(var)
 
-        # refresh the options validities of affected variables
-        self._refresh_options_validities(var)
-
-        # record the assignment
-        self._assignment_history.append((var, new_value))
-
-        # release the lock
-        self._traversal_lock = False
+            # record the assignment
+            self._assignment_history.append((var, new_value))
 
     @staticmethod
     def _update_options_of_dependent_vars(new_options_and_tooltips):
