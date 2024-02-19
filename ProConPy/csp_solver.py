@@ -321,6 +321,10 @@ class CspSolver:
                     s.add(Or([dependent_var == opt for opt in new_options]))
 
             if s.check() == unsat:
+                logger.info("The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
+                    + f"Please choose a different value for {var}. Current assertions in the solver are:")
+                for asrt in s.assertions():
+                    print(str(asrt)+',')
                 raise ConstraintViolation(
                     f"The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
                     + f"Please choose a different value for {var}."
@@ -360,10 +364,6 @@ class CspSolver:
             if new_options is not None:
                 dependent_var.options = new_options
                 dependent_var.tooltips = new_tooltips
-                if len(new_options) == 1:
-                    # If there is ony one option, set the value of the dependent variable to that option
-                    # This assignment doesn't need to be registered, since the options constraint already accounts for it.
-                    dependent_var.value = new_options[0]
 
     @staticmethod
     def _refresh_options_validities(var):

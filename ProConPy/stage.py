@@ -170,7 +170,7 @@ class Stage:
         else:
             # No subsequent stage found. Backtrack.
             self._backtrack()
-        
+
         # Progress the csp solver too:
         csp.progress()
 
@@ -195,7 +195,11 @@ class Stage:
         """Determine the child stage to activate."""
         child_to_activate = None
         for child in self._children:
-            logger.debug("Checking activation constraint of child stage %s: %s", child, child._activation_constr)
+            logger.debug(
+                "Checking activation constraint of child stage %s: %s",
+                child,
+                child._activation_constr,
+            )
             if csp.check_expression(child._activation_constr) is True:
                 assert (
                     child_to_activate is None
@@ -219,9 +223,39 @@ class Stage:
             var.widget.disabled = False
             var._rank = Stage._current_rank
 
+            # if var has exactly one valid option, set its value to that option:
+            if var.has_options():
+                svo = Stage.single_valid_option(var)
+                if svo is not None:
+                    var.value = svo
+
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._complete_stage()
+
+    @staticmethod
+    def single_valid_option(var):
+        """Check if a ConfigVar has exactly one valid option. If so, return that option.
+
+        Parameters
+        ----------
+        var : ConfigVar
+            The ConfigVar to check.
+
+        Returns
+        -------
+        str or None
+            The single valid option if it exists, otherwise None.
+        """
+        valid_opts = []
+        for opt, validity in var._options_validities.items():
+            if validity is True:
+                valid_opts.append(opt)
+                if len(valid_opts) == 2:
+                    break  # there are more than one valid options. No need to check further.
+        if len(valid_opts) == 1:
+            return valid_opts[0]
+        return None
 
     def subsequent_stages(self):
         """Return a list of subsequent stages excluding child stages."""
