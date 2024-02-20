@@ -192,7 +192,7 @@ class ConfigVar(HasTraits):
         """
 
         logger.debug("Assigning a list of options for ConfigVar %s", self.name)
-        assert isinstance(new_options, (list, set))
+        assert isinstance(new_options, (list, set, tuple)), f"Unexpected type for new_options: {type(new_options)}"
         self._options = new_options
         csp.register_options(self, new_options)
         self.update_options_validities()

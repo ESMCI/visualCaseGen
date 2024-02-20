@@ -22,32 +22,11 @@ def set_options(cime):
             args = (cv_comp,)
         )
 
-    #    cv_comp_phys = cvars[f"COMP_{comp_class}_PHYS"]
-    #    cv_comp_phys.options = lambda: [cime.comp_phys[cv_comp.value]]
-    #    cv_comp_phys.tooltips = lambda: [cime.comp_phys_desc[cv_comp.value]]
-
-    #    #cv_comp_phys.options = [cime.comp_phys[model] for model in cime.models[comp_class] if model[0] != "x"]
-    #    #cv_comp_phys.tooltips = [cime.comp_phys_desc[model] for model in cime.models[comp_class] if model[0] != "x"]
-
-
-    ## COMP_???_PHYS
-    #for comp_class in ci.comp_classes:
-    #    COMP = cvars[f"COMP_{comp_class}"]
-    #    COMP_PHYS = cvars[f"COMP_{comp_class}_PHYS"]
-    #    OptionsSpec(
-    #        var=COMP_PHYS,
-    #        options_and_tooltips_static={
-    #            COMP == model: (ci.comp_phys[model], ci.comp_phys_desc[model])
-    #            for model in ci.models[comp_class]
-    #            if model[0] != "x"
-    #        },
-    #        options_and_tooltips_dynamic=lambda model: (
-    #            ci.comp_phys[model],
-    #            ci.comp_phys_desc[model],
-    #        ),
-    #        inducing_vars=[COMP],
-    #    )
-
+        cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
+        cv_comp_option.options_spec = OptionsSpec(
+            func = lambda phys: (["(none)"] + cime.comp_options[phys], ["no modifiers"] + cime.comp_options_desc[phys]), 
+            args = (cv_comp_phys,)
+        )
 
 
     cv_grid_mode = cvars["GRID_MODE"]

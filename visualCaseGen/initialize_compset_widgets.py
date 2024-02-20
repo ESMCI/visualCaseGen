@@ -2,6 +2,7 @@ import logging
 import ipywidgets as widgets
 
 from ProConPy.config_var import cvars
+from visualCaseGen.custom_widget_types.checkbox_multi_widget import CheckboxMultiWidget
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -39,3 +40,9 @@ def initialize_compset_widgets(cime):
                 layout = {'width':'120px'},#, 'max_height':'145px'},
                 style = {'button_width':'105px', 'description_width':'90px'},
             )
+
+        cv_comp_option = cvars['COMP_{}_OPTION'.format(comp_class)]
+        cv_comp_option.widget = CheckboxMultiWidget(
+                description=comp_class+':',
+            )
+        cv_comp_option.valid_opt_char = '%'

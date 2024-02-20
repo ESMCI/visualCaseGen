@@ -64,6 +64,16 @@ def initialize_stages(cime):
         varlist = [cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes]
     )
 
+    stg_comp_option = Stage(
+        title="Component Options",
+        description="Select the component options",
+        widget = widgets.Tab(),
+        parent = stg_custom_compset,
+        varlist = [cvars[f"COMP_{comp_class}_OPTION"] for comp_class in cime.comp_classes]
+    )
+    for i, comp_class in enumerate(cime.comp_classes):
+        stg_comp_option._widget.set_title(i, comp_class)
+
     stg_grid = Stage(
         title="Grid",
         description="Select the grid",

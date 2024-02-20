@@ -3,8 +3,8 @@
 import logging
 from ProConPy.out_handler import handler as owh
 from ProConPy.csp_solver import csp
-from ProConPy.config_var import ConfigVar
 from ProConPy.config_var_str import ConfigVarStr
+from ProConPy.config_var_str_ms import ConfigVarStrMS
 
 logger = logging.getLogger('\t'+__name__.split('.')[-1])
 
@@ -23,7 +23,8 @@ def initialize_compset_variables(cime):
 
     for comp_class in cime.comp_classes:
         ConfigVarStr('COMP_'+str(comp_class))
-        ConfigVarStr('COMP_{}_PHYS'.format(comp_class))#, always_set=True)
+        ConfigVarStr('COMP_{}_PHYS'.format(comp_class))
+        ConfigVarStrMS('COMP_{}_OPTION'.format(comp_class))
 
 
     ConfigVarStr('GRID_MODE')
