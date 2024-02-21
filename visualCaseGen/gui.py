@@ -25,13 +25,15 @@ class GUI(widgets.VBox):
                 self.menubar,
                 self.main_body
             ],
-            layout = {'border':'1px solid lightgray', 'width':'830px', 'padding':'10px', 'display':'flex'}
+            layout = {'border':'1px solid lightgray', 'width':'830px', 'padding':'4px', 'display':'flex'}
         )
 
     def construct_menubar_widgets(self):
 
         self.header = widgets.HTML(
-            value = "<p style='font-size:120%'><b><font color='dimgrey'>{}</b></p>".format("visualCaseGen")
+            value="""
+                <i style="display: block; width: 100%; height: 100%; font-size: 1.25em;"><b><font color='gray'>{}</b></i>
+            """.format('visualCaseGen'),
         )
 
         self.btn_help = widgets.Button(

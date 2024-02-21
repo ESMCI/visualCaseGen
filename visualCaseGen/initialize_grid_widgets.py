@@ -13,7 +13,7 @@ def initialize_grid_widgets(cime):
 
     cv_grid_mode = cvars["GRID_MODE"]
     cv_grid_mode.widget = widgets.ToggleButtons(
-        description="Grid Selection Mode:",
+        description="Configuration Mode:",
         layout={"display": "flex", "width": "max-content", "padding": "10px"},
         style = {'button_width':'100px', 'description_width':description_width},
         disabled=False,

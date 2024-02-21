@@ -13,7 +13,7 @@ def initialize_compset_widgets(cime):
 
     cv_compset_mode = cvars["COMPSET_MODE"]
     cv_compset_mode.widget = widgets.ToggleButtons(
-        description="Compset Selection Mode:",
+        description="Configuration Mode:",
         layout={"display": "flex", "width": "max-content", "padding": "10px"},
         style = {'button_width':'100px', 'description_width':description_width},
     )

@@ -78,6 +78,7 @@ class Stage:
         self._hide_when_inactive = hide_when_inactive
 
         self._widget = widget
+        self._widget.title = self._title
         self._widget.children = [var.widget for var in varlist]
 
         # set _prev and _next stages to be used in fast retrieval of adjacent stages:
@@ -221,14 +222,17 @@ class Stage:
 
     def _disable(self):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
-        for var in self._varlist:
-            var.widget.disabled = True
+        logger.debug("Disabling stage %s.", self._title)
+        self._widget.disabled = True
 
     def _enable(self):
         """Activate the stage, allowing the user to set the parameters in the varlist."""
 
+        logger.info("Enabling stage %s.", self._title)
+        self._widget.disabled = False
+
+        # Set the rank of the ConfigVars in the stage
         for var in self._varlist:
-            var.widget.disabled = False
             var._rank = Stage._current_rank
 
         # if the stage doesn't have any ConfigVars, it is already complete
