@@ -54,7 +54,6 @@ class StageWidget(VBox):
     def __setattr__(self, name, value):
         """Override the __setattr__ method to handle the children attribute."""
         if name == "children":
-            print("setting children")
             if len(value) > 0 and value[0] is self._top_bar:
                 value = value[1:]
             self._main_body = self._gen_main_body(children=value)
@@ -70,7 +69,7 @@ class StageWidget(VBox):
     
     def _update_top_bar_title(self, font_color='gray', background_color='#C0C0C060'):
         self._top_bar_title.value = """
-        <i style="background-color: {}; color: white; display: block; width: 100%; height: 100%;"><b><font color='{}'>{}</b></i>
+        <i style="background-color: {}; color: white; display: block; width: 100%; height: 100%;"><b><font color='{}'>&nbsp&nbsp{}</b></i>
         """.format(
             background_color,
             font_color,
@@ -105,11 +104,11 @@ class StageWidget(VBox):
     @disabled.setter
     def disabled(self, value):
         if value is True:
-            self.layout.border_left = "1px solid lightgray"
-            self._update_top_bar_title(font_color = 'gray')
+            self.layout.border_left = "5px solid lightgray"
+            self._update_top_bar_title(font_color = 'gray', background_color = '#C3D7EE60')
         else:
-            self.layout.border_left = "4px solid orange"
-            self._update_top_bar_title(font_color = 'black')
+            self.layout.border_left = "5px solid #A8C700"
+            self._update_top_bar_title(font_color = '#012169', background_color = '#C3D7EE')
         self._disabled = value
         for child in self._main_body.children:
             child.disabled = value

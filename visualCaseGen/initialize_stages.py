@@ -15,7 +15,7 @@ def initialize_stages(cime):
     logger.debug("Initializing stages...")
 
     stg_compset = Stage(
-        title="Component Set",
+        title="Step 1: Component Set",
         description="Select the component set and its options",
         widget = StageWidget(VBox),
         varlist = [
@@ -34,13 +34,12 @@ def initialize_stages(cime):
     stg_custom_compset = Stage(
         title="Custom Component Set",
         description="Select the custom component set and its options",
-        widget = StageWidget(VBox),
         parent = stg_compset,
         activation_constr = cvars["COMPSET_MODE"] == "Custom"
     )
 
     stg_inittime = Stage(
-        title="Initialization Time",
+        title="Model Time Period:",
         description="Select the initialization time",
         widget = StageWidget(VBox),
         parent = stg_custom_compset,
@@ -76,7 +75,7 @@ def initialize_stages(cime):
         stg_comp_option._widget._main_body.set_title(i, comp_class)
 
     stg_grid = Stage(
-        title="Grid",
+        title="Step 2: Grid",
         description="Select the grid",
         widget = StageWidget(VBox),
         varlist = [
@@ -85,7 +84,7 @@ def initialize_stages(cime):
     )
 
     stg_launch = Stage(
-        title="Launch",
+        title="Step 3: Launch",
         description="Create and set up the case",
         widget = StageWidget(VBox),
         varlist = [],

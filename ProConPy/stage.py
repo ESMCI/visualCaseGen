@@ -35,7 +35,7 @@ class Stage:
         self,
         title: str,
         description: str,
-        widget,
+        widget = None,
         varlist: list = [],
         parent: "Stage" = None,
         activation_constr=None,
@@ -77,9 +77,15 @@ class Stage:
         self._status = "inactive"
         self._hide_when_inactive = hide_when_inactive
 
+        if self.is_guarded():
+            assert widget is None, f'The guarded "{self._title}" stage cannot have a widget.'
+        else:
+            assert widget is not None, f'The unguarded "{self._title}" stage must have a widget.'
+
         self._widget = widget
-        self._widget.title = self._title
-        self._widget.children = [var.widget for var in varlist]
+        if self._widget is not None:
+            self._widget.title = self._title
+            self._widget.children = [var.widget for var in varlist]
 
         # set _prev and _next stages to be used in fast retrieval of adjacent stages:
         self._prev = None
@@ -115,6 +121,9 @@ class Stage:
 
     def has_guarded_children(self):
         return any([child._activation_constr is not None for child in self._children])
+
+    def is_guarded(self):
+        return self._activation_constr is not None
 
     def check_for_cyclic_relations(self):
         # TODO: Implement a check for cyclic relations, probably in the CSP module and not here.
@@ -154,13 +163,8 @@ class Stage:
         stage_to_enable = None
 
         if self.has_children():
-
             # Determine the child stage to enable
-            if self.has_guarded_children():
-                child = self._determine_child_to_enable()
-            else:
-                child = self._children[0]
-
+            child = self._determine_child_to_enable()
             # Display the child stage and its subsequent stages
             self._widget.children += tuple(child.level_widgets())
             stage_to_enable = child
@@ -171,7 +175,7 @@ class Stage:
         else:
             # No subsequent stage found. Backtrack.
             stage_to_enable = self._backtrack()
-        
+
         if stage_to_enable is None:
             logger.info("SUCCESS: All stages are complete.")
             return
@@ -202,34 +206,53 @@ class Stage:
             else:
                 return self._parent._backtrack()
 
-        return None # The stage tree is complete
+        return None  # The stage tree is complete
 
     def _determine_child_to_enable(self):
         """Determine the child stage to activate."""
         child_to_activate = None
-        for child in self._children:
-            logger.debug("Checking activation constraint of child stage %s: %s", child, child._activation_constr)
-            if csp.check_expression(child._activation_constr) is True:
-                assert (
-                    child_to_activate is None
-                ), "Only one child stage can be activated at a time."
-                child_to_activate = child
+
+        if self.has_guarded_children():
+            # If there are guarded children, evaluate the guards, i.e., activation constraints
+            # and select the child to activate. Only one child can be activated at a time.
+            for child in self._children:
+                logger.debug(
+                    "Checking activation constraint of child stage %s: %s",
+                    child,
+                    child._activation_constr,
+                )
+                if csp.check_expression(child._activation_constr) is True:
+                    assert (
+                        child_to_activate is None
+                    ), "Only one child stage can be activated at a time."
+                    child_to_activate = child
+        else:
+            # If there are no guarded children, the first child is activated.
+            # Note the remaining children will be activated in sequence by their siblings.
+            child_to_activate = self._children[0]
 
         assert (
             child_to_activate is not None
         ), "At least one child stage must be activated."
+
+        # If the child to activate is guarded, recursively determine the child to enable
+        if child_to_activate.is_guarded():
+            return child_to_activate._determine_child_to_enable()
+
         return child_to_activate
 
     def _disable(self):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
         logger.debug("Disabling stage %s.", self._title)
-        self._widget.disabled = True
+        if self._widget is not None:
+            self._widget.disabled = True
 
     def _enable(self):
         """Activate the stage, allowing the user to set the parameters in the varlist."""
 
         logger.info("Enabling stage %s.", self._title)
-        self._widget.disabled = False
+        if self._widget is not None:
+            self._widget.disabled = False
 
         # Set the rank of the ConfigVars in the stage
         for var in self._varlist:
@@ -238,7 +261,7 @@ class Stage:
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._complete_stage()
-    
+
         # Check if any ConfigVars in the newly enabled stage have exactly one valid option.
         # If so, set their values to those options.
         for var in self._varlist:
@@ -250,7 +273,7 @@ class Stage:
     @staticmethod
     def single_valid_option(var):
         """Check if a ConfigVar has exactly one valid option. If so, return that option.
-        
+
         Parameters
         ----------
         var : ConfigVar
@@ -266,7 +289,7 @@ class Stage:
             if validity is True:
                 valid_opts.append(opt)
                 if len(valid_opts) == 2:
-                    break # there are more than one valid options. No need to check further.
+                    break  # there are more than one valid options. No need to check further.
         if len(valid_opts) == 1:
             return valid_opts[0]
         return None
