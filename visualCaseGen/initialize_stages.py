@@ -3,12 +3,14 @@ from ipywidgets import VBox, HBox, Tab
 
 from ProConPy.config_var import cvars
 from ProConPy.stage import Stage
+from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 description_width = "160px"
 
+@owh.out.capture()
 def initialize_stages(cime):
     """Initialize the stages for the case configurator."""
 

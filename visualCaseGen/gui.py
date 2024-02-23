@@ -32,25 +32,17 @@ class GUI(widgets.VBox):
 
         self.header = widgets.HTML(
             value="""
-                <i style="display: block; width: 100%; height: 100%; font-size: 1.25em;"><b><font color='gray'>{}</b></i>
+                <i style="display: block; width: 100%; height: 100%; font-size: 1.25em;"><b><font color='dimgray'>{}</b></i>
             """.format('visualCaseGen'),
         )
 
         self.btn_help = widgets.Button(
             description='Help',
-            button_style='info',
-            icon='bug',
-            layout = {'width':'100px'},
+            icon='question',
+            layout = {'width':'90px'},
+            #style={'button_color':'#C3D7EE'},
         )
         self.btn_help.on_click(self.on_help_click)
-
-        self.btn_reset = widgets.Button(
-            description='Reset',
-            button_style='danger', # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Reset',
-            icon='undo',
-            layout = {'width':'100px', 'display':'none'},
-        )
 
         self.btn_return = widgets.Button(
             description='Return',
@@ -64,7 +56,7 @@ class GUI(widgets.VBox):
         self.menubar = widgets.HBox(
             children = [
                 self.header,
-                widgets.HBox([self.btn_help, self.btn_reset, self.btn_return])
+                widgets.HBox([self.btn_help, self.btn_return])
             ], 
             layout={'display':'flex', 'justify_content':'space-between'})
 
@@ -74,7 +66,6 @@ class GUI(widgets.VBox):
         self.case_config_body.layout.display = 'none'
         # In menubar, hide help and reset buttons. Instead, show return button.
         self.btn_help.layout.display = 'none'
-        self.btn_reset.layout.display = 'none'
         self.btn_return.layout.display = ''
 
     
@@ -85,7 +76,6 @@ class GUI(widgets.VBox):
         # In menubar, hide return button. Instead, show help and reset buttons.
         self.btn_return.layout.display = 'none'
         self.btn_help.layout.display = ''
-        self.btn_reset.layout.display = ''
 
     def construct_main_body(self):
         self.case_config_body = GUI_case_configurator()

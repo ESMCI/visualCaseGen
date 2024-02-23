@@ -5,6 +5,8 @@ import logging
 from z3 import BoolRef
 
 from ProConPy.csp_solver import csp
+from ProConPy.out_handler import handler as owh
+from ProConPy.dev_utils import DEBUG
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -57,14 +59,16 @@ class Stage:
                 if parent.has_guarded_children():
                     assert (
                         activation_constr is not None
-                    ), f"Attempted to add a child stage, {title}, with no activation constraint to a parent stage, {parent}, that has child(ren) with activation constraints."
+                    ),  f"Attempted to add a child stage, {title}, with no activation constraint to a parent stage, "+\
+                        f"{parent}, that has child(ren) with activation constraints."
                     assert activation_constr is True or isinstance(
                         activation_constr, BoolRef
                     ), f"The activation constraint of the child stage, {title} must be a z3.BoolRef or True."
                 else:
                     assert (
                         activation_constr is None
-                    ), f"Attempted to add a child stage, {title}, with activation constraint to a parent stage, {parent}, that has child(ren) with no activation constraints."
+                    ),  f"Attempted to add a child stage, {title}, with activation constraint to a parent stage, "+\
+                        f"{parent}, that has child(ren) with no activation constraints."
 
             parent._children.append(self)
 
@@ -84,7 +88,7 @@ class Stage:
 
         self._widget = widget
         if self._widget is not None:
-            self._widget.title = self._title
+            self._widget.stage = self
             self._widget.children = [var.widget for var in varlist]
 
         # set _prev and _next stages to be used in fast retrieval of adjacent stages:
@@ -247,6 +251,7 @@ class Stage:
         if self._widget is not None:
             self._widget.disabled = True
 
+    @owh.out.capture()
     def _enable(self):
         """Activate the stage, allowing the user to set the parameters in the varlist."""
 
@@ -308,3 +313,40 @@ class Stage:
         widgets = [self._widget]
         widgets += [s._widget for s in self.subsequent_stages()]
         return widgets
+    
+    def reset(self, b=None):
+        """Reset the stage.
+
+        Parameters
+        ----------
+        b : Button, optional
+            The button that triggered the reset. 
+        """
+
+        for var in self._varlist:
+            if var.value is not None:
+                var.value = None
+        
+        if DEBUG is True:
+            assert len(csp._assignment_assertions) == 0, "The assignment assertions list is not empty."
+            assert len(csp._options_assertions) == 0, "The options assertions list is not empty."
+
+    #todo @owh.out.capture()
+    #todo def revert(self, b=None):
+    #todo     """Reset the stage and go back to the previous stage (if any)."""
+
+    #todo     self.reset()
+    #todo     stage_to_enable = None
+    #todo     if self._prev is not None:
+    #todo         stage_to_enable = self._prev
+    #todo     elif self._parent is not None:
+    #todo         parent = self._parent
+    #todo         while parent.is_guarded():
+    #todo             parent = parent._parent
+    #todo         stage_to_enable = parent
+
+    #todo     if stage_to_enable is not None:
+    #todo         logger.info("Reverting to stage %s.", stage_to_enable._title)
+    #todo         self._disable()
+    #todo         csp.revert()
+    #todo         stage_to_enable._enable()

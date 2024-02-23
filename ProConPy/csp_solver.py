@@ -6,6 +6,7 @@ from z3 import z3util
 
 from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.csp_utils import TraversalLock
+from ProConPy.out_handler import handler as owh
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
@@ -25,11 +26,16 @@ class CspSolver:
         self._past_options_assertions = []  # options assertions for the past stages
         self._tlock = TraversalLock()
 
+    @owh.out.capture()
     def progress(self):
         """This method is called by Stage when the current stage is completed and the next
         stage (if any) is to be started. This should be the only place in this class where
         assignment and options assertions are permanently applied (although they may be
         dropped later if the user goes back to a previous stage)."""
+
+        # add a new scope for the current stage assertions to be applied
+        self._solver.push()
+        logger.debug("Pushed new solver scope. Current num_scopes: %s", self._solver.num_scopes())
 
         # record the assignment and options assertions to be used when retrieving error messages
         self._past_assignment_assertions.append(self._assignment_assertions)
@@ -37,9 +43,7 @@ class CspSolver:
         # apply all current assignment assertions:
         for _, asrt in self._assignment_assertions.items():
             self._solver.add(asrt)
-        self._assignment_assertions = (
-            {}
-        )  # clear the assignment assertions for the next stage
+        self._assignment_assertions = {} # clear the assignment assertions
 
         # record the options assertions to be used when retrieving error messages
         self._past_options_assertions.append(self._options_assertions)
@@ -47,10 +51,17 @@ class CspSolver:
         # apply all current options assertions:
         for _, asrt in self._options_assertions.items():
             self._solver.add(asrt)
-        self._options_assertions = {}  # clear the options assertions for the next stage
+        self._options_assertions = {}  # clear the options assertions
 
-        # add a new scope to seal the assertions determined at the currently completed stage.
-        self._solver.push()
+
+    ###todo @owh.out.capture()
+    ###todo def revert(self):
+    ###todo     """This method is called by Stage when the user wants to revert to the previous stage.
+    ###todo     This method reverts the solver to the state it was in at the end of the previous stage."""
+    ###todo     self._solver.pop()
+    ###todo     logger.info("Popped a solver scope. Current num_scopes: %s", self._solver.num_scopes())
+    ###todo     self._past_assignment_assertions.pop()
+    ###todo     self._past_options_assertions.pop()
 
     def initialize(self, cvars, relational_constraints):
         """Initialize the CSP solver with relational constraints. The relational constraints are
@@ -145,6 +156,11 @@ class CspSolver:
     def assignment_history(self):
         """Return the history of ConfigVar assignments made by the user."""
         return self._assignment_history
+
+    def reset_current_stage(self):
+        """Reset the current stage."""
+        self._assignment_assertions = {}
+        self._options_assertions = {}
 
     def reset(self):
         self._assignment_history = []
@@ -305,7 +321,8 @@ class CspSolver:
                 self.apply_assignment_assertions(s, exclude_var=var)
 
                 # apply the assignment assertion for the variable being assigned.
-                s.add(var == new_value)
+                if new_value is not None:
+                    s.add(var == new_value)
 
                 # todo: below intermediate check is likely redundant.
                 if s.check() == unsat:
@@ -318,11 +335,11 @@ class CspSolver:
                 for dependent_var in var._dependent_vars:
                     new_options, new_tooltips = dependent_var._options_spec()
 
+                    new_options_and_tooltips[dependent_var] = (
+                        new_options,
+                        new_tooltips,
+                    )
                     if new_options is not None:
-                        new_options_and_tooltips[dependent_var] = (
-                            new_options,
-                            new_tooltips,
-                        )
                         s.add(Or([dependent_var == opt for opt in new_options]))
 
                 if s.check() == unsat:
@@ -335,7 +352,10 @@ class CspSolver:
                     )
 
             # Getting here means that the assignment is feasible. Now, indeed register the assignment:
-            self._assignment_assertions[var] = var == new_value
+            if new_value is not None:
+                self._assignment_assertions[var] = var == new_value
+            else:
+                self._assignment_assertions.pop(var, None)
 
             # Having confirmed the feasibility of the assignment, update the options of the dependent variables
             self._update_options_of_dependent_vars(new_options_and_tooltips)
@@ -365,6 +385,9 @@ class CspSolver:
             if new_options is not None:
                 dependent_var.options = new_options
                 dependent_var.tooltips = new_tooltips
+            else:
+                dependent_var.options = []
+                dependent_var.tooltips = []
 
     @staticmethod
     def _refresh_options_validities(var):
@@ -451,7 +474,10 @@ class CspSolver:
         """Register the new options for the given variable. The registry is made to the temporary
         assertions container, and the permanent application of the assertions is done when the stage
         is completed and the next stage is to be started."""
-        self._options_assertions[var] = Or([var == opt for opt in new_options])
+        if new_options is not None and len(new_options) > 0:
+            self._options_assertions[var] = Or([var == opt for opt in new_options])
+        else:
+            self._options_assertions.pop(var, None)
 
     def get_options_validities(self, var):
         """Get the validities of the options of the given variable. The validities are determined
