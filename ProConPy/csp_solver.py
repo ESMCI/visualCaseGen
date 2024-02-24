@@ -27,7 +27,7 @@ class CspSolver:
         self._tlock = TraversalLock()
 
     @owh.out.capture()
-    def progress(self):
+    def proceed(self):
         """This method is called by Stage when the current stage is completed and the next
         stage (if any) is to be started. This should be the only place in this class where
         assignment and options assertions are permanently applied (although they may be

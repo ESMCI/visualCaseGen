@@ -166,19 +166,15 @@ class Stage:
         When all the ConfigVars in the varlist are set, the stage is deemed complete."""
         if self.is_complete():
             logger.debug("Stage <%s> is complete.", self._title)
-            self._complete_stage()
+            self._proceed()
 
-    def _complete_stage(self):
-        """Disable the stage and hand over control to the next stage."""
-        self._disable()
-        Stage._completed_stages.append(self)
-        self._progress()
-
-    def _progress(self):
+    def _proceed(self):
         """End this stage and move on to the following stage. This may be a child stage or the next stage.
         If no child or next stage is found, backtrack to an ancestor stage that has a next stage.
         """
+        self._disable()
 
+        Stage._completed_stages.append(self)
         Stage._current_rank += 1
 
         stage_to_enable = None
@@ -202,14 +198,14 @@ class Stage:
             logger.info("SUCCESS: All stages are complete.")
             return
 
-        # Progress the csp solver before enabling the next stage
-        csp.progress()
+        # Proceed the csp solver before enabling the next stage
+        csp.proceed()
 
         # Enable the following stage
         stage_to_enable._enable()
 
     def _backtrack(self):
-        """While attempting to progress, recursively backtrack until a stage that has a next stage
+        """While attempting to proceed, recursively backtrack until a stage that has a next stage
         is found. When such a stage is found, return its next stage for activation. If
         no such stage is found, return None to indicate that the stage tree is complete.
 
@@ -283,7 +279,7 @@ class Stage:
 
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
-            self._complete_stage()
+            self._proceed()
 
         # Check if any ConfigVars in the newly enabled stage have exactly one valid option.
         # If so, set their values to those options.
