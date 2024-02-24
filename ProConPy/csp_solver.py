@@ -354,6 +354,10 @@ class CspSolver:
 
         logger.debug(f"Registering assignment of {var} to {new_value}.")
 
+        if not (var.has_dependent_vars() or var.has_related_vars()):
+            logger.debug("%s has no dependent or related variables. Returning.", var)
+            return
+
         if self._tlock.is_locked():
             # Traversal lock is acquired, so return without doing anything. This happens when
             # the assignment of a variable triggers the assignment of another variable from within this function.
@@ -370,7 +374,7 @@ class CspSolver:
 
             # Aassignment is feasible. Register the assignment, except when the assignment is None
             # or the variable has no dependent variables.
-            if var.has_dependent_vars():
+            if var.has_related_vars():
                 if new_value is not None:
                     self._assignment_assertions[var] = var == new_value
                 else:

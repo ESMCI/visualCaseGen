@@ -5,9 +5,10 @@ import itertools
 from ProConPy.out_handler import handler as owh
 from ProConPy.dialog import alert_warning
 
-bg_color_light = "#afc7e360"
-bg_color_dark = "#afc7e3"
-font_color_dark = "#012169"
+bg_color_light = "#9DB3CC70"
+bg_color_dark = "#9DB3CC"
+font_color_dark = "#00174B"
+active_left_border_color = "#A8C700"
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -233,7 +234,7 @@ class StageWidget(VBox):
         if value is True:
             # Disable the stage
             logger.debug("Disabling stage widget %s...", self._title)
-            self.layout.border_left = "4px solid lightgray"
+            self.layout.border_left = "5px solid lightgray"
             self._update_top_bar_title(
                 font_color="gray", background_color=bg_color_light
             )
@@ -249,7 +250,7 @@ class StageWidget(VBox):
         else:
             # Enable the stage
             logger.debug("Enabling stage widget %s...", self._title)
-            self.layout.border_left = "4px solid #A8C700"
+            self.layout.border_left = "5px solid " + active_left_border_color
             self._update_top_bar_title(
                 title_prefix="&#9658",
                 font_color=font_color_dark,

@@ -6,7 +6,7 @@ def get_relational_constraints(cvars):
     and values are error messages to be displayed when the constraint is violated.
     """
 
-    # define references to ConfigVars
+    # references to ConfigVars appearing in relational constraints
     INITTIME = cvars['INITTIME']
     COMPSET_MODE = cvars['COMPSET_MODE']
     COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
@@ -16,6 +16,9 @@ def get_relational_constraints(cvars):
     COMP_ROF = cvars['COMP_ROF'];  COMP_ROF_PHYS = cvars['COMP_ROF_PHYS'];  COMP_ROF_OPTION = cvars['COMP_ROF_OPTION']
     COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_PHYS = cvars['COMP_GLC_PHYS'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
     COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
+    ATM_GRID = cvars['ATM_GRID']
+    OCN_GRID = cvars['OCN_GRID']
+    WAV_GRID = cvars['WAV_GRID']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
@@ -74,6 +77,19 @@ def get_relational_constraints(cvars):
         Implies( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")),
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
+
+        Implies(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
+            "Not a valid MOM6 grid.",
+
+        Implies(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):
+            "When in aquaplanet mode, the ocean grid must be set to f09, f19, or f45",
+
+        Implies(COMP_OCN!="mom", WAV_GRID != "wtx0.66v1"):
+            "wt066v1 wave grid is for MOM6 coupling only",
+
+        Implies(COMP_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
+            "T42 grid can only be used with SCAM option.",
+
 
         #### Assertions to stress-test the CSP solver
 

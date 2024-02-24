@@ -316,9 +316,9 @@ class Stage:
     def subsequent_siblings(self):
         """Return a list of subsequent sibling stages"""
         subsequent_siblings = []
-        stage = self._next
-        while stage is not None:
-            subsequent_siblings.append(stage)
+        stage = self
+        while stage._next is not None:
+            subsequent_siblings.append(stage._next)
             stage = stage._next
         return subsequent_siblings
 

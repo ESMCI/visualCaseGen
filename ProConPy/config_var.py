@@ -42,9 +42,7 @@ class ConfigVar(HasTraits):
     _invalid_opt_char = chr(int("274C", base=16))
     _valid_opt_char = chr(int("200B", base=16))
 
-    def __init__(
-        self, name, widget_none_val=None, always_set=False, hide_invalid=False
-    ):
+    def __init__(self, name, widget_none_val=None, hide_invalid=False):
         """
         ConfigVar constructor.
 
@@ -55,9 +53,6 @@ class ConfigVar(HasTraits):
         widget_none_val
             Null value for the variable widget. Typically set to None, but for some widget types,
             e.g., those that can have multiple values, this may be set to ().
-        always_set : bool
-            If True and if the variable has finite list of options, then the first valid option is
-            set as the value unless the user picks another value.
         hide_invalid:
             If True, the widget displays only the valid options.
         """
@@ -102,7 +97,6 @@ class ConfigVar(HasTraits):
         self._related_vars = (
             set()
         )  # ConfigVar instances in the same relational constraints as this instance
-        self._always_set = always_set  # if the instance has finite set of options, make sure a value is always set
         self._hide_invalid = hide_invalid
 
         # Finally, Observe value to call _post_value_change method after every value change.
@@ -166,18 +160,19 @@ class ConfigVar(HasTraits):
         """Description of the variable to be displayed in widget."""
         return self._widget.description
 
-    @property
-    def always_set(self):
-        """True if this ConfigVar instance should always be set to some value."""
-        return self._always_set
-
     def has_options(self):
         """Returns True if options have been assigned for this variable."""
         return len(self._options) > 0
 
     def has_dependent_vars(self):
-        """Returns True if there are dependent variables."""
+        """Returns True if there are dependent variables, i.e., variables whose
+        options depend on the value of this variable."""
         return len(self._dependent_vars) > 0
+
+    def has_related_vars(self):
+        """Returns True if there are related variables, i.e, variables that are
+        involved in the same relational constraints as this variable."""
+        return len(self._related_vars) > 0
 
     @property
     def options(self):
@@ -268,12 +263,10 @@ class ConfigVar(HasTraits):
 
         # Finally, update the value if necessary.
         if options_changed:
-            if self._always_set is True:
-                self.value = None  # reset the value to ensure that _post_value_change() gets called
+            if self.value is not None:
+                # reset the value to ensure that _post_value_change() gets called
                 # when options change, but the first valid option happens to be the
                 # same as the old value (from a different list of options)
-                self.value = self.get_first_valid_option()
-            elif self.value is not None:
                 self.value = None
 
         else:  # options list not changed

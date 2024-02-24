@@ -62,7 +62,7 @@ class ConfigVarStr(ConfigVar, SeqRef):
         elif self.has_options():
             self._widget.value = self._valid_opt_char + " " + self.value
         else:
-            raise NotImplementedError  # the variable has infinite domain
+            self._widget.value = self.value
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):
@@ -74,37 +74,31 @@ class ConfigVarStr(ConfigVar, SeqRef):
         if change["old"] == {}:
             return  # frontend-triggered change not finalized yet
 
+        new_val = change["owner"].value
+
+        # remove the validity char from the new_val if it exists
         if self.has_options():
-            # first check if valid selection
-            new_widget_val = change["owner"].value
-            new_val = new_widget_val[1:].strip()
+            new_val = new_val[1:].strip()
 
-            if new_widget_val == self._widget_none_val and self._always_set is True:
-                # Attempted to set the value to None while always_set property is True.
-                # Revert the frontend change by calling _update_widget_value and return.
-                self._update_widget_value()
-                return
+        logger.info("Frontend changing %s widget value to %s", self.name, new_val)
 
-            logger.info(
-                "Frontend changing %s widget value to %s", self.name, new_widget_val
-            )
+        try:
+            if new_val == self._widget_none_val:
+                self.value = None
+            else:
+                self.value = new_val
+        except ConstraintViolation as err:
+            # inform the user that the selection is invalid
+            logger.critical("ERROR: %s", err.message)
+            alert_error(err.message)
 
-            try:
-                if new_val == self._widget_none_val:
-                    self.value = None
-                else:
-                    self.value = new_val
-            except ConstraintViolation as err:
-                # inform the user that the selection is invalid
-                logger.critical("ERROR: %s", err.message)
-                alert_error(err.message)
-
-                # set widget to old value
-                self._widget.value = (
-                    self._widget_none_val
-                    if self.value is None
-                    else f"{self._valid_opt_char} {self.value}"
+            # set widget to old value
+            self._widget.value = (
+                self._widget_none_val
+                if self.value is None
+                else (
+                    f"{self._valid_opt_char} {self.value}"
+                    if self.has_options()
+                    else self.value
                 )
-
-        else:
-            raise NotImplementedError  # the variable has infinite domain
+            )
