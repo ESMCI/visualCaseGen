@@ -1,5 +1,6 @@
 import logging
 from ipywidgets import VBox, HBox, Tab, HTML, Button
+import itertools
 
 from ProConPy.out_handler import handler as owh
 
@@ -45,7 +46,7 @@ class StageWidget(VBox):
         super().__init__(
             layout={
                 "border": "1px solid lightgray",
-                "margin": "12px",
+                "margin": "12px 8px 12px 16px",
                 "padding": "0px",
             },
             **kwargs,
@@ -99,7 +100,7 @@ class StageWidget(VBox):
             layout={'display':'none', 'width': button_width},
             style={'button_color':bg_color_dark, 'text_color':font_color_dark,}# 'font_weight':'bold'},
         )
-        self._btn_reset.on_click(self.stage.reset)
+        self._btn_reset.on_click(self._stage.reset)
 
         self._btn_revert = Button(
             description="Revert",
@@ -108,7 +109,7 @@ class StageWidget(VBox):
             layout={'display':'none', 'width': button_width},
             style={'button_color':bg_color_dark, 'text_color':font_color_dark,}# 'font_weight':'bold'},
         )
-        ###todo self._btn_revert.on_click(self.stage.revert)
+        self._btn_revert.on_click(self._stage.revert)
 
         self._top_bar = HBox([
             self._top_bar_title,
@@ -127,11 +128,23 @@ class StageWidget(VBox):
             },)
 
     def __setattr__(self, name, value):
-        """Override the __setattr__ method to handle the children attribute."""
+        """Override the __setattr__ method to handle the children attribute so that the widget
+        always has two children: the top bar and the main body. Any new children, unless they
+        are the top bar or the main body, are added to the main body. If the children attribute
+        is set, the top bar and the main body are updated accordingly.
+
+        Parameters
+        ----------
+        name : str
+            The name of the attribute to set.
+        value : any
+            The value to set the attribute to.
+        """
+
         if name == "children":
-            if len(value) > 0 and value[0] is self._top_bar:
-                value = value[1:]
-            self._main_body = self._gen_main_body(children=value)
+            value = [v for v in value if v is not self._top_bar and v is not self._main_body]
+            if len(value) > 0:
+                self._main_body = self._gen_main_body(children=value)
             super().__setattr__(
                 name,
                 (
@@ -140,10 +153,9 @@ class StageWidget(VBox):
                 ),
             )
         else:
+            # For all other attributes, use the default behavior
             super().__setattr__(name, value)
     
-
-
     @property
     def stage(self):
         return self._stage
@@ -153,6 +165,29 @@ class StageWidget(VBox):
         self._stage = value
         self._title = value._title
         self._gen_top_bar()
+        # Set the children attribute. This will actually set the children of the StageWidget
+        # to the top bar and the main body, and the main body's children to the widgets of the
+        # variables in the stage.
+        self.children = [var.widget for var in self._stage._varlist]
+
+    def append_child_stages(self, first_child):
+        """Append a child stage and all its siblings to the main body, which, by default,
+        has the widgets of the varlist only, but may be extended to include the StageWidget
+        instances of child stages.
+        
+        Parameters
+        ----------
+        first_child : Stage
+            The first child stage to append.
+        """
+        
+        self._main_body.children = tuple(
+            itertools.chain(
+                [var.widget for var in self._stage._varlist],
+                [first_child._widget],
+                [stage._widget for stage in first_child.subsequent_siblings()],
+            )
+        )
 
     @property
     def disabled(self):
@@ -160,6 +195,18 @@ class StageWidget(VBox):
 
     @disabled.setter
     def disabled(self, value):
+        """Set the disabled state of the stage widget. if value is True, the stage is disabled;
+        otherwise, it is enabled. When the stage gets disabled, the main body is hidden and the
+        top bar is updated to reflect the disabled state. When the stage gets enabled, the main
+        body is shown and the top bar is updated to reflect the enabled state. When this widget
+        is disabled, all of the main body's children are hidden and disabled as well.
+        
+        Parameters
+        ----------
+        value : bool
+            The disabled state of the stage widget.
+        """
+
         if value is True:
             # Disable the stage
             logger.debug("Disabling stage widget %s...", self._title)
@@ -170,7 +217,8 @@ class StageWidget(VBox):
             self._btn_reset.layout.display = 'none'
             self._btn_revert.layout.display = 'none'
             if self._main_body:
-                if len(self._main_body.children)>0 and any([child.value in [None,()] for child in self._main_body.children]):
+                if any([var.value is None for var in self._stage._varlist]):
+                    # this is an incomplete stage to be completed in the future, so make it invisible now
                     self._main_body.layout.display = 'none'
         else:
             # Enable the stage
@@ -183,9 +231,13 @@ class StageWidget(VBox):
                 self._btn_reset.layout.display = ''
                 self._btn_revert.layout.display = ''
                 self._main_body.layout.display = 'flex'
+        
+        # Set the disabled state of the stage widget
         self._disabled = value
-        for child in self._main_body.children:
-            child.disabled = value
+        
+        # Disable/Enable all variables in the stage
+        for var in self._stage._varlist:
+            var.widget.disabled = value
     
 
     @owh.out.capture()

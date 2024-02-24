@@ -33,35 +33,39 @@ class CspSolver:
         assignment and options assertions are permanently applied (although they may be
         dropped later if the user goes back to a previous stage)."""
 
-        # add a new scope for the current stage assertions to be applied
+        # add a new scope for the completed stage assertions to be applied
         self._solver.push()
-        logger.debug("Pushed new solver scope. Current num_scopes: %s", self._solver.num_scopes())
+        logger.debug(
+            "Pushed new solver scope. Current num_scopes: %s", self._solver.num_scopes()
+        )
 
         # record the assignment and options assertions to be used when retrieving error messages
         self._past_assignment_assertions.append(self._assignment_assertions)
 
-        # apply all current assignment assertions:
+        # apply all assignment assertions for the completed stage:
         for _, asrt in self._assignment_assertions.items():
             self._solver.add(asrt)
-        self._assignment_assertions = {} # clear the assignment assertions
+        self._assignment_assertions = {}  # clear the assignment assertions
 
         # record the options assertions to be used when retrieving error messages
         self._past_options_assertions.append(self._options_assertions)
 
-        # apply all current options assertions:
+        # apply all options assertions for the completed stage:
         for _, asrt in self._options_assertions.items():
             self._solver.add(asrt)
         self._options_assertions = {}  # clear the options assertions
 
-
-    ###todo @owh.out.capture()
-    ###todo def revert(self):
-    ###todo     """This method is called by Stage when the user wants to revert to the previous stage.
-    ###todo     This method reverts the solver to the state it was in at the end of the previous stage."""
-    ###todo     self._solver.pop()
-    ###todo     logger.info("Popped a solver scope. Current num_scopes: %s", self._solver.num_scopes())
-    ###todo     self._past_assignment_assertions.pop()
-    ###todo     self._past_options_assertions.pop()
+    @owh.out.capture()
+    def revert(self):
+        """This method is called by Stage when the user wants to revert to the previous stage.
+        This method reverts the solver to the state it was in at the end of the previous stage.
+        """
+        self._solver.pop()
+        logger.debug(
+            "Popped a solver scope. Current num_scopes: %s", self._solver.num_scopes()
+        )
+        self._assignment_assertions = self._past_assignment_assertions.pop()
+        self._options_assertions = self._past_options_assertions.pop()
 
     def initialize(self, cvars, relational_constraints):
         """Initialize the CSP solver with relational constraints. The relational constraints are
@@ -157,15 +161,6 @@ class CspSolver:
         """Return the history of ConfigVar assignments made by the user."""
         return self._assignment_history
 
-    def reset_current_stage(self):
-        """Reset the current stage."""
-        self._assignment_assertions = {}
-        self._options_assertions = {}
-
-    def reset(self):
-        self._assignment_history = []
-        pass  # todo
-
     def check_assignment(self, var, new_value):
         """Check if the given value is a valid assignment for the given variable. The assignment
         is checked by applying the assignment assertions and the options assertions to the solver.
@@ -187,6 +182,7 @@ class CspSolver:
             self._initialized
         ), "Must finalize initialization before CspSolver can operate."
 
+        # None is always a valid assignment
         if new_value is None:
             return
 
@@ -197,13 +193,68 @@ class CspSolver:
             except KeyError:
                 raise ConstraintViolation(f"{new_value} not an option for {var}")
         else:  # variable has no finite list of options
-            with self._solver as s:
-                self.apply_assignment_assertions(s, exclude_var=var)
-                self.apply_options_assertions(
-                    s
-                )  # todo: this may not be necessary because options assertions are for variables of future stages
-                if s.check(var == new_value) != sat:
-                    raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
+            self._do_check_assignment(var, new_value)
+
+    def _do_check_assignment(self, var, new_value):
+        """Check if the given value is a valid assignment for the given variable. The assignment
+        is checked by applying the assignment assertions and the options assertions to the solver.
+        Also, return the new options and tooltips for the dependent variables to avoid recomputation.
+
+        Parameters
+        ----------
+        var : ConfigVar
+            The variable being assigned.
+        new_value : any
+            The new value of the variable.
+
+        Returns
+        -------
+        dict
+            A dictionary with the dependent variables as keys and the new options and tooltips as values.
+
+        Raises
+        ------
+        ConstraintViolation : If the assignment is invalid.
+        """
+
+        with self._solver as s:
+
+            # apply all the assignments at current stage except for the variable being assigned.
+            self.apply_assignment_assertions(s, exclude_var=var)
+
+            # apply all current options assertions for variables that are not dependent on the variable being assigned.
+            self.apply_options_assertions(s, exclude_vars=var._dependent_vars)
+
+            # apply the assignment assertion for the variable being assigned.
+            if new_value is not None:
+                s.add(var == new_value)
+
+            # todo: below intermediate check is likely redundant.
+            if s.check() == unsat:
+                raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
+
+            # determine new options for dependent variables and temporarily apply the options assertions
+            new_options_and_tooltips = {}
+            for dependent_var in var._dependent_vars:
+                new_options, new_tooltips = dependent_var._options_spec()
+
+                new_options_and_tooltips[dependent_var] = (
+                    new_options,
+                    new_tooltips,
+                )
+                if new_options is not None:
+                    s.add(Or([dependent_var == opt for opt in new_options]))
+
+            if s.check() == unsat:
+                # The new value for the variable being assigned led to infeasible options for dependent variables.
+                # Set variable value to None, and raise an exception.
+                var.value = None
+                raise ConstraintViolation(
+                    f"The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
+                    + f"Please choose a different value for {var}."
+                )
+
+        return new_options_and_tooltips
 
     def check_expression(self, expr):
         """Check if the given z3 BoolRef expression is satisfiable.
@@ -306,58 +357,26 @@ class CspSolver:
         if self._tlock.is_locked():
             # Traversal lock is acquired, so return without doing anything. This happens when
             # the assignment of a variable triggers the assignment of another variable from within this function.
-            logger.debug("Traversal lock is already acquired. Returning without doing anything.")
+            logger.debug(
+                "Traversal lock is already acquired. Returning without doing anything."
+            )
             return
 
-        with self._tlock: # acquire the lock to prevent recursive traversal of constraint hypergraph
+        with self._tlock:  # acquire the lock to prevent recursive traversal of constraint hypergraph
 
-            # a dictionary to store the new options and tooltips of dependent variables
-            new_options_and_tooltips = {}
+            # First, confirm that assignment is indeed valid and doesn't lead to infeasibilities in future stages.
+            # Also, get the new options and tooltips for the dependent variables to avoid recomputation.
+            new_options_and_tooltips = self._do_check_assignment(var, new_value)
 
-            # First, confirm that assignment is indeed valid and doesn't lead to infeasibilities in future stages
-            with self._solver as s:
-
-                # apply all the assignments at current stage except for the variable being assigned.
-                self.apply_assignment_assertions(s, exclude_var=var)
-
-                # apply the assignment assertion for the variable being assigned.
+            # Aassignment is feasible. Register the assignment, except when the assignment is None
+            # or the variable has no dependent variables.
+            if var.has_dependent_vars():
                 if new_value is not None:
-                    s.add(var == new_value)
+                    self._assignment_assertions[var] = var == new_value
+                else:
+                    self._assignment_assertions.pop(var, None)
 
-                # todo: below intermediate check is likely redundant.
-                if s.check() == unsat:
-                    raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
-
-                # apply all current options assertions for variables that are not dependent on the variable being assigned.
-                self.apply_options_assertions(s, exclude_vars=var._dependent_vars)
-
-                # determine new options for dependent variables and temporarily apply the options assertions
-                for dependent_var in var._dependent_vars:
-                    new_options, new_tooltips = dependent_var._options_spec()
-
-                    new_options_and_tooltips[dependent_var] = (
-                        new_options,
-                        new_tooltips,
-                    )
-                    if new_options is not None:
-                        s.add(Or([dependent_var == opt for opt in new_options]))
-
-                if s.check() == unsat:
-                    # The new value for the variable being assigned led to infeasible options for dependent variables.
-                    # Set variable value to None, and raise an exception.
-                    var.value = None
-                    raise ConstraintViolation(
-                        f"The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
-                        + f"Please choose a different value for {var}."
-                    )
-
-            # Getting here means that the assignment is feasible. Now, indeed register the assignment:
-            if new_value is not None:
-                self._assignment_assertions[var] = var == new_value
-            else:
-                self._assignment_assertions.pop(var, None)
-
-            # Having confirmed the feasibility of the assignment, update the options of the dependent variables
+            # Update the options of the dependent variables
             self._update_options_of_dependent_vars(new_options_and_tooltips)
 
             # refresh the options validities of affected variables

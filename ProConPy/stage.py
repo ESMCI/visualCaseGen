@@ -1,6 +1,7 @@
 """A module to represent a configuration stage where the user can set a number of
 parameters, of type ConfigVar, to configure the system."""
 
+import itertools
 import logging
 from z3 import BoolRef
 
@@ -33,11 +34,14 @@ class Stage:
     # Rank of the current stage. This is used to keep track of order in which the Stages are enabled.
     _current_rank = 0
 
+    # List of stages in the order they are completed. To be used for reverting to the previous stage.
+    _completed_stages = []
+
     def __init__(
         self,
         title: str,
         description: str,
-        widget = None,
+        widget=None,
         varlist: list = [],
         parent: "Stage" = None,
         activation_constr=None,
@@ -57,18 +61,18 @@ class Stage:
 
             if parent.has_children():
                 if parent.has_guarded_children():
-                    assert (
-                        activation_constr is not None
-                    ),  f"Attempted to add a child stage, {title}, with no activation constraint to a parent stage, "+\
-                        f"{parent}, that has child(ren) with activation constraints."
+                    assert activation_constr is not None, (
+                        f"Attempted to add a child stage, {title}, with no activation constraint to a parent stage, "
+                        + f"{parent}, that has child(ren) with activation constraints."
+                    )
                     assert activation_constr is True or isinstance(
                         activation_constr, BoolRef
                     ), f"The activation constraint of the child stage, {title} must be a z3.BoolRef or True."
                 else:
-                    assert (
-                        activation_constr is None
-                    ),  f"Attempted to add a child stage, {title}, with activation constraint to a parent stage, "+\
-                        f"{parent}, that has child(ren) with no activation constraints."
+                    assert activation_constr is None, (
+                        f"Attempted to add a child stage, {title}, with activation constraint to a parent stage, "
+                        + f"{parent}, that has child(ren) with no activation constraints."
+                    )
 
             parent._children.append(self)
 
@@ -82,14 +86,21 @@ class Stage:
         self._hide_when_inactive = hide_when_inactive
 
         if self.is_guarded():
-            assert widget is None, f'The guarded "{self._title}" stage cannot have a widget.'
+            assert (
+                widget is None
+            ), f'The guarded "{self._title}" stage cannot have a widget.'
+            assert (
+                len(varlist) == 0
+            ), f'The guarded "{self._title}" stage cannot have a variable list.'
         else:
-            assert widget is not None, f'The unguarded "{self._title}" stage must have a widget.'
+            assert (
+                widget is not None
+            ), f'The unguarded "{self._title}" stage must have a widget.'
+            # todo assert len(varlist) > 0, f'The unguarded "{self._title}" stage must have a non-empty variable list.'
 
         self._widget = widget
         if self._widget is not None:
             self._widget.stage = self
-            self._widget.children = [var.widget for var in varlist]
 
         # set _prev and _next stages to be used in fast retrieval of adjacent stages:
         self._prev = None
@@ -116,6 +127,11 @@ class Stage:
     def first(cls):
         """Class method that returns the first stage of the stage hierarchy."""
         return cls._top_level[0]
+
+    @classmethod
+    def top_level(cls):
+        """Class method that returns the top-level stages."""
+        return cls._top_level
 
     def is_first(self):
         return Stage._top_level[0] is self
@@ -155,6 +171,7 @@ class Stage:
     def _complete_stage(self):
         """Disable the stage and hand over control to the next stage."""
         self._disable()
+        Stage._completed_stages.append(self)
         self._progress()
 
     def _progress(self):
@@ -169,9 +186,10 @@ class Stage:
         if self.has_children():
             # Determine the child stage to enable
             child = self._determine_child_to_enable()
-            # Display the child stage and its subsequent stages
-            self._widget.children += tuple(child.level_widgets())
             stage_to_enable = child
+
+            # Display the child stage and its subsequent stages by appending them to the current stage's widget
+            self._widget.append_child_stages(first_child=child)
 
         elif self._next is not None:
             stage_to_enable = self._next
@@ -191,8 +209,8 @@ class Stage:
         stage_to_enable._enable()
 
     def _backtrack(self):
-        """Recursively backtrack until a stage that has a next stage is found.
-        When such a stage is found, return its next stage for activation. If
+        """While attempting to progress, recursively backtrack until a stage that has a next stage
+        is found. When such a stage is found, return its next stage for activation. If
         no such stage is found, return None to indicate that the stage tree is complete.
 
         Returns
@@ -299,54 +317,52 @@ class Stage:
             return valid_opts[0]
         return None
 
-    def subsequent_stages(self):
-        """Return a list of subsequent stages excluding child stages."""
-        subsequent_stages = []
+    def subsequent_siblings(self):
+        """Return a list of subsequent sibling stages"""
+        subsequent_siblings = []
         stage = self._next
         while stage is not None:
-            subsequent_stages.append(stage)
+            subsequent_siblings.append(stage)
             stage = stage._next
-        return subsequent_stages
+        return subsequent_siblings
 
-    def level_widgets(self):
-        """Return a list of widgets including the widget of the stage and its subsequent stages."""
-        widgets = [self._widget]
-        widgets += [s._widget for s in self.subsequent_stages()]
-        return widgets
-    
     def reset(self, b=None):
         """Reset the stage.
 
         Parameters
         ----------
         b : Button, optional
-            The button that triggered the reset. 
+            The button that triggered the reset.
         """
 
         for var in self._varlist:
             if var.value is not None:
                 var.value = None
-        
+
         if DEBUG is True:
-            assert len(csp._assignment_assertions) == 0, "The assignment assertions list is not empty."
-            assert len(csp._options_assertions) == 0, "The options assertions list is not empty."
+            assert (
+                len(csp._assignment_assertions) == 0
+            ), "The assignment assertions list is not empty."
+            assert (
+                len(csp._options_assertions) == 0 or self.is_first()
+            ), "The options assertions list is not empty."
 
-    #todo @owh.out.capture()
-    #todo def revert(self, b=None):
-    #todo     """Reset the stage and go back to the previous stage (if any)."""
+    @owh.out.capture()
+    def revert(self, b=None):
+        """Reset the stage and go back to the previous stage (if any).
 
-    #todo     self.reset()
-    #todo     stage_to_enable = None
-    #todo     if self._prev is not None:
-    #todo         stage_to_enable = self._prev
-    #todo     elif self._parent is not None:
-    #todo         parent = self._parent
-    #todo         while parent.is_guarded():
-    #todo             parent = parent._parent
-    #todo         stage_to_enable = parent
-
-    #todo     if stage_to_enable is not None:
-    #todo         logger.info("Reverting to stage %s.", stage_to_enable._title)
-    #todo         self._disable()
-    #todo         csp.revert()
-    #todo         stage_to_enable._enable()
+        Parameters
+        ----------
+        b : Button, optional
+            The button that triggered the revert.
+        """
+        Stage._current_rank -= 1
+        self.reset()
+        if len(Stage._completed_stages) == 0:
+            logger.info("No stage to revert to.")
+        else:
+            stage_to_enable = Stage._completed_stages.pop()
+            logger.info("Reverting to stage %s.", stage_to_enable._title)
+            self._disable()
+            csp.revert()
+            stage_to_enable._enable()

@@ -175,6 +175,10 @@ class ConfigVar(HasTraits):
         """Returns True if options have been assigned for this variable."""
         return len(self._options) > 0
 
+    def has_dependent_vars(self):
+        """Returns True if there are dependent variables."""
+        return len(self._dependent_vars) > 0
+
     @property
     def options(self):
         """The list of options of the variable. If empty, the variable has an infinite domain."""
@@ -192,7 +196,9 @@ class ConfigVar(HasTraits):
         """
 
         logger.debug("Assigning a list of options for ConfigVar %s", self.name)
-        assert isinstance(new_options, (list, set, tuple)), f"Unexpected type for new_options: {type(new_options)}"
+        assert isinstance(
+            new_options, (list, set, tuple)
+        ), f"Unexpected new_options type: {type(new_options)}"
         self._options = new_options
         csp.register_options(self, new_options)
         self.update_options_validities()

@@ -72,6 +72,7 @@ class GUI_case_configurator(widgets.VBox):
         set_options(cime) ; pb(2)
         csp.initialize(cvars, get_relational_constraints(cvars)) ; pb(2)
 
-        self.children = Stage.first().level_widgets()
+        # Display all top-level stages:
+        self.children = [stage._widget for stage in Stage.top_level()]
 
 
