@@ -1,6 +1,5 @@
-import difflib
 import ipywidgets as widgets
-from traitlets import Int, Any, Dict, HasTraits, observe
+from traitlets import Int, Any, observe
 from ipywidgets import trait_types
 from ProConPy.out_handler import handler as owh
 from ProConPy.dialog import alert_warning
@@ -10,7 +9,15 @@ _checkbox_clm_width = "200px"
 _min_widget_width = "720px"
 
 
-class CheckboxMultiWidget(widgets.VBox, HasTraits):
+class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
+    """A widget that allows the user to select multiple options from a list of options. The options are displayed as
+    checkboxes. The user can select multiple options if the allow_multi_select flag is set to True. If the flag is set
+    to False, only a single option may be selected. The user can switch between single and multiple selection modes
+    using the selection mode button. The display mode button allows the user to switch between a compact and a detailed
+    view of the options. The detailed view is useful when the number of options is large. The user can also see tooltips
+    which are displayed next to the options. The tooltips are useful when the options are not self-explanatory.
+    """
+
 
     value = trait_types.TypedTuple(trait=Any(), help="Selected values").tag(sync=True)
     index = trait_types.TypedTuple(trait=Int(), help="Selected indices").tag(sync=True)
@@ -19,11 +26,6 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
         help="Iterable of values, (label, value) pairs, or a mapping of {label: value} pairs that the "
         "user can select.",
     )
-    _property_lock = (
-        Dict()
-    )  # the contents of this is not the same as those of the default widgets. This attribute is
-    # introduced in CheckboxMultiWidget to capture changes invoked at the front end only,
-    # similar to how the conventional _property_lock gets changed only via frontend changes.
 
     def __init__(
         self,
@@ -32,69 +34,69 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
         description="",
         disabled=False,
         allow_multi_select=True,
+        display_mode="less" # "less" or "all" or None
     ):
+        """Construct a CheckboxMultiWidget.
+
+        Parameters
+        ----------
+        value : tuple, optional
+            The initial value of the widget. The default is None.
+        options : tuple, optional
+            The options that the user can select. The default is None.
+        description : str, optional
+            The description of the widget. The default is "".
+        disabled : bool, optional
+            If True, the widget is disabled. The default is False.
+        allow_multi_select : bool, optional
+            If True, the user may select multiple options. If False, only a single option may be selected. The default
+            is True.
+        display_mode : str, optional
+            The display mode of the options. If "less", only a few options are displayed. If "all", all options are 
+            displayed. The default is "less". If None, all options are displayed and the display mode button is not
+            shown.
+        """
 
         super().__init__()
 
-        # options
+        # Arguments
         self._options = ()
-        self._options_indices = dict()  # keys: option names, values: option indexes
-        self._options_widgets = []
-        self._tooltips = []
-        self._options_widgets_display = []
-        self._tooltips_widget = widgets.HTML(value="", placeholder="", description="")
-        self._options_hbox = widgets.HBox(
-            layout=widgets.Layout(
-                min_width=_min_widget_width,
-                width="max-content",
-                display="flex",
-                justify_content="flex-start",
-            )
-        )
-
-        # general CheckboxMultiWidget configuration
-        self.description = description  # not displayed.
+        self._options_indices = {}  # keys: option names, values: option indexes
+        self._options_widgets = ()  # a (subset of) list of options that are currently displayed 
+        self._tooltips = [] # tooltips for the options
+        self.description = description  # currently not displayed.
         self._disabled = disabled
-        self._select_multiple = False
         self._allow_multi_select = allow_multi_select  # if false, only a single options may be selected on the frontend.
-        # multiple options may still be selected via the backend.
+        self._select_multiple = False # if true, multiple options may be selected on the frontend. 
+                                      # This is set by the selection mode button.
+        assert display_mode in ["less", "all", None], "Invalid display mode."
+        self._display_mode = display_mode
+        self._show_display_mode_btn = display_mode is not None
 
-        # auxiliary widgets: searchbar and selection mode switch
-        self._init_selectmode()
+        # Widgets
+        # (1) selection mode button
+        # (2) options: (2.a) checkboxes, (2.b) tooltips
+        # (3) display mode button
+        self._init_select_mode_btn()
+        self._init_options_hbox()
+        self._init_display_mode_btn()
 
-        # construct the widget display:
-        self._construct_display()
+        # Set all main children
+        children_list = []
+        if self._allow_multi_select:
+            children_list.append(self._select_mode_btn)
+        children_list.append(self._options_hbox)
+        if self._show_display_mode_btn:
+            children_list.append(self._display_mode_btn)
+        self.children = children_list
+
+        # update display flags of all elements
+        self._propagate_disabled_flag()
 
         if options:
             self.set_trait("options", options)
         if value:
             self.set_trait("value", value)
-
-    def _construct_display(self):
-        # set VBox children:
-        if self._disabled:
-            for cbox in self._options_widgets_display:
-                cbox.disabled = True
-        else:
-            for cbox in self._options_widgets_display:
-                cbox.disabled = False
-            if len(self._options) < 2:
-                self.children = [self._options_hbox]
-            else:
-                if self._allow_multi_select:
-                    self.children = [
-                        widgets.VBox(
-                            [self._selectmode],
-                            layout={
-                                "display": "flex",
-                                "align_items": "flex-end",
-                                "margin": "5px",
-                            },
-                        ),
-                        widgets.VBox([self._options_hbox]),
-                    ]
-                else:
-                    self.children = [self._options_hbox]
 
     @property
     def disabled(self):
@@ -104,24 +106,31 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
     def disabled(self, disabled):
         if self._disabled != disabled:
             self._disabled = disabled
-            self._construct_display()
+            self._propagate_disabled_flag()
 
-    def _init_selectmode(self):
-        self._selectmode = widgets.ToggleButtons(
+    def _propagate_disabled_flag(self):
+        """Propagate the disabled flag to all children."""
+        self._select_mode_btn.disabled = self._disabled
+        self._display_mode_btn.disabled = self._disabled
+        for cbox in self._options_widgets:
+            cbox.disabled = self._disabled
+
+    def _init_select_mode_btn(self):
+        """Initialize the selection mode button. The user may switch between single and multiple selection modes."""
+        self._select_mode_btn = widgets.ToggleButtons(
             options=["single", "multi"],
             description="Selection:",
             tooltips=[
-                "The user is allowed to pick one option only. This is the safe mode.",
-                "The user may select multiple options. Options compatibility NOT ensured. Use with caution.",
+                "The user is allowed to pick only one option.",
+                "The user may select multiple options. Options compatibility NOT ensured.",
             ],
-            layout={"display": "flex"},
-            # icons=['shield-alt', 'exclamation-triangle']
+            layout={"display": "flex", "align_self": "flex-end", "margin": "5px"},
         )
-        self._selectmode.style.button_width = "60px"
-        self._selectmode.style.height = "30px"
+        self._select_mode_btn.style.button_width = "60px"
+        self._select_mode_btn.style.height = "30px"
 
         @owh.out.capture()
-        def selectmode_change(change):
+        def select_mode_change(change):
             new_val = change["new"]
             if new_val == "single":
                 self._select_multiple = False
@@ -136,7 +145,49 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
                 alert_warning(warn_msg)
                 self._select_multiple = True
 
-        self._selectmode.observe(selectmode_change, names="value", type="change")
+        self._select_mode_btn.observe(select_mode_change, names="value", type="change")
+
+    def _init_options_hbox(self):
+        """Initialize the options hbox. The options are displayed as checkboxes with descriptive tooltips."""
+        self._options_hbox = widgets.HBox(
+            layout = {'display': 'flex', 
+                      'min_width': _min_widget_width, 
+                      'width': 'max-content', 
+                      'justify_content': 'flex-start'}
+        )
+        self._tooltips_widget = widgets.HTML(value="", placeholder="", description="")
+
+
+    def _init_display_mode_btn(self):
+        """Initialize the display mode button. The user may switch between a compact and a detailed view of the options."""
+        self._display_mode_btn = widgets.Button(
+            description = "Show All",
+            icon = "chevron-down",
+            layout = {'align_self': 'center', 'margin': '5px'},
+        )
+
+        def on_display_mode_click(b):
+
+            if self._display_mode == "all":
+                self._display_mode = "less"
+            else:
+                self._display_mode = "all"
+
+            self._display_mode_btn.icon = "hourglass-start"
+            self._display_mode_btn.description = "Loading..."
+
+            # todoo. .. update view 
+            # todoo. .. update view 
+            # todoo. .. update view 
+
+            if self._display_mode == "all":
+                self._display_mode_btn.icon = "chevron-up"
+                self._display_mode_btn.description = "Show Less"
+            else:
+                self._display_mode_btn.icon = "chevron-down"
+                self._display_mode_btn.description = "Show All"
+        
+        self._display_mode_btn.on_click(on_display_mode_click)
 
     def update_value(self, change):
         """changes propagate from frontend (js checkboxes) to the backend (CheckboxMultiWidget class)"""
@@ -167,6 +218,9 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
 
     @observe("options")
     def _set_options(self, change):
+        """When options trait changes, update the internal _options and _options_indices attributes.
+        Also, update the frontend checkboxes and tooltips."""
+
         new_opts = change["new"]
         self.value = ()
         assert isinstance(new_opts, tuple)
@@ -174,7 +228,6 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
         # check if the number of options is the same as before. If so, reuse the
         # existing widgets. This improves the performance a lot. (e.g., when
         # changes occur only in the options name such as a status update)
-
         reuse_widgets = False
         status_change_only = False
         if len(self._options) == len(new_opts):
@@ -183,9 +236,29 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
                 opt[1:] for opt in new_opts
             ]
 
+        # update options
         self._options = tuple(new_opts)
         self._options_indices = {new_opts[i]: i for i in range(len(new_opts))}
-        self._search_list = ["{} := {}".format(opt, ".") for opt in self._options]
+
+        # update widgets
+        self._gen_options_widgets(reuse_widgets, status_change_only)
+
+        # if there aren't enough options, do not show selection mode button
+        if len(new_opts) < 2:
+            self._select_mode_btn.layout.display = "none"
+        else:
+            self._select_mode_btn.layout.display = "flex"
+
+    def _gen_options_widgets(self, reuse_widgets, status_change_only):
+        """Generate the options checkboxes and tooltips. If reuse_widgets is True, the existing widgets are reused.
+        
+        Parameters
+        ----------
+        reuse_widgets : bool
+            If True, the existing widgets are reused. If False, new widgets are created.
+        status_change_only : bool
+            If True, only the status of the options has changed. If False, the options have changed.
+        """
 
         for opt_widget in self._options_widgets:
             opt_widget.unobserve(self.update_value, names="value", type="change")
@@ -214,8 +287,7 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
             opt_widget.observe(self.update_value, names="value", type="change")
 
         if not reuse_widgets:
-            self._construct_display()
-            self._display_options()
+            self._refresh_options_hbox()
 
     @observe("value")
     def _propagate_value(self, change):
@@ -244,49 +316,24 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
         if self.value != new_value:
             self.value = new_value
 
-    def _display_options(self, options_list=None):
+    def _refresh_options_hbox(self):
+        """Refresh the options hbox including the checkboxes and tooltips."""
 
-        self._options_widgets_display = []
-        tooltips_display = []
-        if options_list:
-            for opt in options_list:
-                opt = opt.split(":=")[0].strip()
-                opt_ix = self._options_indices[opt]
-                self._options_widgets_display.append(self._options_widgets[opt_ix])
-                tooltips_display.append(self._tooltips[opt_ix])
-        else:
-            self._options_widgets_display = self._options_widgets
-            tooltips_display = self._tooltips
-
-        # self._tooltips_widget.value = '<style>p{white-space: nowrap}</style> <p>'+\
-        self._tooltips_widget.value = "<p>" + "<br>".join(tooltips_display) + "<br></p>"
-
-        self._options_hbox.children = tuple(
-            [
-                widgets.VBox(
-                    self._options_widgets_display,
-                    layout={
-                        "max_width": _checkbox_clm_width,
-                        "min_width": _checkbox_clm_width,
-                        "overflow": "hidden",
-                    },
-                ),
-                widgets.VBox(
-                    (self._tooltips_widget,),
-                    layout={"overflow": "hidden", "top": "-13px"},
-                ),
-            ]
+        self._tooltips_widget.value = "<p>" + "<br>".join(self._tooltips) + "<br></p>"
+        self._options_hbox.children = (
+            widgets.VBox(
+                self._options_widgets,
+                layout={
+                    "max_width": _checkbox_clm_width,
+                    "min_width": _checkbox_clm_width,
+                    "overflow": "hidden",
+                },
+            ),
+            widgets.VBox(
+                (self._tooltips_widget,),
+                layout={"overflow": "hidden", "top": "-13px"},
+            ),
         )
-
-    def _sort_opts_by_relevance(self, change):
-        key = change["new"]
-        if key == "":  # display all options
-            self._display_options()
-        else:  # display filtered options
-            narrowed_opts = difflib.get_close_matches(
-                key, self._search_list, n=len(self._options), cutoff=0.0
-            )
-            self._display_options(narrowed_opts)
 
     @property
     def tooltips(self):
@@ -298,8 +345,4 @@ class CheckboxMultiWidget(widgets.VBox, HasTraits):
             self._options
         ), "Tooltips length is not equal to options length."
         self._tooltips = new_tooltips
-        self._search_list = [
-            "{} := {}".format(self._options[i], new_tooltips[i])
-            for i in range(len(self._options))
-        ]
-        self._display_options()
+        self._refresh_options_hbox()
