@@ -1,7 +1,7 @@
 import logging
 
-from visualCaseGen.initialize_compset_widgets import initialize_compset_widgets
-from visualCaseGen.initialize_grid_widgets import initialize_grid_widgets
+from visualCaseGen.widgets.initialize_compset_widgets import initialize_compset_widgets
+from visualCaseGen.widgets.initialize_grid_widgets import initialize_grid_widgets
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 

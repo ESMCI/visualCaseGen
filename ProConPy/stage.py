@@ -46,6 +46,7 @@ class Stage:
         parent: "Stage" = None,
         activation_constr=None,
         hide_when_inactive=True,
+        auto_set_single_valid_option=True,
     ):
 
         if parent is None:  # This is a top-level stage
@@ -84,6 +85,7 @@ class Stage:
         self._children = []  # to be appended by the child stage(s) (if any)
         self._status = "inactive"
         self._hide_when_inactive = hide_when_inactive
+        self._auto_set_single_valid_option = auto_set_single_valid_option
 
         if self.is_guarded():
             assert (
@@ -283,11 +285,12 @@ class Stage:
 
         # Check if any ConfigVars in the newly enabled stage have exactly one valid option.
         # If so, set their values to those options.
-        for var in self._varlist:
-            if var.has_options():
-                svo = Stage.single_valid_option(var)
-                if svo is not None:
-                    var.value = svo
+        if self._auto_set_single_valid_option:
+            for var in self._varlist:
+                if var.has_options():
+                    svo = Stage.single_valid_option(var)
+                    if svo is not None:
+                        var.value = svo
 
     @staticmethod
     def single_valid_option(var):

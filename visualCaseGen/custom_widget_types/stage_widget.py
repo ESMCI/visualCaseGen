@@ -164,11 +164,11 @@ class StageWidget(VBox):
         """
 
         if name == "children":
-            value = [
-                v for v in value if v is not self._top_bar and v is not self._main_body
-            ]
-            if len(value) > 0:
-                self._main_body = self._gen_main_body(children=value)
+            if len(value) > 0 and value[0] is self._top_bar:
+                value = value[1:]
+            if len(value) > 0 and value[0] is self._main_body:
+                value = value[0].children + value[1:]
+            self._main_body = self._gen_main_body(children=value)
             super().__setattr__(
                 name,
                 (
