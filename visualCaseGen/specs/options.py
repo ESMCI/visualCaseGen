@@ -46,9 +46,9 @@ def set_options(cime):
         "Construct a custom compset",
     ]
 
-    def grid_options_func(compset_lname):
+    def grid_options_func(compset_lname, grid_mode):
 
-        if compset_lname == "":
+        if compset_lname == "" or grid_mode != "Standard":
             return None, None
 
         compatible_grids = []
@@ -59,20 +59,22 @@ def set_options(cime):
                 continue
             if not_compset_attr and re.search(not_compset_attr, compset_lname):
                 continue
-            if cvars["GRID"].view_mode == "suggested" and desc == "":
-                continue
 
             grid_lname_parts = cime.get_grid_lname_parts(alias, compset_lname)
 
             try:
-                csp.check_assignment(cvars["ATM_GRID"], grid_lname_parts["a%"])
-                csp.check_assignment(cvars["LND_GRID"], grid_lname_parts["l%"])
-                csp.check_assignment(cvars["OCN_GRID"], grid_lname_parts["oi%"])
-                csp.check_assignment(cvars["ICE_GRID"], grid_lname_parts["oi%"])
-                csp.check_assignment(cvars["ROF_GRID"], grid_lname_parts["r%"])
-                csp.check_assignment(cvars["GLC_GRID"], grid_lname_parts["g%"])
-                csp.check_assignment(cvars["WAV_GRID"], grid_lname_parts["w%"])
-                csp.check_assignment(cvars["MASK_GRID"], grid_lname_parts["m%"])
+                csp.check_assignments(
+                    (
+                        (cvars["ATM_GRID"], grid_lname_parts["a%"]),
+                        (cvars["LND_GRID"], grid_lname_parts["l%"]),
+                        (cvars["OCN_GRID"], grid_lname_parts["oi%"]),
+                        (cvars["ICE_GRID"], grid_lname_parts["oi%"]),
+                        (cvars["ROF_GRID"], grid_lname_parts["r%"]),
+                        (cvars["GLC_GRID"], grid_lname_parts["g%"]),
+                        (cvars["WAV_GRID"], grid_lname_parts["w%"]),
+                        (cvars["MASK_GRID"], grid_lname_parts["m%"]),
+                    )
+                )
             except ConstraintViolation:
                 continue
 
@@ -83,5 +85,5 @@ def set_options(cime):
 
     cv_grid = cvars["GRID"]
     cv_grid.options_spec = OptionsSpec(
-        func=grid_options_func, args=(cvars["COMPSET_LNAME"],)
+        func=grid_options_func, args=(cvars["COMPSET_LNAME"], cvars["GRID_MODE"])
     )

@@ -364,4 +364,9 @@ class Stage:
             logger.info("Reverting to stage %s.", stage_to_enable._title)
             self._disable()
             csp.revert()
+            # If the stage to enable has guarded children, remove them from the widget
+            if stage_to_enable.has_guarded_children():
+                stage_to_enable._widget.children = [
+                    var.widget for var in stage_to_enable._varlist
+                ]
             stage_to_enable._enable()

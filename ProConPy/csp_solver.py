@@ -1,6 +1,6 @@
 import logging
 from z3 import Solver, sat, unsat, BoolRef
-from z3 import Implies, Or
+from z3 import Implies, And, Or
 from z3 import BoolRef
 from z3 import z3util
 
@@ -256,6 +256,50 @@ class CspSolver:
 
         return new_options_and_tooltips
 
+    def check_assignments(self, assignments):
+        """Check multiple assignments at once. This method is more efficient than calling
+        check_assignment() multiple times because it applies the assignment assertions and the
+        options assertions to the solver only once.
+
+        Parameters
+        ----------
+        assignments : tuple of (ConfigVar, any)
+            A tuple of (variable, value) pairs to be checked for validity.
+
+        Raises
+        ------
+        ConstraintViolation : If any of the assignments is invalid.
+        """
+
+        logger.debug("Checking multiple assignments: %s", assignments)
+        assert (
+            self._initialized
+        ), "Must finalize initialization before CspSolver can operate."
+
+        assignments = (a for a in assignments if a[1] is not None)
+        vars = [var for var, _ in assignments]
+        assignment_assertions = []
+
+        for var, new_value in assignments:
+            if var.has_options():
+                try:
+                    if var._options_validities[new_value] is False:
+                        raise ConstraintViolation(
+                            self.retrieve_error_msg(var, new_value)
+                        )
+                except KeyError:
+                    raise ConstraintViolation(f"{new_value} not an option for {var}")
+            else:  # variable has no finite list of options
+                assignment_assertions.append(var == new_value)
+
+        with self._solver as s:
+            self.apply_assignment_assertions(s, exclude_vars=vars)
+            self.apply_options_assertions(s, exclude_vars=vars)
+            if s.check(And(assignment_assertions)) == unsat:
+                raise ConstraintViolation(
+                    f"The assignments led to infeasible options for dependent variable(s). "
+                )
+
     def check_expression(self, expr):
         """Check if the given z3 BoolRef expression is satisfiable.
 
@@ -450,7 +494,7 @@ class CspSolver:
                     ]
                 )
 
-    def apply_assignment_assertions(self, solver, exclude_var=None):
+    def apply_assignment_assertions(self, solver, exclude_var=None, exclude_vars=None):
         """Apply the assignment assertions to the given solver. The assignment assertions are
         the assertions that are made for the current stage. The assignment assertions are added
         to the temporary assertions container, and the permanent application of the assertions
@@ -462,14 +506,30 @@ class CspSolver:
             The solver to which the assignment assertions are to be applied.
         exclude_var : ConfigVar
             A variable for which the assignment assertions are not to be applied.
+        exclude_vars : list or set
+            A list or set of variables for which the assignment assertions are not to be applied.
         """
-        solver.add(
-            [
-                asrt
-                for var, asrt in self._assignment_assertions.items()
-                if var is not exclude_var
-            ]
-        )
+
+        assert (
+            exclude_var is None or exclude_vars is None
+        ), "Cannot provide both exclude_var and exclude_vars."
+
+        if exclude_vars:
+            solver.add(
+                [
+                    asrt
+                    for var, asrt in self._assignment_assertions.items()
+                    if var not in exclude_vars
+                ]
+            )
+        else:
+            solver.add(
+                [
+                    asrt
+                    for var, asrt in self._assignment_assertions.items()
+                    if var is not exclude_var
+                ]
+            )
 
     def apply_options_assertions(self, solver, exclude_vars=[]):
         """Apply the options assertions to the given solver. The options assertions are the

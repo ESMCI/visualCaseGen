@@ -73,7 +73,6 @@ def initialize_grid_variables(cime):
 
     ConfigVarStr("GRID_MODE")
     cv_grid = ConfigVarStrMS("GRID")
-    cv_grid.view_mode = "suggested"  # or 'all'
 
     # component grids
     ConfigVarStr("MASK_GRID")

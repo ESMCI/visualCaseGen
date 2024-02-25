@@ -33,4 +33,5 @@ def initialize_grid_stages(cime):
         widget=StageWidget(VBox),
         parent=stg_standard_grid,
         varlist=[cvars["GRID"]],
+        auto_set_single_valid_option=False,
     )
