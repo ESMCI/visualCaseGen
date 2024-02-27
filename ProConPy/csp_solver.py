@@ -67,7 +67,7 @@ class CspSolver:
         self._assignment_assertions = self._past_assignment_assertions.pop()
         self._options_assertions = self._past_options_assertions.pop()
 
-    def initialize(self, cvars, relational_constraints):
+    def initialize(self, cvars, relational_constraints, first_stage):
         """Initialize the CSP solver with relational constraints. The relational constraints are
         the constraints that are derived from the relationships between the variables. The
         relational constraints are used to determine the validity of variable options.
@@ -80,6 +80,8 @@ class CspSolver:
             A dictionary where the keys are the z3 boolean expressions corresponding to the
             constraints and the values are error messages to be displayed when the constraint is
             violated.
+        first_stage : Stage
+            The first top-level stage of the stage tree.
         """
 
         assert not self._initialized, "CspSolver is already initialized."
@@ -94,6 +96,9 @@ class CspSolver:
 
         # Construct constraint hypergraph and add constraints to solver
         self._construct_hypergraph(cvars)
+
+        # Traverse stage tree
+        self._traverse_stages(first_stage, 0, cvars)
 
         # Having read in the constraints, update validities of variables that have options:
         for var in cvars.values():
@@ -151,6 +156,38 @@ class CspSolver:
                     self.hgraph[var] = []
                 self.hgraph[var].append(constr)
 
+    def _traverse_stages(self, stage, rank, cvars):
+        """Recursive depth-first traversal of the stage tree to check for variable priority conflicts
+        and to determine which of the variables appear in guards of the stages."""
+
+        # set rank
+        stage.rank = rank
+
+        logger.info("Traversing stage: %s, rank: %s", stage, rank)
+
+        # set the ranks of the variables
+        for var in stage._varlist:
+            var._rank = stage.rank
+
+        # flag variables that appear in guards
+        if stage.is_guarded():
+            guard = stage._activation_guard
+            if isinstance(guard, BoolRef):
+                guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(guard)]
+                for var in guard_vars:
+                    var.is_guard_var = True
+
+
+        # move on to the next stage
+        if stage.has_children():
+            self._traverse_stages(stage._children[0], rank+1, cvars)
+        elif stage._next is not None:
+            self._traverse_stages(stage._next, rank+1, cvars)
+        else:
+            subsequent_stage = stage.backtrack(visit_all=True)
+            if subsequent_stage is not None:
+                self._traverse_stages(subsequent_stage, rank+1, cvars)
+    
     @property
     def initialized(self):
         """Return True if the CSP solver is initialized."""
@@ -398,7 +435,7 @@ class CspSolver:
 
         logger.debug(f"Registering assignment of {var} to {new_value}.")
 
-        if not (var.has_dependent_vars() or var.has_related_vars()):
+        if not (var.has_dependent_vars() or var.has_related_vars() or var.is_guard_var):
             logger.debug("%s has no dependent or related variables. Returning.", var)
             return
 
@@ -418,7 +455,7 @@ class CspSolver:
 
             # Aassignment is feasible. Register the assignment, except when the assignment is None
             # or the variable has no dependent variables.
-            if var.has_related_vars():
+            if var.has_related_vars() or var.is_guard_var:
                 if new_value is not None:
                     self._assignment_assertions[var] = var == new_value
                 else:
@@ -519,7 +556,7 @@ class CspSolver:
                 [
                     asrt
                     for var, asrt in self._assignment_assertions.items()
-                    if var not in exclude_vars
+                    if not any(exclude_var is var for exclude_var in exclude_vars)
                 ]
             )
         else:
@@ -549,7 +586,7 @@ class CspSolver:
             [
                 asrt
                 for var, asrt in self._options_assertions.items()
-                if var not in exclude_vars
+                if not any(exclude_var is var for exclude_var in exclude_vars)
             ]
         )
 

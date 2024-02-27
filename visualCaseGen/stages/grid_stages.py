@@ -24,7 +24,7 @@ def initialize_grid_stages(cime):
         title="Standard Grid",
         description="Select from the list of predefined grids",
         parent=stg_grid,
-        activation_constr=cvars["GRID_MODE"] == "Standard",
+        activation_guard=cvars["GRID_MODE"] == "Standard",
     )
 
     stg_standard_grid_selector = Stage(

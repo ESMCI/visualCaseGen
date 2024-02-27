@@ -85,7 +85,7 @@ class ConfigVar(HasTraits):
         # The rank of a ConfigVar indicates the order of the Stage it belongs to. The lower the
         # rank, the earlier the Stage is in the sequence of Stages and thus the higher the
         # the precedence of the ConfigVar in CSP solver. The rank is set by the Stage class.
-        self._rank = 1e6  # initialize to an arbitrarily large number
+        self._rank = None
 
         # properties for instances that have finite options
         self._options = []
@@ -97,6 +97,7 @@ class ConfigVar(HasTraits):
         self._related_vars = (
             set()
         )  # ConfigVar instances in the same relational constraints as this instance
+        self._is_guard_var = False  # True if this variable appears in the guard of any Stage
         self._hide_invalid = hide_invalid
 
         # Finally, Observe value to call _post_value_change method after every value change.
@@ -173,6 +174,17 @@ class ConfigVar(HasTraits):
         """Returns True if there are related variables, i.e, variables that are
         involved in the same relational constraints as this variable."""
         return len(self._related_vars) > 0
+
+    @property
+    def is_guard_var(self):
+        """Returns True if this variable appears in the guard of any Stage."""
+        return self._is_guard_var
+    
+    @is_guard_var.setter
+    def is_guard_var(self, value):
+        if self._is_guard_var is True:
+            assert value is True, "Cannot change is_guard_var from True to False"
+        self._is_guard_var = value
 
     @property
     def options(self):

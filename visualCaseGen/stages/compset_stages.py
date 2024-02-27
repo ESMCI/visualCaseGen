@@ -20,19 +20,11 @@ def initialize_compset_stages(cime):
         varlist=[cvars["COMPSET_MODE"]],
     )
 
-    # todo stg_standard_compset = Stage(
-    # todo     title="Standard Component Set",
-    # todo     description="Select from the list of predefined component sets",
-    # todo     widget = VBox(),
-    # todo     parent = stg_compset,
-    # todo     activation_constr = #todo
-    # todo )
-
     stg_custom_compset = Stage(
         title="Custom Component Set",
         description="Select the custom component set and its options",
         parent=stg_compset,
-        activation_constr=cvars["COMPSET_MODE"] == "Custom",
+        activation_guard=cvars["COMPSET_MODE"] == "Custom",
     )
 
     stg_inittime = Stage(
