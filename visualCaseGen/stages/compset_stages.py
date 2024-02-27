@@ -68,5 +68,28 @@ def initialize_compset_stages(cime):
             cvars[f"COMP_{comp_class}_OPTION"] for comp_class in cime.comp_classes
         ],
     )
-    for i, comp_class in enumerate(cime.comp_classes):
-        stg_comp_option._widget._main_body.set_title(i, comp_class)
+
+    comp_class_ix = {comp_class: i for i, comp_class in enumerate(cime.comp_classes)}
+
+    def refresh_comp_options_tab_title(change):
+        """Refresh the title of the component options tab when the value changes:
+        If a value is set, display a checkmark; otherwise, display a question mark."""
+        comp_class = change['owner'].name.split('_')[1]
+        new_title = f"{comp_class} {chr(int('2714', base=16)) if change['new'] else chr(int('2753', base=16))}"
+        stg_comp_option._widget._main_body.set_title(comp_class_ix[comp_class], new_title)
+
+    # Explicitly call refresh_comp_options_tab_title to initialize the tab titles
+    # and set up the observers for the component options to update the tab titles.
+    for comp_class in cime.comp_classes:
+        refresh_comp_options_tab_title({
+            'owner': cvars[f"COMP_{comp_class}_OPTION"],
+            'new': cvars[f"COMP_{comp_class}_OPTION"].value
+        })
+        cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
+        cv_comp_option.observe(
+            refresh_comp_options_tab_title,
+            names='value',
+            type='change'
+        )
+
+
