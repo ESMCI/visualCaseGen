@@ -625,3 +625,8 @@ class CspSolver:
 
 
 csp = CspSolver()
+
+# TODO: Potential optimization for the future:
+# 1, For a given variable, remove its options assertions from the solver when the variable is assigned to a new value.
+#   (but save the options assertions in a temporary container in case the assignment is reverted. Think,
+#   for instance, about the COMPSET_ALIAS variable assigned in "Standard compset" track. It usually has a huge list of options).

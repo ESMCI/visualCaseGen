@@ -22,7 +22,6 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
     """
 
     value = trait_types.TypedTuple(trait=Any(), help="Selected values").tag(sync=True)
-    index = trait_types.TypedTuple(trait=Int(), help="Selected indices").tag(sync=True)
     options = Any(
         (),
         help="Iterable of values, (label, value) pairs, or a mapping of {label: value} pairs that the "
@@ -85,14 +84,14 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
         # (2) options: (2.a) checkboxes, (2.b) tooltips
         # (3) display mode button
         self._init_select_mode_btn()
-        self._init_options_hbox()
+        self._init_options_tooltips_hbox()
         self._init_display_mode_btn()
 
         # Set all main children
         children_list = []
         if self._allow_multi_select:
             children_list.append(self._select_mode_btn)
-        children_list.append(self._options_hbox)
+        children_list.append(self._options_tooltips_hbox)
         if display_mode is not None:
             children_list.append(self._display_mode_btn)
         self.children = children_list
@@ -114,6 +113,10 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
         if self._disabled != disabled:
             self._disabled = disabled
             self._propagate_disabled_flag()
+
+    @property
+    def index(self):
+        raise NotImplementedError("The index trait is not implemented.")
 
     def _propagate_disabled_flag(self):
         """Propagate the disabled flag to all children."""
@@ -156,9 +159,21 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
             on_select_mode_change, names="value", type="change"
         )
 
-    def _init_options_hbox(self):
+    def _init_options_tooltips_hbox(self):
         """Initialize the options hbox. The options are displayed as checkboxes with descriptive tooltips."""
-        self._options_hbox = widgets.HBox(
+
+        self._options_vbox = widgets.VBox(
+            layout={
+                "max_width": _checkbox_clm_width,
+                "min_width": _checkbox_clm_width,
+                "overflow": "hidden",
+                },
+        )
+
+        self._tooltips_widget = widgets.HTML(value="", placeholder="", description="")
+
+        self._options_tooltips_hbox = widgets.HBox(
+            children=[self._options_vbox, self._tooltips_widget],
             layout={
                 "display": "flex",
                 "min_width": _min_widget_width,
@@ -166,7 +181,6 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
                 "justify_content": "flex-start",
             }
         )
-        self._tooltips_widget = widgets.HTML(value="", placeholder="", description="")
 
     def _switch_display_mode(self, b=None):
         """Switch between a compact and a detailed view of the options.
@@ -218,7 +232,6 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
         """Programmatically set the value of the widget and acquire and release the property
         lock to ensure that the change propagates to the backend."""
         self.value = new_value
-        self.index = tuple(self._options_indices[opt] for opt in new_value)
         self._property_lock = {"value": self.value}
         self._property_lock = {}
 
@@ -246,7 +259,6 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
                 # let the observers know that a frontend-invoked change was made:
                 self._property_lock = {"value": self.value}
 
-        self.index = tuple(self._options_indices[opt] for opt in self.value)
         self._property_lock = {}
 
     @observe("options")
@@ -335,7 +347,7 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
             opt_widget.observe(self.update_value, names="value", type="change")
 
         if not reuse_widgets:
-            self._refresh_options_hbox()
+            self._refresh_options_tooltips()
 
     @observe("value")
     def _propagate_value(self, change):
@@ -362,40 +374,21 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
                 if opt_widget.value is not False:
                     opt_widget.value = False
 
-        new_index = tuple(self._options_indices[opt] for opt in new_vals)
-        if self.index != new_index:
-            self.index = new_index
+    def _refresh_tooltips(self):
+        """Refresh the tooltips widget."""
+        if self._tooltips is None:
+            self._tooltips_widget.value = ""
+            return
 
-    @observe("index")
-    def _propagate_index(self, change):
-        """changes propagate from the backend (CheckboxMultiWidget) to children (i.e., actual checkboxes)"""
-        new_idxs = change["new"]
-        new_value = tuple(self._options[opt_ix] for opt_ix in new_idxs)
-        if self.value != new_value:
-            self._set_value(new_value)
+        self._tooltips_widget.value = ''.join(
+            tooltip + "<br>" for tooltip in self._tooltips[: self._len_options_widgets]
+        )
 
-    def _refresh_options_hbox(self):
+    def _refresh_options_tooltips(self):
         """Refresh the options hbox including the checkboxes and tooltips."""
+        self._options_vbox.children = self._options_widgets
+        self._refresh_tooltips()
 
-        self._tooltips_widget.value = (
-            "<p>"
-            + "<br>".join(self._tooltips[: self._len_options_widgets])
-            + "<br></p>"
-        )
-        self._options_hbox.children = (
-            widgets.VBox(
-                self._options_widgets,
-                layout={
-                    "max_width": _checkbox_clm_width,
-                    "min_width": _checkbox_clm_width,
-                    "overflow": "hidden",
-                },
-            ),
-            widgets.VBox(
-                (self._tooltips_widget,),
-                layout={"overflow": "hidden", "top": "-13px"},
-            ),
-        )
 
     @property
     def tooltips(self):
@@ -407,4 +400,4 @@ class CheckboxMultiWidget(widgets.VBox, widgets.ValueWidget):
             self._options
         ), "Tooltips length is not equal to options length."
         self._tooltips = new_tooltips
-        self._refresh_options_hbox()
+        self._refresh_tooltips()
