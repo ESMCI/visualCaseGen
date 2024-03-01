@@ -1,3 +1,4 @@
+import re
 import ipywidgets as widgets
 from traitlets import Any, observe
 from ipywidgets import trait_types
@@ -54,7 +55,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
 
         assert isinstance(value, tuple), "value must be a tuple"
         assert isinstance(options, tuple), "options must be a tuple"
-        assert isinstance(tooltips, (list,tuple)), "tooltips must be a list or tuple"
+        assert isinstance(tooltips, (list, tuple)), "tooltips must be a list or tuple"
         assert len(tooltips) == 0 or len(tooltips) == len(
             options
         ), "tooltips must be the same length as options"
@@ -191,6 +192,42 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         widgets.Text
             The filter textbox."""
 
+        def filtered_options_list(filter_text):
+            """Return the options that match the filter text. The filter text is split into exact
+            keywords and other keywords. The options must contain all exact keywords and at least one
+            of the other keywords. Exact keywords are enclosed in double quotes. The options are
+            compared case-insensitively."""
+
+            # all keywords
+            filter_text_split_quotes = filter_text.split('"')
+            exact_keywords = [
+                keyword
+                for keyword in filter_text_split_quotes[1::2]
+                if keyword.strip() != ""
+            ]
+            other_keywords = [
+                keyword
+                for keyword in " ".join(filter_text_split_quotes[0::2]).split(" ")
+                if keyword.strip() != ""
+            ]
+
+            return tuple(
+                opt
+                for opt in self._options
+                if (
+                    (
+                        opt_text_lower := opt.lower()
+                        + self._tooltips[self._options_ix[opt]].lower()
+                    )
+                    and any([keyword in opt_text_lower for keyword in other_keywords])
+                    or not other_keywords
+                )
+                and (
+                    all([keyword in opt_text_lower for keyword in exact_keywords])
+                    or not exact_keywords
+                )
+            )
+
         def on_filter_textbox_change(change):
             """Callback for the filter textbox."""
             filter_text = change["new"].lower().strip()
@@ -205,9 +242,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
                     self.value = ()
                     self._signal_value_to_backend()
 
-                self._filtered_options = tuple(
-                    opt for opt in self._options if filter_text in opt.lower()
-                )
+                # filter options must contain all exact keywords and at least one of the other keywords
+                self._filtered_options = filtered_options_list(filter_text)
+
                 self._filtered_tooltips = tuple(
                     self._tooltips[self._options_ix[opt]]
                     for opt in self._filtered_options
@@ -492,7 +529,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
 
     @tooltips.setter
     def tooltips(self, new_tooltips):
-        assert isinstance(new_tooltips, (list,tuple)), "tooltips must be a list or tuple"
+        assert isinstance(
+            new_tooltips, (list, tuple)
+        ), "tooltips must be a list or tuple"
         assert len(new_tooltips) == 0 or len(new_tooltips) == len(
             self._options
         ), "tooltips must be the same length as options"
