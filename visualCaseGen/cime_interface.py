@@ -25,6 +25,8 @@ logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
 Compset = namedtuple("Compset", ["alias", "lname"])
 
+comp_desc_sep = f' {chr(int("2223", base=16))} '
+
 
 class CIME_interface:
     """CIME_interface class is an interface from visualCaseGen to conventional CIME.
@@ -129,6 +131,7 @@ class CIME_interface:
             physics = compobj.get(node, comp_class.lower())
             option = compobj.get(node, "option")
             description = compobj.text(node)
+            description = description.strip()
             if description[-1] == ":":
                 description = description[:-1]
             if physics:
@@ -181,6 +184,58 @@ class CIME_interface:
                 logger.debug("No options defined for physics %s...", phys)
                 self.comp_options[phys] = []
                 self.comp_options_desc[phys] = []
+
+    def long_comp_desc(self, comp_str):
+        """Returns a long description of a component string, e.g., "CAM%SCAM" -> "CAM: Specialized SCAM: Super-parameterized".
+
+        Parameters
+        ----------
+        comp_str : str
+            component string, e.g., "CAM%SCAM"
+
+        Returns
+        -------
+        str
+            long description of the component string, e.g., "CAM: Specialized SCAM: Super-parameterized"
+        """
+
+        # Component physics
+        comp_phys = comp_str.split("%")[0]
+
+        # Find model for this component physics
+        model = None
+        for model in self.comp_phys:
+            if comp_phys in self.comp_phys[model]:
+                break
+        assert model is not None, f"Model not found for {comp_str}"
+
+        # Component physics description
+        try:
+            comp_phys_ix = self.comp_phys[model].index(comp_phys)
+            comp_phys_desc = ": " + self.comp_phys_desc[model][comp_phys_ix]
+        except (KeyError, IndexError, ValueError):
+            comp_phys_desc = ""
+
+        # Component options
+        try:
+            comp_opt = comp_str.split("%")[1]
+            comp_opt_ix = self.comp_options[comp_phys].index(comp_opt)
+            comp_opt_desc = ": " + self.comp_options_desc[comp_phys][comp_opt_ix]
+        except (KeyError, IndexError, ValueError):
+            comp_opt = ""
+            comp_opt_desc = ""
+
+        return comp_desc_sep + comp_phys + comp_phys_desc + ' ' + comp_opt + comp_opt_desc
+
+    def long_compset_desc(self, compset_lname):
+        """Generates a long description of a given compset long name."""
+
+        compset_lname_split = compset_lname.split("_")
+        desc = "Initialization: " + compset_lname_split[0]
+        desc += ''.join([self.long_comp_desc(comp_str) for comp_str in compset_lname_split[1:8]])
+        if len(compset_lname_split) > 8:
+            desc = desc + comp_desc_sep.join(compset_lname_split[8:])
+        return desc
 
     def _retrieve_models(self, comp_class):
         """Retrieves the available models of a given component class. Retrieved models

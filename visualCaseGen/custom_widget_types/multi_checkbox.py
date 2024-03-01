@@ -54,9 +54,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
 
         assert isinstance(value, tuple), "value must be a tuple"
         assert isinstance(options, tuple), "options must be a tuple"
-        assert isinstance(tooltips, tuple), "tooltips must be a tuple"
-        assert tooltips == () or len(options) == len(
-            tooltips
+        assert isinstance(tooltips, (list,tuple)), "tooltips must be a list or tuple"
+        assert len(tooltips) == 0 or len(tooltips) == len(
+            options
         ), "tooltips must be the same length as options"
         assert display_mode in ["less", "all"], "display_mode must be 'less' or 'all'"
 
@@ -201,7 +201,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
                 self._filtered_tooltips = self._tooltips
             else:
                 # reset value
-                self.value = ()
+                if old_value != ():
+                    self.value = ()
+                    self._signal_value_to_backend()
 
                 self._filtered_options = tuple(
                     opt for opt in self._options if filter_text in opt.lower()
@@ -214,20 +216,10 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             self._refresh_options_widgets()
             self._refresh_tooltips()
 
-            # if the old value is still in the options, set it back
-            if old_value != self.value:
-                if all(
-                    opt in self._filtered_options[: self._len_options_to_display()]
-                    for opt in old_value
-                ):
-                    self.value = old_value
-
-            self._signal_value_to_backend()
-
             # End of on_filter_textbox_change
 
         filter_textbox = widgets.Text(
-            description="Filter:",
+            description="Search:",
             layout={
                 "display": "flex",
                 "align_self": "flex-end",
@@ -280,7 +272,8 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             self.value = old_value
 
         # signal value change to backend
-        self._signal_value_to_backend()
+        if self.value != old_value:
+            self._signal_value_to_backend()
 
         self._display_mode_btn.icon = (
             "chevron-down" if self._display_less else "chevron-up"
@@ -406,8 +399,8 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             if opt in self.value:
                 if self._multi_select:
                     self.value = tuple(val for val in self.value if val != opt)
-            else:
-                self.value = ()
+                else:
+                    self.value = ()
 
         self._signal_value_to_backend()
 
@@ -499,8 +492,8 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
 
     @tooltips.setter
     def tooltips(self, new_tooltips):
-        assert isinstance(new_tooltips, tuple), "tooltips must be a tuple"
-        assert len(new_tooltips) == len(
+        assert isinstance(new_tooltips, (list,tuple)), "tooltips must be a list or tuple"
+        assert len(new_tooltips) == 0 or len(new_tooltips) == len(
             self._options
         ), "tooltips must be the same length as options"
         self._tooltips = new_tooltips
