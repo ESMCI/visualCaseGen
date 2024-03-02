@@ -80,7 +80,6 @@ class Stage:
         self._parent = parent
         self._activation_guard = activation_guard
         self._children = []  # to be appended by the child stage(s) (if any)
-        self._status = "inactive"
         self._hide_when_inactive = hide_when_inactive
         self._auto_set_single_valid_option = auto_set_single_valid_option
         self._rank = None # to be set by the csp solver
@@ -115,6 +114,7 @@ class Stage:
         self._construct_observances()
 
         # Enable the first stage and disable the rest
+        self._disabled = None
         if self.is_first():
             self._enable()
         else:
@@ -146,6 +146,15 @@ class Stage:
         return self._activation_guard is not None
 
     @property
+    def enabled(self):
+        return not self._disabled
+
+    @property
+    def completed(self):
+        """Check if the stage is complete."""
+        return all([var.value is not None for var in self._varlist])
+    
+    @property
     def rank(self):
         if self.is_first():
             return 0
@@ -170,14 +179,10 @@ class Stage:
                 type="change",
             )
 
-    def is_complete(self):
-        """Check if the stage is complete."""
-        return all([var.value is not None for var in self._varlist])
-
     def _on_value_change(self, change):
         """This method is called when the value of a ConfigVar in the varlist changes.
         When all the ConfigVars in the varlist are set, the stage is deemed complete."""
-        if self.is_complete():
+        if self.enabled and self.completed:
             logger.debug("Stage <%s> is complete.", self._title)
             self._proceed()
 
@@ -276,6 +281,8 @@ class Stage:
     def _disable(self):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
         logger.debug("Disabling stage %s.", self._title)
+        assert self._disabled is not True, f"Attempted to disable an already disabled stage: {self._title}"
+        self._disabled = True
         if self._widget is not None:
             self._widget.disabled = True
 
@@ -284,6 +291,8 @@ class Stage:
         """Activate the stage, allowing the user to set the parameters in the varlist."""
 
         logger.info("Enabling stage %s.", self._title)
+        assert self._disabled is not False, f"Attempted to enable an already enabled stage: {self._title}"
+        self._disabled = False
         if self._widget is not None:
             self._widget.disabled = False
 

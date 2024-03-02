@@ -20,6 +20,33 @@ def initialize_compset_stages(cime):
         varlist=[cvars["COMPSET_MODE"]],
     )
 
+    # Standard Component Set Stages
+
+    stg_standard_compset = Stage(
+        title="Standard Component Set",
+        description="Select a standard component set from the list",
+        parent=stg_compset,
+        activation_guard=cvars["COMPSET_MODE"] == "Standard",
+    )
+
+    stg_comp_filter = Stage(
+        title="Models to Include",
+        description="Select the components to display",
+        widget=StageWidget(HBox),
+        parent=stg_standard_compset,
+        varlist=[cvars[f"COMP_{comp_class}_FILTER"] for comp_class in cime.comp_classes],
+    )
+
+    str_comp_alias = Stage(
+        title="Compset",
+        description="Select the compset alias",
+        widget=StageWidget(VBox),
+        parent=stg_standard_compset,
+        varlist=[cvars["COMPSET_ALIAS"],]
+    )
+
+    # Custom Component Set Stages
+
     stg_custom_compset = Stage(
         title="Custom Component Set",
         description="Select the custom component set and its options",

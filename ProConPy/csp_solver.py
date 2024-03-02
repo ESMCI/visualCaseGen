@@ -308,31 +308,19 @@ class CspSolver:
         ConstraintViolation : If any of the assignments is invalid.
         """
 
-        logger.debug("Checking multiple assignments: %s", assignments)
+        logger.debug("Checking multiple assignments...")
         assert (
             self._initialized
         ), "Must finalize initialization before CspSolver can operate."
 
-        assignments = (a for a in assignments if a[1] is not None)
+        assignments = tuple(a for a in assignments if a[1] is not None)
         vars = [var for var, _ in assignments]
-        assignment_assertions = []
-
-        for var, new_value in assignments:
-            if var.has_options():
-                try:
-                    if var._options_validities[new_value] is False:
-                        raise ConstraintViolation(
-                            self.retrieve_error_msg(var, new_value)
-                        )
-                except KeyError:
-                    raise ConstraintViolation(f"{new_value} not an option for {var}")
-            else:  # variable has no finite list of options
-                assignment_assertions.append(var == new_value)
+        assignment_assertions = And([var == new_value for var, new_value in assignments])
 
         with self._solver as s:
             self.apply_assignment_assertions(s, exclude_vars=vars)
             self.apply_options_assertions(s, exclude_vars=vars)
-            if s.check(And(assignment_assertions)) == unsat:
+            if s.check(assignment_assertions) == unsat:
                 raise ConstraintViolation(
                     f"The assignments led to infeasible options for dependent variable(s). "
                 )

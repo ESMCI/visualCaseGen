@@ -283,7 +283,7 @@ class StageWidget(VBox):
         b : Button
             The button that triggers this method.
         """
-        if self._stage.is_complete():
+        if self._stage.completed:
             self._stage._proceed()
         else:
             alert_warning(

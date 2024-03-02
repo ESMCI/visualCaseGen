@@ -16,6 +16,8 @@ def get_relational_constraints(cvars):
     COMP_ROF = cvars['COMP_ROF'];  COMP_ROF_PHYS = cvars['COMP_ROF_PHYS'];  COMP_ROF_OPTION = cvars['COMP_ROF_OPTION']
     COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_PHYS = cvars['COMP_GLC_PHYS'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
     COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
+    COMPSET_LNAME = cvars['COMPSET_LNAME']
+    GRID_MODE = cvars['COMPSET_MODE']
     ATM_GRID = cvars['ATM_GRID']
     OCN_GRID = cvars['OCN_GRID']
     WAV_GRID = cvars['WAV_GRID']
@@ -23,8 +25,6 @@ def get_relational_constraints(cvars):
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
     return {
-
-        COMPSET_MODE != "Standard" : "Standart compset option is not available yet. Please select Custom compset.",
 
         Not(And(COMP_ATM=="satm", COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")) :
             "At least one component must be an active or a data model",
@@ -78,7 +78,7 @@ def get_relational_constraints(cvars):
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
 
-        Implies(COMP_OCN=="mom", In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
+        Implies(Contains(COMPSET_LNAME, "MOM6"), In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
         Implies(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):

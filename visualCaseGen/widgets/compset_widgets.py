@@ -2,7 +2,7 @@ import logging
 import ipywidgets as widgets
 
 from ProConPy.config_var import cvars
-from visualCaseGen.custom_widget_types.checkbox_multi_widget import CheckboxMultiWidget
+from visualCaseGen.custom_widget_types.multi_checkbox import MultiCheckbox
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -18,6 +18,23 @@ def initialize_compset_widgets(cime):
         layout={"display": "flex", "width": "max-content", "padding": "10px"},
         style={"button_width": "100px", "description_width": description_width},
     )
+
+    # Standard Compset Widgets
+
+    for comp_class in cime.comp_classes:
+        cv_comp_filter = cvars[f"COMP_{comp_class}_FILTER"]
+        cv_comp_filter.widget = widgets.ToggleButtons(
+            description=f'{chr(int("2000",base=16))*5}{chr(int("25BC",base=16))} {comp_class}',
+            layout={"width": "120px"},  # , 'max_height':'145px'},
+            style={"button_width": "105px", "description_width": "0px"},
+        )
+
+    compset_alias = cvars["COMPSET_ALIAS"]
+    compset_alias.widget = MultiCheckbox(
+        description="Compset Alias: (Scroll horizontally to see all option descriptions.)",
+        allow_multi_select=False
+    )
+    # Custom Compset Widgets
 
     cv_inittime = cvars["INITTIME"]
     cv_inittime.widget = widgets.ToggleButtons(
@@ -43,7 +60,8 @@ def initialize_compset_widgets(cime):
         )
 
         cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
-        cv_comp_option.widget = CheckboxMultiWidget(
+        cv_comp_option.widget = MultiCheckbox(
             description=comp_class + ":",
+            allow_multi_select=True
         )
         cv_comp_option.valid_opt_char = "%"

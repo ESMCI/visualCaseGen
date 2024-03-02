@@ -23,7 +23,7 @@ from CIME.case.case import Case
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
-Compset = namedtuple("Compset", ["alias", "lname"])
+Compset = namedtuple("Compset", ["alias", "lname", "model"])
 
 comp_desc_sep = f' {chr(int("2223", base=16))} '
 
@@ -59,7 +59,7 @@ class CIME_interface:
         self.comp_options = dict()  # component options(4xCO2, 1PCT, etc.)
         self.comp_options_desc = dict()  # component options descriptions
         self.model_grids = dict()  # model grids (alias, compset, not_compset)
-        self.compsets = dict()  # compsets defined at each component
+        self.compsets = dict()  # default compsets where keys are aliases
         self._files = None
         self._grids_obj = None
         self.din_loc_root = None
@@ -227,14 +227,19 @@ class CIME_interface:
 
         return comp_desc_sep + comp_phys + comp_phys_desc + ' ' + comp_opt + comp_opt_desc
 
-    def long_compset_desc(self, compset_lname):
+    def long_compset_desc(self, compset):
         """Generates a long description of a given compset long name."""
 
-        compset_lname_split = compset_lname.split("_")
+        compset_lname_split = compset.lname.split("_")
         desc = "Initialization: " + compset_lname_split[0]
         desc += ''.join([self.long_comp_desc(comp_str) for comp_str in compset_lname_split[1:8]])
         if len(compset_lname_split) > 8:
             desc = desc + comp_desc_sep.join(compset_lname_split[8:])
+
+        # Denote if the compset is scientifically supported
+        if len(self.sci_supported_grids[compset.alias]) > 0:
+            desc += comp_desc_sep+"(scientifically supported)"
+
         return desc
 
     def _retrieve_models(self, comp_class):
@@ -367,9 +372,24 @@ class CIME_interface:
 
         return grid_lname_parts  # dict of component grids, e.g., {'a%': 'T62','l%': 'null','oi%': 'gx1v7', ...}
 
+    def get_components_from_compset_lname(self, compset_lname):
+        """Returns a dictionary of components from a given compset long name. The dictionary keys are component classes"""
+
+        components = {comp_class : None for comp_class in self.comp_classes}
+        compset_lname_split = compset_lname.split("_")
+
+        assert len(compset_lname_split) >= len(self.comp_classes)+1, f"Invalid compset long name: {compset_lname}"
+
+        for i, comp_class in enumerate(self.comp_classes):
+            components[comp_class] = compset_lname_split[i+1]
+    
+        return components
+
+
     def _retrieve_compsets(self):
         cc = self._files.get_components("COMPSETS_SPEC_FILE")
 
+        self.compsets = {}
         self.sci_supported_grids = {}
         for component in cc:
             compsets_filename = self._files.get_value(
@@ -378,7 +398,6 @@ class CIME_interface:
 
             # Check if COMPSET spec file exists
             if os.path.isfile(compsets_filename):
-                self.compsets[component] = []
                 c = Compsets(compsets_filename)
                 compsets_xml = c.get_children("compset")
                 for compset in compsets_xml:
@@ -390,7 +409,7 @@ class CIME_interface:
                     self.sci_supported_grids[alias] = []
                     for snode in science_support_nodes:
                         self.sci_supported_grids[alias].append(c.get(snode, "grid"))
-                    self.compsets[component].append(Compset(alias, lname))
+                    self.compsets[alias] = Compset(alias, lname, component)
 
     def _retrieve_machines(self):
         machs_file = self._files.get_value("MACHINES_SPEC_FILE")

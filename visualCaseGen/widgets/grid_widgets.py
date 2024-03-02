@@ -2,7 +2,7 @@ import logging
 import ipywidgets as widgets
 
 from ProConPy.config_var import cvars
-from visualCaseGen.custom_widget_types.checkbox_multi_widget import CheckboxMultiWidget
+from visualCaseGen.custom_widget_types.multi_checkbox import MultiCheckbox
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -22,7 +22,7 @@ def initialize_grid_widgets(cime):
 
     # Standard grid options
     cv_grid = cvars["GRID"]
-    cv_grid.widget = CheckboxMultiWidget(
+    cv_grid.widget = MultiCheckbox(
         description="Grid:",
         allow_multi_select=False,
     )

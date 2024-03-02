@@ -13,14 +13,40 @@ def initialize_configvars(cime):
     """Initialize all ConfigVar instances and so register them with the CSP solver."""
     logger.debug("Initializing ConfigVars...")
 
-    initialize_compset_variables(cime)
+    initialize_standard_compset_variables(cime)
+    initialize_custom_compset_variables(cime)
     initialize_grid_variables(cime)
 
 
 @owh.out.capture()
-def initialize_compset_variables(cime):
+def initialize_standard_compset_variables(cime):
 
     ConfigVarStr("COMPSET_MODE")
+
+    # Standard Compset Variables
+
+    for comp_class in cime.comp_classes:
+        ConfigVarStr(f"COMP_{comp_class}_FILTER")
+
+    cv_compset_alias = ConfigVarStrMS("COMPSET_ALIAS")
+
+    @owh.out.capture()
+    def compset_alias_tracker(change):
+        new_compset_alias = change['new']
+        if new_compset_alias in [None, ()]:
+            cvars['COMPSET_LNAME'].value = None
+        else:
+            new_compset_lname = cime.compsets[new_compset_alias].lname
+            cvars['COMPSET_LNAME'].value = new_compset_lname
+
+    cv_compset_alias.observe(compset_alias_tracker, names="value", type="change")
+
+
+@owh.out.capture()
+def initialize_custom_compset_variables(cime):
+
+    # Custom Compset Variables
+
     ConfigVarStr("INITTIME")
 
     for comp_class in cime.comp_classes:
@@ -29,10 +55,12 @@ def initialize_compset_variables(cime):
         ConfigVarStrMS(f"COMP_{comp_class}_OPTION")
 
     # The auxiliary compset_lname variable is not directly controlled by the user:
-    # it is automatically set every time a COMP_???_OPTION variable is set
+    # it is automatically set every time:
+    # (1) COMPSET_ALIAS is (re-)assigned, or
+    # (2) all COMP_???_OPTION variables are (re-)assigned
     ConfigVarStr("COMPSET_LNAME")
 
-    def compset_lname_tracker(change):
+    def compset_lname_updater(change):
         """Update the value of COMPSET_LNAME variable based on the selected component
         physics and options. This function is called automatically every time a
         COMP_???_OPTION variable is changed.
@@ -62,7 +90,7 @@ def initialize_compset_variables(cime):
 
     for comp_class in cime.comp_classes:
         cvars[f"COMP_{comp_class}_OPTION"].observe(
-            compset_lname_tracker,
+            compset_lname_updater,
             names="value",
             type="change",
         )
