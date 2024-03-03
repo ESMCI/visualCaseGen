@@ -1,6 +1,6 @@
 import re
 import ipywidgets as widgets
-from traitlets import Any, observe
+from traitlets import Any, observe, validate
 from ipywidgets import trait_types
 from ProConPy.out_handler import handler as owh
 from ProConPy.dialog import alert_warning
@@ -62,20 +62,12 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         assert display_mode in ["less", "all"], "display_mode must be 'less' or 'all'"
 
         # Arguments
-        self._options = options
-        self._tooltips = tooltips
         self._description = description
         self._disabled = disabled
         self._allow_multi_select = allow_multi_select
         self._multi_select = False
         self._display_less = display_mode == "less"
         self._filter = filter
-
-        # Filtered options and tooltips correspond to the options and tooltips that are obtained
-        # after filtering the full options and tooltips. If the number of filtered options is
-        # still too large, a subset may be shown depending on the display mode (less or all).
-        self._filtered_options = self._options
-        self._filtered_tooltips = self._tooltips
 
         # Auxiliary widgets
         self._mode_selection_btn = self._gen_mode_selection_btn()
@@ -86,8 +78,18 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         self._options_vbox = widgets.VBox(
             layout={"overflow": "hidden", "max_width": "200px", "min_width": "200px"},
         )
-        self._refresh_options_widgets()
         self._tooltips_widget = widgets.HTML()
+
+        # Options and tooltips
+        # (Filtered options and tooltips correspond to the options and tooltips that are obtained
+        # after filtering the full options and tooltips. If the number of filtered options is
+        # still too large, a subset may be shown depending on the display mode: less or all.)
+        self._filtered_options = options
+        self.set_trait("options", options)
+        self._tooltips = tooltips
+        self._filtered_tooltips = self._tooltips
+
+        self._refresh_options_widgets()
         self._refresh_tooltips()
 
         # Set children to widgets
@@ -109,8 +111,6 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         # Having generated all the widgets, we can now set the disabled flags
         self._propagate_disabled_flag()
 
-        if options:
-            self.set_trait("options", options)
         if value:
             self.set_trait("value", value)
 
@@ -176,7 +176,6 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
                 "The user may select multiple options. Options compatibility NOT ensured.",
             ],
             layout={"display": display, "align_self": "flex-end", "margin": "5px"},
-            style={"button_width": "60px", "height": "30px"},
         )
         mode_selection_btn.observe(
             on_mode_selection_change, names="value", type="change"
@@ -213,7 +212,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
 
             return tuple(
                 opt
-                for opt in self._options
+                for opt in self.options
                 if (
                     (
                         opt_text_lower := opt.lower()
@@ -234,7 +233,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             old_value = self.value
 
             if filter_text == "":
-                self._filtered_options = self._options
+                self._filtered_options = self.options
                 self._filtered_tooltips = self._tooltips
             else:
                 # reset value
@@ -318,6 +317,21 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         self._display_mode_btn.description = (
             "Show All" if self._display_less else "Show Less"
         )
+
+    @validate("value")
+    def _validate_value(self, proposal):
+        """Validate the value. This method is called whenever the value changes. It ensures that the
+        value is a tuple of options and that the options are valid."""
+
+        new_vals = proposal["value"]
+
+        if not isinstance(new_vals, tuple):
+            raise ValueError("value must be a tuple")
+
+        if not all(val in self.options for val in new_vals):
+            raise ValueError("value must contain only valid options")
+
+        return proposal["value"]
 
     @observe("value")
     def _propagate_values_to_children(self, change):
@@ -462,13 +476,12 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         self.value = ()
 
         # update options
-        self._options = tuple(new_options)
+        self.options = tuple(new_options)
         self._options_ix = {opt: ix for ix, opt in enumerate(new_options)}
 
         # reset filter
         self._filter_textbox.value = ""
         self._filtered_options = new_options
-        self._filtered_tooltips = self._tooltips
 
         # if there aren't enough options, hide the auxiliary widgets
         if len(new_options) < 2:
@@ -489,6 +502,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         # update the options and tooltips widgets
         validity_change_only = len(self._filtered_options) == len(
             self._options_vbox.children
+        ) and all(len(opt)>1 for opt in self._filtered_options
         ) and all(
             self._filtered_options[ix][1:] == cb.description[1:]
             for ix, cb in enumerate(self._options_vbox.children)
@@ -505,7 +519,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         else:
             # options have changed and new checkboxes are needed
             self._refresh_options_widgets()
-            self._refresh_tooltips()
+            self.tooltips = ["" for _ in new_options]
 
         if self.value != old_value:
             # value reset, inform backend
@@ -533,11 +547,11 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             new_tooltips, (list, tuple)
         ), "tooltips must be a list or tuple"
         assert len(new_tooltips) == 0 or len(new_tooltips) == len(
-            self._options
+            self.options
         ), "tooltips must be the same length as options"
         self._tooltips = new_tooltips
-        self._filtered_tooltips = [
+        self._filtered_tooltips = tuple(
             self._tooltips[self._options_ix[filtered_opt]]
             for filtered_opt in self._filtered_options
-        ]
+        )
         self._refresh_tooltips()

@@ -19,8 +19,6 @@ class GUI_help_dialog(widgets.VBox):
 
         self.verbose_widget = widgets.Dropdown(
             options=['On (slow)', 'Off'],
-            tooltips=['Turn on the verbose GUI logging. This significantly slows down the GUI.',
-                      '(Default) Minimal logging. This improves the responsiveness of the GUI.'],
             value='Off',
             layout={'width': 'max-content'}, # If the items' names are long
             description='Verbose GUI log:',

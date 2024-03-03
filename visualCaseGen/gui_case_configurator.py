@@ -34,7 +34,6 @@ class GUI_case_configurator(widgets.VBox):
             value=0,
             min=0,
             max=10,
-            step=1,
             description='',
             bar_style='info',
             orientation='horizontal',
