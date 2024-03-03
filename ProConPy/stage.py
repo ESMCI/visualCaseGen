@@ -13,7 +13,7 @@ logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
 class Stage:
-    """A class to represent a configuration stage where the user can set a number of
+    """A class to represent configuration stages where the user can set a number of
     parameters, of type ConfigVar, to configure the system.
 
     Only a single stage can be active at a time.
@@ -33,6 +33,9 @@ class Stage:
 
     # List of stages in the order they are completed. To be used for reverting to the previous stage.
     _completed_stages = []
+
+    # The currently active stage
+    _active_stage = None
 
     def __init__(
         self,
@@ -132,6 +135,11 @@ class Stage:
     def top_level(cls):
         """Class method that returns the top-level stages."""
         return cls._top_level
+    
+    @classmethod
+    def active(cls):
+        """Class method that returns the active stage."""
+        return cls._active_stage
 
     def is_first(self):
         return Stage._top_level[0] is self
@@ -144,6 +152,10 @@ class Stage:
 
     def is_guarded(self):
         return self._activation_guard is not None
+
+    @property
+    def title(self):
+        return self._title
 
     @property
     def enabled(self):
@@ -281,7 +293,11 @@ class Stage:
     def _disable(self):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
         logger.debug("Disabling stage %s.", self._title)
-        assert self._disabled is not True, f"Attempted to disable an already disabled stage: {self._title}"
+        if self._disabled is not None:
+            assert self._disabled is False, f"Attempted to disable an already disabled stage: {self._title}"
+            assert Stage._active_stage is self, "The active stage is not this stage."
+            Stage._active_stage = None
+
         self._disabled = True
         if self._widget is not None:
             self._widget.disabled = True
@@ -292,6 +308,9 @@ class Stage:
 
         logger.info("Enabling stage %s.", self._title)
         assert self._disabled is not False, f"Attempted to enable an already enabled stage: {self._title}"
+        assert Stage._active_stage is None, "Another stage is already active."
+
+        Stage._active_stage = self
         self._disabled = False
         if self._widget is not None:
             self._widget.disabled = False

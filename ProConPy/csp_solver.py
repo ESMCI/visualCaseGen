@@ -33,39 +33,42 @@ class CspSolver:
         assignment and options assertions are permanently applied (although they may be
         dropped later if the user goes back to a previous stage)."""
 
-        # add a new scope for the completed stage assertions to be applied
-        self._solver.push()
-        logger.debug(
-            "Pushed new solver scope. Current num_scopes: %s", self._solver.num_scopes()
-        )
+        logger.debug("Proceeding the CSP solver...")
 
-        # record the assignment and options assertions to be used when retrieving error messages
+        # Record the recent assignment and options assertions
         self._past_assignment_assertions.append(self._assignment_assertions)
-
-        # apply all assignment assertions for the completed stage:
-        for _, asrt in self._assignment_assertions.items():
-            self._solver.add(asrt)
-        self._assignment_assertions = {}  # clear the assignment assertions
-
-        # record the options assertions to be used when retrieving error messages
         self._past_options_assertions.append(self._options_assertions)
 
-        # apply all options assertions for the completed stage:
-        for _, asrt in self._options_assertions.items():
-            self._solver.add(asrt)
-        self._options_assertions = {}  # clear the options assertions
+        # Clean the current assignment and options assertions for the next stage
+        self._assignment_assertions = {}
+        self._options_assertions = {}
+
+        # Finally, refresh the solver
+        self._refresh_solver()
 
     @owh.out.capture()
     def revert(self):
         """This method is called by Stage when the user wants to revert to the previous stage.
         This method reverts the solver to the state it was in at the end of the previous stage.
         """
-        self._solver.pop()
-        logger.debug(
-            "Popped a solver scope. Current num_scopes: %s", self._solver.num_scopes()
-        )
+        logger.debug("Reverting the CSP solver...")
         self._assignment_assertions = self._past_assignment_assertions.pop()
         self._options_assertions = self._past_options_assertions.pop()
+        self._refresh_solver()
+
+
+    def _refresh_solver(self):
+        """Reset the solver and (re-)apply the relational constraints, the past assignment
+        assertions, and the past options assertions. This method is called when the user wants
+        to proceed/revert to a subsequent/previous stage. Resetting the solver turned out to
+        be more efficient than the initial approach of using push/pop to manage the solver."""
+        self._solver.reset()
+        self._solver.add([asrt for asrt, _ in self._relational_constraints.items()])
+        for scope in self._past_assignment_assertions:
+            self._solver.add([asrt for _, asrt in scope.items()])
+        for scope in self._past_options_assertions:
+            self._solver.add([asrt for _, asrt in scope.items()])
+
 
     def initialize(self, cvars, relational_constraints, first_stage):
         """Initialize the CSP solver with relational constraints. The relational constraints are
