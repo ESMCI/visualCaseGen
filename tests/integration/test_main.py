@@ -3,7 +3,7 @@
 import pytest
 
 from ProConPy.out_handler import handler as owh
-from ProConPy.config_var import cvars
+from ProConPy.config_var import ConfigVar, cvars
 from ProConPy.stage import Stage
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.initialize_configvars import initialize_configvars
@@ -16,6 +16,8 @@ from ProConPy.hgraph_utils import plot_nxgraph
 
 
 def test_main():
+    ConfigVar.reboot()
+    Stage.reboot()
     cime = CIME_interface()
     initialize_configvars(cime)
     initialize_widgets(cime) 
@@ -23,6 +25,4 @@ def test_main():
     set_options(cime)
     csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
 
-    plot_nxgraph(csp.hgraph)
-
-    print(csp._initialized)
+    #plot_nxgraph(csp.hgraph)

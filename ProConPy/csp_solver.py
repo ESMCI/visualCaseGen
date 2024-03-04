@@ -15,15 +15,19 @@ class CspSolver:
     """A Z3-based (C)onstraint (S)atisfaction (P)roblem Solver Module"""
 
     def __init__(self):
+        self.reboot()
+
+    def reboot(self):
+        """Reset the CSP solver instance so that it can be re-initialized.
+        This is useful for testing purposes and should not be utilized in production
+        (except when it is called from within the __init__ method)."""
         self._initialized = False
         self._assignment_history = []
-        self._solver = Solver()  # Main solver
-        self._assignment_assertions = {}  # assignment assertions for the current stage
-        self._past_assignment_assertions = (
-            []
-        )  # assignment assertions for the past stages
-        self._options_assertions = {}  # options assertions for the current stage
-        self._past_options_assertions = []  # options assertions for the past stages
+        self._solver = Solver()
+        self._assignment_assertions = {}
+        self._past_assignment_assertions = []
+        self._options_assertions = {}
+        self._past_options_assertions = []
         self._tlock = TraversalLock()
 
     @owh.out.capture()
@@ -290,8 +294,8 @@ class CspSolver:
                 # Set variable value to None, and raise an exception.
                 var.value = None
                 raise ConstraintViolation(
-                    f"The new value {new_value} for {var} led to infeasible options for dependent variable(s). "
-                    + f"Please choose a different value for {var}."
+                    f"Your current configuration settings have created infeasible options for future settings. "\
+                    "Please reset or revise your selections."
                 )
 
         return new_options_and_tooltips

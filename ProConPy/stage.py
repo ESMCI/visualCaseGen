@@ -127,6 +127,15 @@ class Stage:
         return self._title
 
     @classmethod
+    def reboot(cls):
+        """Class method to reset the Stage class so that it can be re-initialized.
+        This is useful for testing purposes and should not be utilized in production."""
+        cls._top_level = []
+        cls._completed_stages = []
+        cls._active_stage = None
+        # todo: remove all instances of Stage
+
+    @classmethod
     def first(cls):
         """Class method that returns the first stage of the stage hierarchy."""
         return cls._top_level[0]

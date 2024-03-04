@@ -107,6 +107,16 @@ class ConfigVar(HasTraits):
         ConfigVar.vdict[name] = self
         logger.debug("ConfigVar %s created.", self.name)
 
+    @classmethod
+    def reboot(cls):
+        """Reset the ConfigVar class to its initial state. This is useful for testing purposes
+        and should not be used in production."""
+        for cv in cls.vdict.values():
+            del cv
+        cls.vdict = {}
+        # reset the CSP solver as well
+        csp.reboot()
+
     def _post_value_change(self, change):
         """If new value is valid, this method is called automatically right after self.value is set.
         However, note that this method doesn't get called if the new value is the same as old value.

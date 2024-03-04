@@ -29,12 +29,19 @@ def test_custom_compset_configuration():
     set_options(cime)
     csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
 
+    min_elapsed = 1e6
     for i in range(3):
+        # Configure a custom compset
         start = time.time()
         configure_custom_compset()
-        end = time.time()
-        print(f"Attempt {i}, elapsed time: {end - start}")
+        elapsed = time.time() - start
 
+        # Ensure that the elapsed time does not fluctuate too much
+        print(f"Elapsed time: {elapsed:.3f}")
+        min_elapsed = min(min_elapsed, elapsed)
+        assert elapsed < 1.25 * min_elapsed, f"Elapsed time {elapsed} exceeds 1.25 * min_elapsed {1.25 * min_elapsed}"
+
+        # Revert back to the first stage
         revert_to_first_stage()
 
 def configure_custom_compset():
