@@ -78,7 +78,7 @@ def get_relational_constraints(cvars):
                 Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
 
-        Implies(Contains(COMPSET_LNAME, "MOM6"), In(OCN_GRID, ["tx0.66v1", "gx1v6", "tx0.25v1"])):
+        Implies(Contains(COMPSET_LNAME, "MOM6"), In(OCN_GRID, ["tx2_3v2", "tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
         Implies(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):

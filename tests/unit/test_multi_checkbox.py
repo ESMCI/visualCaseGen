@@ -20,11 +20,14 @@ def test_check_value_assignment():
     mc.value = "a",
     assert mc.value == ("a",)
 
+    mc.value = "b",
+    assert mc.value == ("b",)
+
     with pytest.raises(ValueError):
         mc.value = ("d",)
 
     # Test that the value is unchanged after an invalid assignment.
-    assert mc.value == ("a",)
+    assert mc.value == ("b",)
 
 def test_filter_options():
     """Test that MultiCheckbox.options can be filtered by a string."""

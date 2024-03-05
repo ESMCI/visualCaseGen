@@ -193,7 +193,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             description="Selection:",
             tooltips=[
                 "The user is allowed to pick only one option.",
-                "The user may select multiple options. Options compatibility NOT ensured.",
+                "The user may select multiple options. Options compatibility NOT guaranteed.",
             ],
             layout={
                 "display": display,

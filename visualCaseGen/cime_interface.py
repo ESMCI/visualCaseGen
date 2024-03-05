@@ -25,8 +25,6 @@ logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
 Compset = namedtuple("Compset", ["alias", "lname", "model"])
 
-comp_desc_sep = f' {chr(int("2223", base=16))} '
-
 
 class CIME_interface:
     """CIME_interface class is an interface from visualCaseGen to conventional CIME.
@@ -225,7 +223,7 @@ class CIME_interface:
             comp_opt = ""
             comp_opt_desc = ""
 
-        return comp_desc_sep + comp_phys + comp_phys_desc + ' ' + comp_opt + comp_opt_desc
+        return ' | ' + comp_phys + comp_phys_desc + ' ' + comp_opt + comp_opt_desc
 
     def long_compset_desc(self, compset):
         """Generates a long description of a given compset long name."""
@@ -234,11 +232,11 @@ class CIME_interface:
         desc = "Initialization: " + compset_lname_split[0]
         desc += ''.join([self.long_comp_desc(comp_str) for comp_str in compset_lname_split[1:8]])
         if len(compset_lname_split) > 8:
-            desc = desc + comp_desc_sep.join(compset_lname_split[8:])
+            desc = desc + ' | '.join(compset_lname_split[8:])
 
         # Denote if the compset is scientifically supported
         if len(self.sci_supported_grids[compset.alias]) > 0:
-            desc += comp_desc_sep+"(scientifically supported)"
+            desc += ' | '+"(scientifically supported)"
 
         return desc
 
@@ -292,6 +290,21 @@ class CIME_interface:
 
     def _retrieve_model_grids(self):
         self._grids_obj = Grids(comp_interface=self.driver)
+
+        # read component grids, i.e., domains
+        domains_desc = {}
+        domain_nodes = self._grids_obj.get_children("domain", root=self._grids_obj.get_child("domains"))
+        for domain_node in domain_nodes:
+            name = self._grids_obj.get(domain_node, "name")
+            if name == "null":
+                continue
+            desc = self._grids_obj.text(self._grids_obj.get_child("desc", root=domain_node))
+            support = self._grids_obj.get_optional_child("support", root=domain_node)
+            support = '. '+self._grids_obj.text(support) if support is not None else ''
+            domains_desc[name] = desc+support
+
+        # read model grids, i.e., resolutions 
+
         grids = self._grids_obj.get_child("grids")
         model_grid_nodes = self._grids_obj.get_children("model_grid", root=grids)
 
@@ -302,15 +315,13 @@ class CIME_interface:
             compset = self._grids_obj.get(model_grid_node, "compset")
             not_compset = self._grids_obj.get(model_grid_node, "not_compset")
             desc = ""
-            desc_node = self._grids_obj.get_children("desc", root=model_grid_node)
-            if desc_node:
-                desc = self._grids_obj.text(desc_node[0])
-            self.model_grids.append((alias, compset, not_compset, desc))
             grid_nodes = self._grids_obj.get_children("grid", root=model_grid_node)
             for grid_node in grid_nodes:
                 comp_name = self._grids_obj.get(grid_node, "name")
-                value = self._grids_obj.text(grid_node)
-                self.component_grids[comp_name].add(value)
+                comp_grid = self._grids_obj.text(grid_node)
+                self.component_grids[comp_name].add(comp_grid)
+                desc += ' | ' + ' ' + comp_name.upper() + ': ' + domains_desc[comp_grid] if comp_grid in domains_desc else ''
+            self.model_grids.append((alias, compset, not_compset, desc))
 
     def get_domain_properties(self, domain_name):
 
