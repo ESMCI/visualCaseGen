@@ -28,6 +28,8 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         allow_multi_select=False,
         display_mode="less",
         filter=True,
+        preset_filter="",
+        placeholder="The options list is empty. Try removing the filter (if any).",
     ):
         """Create a new MultiCheckbox widget.
 
@@ -49,6 +51,11 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             The initial display mode. The default is "less".
         filter : bool, optional
             Whether the user is allowed to filter the options. The default is True.
+        preset_filter : str, optional
+            A preset filter text that gets added to the filter textbox if the associated
+            checkbox is checked. The default is "".
+        placeholder : str, optional
+            The text to display when the options are empty. The default is "".
         """
 
         super().__init__()
@@ -68,10 +75,20 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         self._multi_select = False
         self._display_less = display_mode == "less"
         self._filter = filter
+        self._preset_filter = preset_filter
 
         # Auxiliary widgets
         self._mode_selection_btn = self._gen_mode_selection_btn()
         self._filter_textbox = self._gen_filter_textbox()
+        self._preset_filter_checkbox = self._gen_preset_filter_checkbox()
+        self._placeholder_label = widgets.Label(
+            value=placeholder,
+            layout={
+                "display": "none",
+                "margin": "5px",
+                "align_self": "center",
+            },
+        )
         self._display_mode_btn = self._gen_display_mode_btn()
 
         # Options and tooltips widgets
@@ -93,8 +110,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         self._refresh_tooltips()
 
         # Set children to widgets
-        self.children = (
+        self.children = [
             self._mode_selection_btn,
+            self._preset_filter_checkbox,
             self._filter_textbox,
             widgets.HBox(
                 [self._options_vbox, self._tooltips_widget],
@@ -105,8 +123,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
                     "justify_content": "flex-start",
                 },
             ),
+            self._placeholder_label,
             self._display_mode_btn,
-        )
+        ]
 
         # Having generated all the widgets, we can now set the disabled flags
         self._propagate_disabled_flag()
@@ -132,6 +151,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
     def _propagate_disabled_flag(self):
         """Propagate the disabled flag to all the children."""
         self._mode_selection_btn.disabled = self._disabled
+        self._preset_filter_checkbox.disabled = self._disabled
         self._filter_textbox.disabled = self._disabled
         self._display_mode_btn.disabled = self._disabled
         for checkbox in self._options_vbox.children:
@@ -175,7 +195,13 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
                 "The user is allowed to pick only one option.",
                 "The user may select multiple options. Options compatibility NOT ensured.",
             ],
-            layout={"display": display, "align_self": "flex-end", "margin": "5px"},
+            layout={
+                "display": display,
+                "align_self": "flex-end",
+                "margin": "5px",
+                "width": "max-content",
+            },
+            style={"button_width": "max-content", "description_width": "max-content"},
         )
         mode_selection_btn.observe(
             on_mode_selection_change, names="value", type="change"
@@ -232,6 +258,11 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             filter_text = change["new"].lower().strip()
             old_value = self.value
 
+            if not f'"{self._preset_filter}"' in filter_text:
+                self._preset_filter_checkbox.value = False
+            else:
+                self._preset_filter_checkbox.value = True
+
             if filter_text == "":
                 self._filtered_options = self.options
                 self._filtered_tooltips = self._tooltips
@@ -265,6 +296,40 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         )
         filter_textbox.observe(on_filter_textbox_change, names="value", type="change")
         return filter_textbox
+
+    def _gen_preset_filter_checkbox(self):
+        """Generate and return a preset filter checkbox instance. This checkbox allows the user to
+        add a preset filter"""
+
+        def on_preset_filter_checkbox_change(change):
+            """Callback for the preset filter checkbox."""
+            prefix = f'"{self._preset_filter}"'
+            if change["new"] is True:
+                if prefix not in self._filter_textbox.value:
+                    self._filter_textbox.value = (
+                        prefix + " " + self._filter_textbox.value
+                    )
+            else:
+                self._filter_textbox.value = self._filter_textbox.value.replace(
+                    prefix, ""
+                ).strip()
+
+            # End of on_preset_filter_checkbox_change
+
+        preset_filter_checkbox = widgets.Checkbox(
+            description=self._preset_filter,
+            indent=False,
+            layout={
+                "display": "" if self._preset_filter else "none",
+                "margin": "5px",
+                "align_self": "flex-end",
+                "width": "max-content",
+            },
+        )
+        preset_filter_checkbox.observe(
+            on_preset_filter_checkbox_change, names="value", type="change"
+        )
+        return preset_filter_checkbox
 
     def _gen_display_mode_btn(self):
         """Generate and return a display mode button instance. This button allows the user to switch
@@ -431,6 +496,12 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         else:
             self._display_mode_btn.layout.display = ""
 
+        # update the placeholder label
+        if len(self._filtered_options) == 0:
+            self._placeholder_label.layout.display = ""
+        else:
+            self._placeholder_label.layout.display = "none"
+
     def _on_checkbox_change(self, change):
         """Callback for the checkboxes. This method is called whenever a checkbox is checked or
         unchecked. It updates the value of the main widget accordingly."""
@@ -489,7 +560,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             self._filter_textbox.layout.display = "none"
         else:
             self._mode_selection_btn.layout.display = (
-                "" if self._allow_multi_select else "none"
+                "flex" if self._allow_multi_select else "none"
             )
             self._filter_textbox.layout.display = "" if self._filter else "none"
 
@@ -500,12 +571,13 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             self._display_mode_btn.layout.display = ""
 
         # update the options and tooltips widgets
-        validity_change_only = len(self._filtered_options) == len(
-            self._options_vbox.children
-        ) and all(len(opt)>1 for opt in self._filtered_options
-        ) and all(
-            self._filtered_options[ix][1:] == cb.description[1:]
-            for ix, cb in enumerate(self._options_vbox.children)
+        validity_change_only = (
+            len(self._filtered_options) == len(self._options_vbox.children)
+            and all(len(opt) > 1 for opt in self._filtered_options)
+            and all(
+                self._filtered_options[ix][1:] == cb.description[1:]
+                for ix, cb in enumerate(self._options_vbox.children)
+            )
         )
 
         if validity_change_only:

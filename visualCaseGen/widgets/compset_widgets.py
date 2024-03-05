@@ -32,6 +32,7 @@ def initialize_compset_widgets(cime):
     compset_alias = cvars["COMPSET_ALIAS"]
     compset_alias.widget = MultiCheckbox(
         description="Compset Alias: (Scroll horizontally to see all option descriptions.)",
+        preset_filter="scientifically supported",
         allow_multi_select=False
     )
     # Custom Compset Widgets
