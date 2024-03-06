@@ -200,7 +200,8 @@ class ConfigVar(HasTraits):
 
     def add_rank(self, new_rank):
         """Add a new stage rank to the variable. Each integer in the variable ranks corresponds to the rank of
-        the Stages that the variable belongs to."""
+        the Stages that the variable belongs to. While it is possible to assign multiple ranks to a variable,
+        it is not recommended to do so since it may lead to ambiguity in the precedence of the variable in the CSP."""
         assert isinstance(new_rank, int), "new_rank must be an integer"
         self._min_rank = min(new_rank, self._min_rank) if self._min_rank is not None else new_rank
         self._max_rank = max(new_rank, self._max_rank) if self._max_rank is not None else new_rank

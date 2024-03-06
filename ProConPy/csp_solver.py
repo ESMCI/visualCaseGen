@@ -64,7 +64,7 @@ class CspSolver:
     def _refresh_solver(self):
         """Reset the solver and (re-)apply the relational constraints, the past assignment
         assertions, and the past options assertions. This method is called when the user wants
-        to proceed/revert to a subsequent/previous stage. Resetting the solver turned out to
+        to proceed/revert to a following/previous stage. Resetting the solver turned out to
         be more efficient than the initial approach of using push/pop to manage the solver."""
         self._solver.reset()
         self._solver.add([asrt for asrt, _ in self._relational_constraints.items()])
@@ -104,8 +104,11 @@ class CspSolver:
         # Construct constraint hypergraph and add constraints to solver
         self._construct_hypergraph(cvars)
 
-        # Traverse stage tree
-        self._traverse_stages(first_stage, 0, cvars)
+        # Determine the ranks of the stages
+        self._determine_stage_ranks(first_stage, 0, cvars)
+
+        # Look for conflicts in precedence of variables
+        self._check_variable_precedence(cvars, first_stage)
 
         # Having read in the constraints, update validities of variables that have options:
         for var in cvars.values():
@@ -163,14 +166,14 @@ class CspSolver:
                     self.hgraph[var] = []
                 self.hgraph[var].append(constr)
 
-    def _traverse_stages(self, stage, rank, cvars):
-        """Recursive depth-first traversal of the stage tree to check for variable priority conflicts
+    def _determine_stage_ranks(self, stage, rank, cvars):
+        """Recursive depth-first traversal of the stage tree to determine the rank of the stages
         and to determine which of the variables appear in guards of the stages."""
 
         # set rank
         stage.rank = rank
 
-        logger.info("Traversing stage: %s, rank: %s", stage, rank)
+        logger.debug("Traversing stage: %s, rank: %s", stage, rank)
 
         # set the ranks of the variables
         for var in stage._varlist:
@@ -188,17 +191,61 @@ class CspSolver:
                 for var in guard_vars:
                     var.is_guard_var = True
 
+        # move on to the following stage
+        stage = stage.get_following_stage(visit_all=True)
+        if stage is not None:
+            self._determine_stage_ranks(stage, rank+1, cvars)
 
-        # move on to the next stage
-        if stage.has_children():
-            self._traverse_stages(stage._children[0], rank+1, cvars)
-        elif stage._next is not None:
-            self._traverse_stages(stage._next, rank+1, cvars)
-        else:
-            subsequent_stage = stage.backtrack(visit_all=True)
-            if subsequent_stage is not None:
-                self._traverse_stages(subsequent_stage, rank+1, cvars)
-    
+
+    def _check_variable_precedence(self, cvars, first_stage):
+        """Check the precedence of the variables. The precedence of the variables is determined by the
+        rank of the stages in which the variables appear. The relational constraints and options specs
+        must adhere to the precedence of the variables."""
+
+        # Now that all stages are traversed and ranks are determined, traverse them again to make sure
+        # that guard variables have higher precedence than the variables in the stages they guard.
+        stage = first_stage
+        while stage is not None:
+            if stage.is_guarded():
+                guard = stage._activation_guard
+                if isinstance(guard, BoolRef):
+                    guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(guard)]
+                    for var in guard_vars:
+                        assert var.is_guard_var, (
+                            f"The variable {var} appears in the guard of stage {stage} but is not a guard variable."
+                        )
+                        assert all(var.max_rank < stage_var.min_rank for stage_var in stage._varlist), (
+                            f"The guard variable {var} has lower precedence than the stage it guards."
+                        )
+            # move on to the following stage
+            stage = stage.get_following_stage(visit_all=True)
+
+        for var in cvars.values():
+
+            # Confirm that each variable has either higher or lower precedence than its related variables
+            # (i.e., no variable has both higher and lower precedence than another variable)
+            if var.has_related_vars():
+                if var.max_rank is None:
+                    assert var.min_rank is None, (
+                        f"Variable has a min_rank but no max_rank: {var}."
+                    )
+                    continue
+                for related_var in var._related_vars:
+                    if related_var.max_rank is None:
+                        assert related_var.min_rank is None, (
+                            f"\tVariable has a min_rank but no max_rank: {var}."
+                        )
+                        continue
+                    assert var.max_rank <= related_var.min_rank or related_var.max_rank <= var.min_rank, (
+                        f"Variable precedence conflict: {var} and {related_var}."
+                    )
+            
+            # Confirm that each variable has higher precedence (lower rank) than its dependent variables
+            for dependent_var in var._dependent_vars:
+                assert var.max_rank < dependent_var.min_rank, (
+                    f"Variable precedence conflict: {var} and {dependent_var}."
+                )
+
     @property
     def initialized(self):
         """Return True if the CSP solver is initialized."""

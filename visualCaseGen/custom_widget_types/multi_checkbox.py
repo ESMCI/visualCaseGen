@@ -6,7 +6,7 @@ from ProConPy.out_handler import handler as owh
 from ProConPy.dialog import alert_warning
 
 _checkbox_width = "190px"
-_less_options = 10
+_less_options = 16
 
 
 class MultiCheckbox(widgets.VBox, widgets.ValueWidget):

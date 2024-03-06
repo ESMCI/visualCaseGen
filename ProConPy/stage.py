@@ -20,12 +20,11 @@ class Stage:
     A stage is deemed complete when all the parameters in the variable list are set.
 
     Stage precedence and sequencing rules:
-    - A stage can have a previous stage or a parent stage, but not both.
-    - A stage can have a next stage and/or child stage.
+    - A stage can have previous, next, parent and/or child stages.
     - A stage cannot be its own previous stage or its own ancestor. These relationships must be fully acyclic.
-    - A next stage gets activated as soon as the previous stage is completed.
+    - A following (next or child) stage gets activated as soon as the previous stage is completed.
     - A child stage gets activated if the parent stage is completed and its activation guard is satisfied.
-    - Only one activation guard must evaluate to True in a list of child stages.
+    - Only one activation guard must evaluate to True in a list of guarded child stages.
     """
 
     # Top level stages, i.e., stages that have no parent stage
@@ -215,26 +214,15 @@ class Stage:
 
         Stage._completed_stages.append(self)
 
-        stage_to_enable = None
-
-        if self.has_children():
-            # Determine the child stage to enable
-            child = self._determine_child_to_enable()
-            stage_to_enable = child
-
-            # Display the child stage and its subsequent stages by appending them to the current stage's widget
-            self._widget.append_child_stages(first_child=child)
-
-        elif self._next is not None:
-            stage_to_enable = self._next
-
-        else:
-            # No subsequent stage found. Backtrack.
-            stage_to_enable = self.backtrack()
+        stage_to_enable = self.get_following_stage(visit_all=False)
 
         if stage_to_enable is None:
             logger.info("SUCCESS: All stages are complete.")
             return
+
+        # Display the child stage and its subsequent stages by appending them to the current stage's widget
+        if self.has_children():
+            self._widget.append_child_stages(first_child=stage_to_enable)
 
         # Proceed the csp solver before enabling the next stage
         csp.proceed()
@@ -242,7 +230,34 @@ class Stage:
         # Enable the following stage
         stage_to_enable._enable()
 
-    def backtrack(self, visit_all=False):
+    def get_following_stage(self, visit_all):
+        """Determine the following stage to visit during a stage tree traversal. Note that in ProConPy
+        nomeclature, "next" stage refers to the next sibling stage, while "child" stage refers to a stage
+        whose parent is the current stage. Depending on the stage tree structure, the following stage can
+        be a child or a next stage. If no such stage is found, backtrack to an ancestor stage that has a
+        next stage.
+
+        Parameters
+        ----------
+        visit_all : bool
+            If True, visit all the stages in the stage tree. Otherwise, skip stages whose guards
+            are not satisfied.
+
+        Returns
+        -------
+        Stage or None
+            The next stage to visit, if found. Otherwise, None.
+        """
+
+        if self.has_children():
+            return self._get_child_to_enable(visit_all)
+        elif self._next is not None:
+            return self._next
+        else:
+            return self._backtrack(visit_all)
+
+
+    def _backtrack(self, visit_all):
         """While attempting to proceed, recursively backtrack until an ancestor stage that has a next
         stage is found. When such a stage is found, return its next stage. If no such stage is found, 
         return None to indicate that the stage tree is fully traversed.
@@ -260,17 +275,24 @@ class Stage:
 
         if (parent := self._parent) is not None:
             if parent._next is None or (parent.is_guarded() and not visit_all):
-                return parent.backtrack(visit_all)
+                return parent._backtrack(visit_all)
             else:
                 return parent._next
 
         return None  # The stage tree is complete
 
-    def _determine_child_to_enable(self):
-        """Determine the child stage to activate."""
+    def _get_child_to_enable(self, visit_all):
+        """Determine the child stage to activate.
+        
+        Parameters
+        ----------
+        visit_all : bool
+            If True, visit all the stages in the stage tree. Otherwise, skip stages whose guards
+            are not satisfied."""
+
         child_to_activate = None
 
-        if self.has_guarded_children():
+        if self.has_guarded_children() and not visit_all:
             # If there are guarded children, evaluate activation guards of each child
             # and select the child to activate. Only one child can be activated at a time.
             for child in self._children:
@@ -295,7 +317,7 @@ class Stage:
 
         # If the child to activate is guarded, recursively determine the child to enable
         if child_to_activate.is_guarded():
-            return child_to_activate._determine_child_to_enable()
+            return child_to_activate._get_child_to_enable(visit_all)
 
         return child_to_activate
 
