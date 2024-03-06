@@ -174,10 +174,14 @@ class CspSolver:
 
         # set the ranks of the variables
         for var in stage._varlist:
-            var._rank = stage.rank
+            var.add_rank(stage.rank)
 
         # flag variables that appear in guards
         if stage.is_guarded():
+            assert stage.has_children(), (
+                f"The stage {stage} is guarded but has no children."
+            )
+
             guard = stage._activation_guard
             if isinstance(guard, BoolRef):
                 guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(guard)]
@@ -506,7 +510,7 @@ class CspSolver:
         do_refresh = (
             lambda var, neig: neig.has_options()
             and neig not in visited
-            and var._rank <= neig._rank
+            and var.max_rank <= neig.min_rank
         )
 
         vars_to_refresh = [neig for neig in var._related_vars if do_refresh(var, neig)]

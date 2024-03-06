@@ -29,6 +29,9 @@ def set_options(cime):
 
 def set_standard_compset_options(cime):
 
+    cv_scientifically_supported = cvars["SUPPORT_LEVEL"]
+    cv_scientifically_supported.options = ["All", "Supported"]
+
     for comp_class in cime.comp_classes:
         cv_comp_filter = cvars[f"COMP_{comp_class}_FILTER"]
         cv_comp_filter_options = ["any"]
@@ -43,54 +46,71 @@ def set_standard_compset_options(cime):
         cv_comp_filter.options = cv_comp_filter_options
 
     def compset_alias_options_func(
-            atm_filter,
-            lnd_filter,
-            ice_filter,
-            ocn_filter,
-            rof_filter,
-            glc_filter,
-            wav_filter
+        support_level,
+        atm_filter,
+        lnd_filter,
+        ice_filter,
+        ocn_filter,
+        rof_filter,
+        glc_filter,
+        wav_filter,
     ):
 
         filters = (
-            ('ATM', atm_filter),
-            ('LND', lnd_filter),
-            ('ICE', ice_filter),
-            ('OCN', ocn_filter),
-            ('ROF', rof_filter),
-            ('GLC', glc_filter),
-            ('WAV', wav_filter),
+            ("ATM", atm_filter),
+            ("LND", lnd_filter),
+            ("ICE", ice_filter),
+            ("OCN", ocn_filter),
+            ("ROF", rof_filter),
+            ("GLC", glc_filter),
+            ("WAV", wav_filter),
         )
 
-        # Apply COMP_???_FILTERs
+        # Determine available compset aliases. Take support level and filters into account
         available_compsets = [
             compset
             for compset in cime.compsets.values()
-            if all(
-                [
-                    comp_filter == "any"
-                    or comp_filter.upper() in compset.lname
-                    or (comp_filter == "none" and ('S'+comp_class in compset.lname or 'X'+comp_class in compset.lname))
-                    for comp_class, comp_filter in filters
-                ]
+            if (
+                support_level == "All"
+                and all(
+                    [
+                        comp_filter == "any"
+                        or comp_filter.upper() in compset.lname
+                        or (
+                            comp_filter == "none"
+                            and (
+                                "S" + comp_class in compset.lname
+                                or "X" + comp_class in compset.lname
+                            )
+                        )
+                        for comp_class, comp_filter in filters
+                    ]
+                )
+            )
+            or (
+                support_level == "Supported"
+                and len(cime.sci_supported_grids[compset.alias]) > 0
             )
         ]
 
         available_compset_aliases = [ac.alias for ac in available_compsets]
-        available_compset_descriptions = [cime.long_compset_desc(ac) for ac in available_compsets]
+        available_compset_descriptions = [
+            cime.long_compset_desc(ac) for ac in available_compsets
+        ]
         return available_compset_aliases, available_compset_descriptions
 
     cv_compset_alias = cvars["COMPSET_ALIAS"]
     cv_compset_alias.options_spec = OptionsSpec(
         func=compset_alias_options_func,
         args=[
+            cvars["SUPPORT_LEVEL"],
             cvars["COMP_ATM_FILTER"],
             cvars["COMP_LND_FILTER"],
             cvars["COMP_ICE_FILTER"],
             cvars["COMP_OCN_FILTER"],
             cvars["COMP_ROF_FILTER"],
             cvars["COMP_GLC_FILTER"],
-            cvars["COMP_WAV_FILTER"]
+            cvars["COMP_WAV_FILTER"],
         ],
     )
 
@@ -132,8 +152,19 @@ def set_standard_grid_options(cime):
 
         compatible_grids = []
         grid_descriptions = []
+        support_level = cvars["SUPPORT_LEVEL"].value
+        compset_alias = cvars["COMPSET_ALIAS"].value
+
+        assert (
+            support_level != "Supported" or compset_alias is not None
+        ), "Support level is 'Supported', but no compset alias is selected."
 
         for alias, compset_attr, not_compset_attr, desc in cime.model_grids:
+            if (
+                support_level == "Supported"
+                and alias not in cime.sci_supported_grids[compset_alias]
+            ):
+                continue
             if compset_attr and not re.search(compset_attr, compset_lname):
                 continue
             if not_compset_attr and re.search(not_compset_attr, compset_lname):

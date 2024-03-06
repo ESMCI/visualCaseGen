@@ -258,11 +258,11 @@ class Stage:
             The next stage to activate, if found. Otherwise, None.
         """
 
-        if self._parent is not None:
-            if self._parent._next is None or (self._parent.is_guarded() and not visit_all):
-                return self._parent.backtrack()
+        if (parent := self._parent) is not None:
+            if parent._next is None or (parent.is_guarded() and not visit_all):
+                return parent.backtrack(visit_all)
             else:
-                return self._parent._next
+                return parent._next
 
         return None  # The stage tree is complete
 

@@ -49,7 +49,7 @@ class StageWidget(VBox):
         super().__init__(
             layout={
                 "border": "1px solid lightgray",
-                "margin": "12px 8px 12px 16px",
+                "margin": "12px 8px 12px 12px",
                 "padding": "0px",
             },
             **kwargs,

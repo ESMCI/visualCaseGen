@@ -82,10 +82,13 @@ class ConfigVar(HasTraits):
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
 
-        # The rank of a ConfigVar indicates the order of the Stage it belongs to. The lower the
-        # rank, the earlier the Stage is in the sequence of Stages and thus the higher the
-        # the precedence of the ConfigVar in CSP solver. The rank is set by the Stage class.
-        self._rank = None
+        # The ranks of a ConfigVar indicates the order of the Stages it belongs to. The lower 
+        # the ranks, the earlier the Stages are in the sequence of Stages and thus the higher 
+        # the precedence of the ConfigVar in CSP solver. The ranks are set by the Stage class.
+        # and are used to compare the precedence of the ConfigVar instances. Therefore, we
+        # only keep track of min and max ranks of the Stages that the ConfigVar belongs to.
+        self._max_rank = None
+        self._min_rank = None
 
         # properties for instances that have finite options
         self._options = []
@@ -184,6 +187,23 @@ class ConfigVar(HasTraits):
         """Returns True if there are related variables, i.e, variables that are
         involved in the same relational constraints as this variable."""
         return len(self._related_vars) > 0
+
+    @property
+    def max_rank(self):
+        """The maximum rank of the variable. This is the rank of the last Stage that the variable belongs to."""
+        return self._max_rank
+    
+    @property
+    def min_rank(self):
+        """The minimum rank of the variable. This is the rank of the first Stage that the variable belongs to."""
+        return self._min_rank
+
+    def add_rank(self, new_rank):
+        """Add a new stage rank to the variable. Each integer in the variable ranks corresponds to the rank of
+        the Stages that the variable belongs to."""
+        assert isinstance(new_rank, int), "new_rank must be an integer"
+        self._min_rank = min(new_rank, self._min_rank) if self._min_rank is not None else new_rank
+        self._max_rank = max(new_rank, self._max_rank) if self._max_rank is not None else new_rank
 
     @property
     def is_guard_var(self):

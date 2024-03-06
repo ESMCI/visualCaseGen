@@ -29,19 +29,50 @@ def initialize_compset_stages(cime):
         activation_guard=cvars["COMPSET_MODE"] == "Standard",
     )
 
+    stg_support_level = Stage(
+        title="Support Level",
+        description="Determine the support level of the compsets: All or Scientific Supported",
+        widget=StageWidget(VBox),
+        parent=stg_standard_compset,
+        varlist=[cvars["SUPPORT_LEVEL"]],
+    )
+
+    stg_support_level_all = Stage(
+        title="All standard compsets",
+        description="Select from the list of all compsets",
+        parent=stg_support_level,
+        activation_guard=cvars["SUPPORT_LEVEL"] == "All",
+    )
+
     stg_comp_filter = Stage(
         title="Models to Include",
         description="Select the components to display",
         widget=StageWidget(HBox),
-        parent=stg_standard_compset,
+        parent=stg_support_level_all,
         varlist=[cvars[f"COMP_{comp_class}_FILTER"] for comp_class in cime.comp_classes],
     )
 
-    str_comp_alias = Stage(
-        title="Compset",
+    str_comp_alias_all = Stage(
+        title="Compsets",
         description="Select the compset alias",
         widget=StageWidget(VBox),
-        parent=stg_standard_compset,
+        parent=stg_support_level_all,
+        varlist=[cvars["COMPSET_ALIAS"],]
+    )
+
+
+    stg_support_level_sci = Stage(
+        title="Scentifically supported compsets",
+        description="Select from the list of scientifically supported compsets",
+        parent=stg_support_level,
+        activation_guard=cvars["SUPPORT_LEVEL"] == "Supported",
+    )
+
+    stg_scientific_compset_aliases = Stage(
+        title="Scientifically supported compsets",
+        description="Select the compset alias",
+        widget=StageWidget(VBox),
+        parent=stg_support_level_sci,
         varlist=[cvars["COMPSET_ALIAS"],]
     )
 
