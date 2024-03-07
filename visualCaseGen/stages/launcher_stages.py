@@ -14,7 +14,7 @@ def initialize_launcher_stages(cime):
     """Initialize the stages for the case launcher."""
 
     stg_launch = Stage(
-        title="Step 3: Launch",
+        title="3. Launch",
         description="Create and set up the case",
         widget=StageWidget(VBox),
         varlist=[],

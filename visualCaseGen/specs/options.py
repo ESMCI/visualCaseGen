@@ -31,6 +31,10 @@ def set_standard_compset_options(cime):
 
     cv_scientifically_supported = cvars["SUPPORT_LEVEL"]
     cv_scientifically_supported.options = ["All", "Supported"]
+    cv_scientifically_supported.tooltips = [
+        "All standard compsets",
+        "Standard compsets that are scientifically supported, i.e., validated",
+    ]
 
     for comp_class in cime.comp_classes:
         cv_comp_filter = cvars[f"COMP_{comp_class}_FILTER"]

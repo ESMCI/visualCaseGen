@@ -14,8 +14,12 @@ def initialize_compset_stages(cime):
     """Initialize the stages for compset configuration."""
 
     stg_compset = Stage(
-        title="Step 1: Component Set",
-        description="Select the component set and its options",
+        title="1. Component Set",
+        description="The first step of creating a CESM experiment is to choose a compset, i.e., "
+        "a component set. The first choice is between a standard compset and a custom compset. "
+        "If you choose to pick a standard compset, you will be prompted to select from a list "
+        "of compsets already defined within CESM. If you choose to build a custom compset, "
+        "you will be prompted to mix and match individual models and their options.",
         widget=StageWidget(VBox),
         varlist=[cvars["COMPSET_MODE"]],
     )
@@ -24,14 +28,17 @@ def initialize_compset_stages(cime):
 
     stg_standard_compset = Stage(
         title="Standard Component Set",
-        description="Select a standard component set from the list",
+        description="",
         parent=stg_compset,
         activation_guard=cvars["COMPSET_MODE"] == "Standard",
     )
 
     stg_support_level = Stage(
         title="Support Level",
-        description="Determine the support level of the compsets: All or Scientific Supported",
+        description="When selecting a standard compset, you have the option to choose from "
+        "all standard compsets or only those that are scientifically supported, i.e., "
+        "validated by the CESM developers. The latter option is recommended for production "
+        "runs. The former option is useful for testing and development.",
         widget=StageWidget(VBox),
         parent=stg_standard_compset,
         varlist=[cvars["SUPPORT_LEVEL"]],
@@ -39,55 +46,73 @@ def initialize_compset_stages(cime):
 
     stg_support_level_all = Stage(
         title="All standard compsets",
-        description="Select from the list of all compsets",
+        description="",
         parent=stg_support_level,
         activation_guard=cvars["SUPPORT_LEVEL"] == "All",
     )
 
     stg_comp_filter = Stage(
         title="Models to Include",
-        description="Select the components to display",
+        description="Before choosing a compset, you have the option to apply filters to "
+        "the list of compsets by indicating the models you are interested in. This is "
+        "useful when you are only interested in compsets that include a specific model or set of "
+        "models. If you are interested in all compsets, you can click *any* buttons for all "
+        "component classes. ",
         widget=StageWidget(HBox),
         parent=stg_support_level_all,
-        varlist=[cvars[f"COMP_{comp_class}_FILTER"] for comp_class in cime.comp_classes],
+        varlist=[
+            cvars[f"COMP_{comp_class}_FILTER"] for comp_class in cime.comp_classes
+        ],
     )
 
     str_comp_alias_all = Stage(
-        title="Compsets",
-        description="Select the compset alias",
+        title="Standard Compsets",
+        description="Please select from the below list of compsets. You can type keywords in the "
+        "search box to filter the list. For exact matches, you can use double quotes. Otherwise, the "
+        "search will display all compsets containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
         parent=stg_support_level_all,
-        varlist=[cvars["COMPSET_ALIAS"],]
+        varlist=[
+            cvars["COMPSET_ALIAS"],
+        ],
     )
-
 
     stg_support_level_sci = Stage(
         title="Scentifically supported compsets",
-        description="Select from the list of scientifically supported compsets",
+        description="",
         parent=stg_support_level,
         activation_guard=cvars["SUPPORT_LEVEL"] == "Supported",
     )
 
     stg_scientific_compset_aliases = Stage(
-        title="Scientifically supported compsets",
-        description="Select the compset alias",
+        title="Supported compsets",
+        description="Please select from the below list of compsets. You can type keywords in the "
+        "search box to filter the list. For exact matches, you can use double quotes. Otherwise, the "
+        "search will display all compsets containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
         parent=stg_support_level_sci,
-        varlist=[cvars["COMPSET_ALIAS"],]
+        varlist=[
+            cvars["COMPSET_ALIAS"],
+        ],
     )
 
     # Custom Component Set Stages
 
     stg_custom_compset = Stage(
         title="Custom Component Set",
-        description="Select the custom component set and its options",
+        description="",
         parent=stg_compset,
         activation_guard=cvars["COMPSET_MODE"] == "Custom",
     )
 
     stg_inittime = Stage(
         title="Model Time Period:",
-        description="Select the initialization time",
+        description="Select the initialization time for the experiment. This "
+        "influences the initial conditions and forcings used in the simulation. 1850 "
+        "corresponds to pre-industrial conditions and is appropriate for fixed-time-period "
+        "runs, e.g., for spinning up the model. 2000 is similarly appropriate for "
+        "fixed-time-period runs, but with present-day conditions. HIST is appropriate for "
+        "transient runs, e.g., for simulations from 1850 through 2015.",
         widget=StageWidget(VBox),
         parent=stg_custom_compset,
         varlist=[cvars["INITTIME"]],
@@ -95,7 +120,10 @@ def initialize_compset_stages(cime):
 
     stg_comp = Stage(
         title="Components",
-        description="Select the components",
+        description="To build a custom component set, select models from each component class. "
+        "Models beginning with the letter d (e.g., datm) are data models. Models beginning with "
+        "the letter s, (e.g., sice) are stub models (placeholders that have no impact). Others "
+        "are fully active models.",
         widget=StageWidget(HBox),
         parent=stg_custom_compset,
         varlist=[cvars[f"COMP_{comp_class}"] for comp_class in cime.comp_classes],
@@ -103,7 +131,9 @@ def initialize_compset_stages(cime):
 
     stg_comp_phys = Stage(
         title="Component Physics",
-        description="Select the component physics",
+        description="For each component, select the physics configuration. The physics "
+        "configuration determines the complexity of the model and the computational cost. "
+        "Refer to individual model documentations for more information.",
         widget=StageWidget(HBox),
         parent=stg_custom_compset,
         varlist=[cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes],
@@ -111,7 +141,12 @@ def initialize_compset_stages(cime):
 
     stg_comp_option = Stage(
         title="Component Options",
-        description="Select the component options",
+        description="Component options, which are also known as modifiers, allow users to "
+        "apply further customizations to the model physics. Switch between the tabs to "
+        "select options for each component. The question marks next to the tab titles indicate "
+        "the components for which no options have been selected yet. You have the option to "
+        "apply more than one modifier by switching to multi selection mode, but be aware that "
+        "visualCaseGen does not check for compatibility between multiple modifiers.",
         widget=StageWidget(Tab),
         parent=stg_custom_compset,
         varlist=[
@@ -124,22 +159,22 @@ def initialize_compset_stages(cime):
     def refresh_comp_options_tab_title(change):
         """Refresh the title of the component options tab when the value changes:
         If a value is set, display a checkmark; otherwise, display a question mark."""
-        comp_class = change['owner'].name.split('_')[1]
+        comp_class = change["owner"].name.split("_")[1]
         new_title = f"{comp_class} {chr(int('2714', base=16)) if change['new'] else chr(int('2753', base=16))}"
-        stg_comp_option._widget._main_body.set_title(comp_class_ix[comp_class], new_title)
+        stg_comp_option._widget._main_body.set_title(
+            comp_class_ix[comp_class], new_title
+        )
 
     # Explicitly call refresh_comp_options_tab_title to initialize the tab titles
     # and set up the observers for the component options to update the tab titles.
     for comp_class in cime.comp_classes:
-        refresh_comp_options_tab_title({
-            'owner': cvars[f"COMP_{comp_class}_OPTION"],
-            'new': cvars[f"COMP_{comp_class}_OPTION"].value
-        })
+        refresh_comp_options_tab_title(
+            {
+                "owner": cvars[f"COMP_{comp_class}_OPTION"],
+                "new": cvars[f"COMP_{comp_class}_OPTION"].value,
+            }
+        )
         cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
         cv_comp_option.observe(
-            refresh_comp_options_tab_title,
-            names='value',
-            type='change'
+            refresh_comp_options_tab_title, names="value", type="change"
         )
-
-

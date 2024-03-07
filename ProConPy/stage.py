@@ -166,6 +166,10 @@ class Stage:
         return self._title
 
     @property
+    def description(self):
+        return self._description
+
+    @property
     def enabled(self):
         return not self._disabled
 

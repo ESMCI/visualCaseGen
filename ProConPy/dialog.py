@@ -4,6 +4,19 @@
 from IPython.display import display, HTML
 
 
+def alert_info(msg):
+    """Display an information message.
+
+    Parameters:
+    -----------
+    msg : str
+        Info message to be displayed
+    """
+
+    js = f"""<script>alert("INFO: {msg} ");</script>"""
+    display(HTML(js))
+
+
 def alert_warning(msg):
     """Display a warning message.
 

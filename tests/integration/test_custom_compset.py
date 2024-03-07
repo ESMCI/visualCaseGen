@@ -87,7 +87,7 @@ def configure_custom_compset():
 
     # The remaining COMP_?_OPTIONS variables have single available options only, so all 
     # COMP_?_OPTIONS variables have been set, so the next stage is Grid:
-    assert Stage.active().title.startswith('Step 2: Grid')
+    assert Stage.active().title.startswith('2. Grid')
     cvars['GRID_MODE'].value = 'Standard'
     assert Stage.active().title.startswith('Standard Grid Selector')
     

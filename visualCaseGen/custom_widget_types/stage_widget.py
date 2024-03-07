@@ -3,7 +3,7 @@ from ipywidgets import VBox, HBox, Tab, HTML, Button
 import itertools
 
 from ProConPy.out_handler import handler as owh
-from ProConPy.dialog import alert_warning
+from ProConPy.dialog import alert_warning, alert_info
 
 bg_color_light = "#9DB3CC70"
 bg_color_dark = "#9DB3CC"
@@ -88,6 +88,11 @@ class StageWidget(VBox):
             layout={"display": "none", "width": button_width},
             style={"button_color": bg_color_dark, "text_color": font_color_dark},
         )
+        @owh.out.capture()
+        def _on_btn_info_click(b):
+            alert_info(self._stage.description)
+        self._btn_info.on_click(_on_btn_info_click)
+
         self._btn_defaults = Button(
             description="Defaults",
             tooltip="Set all (remaining) options to their default values.",
