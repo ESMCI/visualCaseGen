@@ -42,7 +42,7 @@ class ConfigVar(HasTraits):
     _invalid_opt_char = chr(int("274C", base=16))
     _valid_opt_char = chr(int("200B", base=16))
 
-    def __init__(self, name, widget_none_val=None, hide_invalid=False):
+    def __init__(self, name, default_value=None, widget_none_val=None, hide_invalid=False):
         """
         ConfigVar constructor.
 
@@ -50,6 +50,10 @@ class ConfigVar(HasTraits):
         ----------
         name : str
             Name of the variable. Must be unique.
+        default_value: callable|any
+            Default value of the variable. If callable, the default value is the result of the callable.
+            If configured so, the stage(s) that include this variable will use this value as the initial
+            value when enabled and if the default value is valid.
         widget_none_val
             Null value for the variable widget. Typically set to None, but for some widget types,
             e.g., those that can have multiple values, this may be set to ().
@@ -78,6 +82,9 @@ class ConfigVar(HasTraits):
         # Set initial value to None. This means that derived class value traits must be initialized
         # with the following argument: allow_none=True
         self.value = None
+
+        # Default value 
+        self._default_value = default_value
 
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
@@ -114,9 +121,10 @@ class ConfigVar(HasTraits):
     def reboot(cls):
         """Reset the ConfigVar class to its initial state. This is useful for testing purposes
         and should not be used in production."""
-        for cv in cls.vdict.values():
-            del cv
-        cls.vdict = {}
+        # Pop all items from the vdict. (Instead of assigning vdict to a new dict, we pop all items
+        # so that we still use the same dict object and that cvars still points to current vdict.)
+        while len(cls.vdict) > 0:
+            cls.vdict.popitem()
         # reset the CSP solver as well
         csp.reboot()
 
@@ -376,6 +384,25 @@ class ConfigVar(HasTraits):
             if self._options_validities[opt] is True:
                 return opt
         return None
+
+    @property
+    def default_value(self):
+        """The default value of the variable."""
+        if callable(self._default_value):
+            return self._default_value()
+        return self._default_value
+    
+    @default_value.setter
+    def default_value(self, new_default_value):
+        """Set the default value of the variable.
+        
+        Parameters
+        ----------
+        new_default_value: callable|any
+            The new default value of the variable. 
+            If callable, the default value is the result of the callable.
+        """
+        self._default_value = new_default_value
 
     @property
     def widget(self):

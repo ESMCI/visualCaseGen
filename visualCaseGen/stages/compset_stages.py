@@ -37,8 +37,8 @@ def initialize_compset_stages(cime):
         title="Support Level",
         description="When selecting a standard compset, you have the option to choose from "
         "all standard compsets or only those that are scientifically supported, i.e., "
-        "validated by the CESM developers. The latter option is recommended for production "
-        "runs. The former option is useful for testing and development.",
+        "validated by the CESM developers. The former options is useful for testing and "
+        "development. The latter option is recommended for production runs.",
         widget=StageWidget(VBox),
         parent=stg_standard_compset,
         varlist=[cvars["SUPPORT_LEVEL"]],
@@ -67,9 +67,11 @@ def initialize_compset_stages(cime):
 
     str_comp_alias_all = Stage(
         title="Standard Compsets",
-        description="Please select from the below list of compsets. You can type keywords in the "
-        "search box to filter the list. For exact matches, you can use double quotes. Otherwise, the "
-        "search will display all compsets containing one or more of the words in the search box.",
+        description="Please select from the below list of compsets, where each compset is "
+        "denoted by an alias followed by the initialization time and brief descriptions of "
+        "the models included. You can type keywords in the search box to narrow down the list. "
+        "For exact matches, you can use double quotes. Otherwise, the search will display all "
+        "compsets containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
         parent=stg_support_level_all,
         varlist=[
@@ -86,9 +88,11 @@ def initialize_compset_stages(cime):
 
     stg_scientific_compset_aliases = Stage(
         title="Supported compsets",
-        description="Please select from the below list of compsets. You can type keywords in the "
-        "search box to filter the list. For exact matches, you can use double quotes. Otherwise, the "
-        "search will display all compsets containing one or more of the words in the search box.",
+        description="Please select from the below list of compsets, where each compset is "
+        "denoted by an alias followed by the initialization time and brief descriptions of "
+        "the models included. You can type keywords in the search box to narrow down the list. "
+        "For exact matches, you can use double quotes. Otherwise, the search will display all "
+        "compsets containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
         parent=stg_support_level_sci,
         varlist=[

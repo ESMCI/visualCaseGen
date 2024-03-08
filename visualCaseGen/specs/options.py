@@ -25,6 +25,7 @@ def set_options(cime):
     set_custom_compset_options(cime)
     set_standard_grid_options(cime)
     set_custom_grid_options(cime)
+    set_launcher_options(cime)
 
 
 def set_standard_compset_options(cime):
@@ -202,6 +203,10 @@ def set_standard_grid_options(cime):
         func=grid_options_func, args=(cvars["COMPSET_LNAME"], cvars["GRID_MODE"])
     )
 
-
 def set_custom_grid_options(cime):
     pass
+
+def set_launcher_options(cime):
+
+    cv_machine = cvars['MACHINE']
+    cv_machine.options = cime.machines

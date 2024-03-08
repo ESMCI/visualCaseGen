@@ -5,6 +5,7 @@ import itertools
 import logging
 from z3 import BoolRef
 
+from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.csp_solver import csp
 from ProConPy.out_handler import handler as owh
 from ProConPy.dev_utils import DEBUG
@@ -45,8 +46,36 @@ class Stage:
         parent: "Stage" = None,
         activation_guard=None,
         hide_when_inactive=True,
-        auto_set_single_valid_option=True,
+        auto_set_default_value=True,
+        auto_set_valid_option=True,
     ):
+        """Initialize a stage.
+    
+        Parameters
+        ----------
+        title : str
+            The title of the stage.
+        description : str
+            The description of the stage.
+        widget : optional
+            The container widget to display the stage's variables
+        varlist : list, optional
+            The list of variables to be set in the stage. Guarded stages cannot have
+            a variable list. Other stages must have a non-empty variable list.
+        parent : Stage, optional
+            The parent stage of the stage.
+        activation_guard : optional
+            The activation guard of the stage If a stage has an activation guard, all of 
+            its siblings must also have activation guards.
+        hide_when_inactive : bool, optional
+            If True, hide the stage when it is disabled.
+        auto_set_default_value : bool, optional
+            If True, automatically set the default value of the variables in the stage.
+            when the stage is enabled.
+        auto_set_valid_option : bool, optional
+            If True, automatically set the value of the variables in the stage to the
+            valid option if the variable has only one valid option.
+        """
 
         if parent is None:  # This is a top-level stage
             assert (
@@ -83,7 +112,8 @@ class Stage:
         self._activation_guard = activation_guard
         self._children = []  # to be appended by the child stage(s) (if any)
         self._hide_when_inactive = hide_when_inactive
-        self._auto_set_single_valid_option = auto_set_single_valid_option
+        self._auto_set_default_value = auto_set_default_value
+        self._auto_set_valid_option = auto_set_valid_option
         self._rank = None # to be set by the csp solver
 
         if self.is_guarded():
@@ -97,7 +127,9 @@ class Stage:
             assert (
                 widget is not None
             ), f'The unguarded "{self._title}" stage must have a widget.'
-            # todo assert len(varlist) > 0, f'The unguarded "{self._title}" stage must have a non-empty variable list.'
+            assert (
+                len(varlist) > 0
+            ), f'The unguarded "{self._title}" stage must have a non-empty variable list.'
 
         self._widget = widget
         if self._widget is not None:
@@ -112,6 +144,12 @@ class Stage:
         if parent is not None and len(parent._children) > 1:
             self._prev = parent._children[-2]
             self._prev._next = self
+        
+        # Check sibling stages for consistent specification of guards
+        if self._prev is not None:
+            assert self.is_guarded() == self._prev.is_guarded(), (
+                f"If a stage is guarded, all of its siblings must also be guarded."
+            )
 
         self._construct_observances()
 
@@ -353,11 +391,18 @@ class Stage:
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._proceed()
-
-        # Check if any ConfigVars in the newly enabled stage have exactly one valid option.
-        # If so, set their values to those options.
-        if self._auto_set_single_valid_option:
-            for var in self._varlist:
+        
+        # If a default vaulue is assigned, set the value of the ConfigVar to the default value
+        # Otherwise, set the value of the ConfigVar to the valid option if there is only one.
+        for var in self._varlist:
+            if self._auto_set_default_value is True and (dv := var.default_value) is not None:
+                if var.value is None:
+                    try:
+                        var.value = dv
+                    except ConstraintViolation:
+                        logger.debug("The default value of the variable %s is not valid.", var.name)
+                        var.value = None
+            if self._auto_set_valid_option is True and var.value is None:
                 if var.has_options():
                     svo = Stage.single_valid_option(var)
                     if svo is not None:

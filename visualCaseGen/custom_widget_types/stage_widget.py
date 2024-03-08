@@ -239,7 +239,7 @@ class StageWidget(VBox):
         if value is True:
             # Disable the stage
             logger.debug("Disabling stage widget %s...", self._title)
-            self.layout.border_left = "5px solid lightgray"
+            self.layout.border_left = "4px solid lightgray"
             self._update_top_bar_title(
                 font_color="gray", background_color=bg_color_light
             )

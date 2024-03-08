@@ -15,7 +15,18 @@ def initialize_launcher_stages(cime):
 
     stg_launch = Stage(
         title="3. Launch",
-        description="Create and set up the case",
+        description="Create and set up the case by specifying an existing path for its creation "
+        "and a unique case name. Additionally, you'll need to choose the machine where the case "
+        "will run. If CESM has been ported to the machine, the selection should be automatic. "
+        "Otherwise, ensure that CESM is properly ported and the machine selection is accurate. "
+        "If the machine requires a PROJECT id, you'll be prompted to provide it. When everything "
+        "is set, click either the *Create Case* button or *Show Commands* to view the "
+        "corresponding terminal commands.",
         widget=StageWidget(VBox),
-        varlist=[],
+        varlist=[
+            cvars["CASEROOT"],
+            cvars["MACHINE"],
+            #cvars["PROJECT"],
+            cvars["DOORSTOP"],
+        ],
     )

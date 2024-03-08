@@ -490,13 +490,15 @@ class CIME_interface:
         )
         assert clm_namelist_defaults_file.is_file(), "Cannot find clm namelist file"
 
-        self.clm_fsurdat = {None: {}, "1850": {}, "2000": {}, "PtVg": {}}
+        self.clm_fsurdat = {}
 
         clm_namelist_xml = GenericXML(clm_namelist_defaults_file.as_posix())
         for fsurdat_node in clm_namelist_xml.get_children("fsurdat"):
             hgrid = clm_namelist_xml.get(fsurdat_node, "hgrid")
             sim_year = clm_namelist_xml.get(fsurdat_node, "sim_year")
             filedir = clm_namelist_xml.text(fsurdat_node)
+            if sim_year not in self.clm_fsurdat:
+                self.clm_fsurdat[sim_year] = {}
             self.clm_fsurdat[sim_year][hgrid] = filedir
 
     def expand_env_vars(self, expr):

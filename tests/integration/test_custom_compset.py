@@ -7,13 +7,13 @@ from ProConPy.out_handler import handler as owh
 from ProConPy.config_var import cvars
 from ProConPy.stage import Stage
 from ProConPy.dev_utils import ConstraintViolation
+from ProConPy.csp_solver import csp
 from visualCaseGen.cime_interface import CIME_interface
 from visualCaseGen.initialize_configvars import initialize_configvars
 from visualCaseGen.initialize_widgets import initialize_widgets
 from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
-from ProConPy.csp_solver import csp
 
 
 # do not show logger output
@@ -36,10 +36,10 @@ def test_custom_compset_configuration():
         configure_custom_compset()
         elapsed = time.time() - start
 
-        # Ensure that the elapsed time does not fluctuate too much
+        # Ensure that the elapsed time does not grow too much with each iteration
         print(f"Elapsed time: {elapsed:.3f}")
-        min_elapsed = min(min_elapsed, elapsed)
         assert elapsed < 1.25 * min_elapsed, f"Elapsed time {elapsed} exceeds 1.25 * min_elapsed {1.25 * min_elapsed}"
+        min_elapsed = min(min_elapsed, elapsed)
 
         # Revert back to the first stage
         revert_to_first_stage()
