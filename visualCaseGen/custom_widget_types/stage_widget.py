@@ -43,6 +43,7 @@ class StageWidget(VBox):
         ], "StageWidget main_body_type must be VBox, HBox, or Tab"
         self._main_body_type = main_body_type
         self._title = title
+        self._main_body = None
         self._main_body = self._gen_main_body(children=())
         self._top_bar = HBox([])
         self._stage = None  # Reference to the stage object that this widget represents. To be set by the stage object.
@@ -159,10 +160,14 @@ class StageWidget(VBox):
             The new list of children of the main body.
         """
 
+        old_display = ""
+        if self._main_body:
+            old_display = self._main_body.layout.display
+
         return self._main_body_type(
             children=children,
             layout={
-                "margin": "0px",
+                "display":old_display, "margin": "0px",
             },
         )
 

@@ -22,7 +22,7 @@ def initialize_launcher_widgets(cime):
     cv_caseroot.widget = FileChooser(
         path=default_case_dir,
         filename="",
-        title="Select a case path and a case name:",
+        title="Select a case root (full path and name):",
         show_hidden=True,
         new_only=True,
         filename_placeholder="Enter new case name",
@@ -34,14 +34,13 @@ def initialize_launcher_widgets(cime):
     #    cv_machine.value = cime.machine
     cv_machine.widget = widgets.Dropdown(
         description='Machine:',
-        layout={'width': 'max-content', 'margin': '10px'}, # If the items' names are long
-        style={'description_width': 'max-content'},
+        layout={'width': '250px', 'margin': '10px'}, # If the items' names are long
+        style={'description_width': '70px'},
     )
 
-    # A dummy variable with an undispayed widget to prevent the users from setting it
-    # and so to stop the Launcher stage from completing.
-    cv_doors = cvars["DOORSTOP"]
-    cv_doors.widget = widgets.Label(
-        value="",
-        layout={'height':'5px', 'visibility': 'hidden'}
+    cv_project = cvars["PROJECT"]
+    cv_project.widget = widgets.Text(
+        description='Project:',
+        layout={'width': '250px', 'margin': '10px'}, # If the items' names are long
+        style={'description_width': '70px'},
     )

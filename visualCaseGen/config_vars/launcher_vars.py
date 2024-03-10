@@ -17,10 +17,7 @@ def initialize_launcher_variables(cime):
         "MACHINE",
         default_value = cime.machine,
     )
-    ConfigVarStr("PROJECT") # Case Name
-
-
-    # A dummy variable with an undispayed widget to prevent the users from setting it
-    # and so to stop the Launcher stage from completing.
-    ConfigVarStr("DOORSTOP", widget_none_val="")
-
+    ConfigVarStr(
+        "PROJECT",
+        widget_none_val="",
+    )
