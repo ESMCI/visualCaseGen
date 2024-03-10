@@ -1,19 +1,20 @@
 """A module to represent a configuration stage where the user can set a number of
 parameters, of type ConfigVar, to configure the system."""
 
-import itertools
 import logging
 from z3 import BoolRef
+from traitlets import HasTraits, UseEnum
 
 from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.csp_solver import csp
 from ProConPy.out_handler import handler as owh
 from ProConPy.dev_utils import DEBUG
+from ProConPy.stage_stat import StageStat
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class Stage:
+class Stage(HasTraits):
     """A class to represent configuration stages where the user can set a number of
     parameters, of type ConfigVar, to configure the system.
 
@@ -27,6 +28,8 @@ class Stage:
     - A child stage gets activated if the parent stage is completed and its activation guard is satisfied.
     - Only one activation guard must evaluate to True in a list of guarded child stages.
     """
+
+    status = UseEnum(StageStat, default_value=StageStat.INACTIVE)
 
     # Top level stages, i.e., stages that have no parent stage
     _top_level = []
@@ -131,10 +134,6 @@ class Stage:
                 len(varlist) > 0
             ), f'The unguarded "{self._title}" stage must have a non-empty variable list.'
 
-        self._widget = widget
-        if self._widget is not None:
-            self._widget.stage = self
-
         # set _prev and _next stages to be used in fast retrieval of adjacent stages:
         self._prev = None
         self._next = None
@@ -159,6 +158,11 @@ class Stage:
             self._enable()
         else:
             self._disable()
+
+        # Set the widget of the stage
+        self._widget = widget
+        if self._widget is not None:
+            self._widget.stage = self
 
     def __str__(self):
         return self._title
@@ -212,11 +216,6 @@ class Stage:
         return not self._disabled
 
     @property
-    def completed(self):
-        """Check if the stage is complete."""
-        return all([var.value is not None for var in self._varlist])
-    
-    @property
     def rank(self):
         if self.is_first():
             return 0
@@ -244,7 +243,8 @@ class Stage:
     def _on_value_change(self, change):
         """This method is called when the value of a ConfigVar in the varlist changes.
         When all the ConfigVars in the varlist are set, the stage is deemed complete."""
-        if self.enabled and self.completed:
+        self.refresh_status()
+        if self.enabled and self.status == StageStat.COMPLETE:
             logger.debug("Stage <%s> is complete.", self._title)
             self._proceed()
 
@@ -363,6 +363,35 @@ class Stage:
 
         return child_to_activate
 
+    def refresh_status(self):
+        """Update the status of the stage based on the disabled flag and variables being set or not."""
+        some_vals_set = False
+        some_vals_unset = False
+        for var in self._varlist:
+            if var.value is None:
+                some_vals_unset = True
+                if some_vals_set:
+                    break
+            else:
+                some_vals_set = True
+                if some_vals_unset:
+                    break
+
+        if some_vals_set:
+            if some_vals_unset:
+                self.status = StageStat.INACTIVE if self._disabled else StageStat.PARTIAL
+            else:
+                self.status = StageStat.SEALED if self._disabled else StageStat.COMPLETE
+        else:
+            self.status = StageStat.INACTIVE if self._disabled else StageStat.FRESH
+        #if any([var.value is None for var in self._varlist]):
+        #    if all([var.value is None for var in self._varlist]):
+        #        self.status = StageStat.INACTIVE if self._disabled else StageStat.FRESH
+        #    else:
+        #        self.status = StageStat.INACTIVE if self._disabled else StageStat.PARTIAL
+        #else:
+        #    self.status = StageStat.SEALED if self._disabled else StageStat.COMPLETE
+
     def _disable(self):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
         logger.debug("Disabling stage %s.", self._title)
@@ -372,8 +401,7 @@ class Stage:
             Stage._active_stage = None
 
         self._disabled = True
-        if self._widget is not None:
-            self._widget.disabled = True
+        self.refresh_status()
 
     @owh.out.capture()
     def _enable(self):
@@ -385,8 +413,7 @@ class Stage:
 
         Stage._active_stage = self
         self._disabled = False
-        if self._widget is not None:
-            self._widget.disabled = False
+        self.refresh_status()
 
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
@@ -394,19 +421,34 @@ class Stage:
         
         # If a default vaulue is assigned, set the value of the ConfigVar to the default value
         # Otherwise, set the value of the ConfigVar to the valid option if there is only one.
+        if self._auto_set_default_value is True:
+            self.set_vars_to_defaults() 
+        if self._auto_set_valid_option is True:
+            self.set_vars_to_single_valid_option()
+
+    def set_vars_to_defaults(self, b=None):
+        """Set the value of the ConfigVars to their default values (if valid).
+        
+        Parameters
+        ----------
+        b : Button, optional
+            The button that triggered the setting of the default values."""
+
         for var in self._varlist:
-            if self._auto_set_default_value is True and (dv := var.default_value) is not None:
-                if var.value is None:
-                    try:
-                        var.value = dv
-                    except ConstraintViolation:
-                        logger.debug("The default value of the variable %s is not valid.", var.name)
-                        var.value = None
-            if self._auto_set_valid_option is True and var.value is None:
-                if var.has_options():
-                    svo = Stage.single_valid_option(var)
-                    if svo is not None:
-                        var.value = svo
+            if var.value is None and (dv := var.default_value) is not None:
+                try:
+                    var.value = dv
+                except ConstraintViolation:
+                    logger.debug("The default value of the variable %s is not valid.", var.name)
+                    var.value = None
+
+    def set_vars_to_single_valid_option(self):
+        """Set the value of the ConfigVars to the valid option in their options list if there is only one."""
+        for var in self._varlist:
+            if var.value is None and var.has_options():
+                svo = Stage.single_valid_option(var)
+                if svo is not None:
+                    var.value = svo
 
     @staticmethod
     def single_valid_option(var):

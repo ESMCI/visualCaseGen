@@ -31,7 +31,10 @@ def initialize_standard_compset_variables(cime):
  
     # Component Filters that the user can apply to narrow down the list of compsets
     for comp_class in cime.comp_classes:
-        ConfigVarStr(f"COMP_{comp_class}_FILTER")
+        ConfigVarStr(
+            name = f"COMP_{comp_class}_FILTER",
+            default_value = "any",
+        )
 
     # Compset Alias
     cv_compset_alias = ConfigVarStrMS("COMPSET_ALIAS")

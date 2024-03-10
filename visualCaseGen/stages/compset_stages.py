@@ -63,6 +63,7 @@ def initialize_compset_stages(cime):
         varlist=[
             cvars[f"COMP_{comp_class}_FILTER"] for comp_class in cime.comp_classes
         ],
+        auto_set_default_value=False, # Let the user set defaults via Stage widget button.
     )
 
     str_comp_alias_all = Stage(
