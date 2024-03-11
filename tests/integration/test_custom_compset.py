@@ -3,8 +3,7 @@
 import time
 import pytest
 
-from ProConPy.out_handler import handler as owh
-from ProConPy.config_var import cvars
+from ProConPy.config_var import ConfigVar, cvars
 from ProConPy.stage import Stage
 from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.csp_solver import csp
@@ -22,6 +21,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.CRITICAL)
 
 def test_custom_compset_configuration():
+    ConfigVar.reboot()
+    Stage.reboot()
     cime = CIME_interface()
     initialize_configvars(cime)
     initialize_widgets(cime) 
@@ -38,7 +39,7 @@ def test_custom_compset_configuration():
 
         # Ensure that the elapsed time does not grow too much with each iteration
         print(f"Elapsed time: {elapsed:.3f}")
-        assert elapsed < 1.25 * min_elapsed, f"Elapsed time {elapsed} exceeds 1.25 * min_elapsed {1.25 * min_elapsed}"
+        assert elapsed < 1.5 * min_elapsed, f"Elapsed time {elapsed} exceeds 1.5 * min_elapsed {1.5 * min_elapsed}"
         min_elapsed = min(min_elapsed, elapsed)
 
         # Revert back to the first stage

@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import time
+import pytest
+
+from ProConPy.config_var import ConfigVar, cvars
+from ProConPy.config_var import cvars
+from ProConPy.stage import Stage
+from ProConPy.csp_solver import csp
+from visualCaseGen.cime_interface import CIME_interface
+from visualCaseGen.initialize_configvars import initialize_configvars
+from visualCaseGen.initialize_widgets import initialize_widgets
+from visualCaseGen.initialize_stages import initialize_stages
+from visualCaseGen.specs.options import set_options
+from visualCaseGen.specs.relational_constraints import get_relational_constraints
+
+
+# do not show logger output
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.CRITICAL)
+
+def test_custom_compset_configuration():
+    """Select a standard (supported) compset: F2000climo, then set the grid mode to custom, then revert and
+    set the grid mode to standard. This test is to ensure that the csp_solver does not fail when a ConfigVar,
+    whose dependent variables call back csp_solver to determine options_spec(), gets reset."""
+    ConfigVar.reboot()
+    Stage.reboot()
+    cime = CIME_interface()
+    initialize_configvars(cime)
+    initialize_widgets(cime) 
+    initialize_stages(cime) 
+    set_options(cime)
+    csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
+
+    # (1) Configure the standard supported compset
+
+    # At initialization, the first stage should be enabled
+    assert Stage.first().enabled
+    cvars['COMPSET_MODE'].value = 'Standard'
+    cvars['SUPPORT_LEVEL'].value = 'Supported'
+    cvars['COMPSET_ALIAS'].value = 'F2000climo'
+
+    # Check that COMPSET_LNAME is auto-set accordingly when COMPSET_ALIAS is set by the user.
+    assert cvars['COMPSET_LNAME'].value == "2000_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV"
+
+    # (2) Configure the grid
+
+    cvars['GRID_MODE'].value = 'Custom'
+
+    # Change of mind, revert and select standard grid
+    Stage.active().revert()
+
+    cvars['GRID_MODE'].value = 'Standard'
+
+    # Previously, this execution trace would have failed due to a bug in the csp_solver:
+    # A conflict would have occured in _do_check_assignment() that calls _options_spec() methods
+    # of dependent vars. Before doing so, the new assignment assertion for the invoking var would
+    # be added to the solver without first removing the old assignment assertion
+    # from self._assignment_assertions. This would cause the solver to fail to find a solution
+    # due to conflicting assignment assertions for the same var. 

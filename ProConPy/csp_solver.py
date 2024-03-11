@@ -242,9 +242,13 @@ class CspSolver:
             
             # Confirm that each variable has higher precedence (lower rank) than its dependent variables
             for dependent_var in var._dependent_vars:
-                assert var.max_rank < dependent_var.min_rank, (
-                    f"Variable precedence conflict: {var} and {dependent_var}."
+                assert var.max_rank is not None, (
+                    f"Variable has a dependent variable but doesn't belong to any stage: {var}."
                 )
+                if dependent_var.min_rank is not None:
+                    assert var.max_rank < dependent_var.min_rank, (
+                        f"Variable precedence conflict: {var} and {dependent_var}."
+                    )
 
     @property
     def initialized(self):
@@ -312,6 +316,11 @@ class CspSolver:
         ConstraintViolation : If the assignment is invalid.
         """
 
+        if new_value is None:
+            # None is always a valid assignment, so return, but also make sure that the dependent
+            # variables' options specs are reset to None.
+            return {dependent_var: (None, None) for dependent_var in var._dependent_vars}
+
         with self._solver as s:
 
             # apply all the assignments at current stage except for the variable being assigned.
@@ -321,12 +330,16 @@ class CspSolver:
             self.apply_options_assertions(s, exclude_vars=var._dependent_vars)
 
             # apply the assignment assertion for the variable being assigned.
-            if new_value is not None:
-                s.add(var == new_value)
+            s.add(var == new_value)
 
             # todo: below intermediate check is likely redundant.
             if s.check() == unsat:
                 raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
+
+            # Now, remove old assignment assertion for good. This is to make sure that no conflict occurs
+            # with the new assignment assertion when the new options_spec are called and they themselves call
+            # csp methods, e.g., check_assignments, that rely on self._assignment_assertions.
+            self._assignment_assertions.pop(var, None)
 
             # determine new options for dependent variables and temporarily apply the options assertions
             new_options_and_tooltips = {}

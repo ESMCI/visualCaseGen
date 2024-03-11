@@ -43,3 +43,20 @@ def initialize_grid_stages(cime):
         varlist=[cvars["GRID"]],
         auto_set_valid_option=False,
     )
+
+    stg_custom_grid = Stage(
+        title="Custom Grid",
+        description="",
+        parent=stg_grid,
+        activation_guard=cvars["GRID_MODE"] == "Custom",
+    )
+
+    stg_custom_grid_selector = Stage(
+        title="Custom Grid Selector",
+        description="Configure a custom grid by ...",
+        widget=StageWidget(VBox),
+        parent=stg_custom_grid,
+        varlist=[cvars["CUSTOM_GRID_PATH"]],
+    )
+
+

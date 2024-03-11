@@ -153,7 +153,7 @@ def set_standard_grid_options(cime):
     def grid_options_func(compset_lname, grid_mode):
 
         if compset_lname == "" or grid_mode != "Standard":
-            return None, None
+            return ['unset'], ['unset']
 
         compatible_grids = []
         grid_descriptions = []
