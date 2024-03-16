@@ -49,6 +49,7 @@ class Stage(HasTraits):
         parent: "Stage" = None,
         activation_guard=None,
         hide_when_inactive=True,
+        auto_proceed=True,
         auto_set_default_value=True,
         auto_set_valid_option=True,
     ):
@@ -72,6 +73,8 @@ class Stage(HasTraits):
             its siblings must also have activation guards.
         hide_when_inactive : bool, optional
             If True, hide the stage when it is disabled.
+        auto_proceed : bool, optional
+            If True, automatically proceed to the next stage when the stage is complete.
         auto_set_default_value : bool, optional
             If True, automatically set the default value of the variables in the stage.
             when the stage is enabled.
@@ -115,6 +118,7 @@ class Stage(HasTraits):
         self._activation_guard = activation_guard
         self._children = []  # to be appended by the child stage(s) (if any)
         self._hide_when_inactive = hide_when_inactive
+        self._auto_proceed = auto_proceed
         self._auto_set_default_value = auto_set_default_value
         self._auto_set_valid_option = auto_set_valid_option
         self._rank = None # to be set by the csp solver
@@ -191,6 +195,11 @@ class Stage(HasTraits):
         """Class method that returns the active stage."""
         return cls._active_stage
 
+    @classmethod
+    def proceed(cls):
+        """Class method to proceed the active stage."""
+        cls._active_stage._proceed()
+
     def is_first(self):
         return Stage._top_level[0] is self
 
@@ -246,7 +255,8 @@ class Stage(HasTraits):
         self.refresh_status()
         if self.enabled and self.status == StageStat.COMPLETE:
             logger.debug("Stage <%s> is complete.", self._title)
-            self._proceed()
+            if self._auto_proceed is True:
+                self._proceed()
 
     def _proceed(self):
         """End this stage and move on to the following stage. This may be a child stage or the next stage.

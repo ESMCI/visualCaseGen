@@ -1,10 +1,9 @@
 import logging
-import re
-from traitlets import Unicode, validate
-from z3 import SeqRef, main_ctx, Z3_mk_const, to_symbol, StringSort
+from traitlets import Int, validate
+from z3 import ArithRef, main_ctx, Z3_mk_const, to_symbol, IntSort
 
 from ProConPy.out_handler import handler as owh
-from ProConPy.dev_utils import ConstraintViolation
+from ProConPy.dev_utils import ConstraintViolation, is_integer
 from ProConPy.config_var import ConfigVar
 from ProConPy.csp_solver import csp
 from ProConPy.dialog import alert_error
@@ -12,31 +11,26 @@ from ProConPy.dialog import alert_error
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
 
-class ConfigVarStr(ConfigVar, SeqRef):
-    """A derived ConfigVar class with value of type String. Each instance can have a single
-    string or None as its value.
-
-    self._widget.value  : value preceded by a validity char. (of type String -- Trait)
-    self.value:         : value NOT preceded by a validity char. (of type String -- Trait)
+class ConfigVarInt(ConfigVar, ArithRef):
+    """A derived ConfigVar class with value of type Int.
     """
 
     # trait
-    value = Unicode(allow_none=True)
+    value = Int(allow_none=True)
 
-    def __init__(self, name, *args, word_only=False, **kwargs):
-
-        # If word_only is True, single words containing alphanumeric characters, underscore, and backslash are allowed.
-        self._word_only = word_only
+    def __init__(self, name, *args, **kwargs):
 
         # Initialize the ConfigVar super class
-        ConfigVar.__init__(self, name, *args, **kwargs)
+        ConfigVar.__init__(self, name, *args, **kwargs, widget_none_val="")
 
-        # Initialize the SeqRef super class, i.e., a Z3 string
-        # Below initialization mimics String() definition in z3.py
+        # Initialize the ArithRef super class, i.e., a Z3 int
+        # Below initialization mimics Int() definition in z3.py
         ctx = main_ctx()
-        SeqRef.__init__(
-            self, Z3_mk_const(ctx.ref(), to_symbol(name, ctx), StringSort(ctx).ast), ctx
-        )
+        ArithRef.__init__(
+                self,
+                Z3_mk_const(ctx.ref(), to_symbol(name, ctx), IntSort(ctx).ast),
+                ctx
+            )
 
     @validate("value")
     def _validate_value(self, proposal):
@@ -64,9 +58,9 @@ class ConfigVarStr(ConfigVar, SeqRef):
         if self.value is None:
             self._widget.value = self._widget_none_val
         elif self.has_options():
-            self._widget.value = self._valid_opt_char + " " + self.value
+            self._widget.value = self._valid_opt_char + " " + str(self.value)
         else:
-            self._widget.value = self.value
+            self._widget.value = str(self.value)
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):
@@ -87,18 +81,15 @@ class ConfigVarStr(ConfigVar, SeqRef):
         logger.info("Frontend changing %s widget value to %s", self.name, new_val)
 
         try:
-            if self._word_only and new_val != self._widget_none_val:
-                is_word_only = bool(re.match(r"^[a-zA-Z0-9_/]*$", new_val))
-                # confirm the value is a single word containing alphanumeric characters, underscore, and backslash
-                if not is_word_only:
-                    alert_error(f"Must enter a single word containing alphanumeric characters, underscore, and backslash.")
-                    self._widget.value = self.widget_none_val if self.value is None else str(self.value)
-                    return
-
             if new_val == self._widget_none_val:
                 self.value = None
             else:
-                self.value = new_val
+                if not is_integer(new_val):
+                    alert_error(f"Must enter an integer for {self.name}.")
+                    self._widget.value = self.widget_none_val if self.value is None else str(self.value)
+                    return
+
+                self.value = int(new_val)
         except ConstraintViolation as err:
             # inform the user that the selection is invalid
             logger.critical("ERROR: %s", err.message)
@@ -111,6 +102,14 @@ class ConfigVarStr(ConfigVar, SeqRef):
                 else (
                     f"{self._valid_opt_char} {self.value}"
                     if self.has_options()
-                    else self.value
+                    else str(self.value)
                 )
             )
+    
+    @ConfigVar.widget.setter
+    def widget(self, new_widget):
+        # first call the parent widget setter:
+        ConfigVar.widget.fset(self, new_widget)
+        # now, set continuous_update property to false because otherwise all keystrokes
+        # will call the _process_frontend_value_change method
+        self._widget.continuous_update = False

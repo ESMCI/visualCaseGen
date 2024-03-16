@@ -164,7 +164,7 @@ def set_standard_grid_options(cime):
             support_level != "Supported" or compset_alias is not None
         ), "Support level is 'Supported', but no compset alias is selected."
 
-        for alias, compset_attr, not_compset_attr, desc in cime.model_grids:
+        for alias, compset_attr, not_compset_attr, desc in cime.resolutions:
             if (
                 support_level == "Supported"
                 and alias not in cime.sci_supported_grids[compset_alias]
@@ -204,7 +204,45 @@ def set_standard_grid_options(cime):
     )
 
 def set_custom_grid_options(cime):
-    pass
+
+    cv_custom_atm_grid = cvars["CUSTOM_ATM_GRID"]
+    cv_custom_atm_grid.options = ["T62", "TL319", "0.9x1.25", "1.9x2.5", "4x5", "ne30np4", "ne60np4", "ne120np4"]
+    cv_custom_atm_grid.tooltips = ["T62 Gaussian Grid", "JRA55 datm grid", "FV 1-deg grid", "FV 2-deg grid", "FV 4-deg grid", "Spectral Elem 1-deg grid", "Spectral Elem 1/2-deg grid", "Spectral Elem 1/4-deg grid"]
+
+    cv_custom_ocn_grid_mode = cvars["OCN_GRID_MODE"]
+    cv_custom_ocn_grid_mode.options = ["Standard", "Modify Existing", "Create New"]
+    cv_custom_ocn_grid_mode.tooltips = ["Select from a list of existing MOM6 grids", "Modify an existing MOM6 grid", "Construct a new custom MOM6 grid"]
+
+    def custom_ocn_grid_options_func(compset_lname, custom_atm_grid):
+
+        if "DOCN" in compset_lname:
+            return [custom_atm_grid], ["(When DOCN is selected, custom OCN grid is automatically set to ATM grid.)"]
+        else:
+            compatible_ocn_grids = []
+            descriptions = []
+            for ocn_grid in cime.component_grids['ocnice']:
+                try:
+                    csp.check_assignment(cvars["OCN_GRID"], ocn_grid)
+                except ConstraintViolation:
+                    continue
+                compatible_ocn_grids.append(ocn_grid)
+                descriptions.append(cime.domains_desc.get(ocn_grid) or "")
+            
+            return compatible_ocn_grids, descriptions
+    
+    cv_custom_ocn_grid = cvars["CUSTOM_OCN_GRID"]
+    cv_custom_ocn_grid.options_spec = OptionsSpec(
+        func=custom_ocn_grid_options_func, args=(cvars["COMPSET_LNAME"], cvars["CUSTOM_ATM_GRID"])
+    )
+
+    cv_ocn_grid_extent = cvars["OCN_GRID_EXTENT"]
+    cv_ocn_grid_extent.options = ["Global", "Regional"]
+    cv_ocn_grid_extent.tooltips = ["Global ocean grid", "Regional ocean grid"]
+
+    cv_ocn_cyclic_x = cvars["OCN_CYCLIC_X"]
+    cv_ocn_cyclic_x.options = ["Yes", "No"]
+    cv_ocn_cyclic_x.tooltips = ["Cyclic in x-direction", "Non-cyclic in x-direction"]
+
 
 def set_launcher_options(cime):
 

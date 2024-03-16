@@ -94,15 +94,19 @@ class StageWidget(VBox):
             layout={"display": "none", "width": button_width},
             style={"button_color": bg_color_dark, "text_color": font_color_dark},
         )
+
         @owh.out.capture()
         def _on_btn_info_click(b):
             alert_info(self._stage.description)
+
         self._btn_info.on_click(_on_btn_info_click)
         top_bar_buttons.append(self._btn_info)
 
         # Defaults button, visible only if defaults specified
         self._btn_defaults = None
-        btn_defaults_needed = self._stage._auto_set_default_value is False and all([var.default_value is not None for var in self._stage._varlist])
+        btn_defaults_needed = self._stage._auto_set_default_value is False and all(
+            [var.default_value is not None for var in self._stage._varlist]
+        )
         if btn_defaults_needed:
             self._btn_defaults = Button(
                 description="Defaults",
@@ -167,7 +171,8 @@ class StageWidget(VBox):
         return self._main_body_type(
             children=children,
             layout={
-                "display":old_display, "margin": "0px",
+                "display": old_display,
+                "margin": "0px",
             },
         )
 
@@ -218,14 +223,21 @@ class StageWidget(VBox):
         self.children = [var.widget for var in self._stage._varlist]
         # Observe StageStat
         self._stage.observe(self._on_stage_status_change, names="status", type="change")
-        self._on_stage_status_change({"old":StageStat.INACTIVE, "new": self._stage.status})
+        self._on_stage_status_change(
+            {"old": StageStat.INACTIVE, "new": self._stage.status}
+        )
 
     def _on_stage_status_change(self, change):
         """Handle the change of the stage status."""
-        if (new_state := change["new"]) == StageStat.SEALED or new_state == StageStat.INACTIVE: 
-            self._disable()
+
+        old_state = change["old"]
+        new_state = change["new"]
+
+        if new_state == StageStat.INACTIVE or new_state == StageStat.SEALED:
+            if old_state != StageStat.SEALED:
+                self._disable()
         else:
-            if (old_state := change["old"]) == StageStat.SEALED or old_state == StageStat.INACTIVE:
+            if old_state == StageStat.INACTIVE or old_state == StageStat.SEALED:
                 self._enable()
             self._update_btn_reset(old_state, new_state)
 
@@ -251,13 +263,11 @@ class StageWidget(VBox):
     def _disable(self):
         """Disable the entire stage widget."""
         logger.debug("Disabling stage widget %s...", self._title)
-    
+
         self.layout.border_left = "4px solid lightgray"
 
         # Disable top bar
-        self._update_top_bar_title(
-            font_color="gray", background_color=bg_color_light
-        )
+        self._update_top_bar_title(font_color="gray", background_color=bg_color_light)
         self._btn_info.layout.display = "none"
         if self._btn_defaults:
             self._btn_defaults.layout.display = "none"
@@ -266,18 +276,17 @@ class StageWidget(VBox):
             self._btn_revert.layout.display = "none"
         self._btn_proceed.layout.display = "none"
 
-        # Disable main body
+        # Disable main body and all its children
         if self._main_body:
             if any([var.value is None for var in self._stage._varlist]):
                 # this is an incomplete stage to be completed in the future, so make it invisible now
                 self._main_body.layout.display = "none"
 
-        # Disable all variables in the stage
-        for var in self._stage._varlist:
-            var.widget.disabled = True
+            for child in self._main_body.children:
+                child.disabled = True
 
     def _enable(self):
-        """Enable the entire stage widget, excet for the reset button, which is enabled 
+        """Enable the entire stage widget, excet for the reset button, which is enabled
         by the _update_btn_reset method if necessary."""
         logger.debug("Enabling stage widget %s...", self._title)
         self.layout.border_left = "5px solid " + active_left_border_color
@@ -295,23 +304,20 @@ class StageWidget(VBox):
             self._btn_revert.layout.display = ""
         self._btn_proceed.layout.display = ""
 
-        # Enable main body
+        # Enable main body and all its children
         if self._main_body:
             self._main_body.layout.display = "flex"
-
-        # Enable all variables in the stage
-        for var in self._stage._varlist:
-            var.widget.disabled = False
+            for child in self._main_body.children:
+                child.disabled = False
 
     def _update_btn_reset(self, old_state, new_state):
         """Update the reset button based on the old and new stage status."""
         if new_state == StageStat.PARTIAL and self._btn_reset.layout.display == "none":
-            self._btn_reset.layout.display = "" 
+            self._btn_reset.layout.display = ""
         elif old_state == StageStat.SEALED and new_state == StageStat.COMPLETE:
             self._btn_reset.layout.display = ""
         else:
             self._btn_reset.layout.display = "none"
-
 
     @owh.out.capture()
     def attempt_to_proceed(self, b):

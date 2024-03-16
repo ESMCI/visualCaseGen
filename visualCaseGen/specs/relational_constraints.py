@@ -18,9 +18,13 @@ def get_relational_constraints(cvars):
     COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
     COMPSET_LNAME = cvars['COMPSET_LNAME']
     GRID_MODE = cvars['COMPSET_MODE']
+    OCN_GRID_MODE = cvars['OCN_GRID_MODE']
     ATM_GRID = cvars['ATM_GRID']
     OCN_GRID = cvars['OCN_GRID']
     WAV_GRID = cvars['WAV_GRID']
+    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
+    OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
+    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
@@ -43,9 +47,6 @@ def get_relational_constraints(cvars):
 
         Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
             "When MOM|POP is coupled with data atmosphere (datm), LND component must be stub (slnd).",
-
-        ###todo Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
-        ###todo      "LND or ICE must be present to hide Global MOM6 grid poles.",
 
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
@@ -81,6 +82,9 @@ def get_relational_constraints(cvars):
         Implies(Contains(COMPSET_LNAME, "MOM6"), In(OCN_GRID, ["tx2_3v2", "tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
+        Implies(Contains(COMPSET_LNAME, "POP"), In(OCN_GRID, ["gx1v6", "gx1v7", "gx3v7", "tx0.1v2", "tx0.1v3", "tx1v1"])):
+            "Not a valid POP2 grid.",
+
         Implies(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):
             "When in aquaplanet mode, the ocean grid must be set to f09, f19, or f45",
 
@@ -89,7 +93,44 @@ def get_relational_constraints(cvars):
 
         Implies(COMP_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
+        
+        # mom6_bathy-related constraints
 
+        Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
+             "LND or ICE must be present to hide Global MOM6 grid poles.",
+
+        #todo Implies(Not(Or(Contains(COMPSET_LNAME, "MOM6"), Contains(COMPSET_LNAME, "CLM"))), GRID_MODE!="Custom"):
+        #todo     "Custom grids can only be generated when MOM6 or CLM are selected.",
+
+        #todo Implies(Not(Contains(COMPSET_LNAME, "MOM6")), OCN_GRID_MODE=="Standard"):
+        #todo     "Custom OCN grids can only be generated for MOM6.",
+    
+        #todo OCN_GRID_MODE!="Modify Existing":
+        #todo     "This feature (Modify Existing) not implemented yet.",
+
+        And(OCN_NX>=2, OCN_NY>=2, (OCN_NX*OCN_NY)>=16 ):
+            "MOM6 grid dimensions too small.",
+
+        And(OCN_NX<10000, OCN_NY<10000):
+            "MOM6 grid dimensions too big.",
+        
+        Implies(OCN_GRID_EXTENT=="Regional", Contains(COMPSET_LNAME, "SWAV")):
+            "A regional ocean model cannot be coupled with a wave component.",
+
+        #todo Implies(OCN_GRID_EXTENT=="Regional", Contains(COMPSET_LNAME, "SICE")):
+        #todo     "A regional ocean model cannot be coupled with an ice component.",
+
+        Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="No"):
+            "Regional ocean domain cannot be reentrant (due to an ESMF limitation.)",
+
+        Implies(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X=="Yes"):
+            "Global ocean domains must be reentrant in the x-direction.",
+
+        Implies(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0):
+            "Global ocean model domains musth have a length of 360 degrees in the x-direction.",
+
+        Implies(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
+            "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
 
         #### Assertions to stress-test the CSP solver
 

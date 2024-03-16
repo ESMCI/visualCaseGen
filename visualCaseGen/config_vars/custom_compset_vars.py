@@ -25,7 +25,9 @@ def initialize_custom_compset_variables(cime):
     # it is automatically set every time:
     # (1) COMPSET_ALIAS is (re-)assigned, or
     # (2) all COMP_???_OPTION variables are (re-)assigned
-    ConfigVarStr("COMPSET_LNAME")
+    cv_compset_lname = ConfigVarStr("COMPSET_LNAME")
+    cv_compset_lname.add_rank(-1) # Rank -1 means that the variable is not directly controlled by the user.
+                                  # TODO: double check this is okay.
 
     def compset_lname_updater(change):
         """Update the value of COMPSET_LNAME variable based on the selected component

@@ -34,7 +34,7 @@ def test_custom_compset_configuration():
     for i in range(3):
         # Configure a custom compset
         start = time.time()
-        configure_custom_compset()
+        configure_standard_compset(cime)
         elapsed = time.time() - start
 
         # Ensure that the elapsed time does not grow too much with each iteration
@@ -45,52 +45,36 @@ def test_custom_compset_configuration():
         # Revert back to the first stage
         revert_to_first_stage()
 
-def configure_custom_compset():
-    """Configure a custom compset: 2000_DATM%JRA_SLND_CICE%PRES_MOM6_SROF_SGLC_WW3. Progress through the stages
-    until the standard grid selector stage is reached."""
+def configure_standard_compset(cime):
     # At initialization, the first stage should be enabled
     assert Stage.first().enabled
-    cvars['COMPSET_MODE'].value = 'Custom'
+    cvars['COMPSET_MODE'].value = 'Standard'
 
     # CCOMPSET_MODE is the only variable in the first stage, so assigning a value to it should disable the first stage
     assert not Stage.first().enabled
     
     # The next stge is Custom Component Set, whose first child is Model Time Period
-    assert Stage.active().title.startswith('Model Time Period')
-    cvars['INITTIME'].value = '2000'
+    assert Stage.active().title.startswith('Support Level')
+    cvars['SUPPORT_LEVEL'].value = 'All'
 
-    # Set components
-    assert Stage.active().title.startswith('Components')
-    cvars['COMP_ATM'].value = "datm"
-    cvars['COMP_LND'].value = "slnd"
-    cvars['COMP_ICE'].value = "cice"
-    
-    # Meanwhile, attempt to set a value that violates a constraint, and confirm that
-    # the value is set back to the previous value after the exception is raised.
-    with pytest.raises(ConstraintViolation):
-        cvars['COMP_LND'].value = "clm"
-    assert cvars['COMP_LND'].value == "slnd"
+    # Apply filters
+    for comp_class in cime.comp_classes:
+        cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
-    cvars['COMP_OCN'].value = "mom"
-    cvars['COMP_ROF'].value = "srof"
-    cvars['COMP_GLC'].value = "sglc"
-    cvars['COMP_WAV'].value = "ww3"
+    ## Pick a standard compset
+    cvars['COMPSET_ALIAS'].value = "B1850"
 
-    # All COMP_ variables have been set, so the next stage is Component Physics. However,
-    # all the variables in this stage have only a single allowed value, so the Component
-    # Physics stage should be automatically completed. The next stage is Component Options.
-    assert Stage.active().title.startswith('Component Options')
-    cvars['COMP_ATM_OPTION'].value = "JRA"
-    cvars['COMP_ICE_OPTION'].value = "PRES"
+    ## Change of mind, revert and pick a supported compset
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Standard Compsets')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Models to Include')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Support Level')
 
-    # check if COMPSET_LNAME is set to the correct value
-    assert cvars['COMPSET_LNAME'].value == "2000_DATM%JRA_SLND_CICE%PRES_MOM6_SROF_SGLC_WW3"
+    cvars['SUPPORT_LEVEL'].value = 'Supported'
+    cvars['COMPSET_ALIAS'].value = "F2000climo"
 
-    # The remaining COMP_?_OPTIONS variables have single available options only, so all 
-    # COMP_?_OPTIONS variables have been set, so the next stage is Grid:
-    assert Stage.active().title.startswith('2. Grid')
-    cvars['GRID_MODE'].value = 'Standard'
-    assert Stage.active().title.startswith('Standard Grid Selector')
     
 def revert_to_first_stage():
     # Revert back to the first stage
