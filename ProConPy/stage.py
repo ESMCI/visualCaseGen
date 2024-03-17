@@ -46,6 +46,7 @@ class Stage(HasTraits):
         description: str,
         widget=None,
         varlist: list = [],
+        aux_varlist: list = [],
         parent: "Stage" = None,
         activation_guard=None,
         hide_when_inactive=True,
@@ -66,6 +67,9 @@ class Stage(HasTraits):
         varlist : list, optional
             The list of variables to be set in the stage. Guarded stages cannot have
             a variable list. Other stages must have a non-empty variable list.
+        aux_varlist : list, optional
+            The list of auxiliary variables that are not directly set by the user. These 
+            variables are used to track the state of the stage.
         parent : Stage, optional
             The parent stage of the stage.
         activation_guard : optional
@@ -114,6 +118,7 @@ class Stage(HasTraits):
         self._title = title
         self._description = description
         self._varlist = varlist
+        self._aux_varlist = aux_varlist
         self._parent = parent
         self._activation_guard = activation_guard
         self._children = []  # to be appended by the child stage(s) (if any)

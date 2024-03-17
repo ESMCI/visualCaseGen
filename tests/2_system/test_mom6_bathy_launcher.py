@@ -74,12 +74,12 @@ def test_mom6_bathy_launcher():
 
     # Set the custom ocean grid properties
     assert Stage.active().title.startswith('Custom Ocean')
-    cvars['OCN_GRID_EXTENT'].value = "Regional"
-    cvars['OCN_CYCLIC_X'].value = "No"
-    cvars['OCN_NX'].value = 100
-    cvars['OCN_NY'].value = 50
-    cvars['OCN_LENX'].value = 10.0
-    cvars['OCN_LENY'].value = 5.0
+    cvars['OCN_GRID_EXTENT'].value = "Global"
+    cvars['OCN_CYCLIC_X'].value = "Yes"
+    cvars['OCN_NX'].value = 180
+    cvars['OCN_NY'].value = 80
+    cvars['OCN_LENX'].value = 360.0
+    cvars['OCN_LENY'].value = 160.0
     cvars['CUSTOM_OCN_GRID_NAME'].value = "test_grid"
 
     # remove all old mom6_bathy *ipynb files in custom_grid_path:

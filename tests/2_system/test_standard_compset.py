@@ -74,6 +74,8 @@ def configure_standard_compset(cime):
 
     cvars['SUPPORT_LEVEL'].value = 'Supported'
     cvars['COMPSET_ALIAS'].value = "F2000climo"
+    # Check if COMPSET_LNAME is set accordingly:
+    assert cvars['COMPSET_LNAME'].value == '2000_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV'
 
     
 def revert_to_first_stage():

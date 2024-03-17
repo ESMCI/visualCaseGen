@@ -43,49 +43,49 @@ def test_relational_constraints():
 
     # Component selection
 
-    cvars['COMP_ATM'].value = "cam"
+    cvars['CUSTOM_ATM'].value = "cam"
 
     with pytest.raises(ConstraintViolation):
-        cvars['COMP_ICE'].value = "dice"
+        cvars['CUSTOM_ICE'].value = "dice"
 
-    cvars['COMP_LND'].value = "clm"
-    cvars['COMP_ICE'].value = "cice"
+    cvars['CUSTOM_LND'].value = "clm"
+    cvars['CUSTOM_ICE'].value = "cice"
 
-    cvars['COMP_OCN'].value = "socn"
+    cvars['CUSTOM_OCN'].value = "socn"
     with pytest.raises(ConstraintViolation):
-        cvars['COMP_WAV'].value = "ww3"
-    assert cvars['COMP_WAV'].value == None
+        cvars['CUSTOM_WAV'].value = "ww3"
+    assert cvars['CUSTOM_WAV'].value == None
 
-    cvars['COMP_OCN'].value = "mom"
+    cvars['CUSTOM_OCN'].value = "mom"
 
     with pytest.raises(ConstraintViolation):
-        cvars['COMP_WAV'].value = "dwav"
-    assert cvars['COMP_WAV'].value == None
+        cvars['CUSTOM_WAV'].value = "dwav"
+    assert cvars['CUSTOM_WAV'].value == None
 
-    cvars['COMP_ROF'].value = "mosart"
+    cvars['CUSTOM_ROF'].value = "mosart"
     with pytest.raises(ConstraintViolation):
-        cvars['COMP_LND'].value = "slim"
-    assert cvars['COMP_LND'].value == "clm"
+        cvars['CUSTOM_LND'].value = "slim"
+    assert cvars['CUSTOM_LND'].value == "clm"
 
-    cvars['COMP_GLC'].value = "sglc"
-    cvars['COMP_WAV'].value = "ww3"
+    cvars['CUSTOM_GLC'].value = "sglc"
+    cvars['CUSTOM_WAV'].value = "ww3"
 
     # Component physics
     assert Stage.active().title.startswith('Component Physics')
 
-    cvars['COMP_ATM_PHYS'].value = "CAM60"
-    cvars['COMP_LND_PHYS'].value = "CLM50"
+    cvars['CUSTOM_ATM_PHYS'].value = "CAM60"
+    cvars['CUSTOM_LND_PHYS'].value = "CLM50"
 
     # Component options
     assert Stage.active().title.startswith('Component Options')
-    cvars['COMP_ATM_OPTION'].value = "(none)"
+    cvars['CUSTOM_ATM_OPTION'].value = "(none)"
 
     with pytest.raises(ConstraintViolation):
-        cvars['COMP_LND_OPTION'].value = "(none)"
-    cvars['COMP_LND_OPTION'].value = "SP"
+        cvars['CUSTOM_LND_OPTION'].value = "(none)"
+    cvars['CUSTOM_LND_OPTION'].value = "SP"
 
-    cvars['COMP_ICE_OPTION'].value = "(none)"
-    cvars['COMP_ROF_OPTION'].value = "(none)"
+    cvars['CUSTOM_ICE_OPTION'].value = "(none)"
+    cvars['CUSTOM_ROF_OPTION'].value = "(none)"
 
     # Grid
     assert Stage.active().title.startswith('2. Grid')

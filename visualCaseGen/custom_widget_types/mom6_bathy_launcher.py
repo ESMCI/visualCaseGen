@@ -176,7 +176,7 @@ class MOM6BathyLauncher(VBox):
             / f"cice_grid.{custom_ocn_grid_name}_{self.attempt_id}.nc"
         )
         required_files = [mom6_supergrid_file, mom6_topog_file, esmf_mesh_file]
-        if "CICE" in cvars["COMPSET_LNAME"].value:
+        if "CICE" in cvars["COMP_ICE_PHYS"].value:
             required_files.append(cice_grid_file)
 
         for file in required_files:
@@ -225,7 +225,6 @@ class MOM6BathyLauncher(VBox):
         leny = cvars["OCN_LENY"].value
         cyclic_x = cvars["OCN_CYCLIC_X"].value
         ocn_grid_name = cvars["CUSTOM_OCN_GRID_NAME"].value
-        compset_lname = cvars["COMPSET_LNAME"].value
 
         # if custom_grid_path doesn't exist, create it:
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
@@ -324,7 +323,7 @@ class MOM6BathyLauncher(VBox):
             f'bathy.to_topog(f"{custom_ocn_grid_path}/ocean_topog_{ocn_grid_name}_{attempt_id}.nc")\n\n'
         )
 
-        if "CICE" in compset_lname:
+        if "CICE" in cvars["COMP_ICE_PHYS"].value:
             save_files_cmd += (
                 "# Save CICE grid file:\n"
                 f'bathy.to_cice_grid(f"{custom_ocn_grid_path}/cice_grid.{ocn_grid_name}_{attempt_id}.nc")\n\n'

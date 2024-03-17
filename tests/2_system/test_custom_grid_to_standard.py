@@ -41,8 +41,19 @@ def test_custom_compset_configuration():
     cvars['SUPPORT_LEVEL'].value = 'Supported'
     cvars['COMPSET_ALIAS'].value = 'F2000climo'
 
-    # Check that COMPSET_LNAME is auto-set accordingly when COMPSET_ALIAS is set by the user.
-    assert cvars['COMPSET_LNAME'].value == "2000_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV"
+    #Check that COMP_???_PHYS is auto-set accordingly when COMPSET_ALIAS is set by the user.
+    assert cvars['COMP_ATM_PHYS'].value == "CAM60"
+    assert cvars['COMP_LND_PHYS'].value == "CLM50"
+    assert cvars['COMP_ICE_PHYS'].value == "CICE"
+    assert cvars['COMP_OCN_PHYS'].value == "DOCN"
+    assert cvars['COMP_ROF_PHYS'].value == "MOSART"
+    assert cvars['COMP_GLC_PHYS'].value == "SGLC"
+    assert cvars['COMP_WAV_PHYS'].value == "SWAV"
+    # Check that COMP_???_OPTIONs are auto-set accordingly when COMPSET_ALIAS is set by the user.
+    assert cvars['COMP_ATM_OPTION'].value == None
+    assert cvars['COMP_LND_OPTION'].value == "SP"
+    assert cvars['COMP_ICE_OPTION'].value == "PRES"
+    assert cvars['COMP_OCN_OPTION'].value == "DOM"
 
     # (2) Configure the grid
 
@@ -59,3 +70,6 @@ def test_custom_compset_configuration():
     # be added to the solver without first removing the old assignment assertion
     # from self._assignment_assertions. This would cause the solver to fail to find a solution
     # due to conflicting assignment assertions for the same var. 
+
+if __name__ == "__main__":
+    test_custom_compset_configuration()

@@ -17,49 +17,72 @@ def initialize_custom_compset_variables(cime):
     ConfigVarStr("INITTIME")
 
     for comp_class in cime.comp_classes:
-        ConfigVarStr(f"COMP_{comp_class}")
+        ConfigVarStr(f"CUSTOM_{comp_class}")
+        ConfigVarStr(f"CUSTOM_{comp_class}_PHYS")
+        ConfigVarStrMS(f"CUSTOM_{comp_class}_OPTION")
+
+    # The final COMP_???_PHYS and COMP_???_OPTION variables are not directly set by the user.
+    # These are automatically set every time:
+    #   (1) COMPSET_ALIAS is (re-)assigned, or
+    #   (2) Corresponding CUSTOM_???_OPTION variables are (re-)assigned
+    for comp_class in cime.comp_classes:
         ConfigVarStr(f"COMP_{comp_class}_PHYS")
-        ConfigVarStrMS(f"COMP_{comp_class}_OPTION")
+        ConfigVarStr(f"COMP_{comp_class}_OPTION")
 
-    # The auxiliary compset_lname variable is not directly controlled by the user:
-    # it is automatically set every time:
-    # (1) COMPSET_ALIAS is (re-)assigned, or
-    # (2) all COMP_???_OPTION variables are (re-)assigned
-    cv_compset_lname = ConfigVarStr("COMPSET_LNAME")
-    cv_compset_lname.add_rank(-1) # Rank -1 means that the variable is not directly controlled by the user.
-                                  # TODO: double check this is okay.
+    # Auxiliary COMPSET_LNAME is similarly set automatically every time:
+    #   (1) COMPSET_ALIAS is (re-)assigned, or
+    #   (2) Corresponding COMP_???_PHYS or COMP_???_OPTION variables are (re-)assigned 
+    ConfigVarStr("COMPSET_LNAME")
 
-    def compset_lname_updater(change):
-        """Update the value of COMPSET_LNAME variable based on the selected component
-        physics and options. This function is called automatically every time a
-        COMP_???_OPTION variable is changed.
+
+    def on_custom_option_change(change):
+        """Update the value of COMP_???_PHYS and COMP_???_OPTION variables for a given comp_class ???
+        based on the current values of CUSTOM_???_PHYS and CUSTOM_???_OPTION variables.
         """
 
-        if any(
-            cvars[f"COMP_{comp_class}_OPTION"].value == None
-            for comp_class in cime.comp_classes
-        ):
+        comp_class = change["owner"].name.split("_")[1]
+
+        comp_x_option = change["new"]
+        if comp_x_option == None:
+            cvars[f"COMP_{comp_class}_PHYS"].value = None
+            cvars[f"COMP_{comp_class}_OPTION"].value = None
+        else:
+            comp_x_phys = cvars[f"CUSTOM_{comp_class}_PHYS"].value
+            if comp_x_phys == "Specialized":
+                comp_x_phys = "CAM"
+            cvars[f"COMP_{comp_class}_PHYS"].value = comp_x_phys
+            cvars[f"COMP_{comp_class}_OPTION"].value = comp_x_option if comp_x_option != "(none)" else None
+
+
+    def update_compset_lname(change):
+        """Update the value of COMPSET_LNAME based on the current values of COMP_???_PHYS and COMP_???_OPTION variables.
+        This is done every time COMP_???_PHYS or COMP_???_OPTION variables are (re-)assigned."""
+        if cvars["COMPSET_MODE"].value != "Custom":
+            return # When in Standard mode, COMPSET_LNAME is set by another observer
+        if any(cvars[f"COMP_{comp_class}_PHYS"].value == None for comp_class in cime.comp_classes):
             cvars["COMPSET_LNAME"].value = None
         else:
-            new_compset_lname = cvars["INITTIME"].value
+            compset_lname = cvars['INITTIME'].value
             for comp_class in cime.comp_classes:
-                # Component Physics:
-                cv_comp_phys = cvars[f"COMP_{comp_class}_PHYS"]
-                comp_phys_val = cv_comp_phys.value
-                if comp_phys_val == "Specialized":
-                    comp_phys_val = "CAM"
-                new_compset_lname += "_" + comp_phys_val
-                # Component Option (optional)
-                cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
-                comp_option_val = cv_comp_option.value
-                new_compset_lname += "%" + comp_option_val
+                opt = cvars[f'COMP_{comp_class}_OPTION'].value
+                compset_lname += '_'+cvars[f'COMP_{comp_class}_PHYS'].value
+                compset_lname += '%'+opt if opt is not None else ""
+            cvars["COMPSET_LNAME"].value = compset_lname
 
-            new_compset_lname = new_compset_lname.replace("%(none)", "")
-            cvars["COMPSET_LNAME"].value = new_compset_lname
-
+    # Register observers
     for comp_class in cime.comp_classes:
+        cvars[f"CUSTOM_{comp_class}_OPTION"].observe(
+            on_custom_option_change,
+            names="value",
+            type="change",
+        )
+        cvars[f"COMP_{comp_class}_PHYS"].observe(
+            update_compset_lname,
+            names="value",
+            type="change",
+        )
         cvars[f"COMP_{comp_class}_OPTION"].observe(
-            compset_lname_updater,
+            update_compset_lname,
             names="value",
             type="change",
         )

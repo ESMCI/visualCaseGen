@@ -178,6 +178,8 @@ class CspSolver:
         # set the ranks of the variables
         for var in stage._varlist:
             var.add_rank(stage.rank)
+        for var in stage._aux_varlist:
+            var.add_rank(stage.rank)
 
         # flag variables that appear in guards
         if stage.is_guarded():

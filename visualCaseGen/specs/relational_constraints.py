@@ -1,4 +1,4 @@
-from z3 import Implies, And, Or, Not, Contains
+from z3 import Implies, And, Or, Not, Contains, PrefixOf
 from ProConPy.csp_utils import In
 
 def get_relational_constraints(cvars):
@@ -9,101 +9,105 @@ def get_relational_constraints(cvars):
     # references to ConfigVars appearing in relational constraints
     INITTIME = cvars['INITTIME']
     COMPSET_MODE = cvars['COMPSET_MODE']
-    COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
-    COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
-    COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_PHYS = cvars['COMP_ICE_PHYS'];  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
-    COMP_OCN = cvars['COMP_OCN'];  COMP_OCN_PHYS = cvars['COMP_OCN_PHYS'];  COMP_OCN_OPTION = cvars['COMP_OCN_OPTION']
-    COMP_ROF = cvars['COMP_ROF'];  COMP_ROF_PHYS = cvars['COMP_ROF_PHYS'];  COMP_ROF_OPTION = cvars['COMP_ROF_OPTION']
-    COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_PHYS = cvars['COMP_GLC_PHYS'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
-    COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
-    COMPSET_LNAME = cvars['COMPSET_LNAME']
+    CUSTOM_ATM = cvars['CUSTOM_ATM'];  CUSTOM_ATM_PHYS = cvars['CUSTOM_ATM_PHYS'];  CUSTOM_ATM_OPTION = cvars['CUSTOM_ATM_OPTION']
+    CUSTOM_LND = cvars['CUSTOM_LND'];  CUSTOM_LND_PHYS = cvars['CUSTOM_LND_PHYS'];  CUSTOM_LND_OPTION = cvars['CUSTOM_LND_OPTION']
+    CUSTOM_ICE = cvars['CUSTOM_ICE'];  CUSTOM_ICE_PHYS = cvars['CUSTOM_ICE_PHYS'];  CUSTOM_ICE_OPTION = cvars['CUSTOM_ICE_OPTION']
+    CUSTOM_OCN = cvars['CUSTOM_OCN'];  CUSTOM_OCN_PHYS = cvars['CUSTOM_OCN_PHYS'];  CUSTOM_OCN_OPTION = cvars['CUSTOM_OCN_OPTION']
+    CUSTOM_ROF = cvars['CUSTOM_ROF'];  CUSTOM_ROF_PHYS = cvars['CUSTOM_ROF_PHYS'];  CUSTOM_ROF_OPTION = cvars['CUSTOM_ROF_OPTION']
+    CUSTOM_GLC = cvars['CUSTOM_GLC'];  CUSTOM_GLC_PHYS = cvars['CUSTOM_GLC_PHYS'];  CUSTOM_GLC_OPTION = cvars['CUSTOM_GLC_OPTION']
+    CUSTOM_WAV = cvars['CUSTOM_WAV'];  CUSTOM_WAV_PHYS = cvars['CUSTOM_WAV_PHYS'];  CUSTOM_WAV_OPTION = cvars['CUSTOM_WAV_OPTION']
+    COMP_ATM_PHYS = cvars['COMP_ATM_PHYS']
+    COMP_LND_PHYS = cvars['COMP_LND_PHYS']
+    COMP_ICE_PHYS = cvars['COMP_ICE_PHYS']
+    COMP_OCN_PHYS = cvars['COMP_OCN_PHYS']
+    COMP_ROF_PHYS = cvars['COMP_ROF_PHYS']
+    COMP_GLC_PHYS = cvars['COMP_GLC_PHYS']
+    COMP_WAV_PHYS = cvars['COMP_WAV_PHYS']
     GRID_MODE = cvars['COMPSET_MODE']
-    OCN_GRID_MODE = cvars['OCN_GRID_MODE']
     ATM_GRID = cvars['ATM_GRID']
     OCN_GRID = cvars['OCN_GRID']
     WAV_GRID = cvars['WAV_GRID']
-    OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']
+    OCN_GRID_MODE = cvars['OCN_GRID_MODE']; OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
-    OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
     return {
 
-        Not(And(COMP_ATM=="satm", COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")) :
+        Not(And(CUSTOM_ATM=="satm", CUSTOM_LND=="slnd", CUSTOM_ICE=="sice", CUSTOM_OCN=="socn", CUSTOM_ROF=="srof", CUSTOM_GLC=="sglc", CUSTOM_WAV=="swav")) :
             "At least one component must be an active or a data model",
 
-        Implies(COMP_OCN=="mom", COMP_WAV!="dwav") :
+        Implies(CUSTOM_OCN=="mom", CUSTOM_WAV!="dwav") :
             "MOM6 cannot be coupled with data wave component.",
 
-        Implies(COMP_ATM=="cam", COMP_ICE!="dice") :
+        Implies(CUSTOM_ATM=="cam", CUSTOM_ICE!="dice") :
             "CAM cannot be coupled with Data ICE.",
 
-        Implies(COMP_WAV=="ww3", In(COMP_OCN, ["mom", "pop"])) :
+        Implies(CUSTOM_WAV=="ww3", In(CUSTOM_OCN, ["mom", "pop"])) :
             "WW3 can only be selected if either POP2 or MOM6 is the ocean component.",
 
-        Implies(Or(COMP_ROF=="rtm", COMP_ROF=="mosart"), COMP_LND=='clm') :
+        Implies(Or(CUSTOM_ROF=="rtm", CUSTOM_ROF=="mosart"), CUSTOM_LND=='clm') :
             "RTM or MOSART can only be selected if CLM is the land component.",
 
-        Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
+        Implies(And(In(CUSTOM_OCN, ["pop", "mom"]), CUSTOM_ATM=="datm"), CUSTOM_LND=="slnd") :
             "When MOM|POP is coupled with data atmosphere (datm), LND component must be stub (slnd).",
 
-        Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
+        Implies(And(CUSTOM_ATM=="datm", CUSTOM_LND=="clm"), And(CUSTOM_ICE=="sice", CUSTOM_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
 
-        Implies(In(COMP_OCN, ["mom", "pop"]), COMP_ATM!="satm") :
+        Implies(In(CUSTOM_OCN, ["mom", "pop"]), CUSTOM_ATM!="satm") :
             "If the ocean component is active, then the atmosphere component cannot be made stub.",
         
-        Implies(COMP_OCN_PHYS=="DOCN", COMP_OCN_OPTION != "(none)"):
+        Implies(CUSTOM_OCN_PHYS=="DOCN", CUSTOM_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",
 
-        Implies(COMP_ICE_PHYS=="DICE", COMP_ICE_OPTION != "(none)"):
+        Implies(CUSTOM_ICE_PHYS=="DICE", CUSTOM_ICE_OPTION != "(none)"):
             "Must pick a valid DICE option.",
 
-        Implies(COMP_ATM_PHYS=="DATM", COMP_ATM_OPTION != "(none)"):
+        Implies(CUSTOM_ATM_PHYS=="DATM", CUSTOM_ATM_OPTION != "(none)"):
             "Must pick a valid DATM option.",
 
-        Implies(COMP_ROF_PHYS=="DROF", COMP_ROF_OPTION != "(none)"):
+        Implies(CUSTOM_ROF_PHYS=="DROF", CUSTOM_ROF_OPTION != "(none)"):
             "Must pick a valid DROF option.",
 
-        Implies(COMP_WAV_PHYS=="DWAV", COMP_WAV_OPTION != "(none)"):
+        Implies(CUSTOM_WAV_PHYS=="DWAV", CUSTOM_WAV_OPTION != "(none)"):
             "Must pick a valid DWAV option.",
 
-        Implies(In(COMP_LND, ["clm", "dlnd"]), COMP_LND_OPTION != "(none)"):
+        Implies(In(CUSTOM_LND, ["clm", "dlnd"]), CUSTOM_LND_OPTION != "(none)"):
             "Must pick a valid LND option.",
 
-        Implies(COMP_GLC=="cism", COMP_GLC_OPTION != "(none)"):
+        Implies(CUSTOM_GLC=="cism", CUSTOM_GLC_OPTION != "(none)"):
             "Must pick a valid GLC option.",
 
-        Implies( Not(And(COMP_LND=="slnd", COMP_ICE=="sice", COMP_OCN=="socn", COMP_ROF=="srof", COMP_GLC=="sglc", COMP_WAV=="swav")),
-                Not(In(COMP_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
+        Implies( Not(And(CUSTOM_LND=="slnd", CUSTOM_ICE=="sice", CUSTOM_OCN=="socn", CUSTOM_ROF=="srof", CUSTOM_GLC=="sglc", CUSTOM_WAV=="swav")),
+                Not(In(CUSTOM_ATM_OPTION, ["ADIAB", "DABIP04", "TJ16", "HS94", "KESSLER"])) ):
             "Simple CAM physics options can only be picked if all other components are stub.",
 
-        Implies(Contains(COMPSET_LNAME, "MOM6"), In(OCN_GRID, ["tx2_3v2", "tx0.66v1", "gx1v6", "tx0.25v1"])):
+        Implies(COMP_OCN_PHYS=="MOM6", In(OCN_GRID, ["tx2_3v2", "tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
 
-        Implies(Contains(COMPSET_LNAME, "POP"), In(OCN_GRID, ["gx1v6", "gx1v7", "gx3v7", "tx0.1v2", "tx0.1v3", "tx1v1"])):
+        Implies(COMP_OCN_PHYS=="POP2", In(OCN_GRID, ["gx1v6", "gx1v7", "gx3v7", "tx0.1v2", "tx0.1v3", "tx1v1"])):
             "Not a valid POP2 grid.",
 
-        Implies(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):
+        Implies(Contains(CUSTOM_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):
             "When in aquaplanet mode, the ocean grid must be set to f09, f19, or f45",
 
-        Implies(COMP_OCN!="mom", WAV_GRID != "wtx0.66v1"):
+        Implies(CUSTOM_OCN!="mom", WAV_GRID != "wtx0.66v1"):
             "wt066v1 wave grid is for MOM6 coupling only",
 
-        Implies(COMP_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
+        Implies(CUSTOM_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
         
         # mom6_bathy-related constraints
 
-        Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
+        Implies (And(CUSTOM_LND=="slnd", CUSTOM_ICE=="sice"), Or(CUSTOM_OCN!="mom", OCN_GRID_EXTENT!="Global")):
              "LND or ICE must be present to hide Global MOM6 grid poles.",
 
-        #todo Implies(Not(Or(Contains(COMPSET_LNAME, "MOM6"), Contains(COMPSET_LNAME, "CLM"))), GRID_MODE!="Custom"):
-        #todo     "Custom grids can only be generated when MOM6 or CLM are selected.",
+        Implies(And(COMP_OCN_PHYS != "MOM6", COMP_LND_PHYS!="CLM"), GRID_MODE!="Custom"):
+            "Custom grids can only be generated when MOM6 or CLM are selected.",
 
-        #todo Implies(Not(Contains(COMPSET_LNAME, "MOM6")), OCN_GRID_MODE=="Standard"):
-        #todo     "Custom OCN grids can only be generated for MOM6.",
+        Implies(COMP_OCN_PHYS!="MOM6", OCN_GRID_MODE=="Standard"):
+            "Custom OCN grids can only be generated for MOM6.",
     
         #todo OCN_GRID_MODE!="Modify Existing":
         #todo     "This feature (Modify Existing) not implemented yet.",
@@ -114,11 +118,11 @@ def get_relational_constraints(cvars):
         And(OCN_NX<10000, OCN_NY<10000):
             "MOM6 grid dimensions too big.",
         
-        Implies(OCN_GRID_EXTENT=="Regional", Contains(COMPSET_LNAME, "SWAV")):
+        Implies(OCN_GRID_EXTENT=="Regional", COMP_WAV_PHYS=="SWAV"):
             "A regional ocean model cannot be coupled with a wave component.",
 
-        #todo Implies(OCN_GRID_EXTENT=="Regional", Contains(COMPSET_LNAME, "SICE")):
-        #todo     "A regional ocean model cannot be coupled with an ice component.",
+        Implies(OCN_GRID_EXTENT=="Regional", COMP_ICE_PHYS=="SICE"):
+           "A regional ocean model cannot be coupled with an ice component.",
 
         Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="No"):
             "Regional ocean domain cannot be reentrant (due to an ESMF limitation.)",
@@ -134,10 +138,10 @@ def get_relational_constraints(cvars):
 
         #### Assertions to stress-test the CSP solver
 
-        ### Implies(COMP_OCN=="docn", COMP_LND_PHYS!="DLND") : "FOO",
+        ### Implies(CUSTOM_OCN=="docn", CUSTOM_LND_PHYS!="DLND") : "FOO",
 
-        ### Implies(COMP_OCN=="docn", COMP_ATM_PHYS!="CAM60") : "BAR",
+        ### Implies(CUSTOM_OCN=="docn", CUSTOM_ATM_PHYS!="CAM60") : "BAR",
 
-        ### Not(In(COMP_LND_PHYS, ['CLM45', 'CLM50'])) : "BAZ",
+        ### Not(In(CUSTOM_LND_PHYS, ['CLM45', 'CLM50'])) : "BAZ",
 
     }
