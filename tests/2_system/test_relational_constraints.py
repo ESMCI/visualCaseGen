@@ -43,49 +43,49 @@ def test_relational_constraints():
 
     # Component selection
 
-    cvars['CUSTOM_ATM'].value = "cam"
+    cvars['COMP_ATM'].value = "cam"
 
     with pytest.raises(ConstraintViolation):
-        cvars['CUSTOM_ICE'].value = "dice"
+        cvars['COMP_ICE'].value = "dice"
 
-    cvars['CUSTOM_LND'].value = "clm"
-    cvars['CUSTOM_ICE'].value = "cice"
+    cvars['COMP_LND'].value = "clm"
+    cvars['COMP_ICE'].value = "cice"
 
-    cvars['CUSTOM_OCN'].value = "socn"
+    cvars['COMP_OCN'].value = "socn"
     with pytest.raises(ConstraintViolation):
-        cvars['CUSTOM_WAV'].value = "ww3"
-    assert cvars['CUSTOM_WAV'].value == None
+        cvars['COMP_WAV'].value = "ww3"
+    assert cvars['COMP_WAV'].value == None
 
-    cvars['CUSTOM_OCN'].value = "mom"
+    cvars['COMP_OCN'].value = "mom"
 
     with pytest.raises(ConstraintViolation):
-        cvars['CUSTOM_WAV'].value = "dwav"
-    assert cvars['CUSTOM_WAV'].value == None
+        cvars['COMP_WAV'].value = "dwav"
+    assert cvars['COMP_WAV'].value == None
 
-    cvars['CUSTOM_ROF'].value = "mosart"
+    cvars['COMP_ROF'].value = "mosart"
     with pytest.raises(ConstraintViolation):
-        cvars['CUSTOM_LND'].value = "slim"
-    assert cvars['CUSTOM_LND'].value == "clm"
+        cvars['COMP_LND'].value = "slim"
+    assert cvars['COMP_LND'].value == "clm"
 
-    cvars['CUSTOM_GLC'].value = "sglc"
-    cvars['CUSTOM_WAV'].value = "ww3"
+    cvars['COMP_GLC'].value = "sglc"
+    cvars['COMP_WAV'].value = "ww3"
 
     # Component physics
     assert Stage.active().title.startswith('Component Physics')
 
-    cvars['CUSTOM_ATM_PHYS'].value = "CAM60"
-    cvars['CUSTOM_LND_PHYS'].value = "CLM50"
+    cvars['COMP_ATM_PHYS'].value = "CAM60"
+    cvars['COMP_LND_PHYS'].value = "CLM50"
 
     # Component options
     assert Stage.active().title.startswith('Component Options')
-    cvars['CUSTOM_ATM_OPTION'].value = "(none)"
+    cvars['COMP_ATM_OPTION'].value = "(none)"
 
     with pytest.raises(ConstraintViolation):
-        cvars['CUSTOM_LND_OPTION'].value = "(none)"
-    cvars['CUSTOM_LND_OPTION'].value = "SP"
+        cvars['COMP_LND_OPTION'].value = "(none)"
+    cvars['COMP_LND_OPTION'].value = "SP"
 
-    cvars['CUSTOM_ICE_OPTION'].value = "(none)"
-    cvars['CUSTOM_ROF_OPTION'].value = "(none)"
+    cvars['COMP_ICE_OPTION'].value = "(none)"
+    cvars['COMP_ROF_OPTION'].value = "(none)"
 
     # Grid
     assert Stage.active().title.startswith('2. Grid')
@@ -121,5 +121,31 @@ def test_relational_constraints():
     elapsed = time.time() - start
     print(f"Elapsed time: {elapsed:.3f}")
 
+
+def test_multiple_reasons():
+    """Check if the csp solver can catch constraint violation due to combinations of multiple reasons."""
+
+    ConfigVar.reboot()
+    Stage.reboot()
+    cime = CIME_interface()
+    initialize_configvars(cime)
+    initialize_widgets(cime) 
+    initialize_stages(cime) 
+    set_options(cime)
+    csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
+
+    cvars['COMP_LND'].value = "slnd"
+    cvars['COMP_ICE'].value = "sice"
+    cvars['COMP_OCN'].value = "mom"
+
+    with pytest.raises(ConstraintViolation) as exc_info:
+        cvars['COMP_WAV'].value = "ww3"
+    err_msg = str(exc_info.value)
+    assert "LND or ICE must be present to hide Global MOM6 grid poles." in err_msg
+    assert "A regional ocean model cannot be coupled with a wave component." in err_msg
+    cvars['COMP_WAV'].value = "swav"
+
 if __name__ == "__main__":
     test_relational_constraints()
+    test_multiple_reasons()
+

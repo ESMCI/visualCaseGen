@@ -66,7 +66,11 @@ class ConfigVarStr(ConfigVar, SeqRef):
         elif self.has_options():
             self._widget.value = self._valid_opt_char + " " + self.value
         else:
-            self._widget.value = self.value
+            if self.is_aux_var is True:
+                # No need to update widget values of aux vars
+                self._widget.value = self._widget_none_val  
+            else:
+                self._widget.value = self.value
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):

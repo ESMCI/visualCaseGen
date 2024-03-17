@@ -127,22 +127,30 @@ def set_custom_compset_options(cime):
     cv_inittime.tooltips = ["Pre-industrial", "Present day", "Historical"]
 
     for comp_class in cime.comp_classes:
-        cv_comp = cvars[f"CUSTOM_{comp_class}"]
+        cv_comp = cvars[f"COMP_{comp_class}"]
         cv_comp.options = [
             model for model in cime.models[comp_class] if model[0] != "x"
         ]
 
-        cv_comp_phys = cvars[f"CUSTOM_{comp_class}_PHYS"]
+        cv_comp_phys = cvars[f"COMP_{comp_class}_PHYS"]
         cv_comp_phys.options_spec = OptionsSpec(
-            func=lambda model: (cime.comp_phys[model], cime.comp_phys_desc[model]),
+            func=lambda model: (
+                (cime.comp_phys[model], cime.comp_phys_desc[model])
+                if cvars["COMPSET_MODE"].value == "Custom"
+                else (None, None)
+            ),
             args=(cv_comp,),
         )
 
-        cv_comp_option = cvars[f"CUSTOM_{comp_class}_OPTION"]
+        cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
         cv_comp_option.options_spec = OptionsSpec(
             func=lambda phys: (
-                ["(none)"] + cime.comp_options[phys],
-                ["no modifiers"] + cime.comp_options_desc[phys],
+                (
+                    ["(none)"] + cime.comp_options[phys],
+                    ["no modifiers"] + cime.comp_options_desc[phys],
+                )
+                if cvars["COMPSET_MODE"].value == "Custom"
+                else (None, None)
             ),
             args=(cv_comp_phys,),
         )
@@ -153,7 +161,7 @@ def set_standard_grid_options(cime):
     def grid_options_func(compset_lname, grid_mode):
 
         if grid_mode != "Standard":
-            return ['unset'], ['unset']
+            return None, None
 
         compatible_grids = []
         grid_descriptions = []
@@ -203,36 +211,62 @@ def set_standard_grid_options(cime):
         func=grid_options_func, args=([cvars[f"COMPSET_LNAME"], cvars["GRID_MODE"]])
     )
 
+
 def set_custom_grid_options(cime):
 
     cv_custom_atm_grid = cvars["CUSTOM_ATM_GRID"]
-    cv_custom_atm_grid.options = ["T62", "TL319", "0.9x1.25", "1.9x2.5", "4x5", "ne30np4", "ne60np4", "ne120np4"]
-    cv_custom_atm_grid.tooltips = ["T62 Gaussian Grid", "JRA55 datm grid", "FV 1-deg grid", "FV 2-deg grid", "FV 4-deg grid", "Spectral Elem 1-deg grid", "Spectral Elem 1/2-deg grid", "Spectral Elem 1/4-deg grid"]
+    cv_custom_atm_grid.options = [
+        "T62",
+        "TL319",
+        "0.9x1.25",
+        "1.9x2.5",
+        "4x5",
+        "ne30np4",
+        "ne60np4",
+        "ne120np4",
+    ]
+    cv_custom_atm_grid.tooltips = [
+        "T62 Gaussian Grid",
+        "JRA55 datm grid",
+        "FV 1-deg grid",
+        "FV 2-deg grid",
+        "FV 4-deg grid",
+        "Spectral Elem 1-deg grid",
+        "Spectral Elem 1/2-deg grid",
+        "Spectral Elem 1/4-deg grid",
+    ]
 
     cv_custom_ocn_grid_mode = cvars["OCN_GRID_MODE"]
     cv_custom_ocn_grid_mode.options = ["Standard", "Modify Existing", "Create New"]
-    cv_custom_ocn_grid_mode.tooltips = ["Select from a list of existing MOM6 grids", "Modify an existing MOM6 grid", "Construct a new custom MOM6 grid"]
+    cv_custom_ocn_grid_mode.tooltips = [
+        "Select from a list of existing MOM6 grids",
+        "Modify an existing MOM6 grid",
+        "Construct a new custom MOM6 grid",
+    ]
 
     def custom_ocn_grid_options_func(comp_ocn_phys, custom_atm_grid):
 
-        if  comp_ocn_phys == "DOCN":
-            return [custom_atm_grid], ["(When DOCN is selected, custom OCN grid is automatically set to ATM grid.)"]
+        if comp_ocn_phys == "DOCN":
+            return [custom_atm_grid], [
+                "(When DOCN is selected, custom OCN grid is automatically set to ATM grid.)"
+            ]
         else:
             compatible_ocn_grids = []
             descriptions = []
-            for ocn_grid in cime.component_grids['ocnice']:
+            for ocn_grid in cime.component_grids["ocnice"]:
                 try:
                     csp.check_assignment(cvars["OCN_GRID"], ocn_grid)
                 except ConstraintViolation:
                     continue
                 compatible_ocn_grids.append(ocn_grid)
                 descriptions.append(cime.domains_desc.get(ocn_grid) or "")
-            
+
             return compatible_ocn_grids, descriptions
-    
+
     cv_custom_ocn_grid = cvars["CUSTOM_OCN_GRID"]
     cv_custom_ocn_grid.options_spec = OptionsSpec(
-        func=custom_ocn_grid_options_func, args=(cvars["COMP_OCN_PHYS"], cvars["CUSTOM_ATM_GRID"])
+        func=custom_ocn_grid_options_func,
+        args=(cvars["COMP_OCN_PHYS"], cvars["CUSTOM_ATM_GRID"]),
     )
 
     cv_ocn_grid_extent = cvars["OCN_GRID_EXTENT"]
@@ -246,5 +280,5 @@ def set_custom_grid_options(cime):
 
 def set_launcher_options(cime):
 
-    cv_machine = cvars['MACHINE']
+    cv_machine = cvars["MACHINE"]
     cv_machine.options = cime.machines

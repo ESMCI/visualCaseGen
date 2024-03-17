@@ -54,11 +54,14 @@ class OptionsSpec:
         options, tooltips = self._func(*[arg.value for arg in self._args])
 
         # options must be a list of tuple
-        assert isinstance(options, (list, tuple)), "options must be a list or tuple"
+        if options is not None:
+            assert isinstance(options, (list, tuple)), "options must be a list or tuple"
 
-        if tooltips is not None:
-            assert isinstance(tooltips, (list, tuple)), "tooltips must be a list or tuple"
-            #todo:uncomment assert len(options) == len(tooltips), "options and tooltips must have the same length"
+            if tooltips is not None:
+                assert isinstance(tooltips, (list, tuple)), "tooltips must be a list or tuple"
+                #todo:uncomment assert len(options) == len(tooltips), "options and tooltips must have the same length"
+        else:
+            assert tooltips is None, "options must be None if tooltips is None"
         
         return options, tooltips
         

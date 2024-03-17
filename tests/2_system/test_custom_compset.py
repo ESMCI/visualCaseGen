@@ -63,45 +63,33 @@ def configure_custom_compset():
 
     # Set components
     assert Stage.active().title.startswith('Components')
-    cvars['CUSTOM_ATM'].value = "datm"
-    cvars['CUSTOM_LND'].value = "slnd"
-    cvars['CUSTOM_ICE'].value = "cice"
+    cvars['COMP_ATM'].value = "datm"
+    cvars['COMP_LND'].value = "slnd"
+    cvars['COMP_ICE'].value = "cice"
     
     # Meanwhile, attempt to set a value that violates a constraint, and confirm that
     # the value is set back to the previous value after the exception is raised.
     with pytest.raises(ConstraintViolation):
-        cvars['CUSTOM_LND'].value = "clm"
-    assert cvars['CUSTOM_LND'].value == "slnd"
+        cvars['COMP_LND'].value = "clm"
+    assert cvars['COMP_LND'].value == "slnd"
 
-    cvars['CUSTOM_OCN'].value = "mom"
-    cvars['CUSTOM_ROF'].value = "srof"
-    cvars['CUSTOM_GLC'].value = "sglc"
-    cvars['CUSTOM_WAV'].value = "ww3"
+    cvars['COMP_OCN'].value = "mom"
+    cvars['COMP_ROF'].value = "srof"
+    cvars['COMP_GLC'].value = "sglc"
+    cvars['COMP_WAV'].value = "ww3"
 
-    # All CUSTOM_ variables have been set, so the next stage is Component Physics. However,
+    # All COMP_ variables have been set, so the next stage is Component Physics. However,
     # all the variables in this stage have only a single allowed value, so the Component
     # Physics stage should be automatically completed. The next stage is Component Options.
     assert Stage.active().title.startswith('Component Options')
-    cvars['CUSTOM_ATM_OPTION'].value = "JRA"
-    cvars['CUSTOM_ICE_OPTION'].value = "PRES"
+    cvars['COMP_ATM_OPTION'].value = "JRA"
+    cvars['COMP_ICE_OPTION'].value = "PRES"
 
-    # check if COMP_???_PHYS are set to the correct values
-    assert cvars['COMP_ATM_PHYS'].value == "DATM"
-    assert cvars['COMP_LND_PHYS'].value == "SLND"
-    assert cvars['COMP_ICE_PHYS'].value == "CICE"
-    assert cvars['COMP_OCN_PHYS'].value == "MOM6"
-    assert cvars['COMP_ROF_PHYS'].value == "SROF"
-    assert cvars['COMP_GLC_PHYS'].value == "SGLC"
-    assert cvars['COMP_WAV_PHYS'].value == "WW3"
-    # check if COMP_???_OPTION are set to the correct values
-    assert cvars['COMP_ATM_OPTION'].value == "JRA"
-    assert cvars['COMP_ICE_OPTION'].value == "PRES"
-    assert cvars['COMP_OCN_OPTION'].value == None
     # check if COMPSET_LNAME is set to the correct value
     assert cvars['COMPSET_LNAME'].value == "2000_DATM%JRA_SLND_CICE%PRES_MOM6_SROF_SGLC_WW3"
 
-    # The remaining CUSTOM_?_OPTIONS variables have single available options only, so all 
-    # CUSTOM_?_OPTIONS variables have been set, so the next stage is Grid:
+    # The remaining COMP_?_OPTIONS variables have single available options only, so all 
+    # COMP_?_OPTIONS variables have been set, so the next stage is Grid:
     assert Stage.active().title.startswith('2. Grid')
     cvars['GRID_MODE'].value = 'Standard'
     assert Stage.active().title.startswith('Standard Grid Selector')

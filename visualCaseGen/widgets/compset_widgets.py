@@ -53,21 +53,21 @@ def initialize_compset_widgets(cime):
 
     for comp_class in cime.comp_classes:
 
-        cv_comp = cvars[f"CUSTOM_{comp_class}"]
+        cv_comp = cvars[f"COMP_{comp_class}"]
         cv_comp.widget = widgets.ToggleButtons(
             description=f'{chr(int("2000",base=16))*5}{chr(int("25BC",base=16))} {comp_class}',
             layout={"width": "120px"},  # , 'max_height':'145px'},
             style={"button_width": "105px", "description_width": "0px"},
         )
 
-        cv_comp_phys = cvars[f"CUSTOM_{comp_class}_PHYS"]
+        cv_comp_phys = cvars[f"COMP_{comp_class}_PHYS"]
         cv_comp_phys.widget = widgets.ToggleButtons(
             description=f'{chr(int("2000",base=16))*5}{chr(int("25BC",base=16))} {comp_class}',
             layout={"width": "120px"},  # , 'max_height':'145px'},
             style={"button_width": "105px", "description_width": "90px"},
         )
 
-        cv_comp_option = cvars[f"CUSTOM_{comp_class}_OPTION"]
+        cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
         cv_comp_option.widget = MultiCheckbox(
             description=comp_class + ":",
             allow_multi_select=True

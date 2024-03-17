@@ -10,6 +10,7 @@ from ProConPy.csp_solver import csp
 from ProConPy.out_handler import handler as owh
 from ProConPy.dev_utils import DEBUG
 from ProConPy.stage_stat import StageStat
+from ProConPy.stage_rank import StageRank
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -126,7 +127,7 @@ class Stage(HasTraits):
         self._auto_proceed = auto_proceed
         self._auto_set_default_value = auto_set_default_value
         self._auto_set_valid_option = auto_set_valid_option
-        self._rank = None # to be set by the csp solver
+        self._rank = StageRank(None) # to be set by the csp solver
 
         if self.is_guarded():
             assert (
@@ -232,15 +233,15 @@ class Stage(HasTraits):
     @property
     def rank(self):
         if self.is_first():
-            return 0
+            return StageRank(0)
         return self._rank
     
     @rank.setter
-    def rank(self, value):
-        assert self._rank is None, "The rank of the stage is already set."
-        assert isinstance(value, int), "The rank must be an integer."
-        assert not self.is_first() or value == 0, "The rank of the first stage must be 0."
-        self._rank = value
+    def rank(self, new_rank):
+        assert self._rank.is_none(), "The rank of the stage is already set."
+        assert isinstance(new_rank, StageRank), "The rank must be an integer."
+        assert not self.is_first() or new_rank == StageRank(0), "The rank of the first stage must be 0."
+        self._rank = new_rank
 
     def check_for_cyclic_relations(self):
         # TODO: Implement a check for cyclic relations, probably in the CSP module and not here.
@@ -399,13 +400,6 @@ class Stage(HasTraits):
                 self.status = StageStat.SEALED if self._disabled else StageStat.COMPLETE
         else:
             self.status = StageStat.INACTIVE if self._disabled else StageStat.FRESH
-        #if any([var.value is None for var in self._varlist]):
-        #    if all([var.value is None for var in self._varlist]):
-        #        self.status = StageStat.INACTIVE if self._disabled else StageStat.FRESH
-        #    else:
-        #        self.status = StageStat.INACTIVE if self._disabled else StageStat.PARTIAL
-        #else:
-        #    self.status = StageStat.SEALED if self._disabled else StageStat.COMPLETE
 
     def _disable(self):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
@@ -417,6 +411,13 @@ class Stage(HasTraits):
 
         self._disabled = True
         self.refresh_status()
+
+        # Reset the rank of the variables in the stage
+        if self.status != StageStat.COMPLETE and self.status != StageStat.SEALED:
+            for var in self._varlist:
+                var.rank = StageRank(None)
+            for var in self._aux_varlist:
+                var.rank = StageRank(None)
 
     @owh.out.capture()
     def _enable(self):
@@ -433,6 +434,12 @@ class Stage(HasTraits):
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._proceed()
+        
+        # Set the rank of the variables in the stage
+        for var in self._varlist:
+            var.rank = self.rank
+        for var in self._aux_varlist:
+            var.rank = self.rank
         
         # If a default vaulue is assigned, set the value of the ConfigVar to the default value
         # Otherwise, set the value of the ConfigVar to the valid option if there is only one.

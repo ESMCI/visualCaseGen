@@ -78,13 +78,11 @@ def initialize_compset_stages(cime):
         varlist=[
             cvars["COMPSET_ALIAS"],
         ],
-        #todo aux_varlist= [
-        #todo     cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes
-        #todo ]+[cvars["COMPSET_LNAME"]],
-        # uncommenting above lines currently result in Variable precedence conflict because these variables are
-        # also designated as aux_varlist in stg_comp_option. However, there should not be any precedence conflict
-        # because standard compset and custom compset tracks are not overlapping. When checking for precedence
-        # conflicts, the code should check for precedence conflicts for each branch of the stage tree seperately.
+        aux_varlist=
+            [cvars[f"COMP_{comp_class}"] for comp_class in cime.comp_classes]+
+            [cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes]+
+            [cvars[f"COMP_{comp_class}_OPTION"] for comp_class in cime.comp_classes]+
+            [cvars["COMPSET_LNAME"]]
     )
 
     stg_support_level_sci = Stage(
@@ -106,6 +104,11 @@ def initialize_compset_stages(cime):
         varlist=[
             cvars["COMPSET_ALIAS"],
         ],
+        aux_varlist=
+            [cvars[f"COMP_{comp_class}"] for comp_class in cime.comp_classes]+
+            [cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes]+
+            [cvars[f"COMP_{comp_class}_OPTION"] for comp_class in cime.comp_classes]+
+            [cvars["COMPSET_LNAME"]]
     )
 
     # Custom Component Set Stages
@@ -138,7 +141,7 @@ def initialize_compset_stages(cime):
         "are fully active models.",
         widget=StageWidget(HBox),
         parent=stg_custom_compset,
-        varlist=[cvars[f"CUSTOM_{comp_class}"] for comp_class in cime.comp_classes],
+        varlist=[cvars[f"COMP_{comp_class}"] for comp_class in cime.comp_classes],
     )
 
     stg_comp_phys = Stage(
@@ -148,7 +151,7 @@ def initialize_compset_stages(cime):
         "Refer to individual model documentations for more information.",
         widget=StageWidget(HBox),
         parent=stg_custom_compset,
-        varlist=[cvars[f"CUSTOM_{comp_class}_PHYS"] for comp_class in cime.comp_classes],
+        varlist=[cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes],
     )
 
     stg_comp_option = Stage(
@@ -162,11 +165,9 @@ def initialize_compset_stages(cime):
         widget=StageWidget(Tab),
         parent=stg_custom_compset,
         varlist=[
-            cvars[f"CUSTOM_{comp_class}_OPTION"] for comp_class in cime.comp_classes
+            cvars[f"COMP_{comp_class}_OPTION"] for comp_class in cime.comp_classes
         ],
-        aux_varlist= [
-            cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes
-        ]+[cvars["COMPSET_LNAME"]],
+        aux_varlist= [cvars["COMPSET_LNAME"]],
     )
 
     comp_class_ix = {comp_class: i for i, comp_class in enumerate(cime.comp_classes)}
@@ -185,11 +186,11 @@ def initialize_compset_stages(cime):
     for comp_class in cime.comp_classes:
         refresh_comp_options_tab_title(
             {
-                "owner": cvars[f"CUSTOM_{comp_class}_OPTION"],
-                "new": cvars[f"CUSTOM_{comp_class}_OPTION"].value,
+                "owner": cvars[f"COMP_{comp_class}_OPTION"],
+                "new": cvars[f"COMP_{comp_class}_OPTION"].value,
             }
         )
-        cv_comp_option = cvars[f"CUSTOM_{comp_class}_OPTION"]
+        cv_comp_option = cvars[f"COMP_{comp_class}_OPTION"]
         cv_comp_option.observe(
             refresh_comp_options_tab_title, names="value", type="change"
         )

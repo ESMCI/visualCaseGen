@@ -5,6 +5,7 @@ from z3 import BoolRef
 from z3 import z3util
 
 from ProConPy.dev_utils import ConstraintViolation
+from ProConPy.stage_rank import StageRank
 from ProConPy.csp_utils import TraversalLock
 from ProConPy.out_handler import handler as owh
 
@@ -108,7 +109,7 @@ class CspSolver:
         self._determine_stage_ranks(first_stage, 0, cvars)
 
         # Look for conflicts in precedence of variables
-        self._check_variable_precedence(cvars, first_stage)
+        #todo self._check_variable_precedence(cvars, first_stage)
 
         # Having read in the constraints, update validities of variables that have options:
         for var in cvars.values():
@@ -171,15 +172,9 @@ class CspSolver:
         and to determine which of the variables appear in guards of the stages."""
 
         # set rank
-        stage.rank = rank
+        stage.rank = StageRank(rank)
 
         logger.debug("Traversing stage: %s, rank: %s", stage, rank)
-
-        # set the ranks of the variables
-        for var in stage._varlist:
-            var.add_rank(stage.rank)
-        for var in stage._aux_varlist:
-            var.add_rank(stage.rank)
 
         # flag variables that appear in guards
         if stage.is_guarded():
@@ -199,58 +194,58 @@ class CspSolver:
             self._determine_stage_ranks(stage, rank+1, cvars)
 
 
-    def _check_variable_precedence(self, cvars, first_stage):
-        """Check the precedence of the variables. The precedence of the variables is determined by the
-        rank of the stages in which the variables appear. The relational constraints and options specs
-        must adhere to the precedence of the variables."""
+    #tododef _check_variable_precedence(self, cvars, first_stage):
+    #todo    """Check the precedence of the variables. The precedence of the variables is determined by the
+    #todo    rank of the stages in which the variables appear. The relational constraints and options specs
+    #todo    must adhere to the precedence of the variables."""
 
-        # Now that all stages are traversed and ranks are determined, traverse them again to make sure
-        # that guard variables have higher precedence than the variables in the stages they guard.
-        stage = first_stage
-        while stage is not None:
-            if stage.is_guarded():
-                guard = stage._activation_guard
-                if isinstance(guard, BoolRef):
-                    guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(guard)]
-                    for var in guard_vars:
-                        assert var.is_guard_var, (
-                            f"The variable {var} appears in the guard of stage {stage} but is not a guard variable."
-                        )
-                        assert all(var.max_rank < stage_var.min_rank for stage_var in stage._varlist), (
-                            f"The guard variable {var} has lower precedence than the stage it guards."
-                        )
-            # move on to the following stage
-            stage = stage.get_following_stage(visit_all=True)
+    #todo    # Now that all stages are traversed and ranks are determined, traverse them again to make sure
+    #todo    # that guard variables have higher precedence than the variables in the stages they guard.
+    #todo    stage = first_stage
+    #todo    while stage is not None:
+    #todo        if stage.is_guarded():
+    #todo            guard = stage._activation_guard
+    #todo            if isinstance(guard, BoolRef):
+    #todo                guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(guard)]
+    #todo                for var in guard_vars:
+    #todo                    assert var.is_guard_var, (
+    #todo                        f"The variable {var} appears in the guard of stage {stage} but is not a guard variable."
+    #todo                    )
+    #todo                    assert all(var.max_rank < stage_var.min_rank for stage_var in stage._varlist), (
+    #todo                        f"The guard variable {var} has lower precedence than the stage it guards."
+    #todo                    )
+    #todo        # move on to the following stage
+    #todo        stage = stage.get_following_stage(visit_all=True)
 
-        for var in cvars.values():
+    #todo    for var in cvars.values():
 
-            # Confirm that each variable has either higher or lower precedence than its related variables
-            # (i.e., no variable has both higher and lower precedence than another variable)
-            if var.has_related_vars():
-                if var.max_rank is None:
-                    assert var.min_rank is None, (
-                        f"Variable has a min_rank but no max_rank: {var}."
-                    )
-                    continue
-                for related_var in var._related_vars:
-                    if related_var.max_rank is None:
-                        assert related_var.min_rank is None, (
-                            f"\tVariable has a min_rank but no max_rank: {var}."
-                        )
-                        continue
-                    assert var.max_rank <= related_var.min_rank or related_var.max_rank <= var.min_rank, (
-                        f"Variable precedence conflict: {var} and {related_var}."
-                    )
-            
-            # Confirm that each variable has higher precedence (lower rank) than its dependent variables
-            for dependent_var in var._dependent_vars:
-                assert var.max_rank is not None, (
-                    f"Variable has a dependent variable but doesn't belong to any stage: {var}."
-                )
-                if dependent_var.min_rank is not None:
-                    assert var.max_rank < dependent_var.min_rank, (
-                        f"Variable precedence conflict: {var} and {dependent_var}."
-                    )
+    #todo        # Confirm that each variable has either higher or lower precedence than its related variables
+    #todo        # (i.e., no variable has both higher and lower precedence than another variable)
+    #todo        if var.has_related_vars():
+    #todo            if var.max_rank is None:
+    #todo                assert var.min_rank is None, (
+    #todo                    f"Variable has a min_rank but no max_rank: {var}."
+    #todo                )
+    #todo                continue
+    #todo            for related_var in var._related_vars:
+    #todo                if related_var.max_rank is None:
+    #todo                    assert related_var.min_rank is None, (
+    #todo                        f"\tVariable has a min_rank but no max_rank: {var}."
+    #todo                    )
+    #todo                    continue
+    #todo                assert var.max_rank <= related_var.min_rank or related_var.max_rank <= var.min_rank, (
+    #todo                    f"Variable precedence conflict: {var} and {related_var}."
+    #todo                )
+    #todo        
+    #todo        # Confirm that each variable has higher precedence (lower rank) than its dependent variables
+    #todo        for dependent_var in var._dependent_vars:
+    #todo            assert var.max_rank is not None, (
+    #todo                f"Variable has a dependent variable but doesn't belong to any stage: {var}."
+    #todo            )
+    #todo            if dependent_var.min_rank is not None:
+    #todo                assert var.max_rank < dependent_var.min_rank, (
+    #todo                    f"Variable precedence conflict: {var} and {dependent_var}."
+    #todo                )
 
     @property
     def initialized(self):
@@ -572,7 +567,7 @@ class CspSolver:
         do_refresh = (
             lambda var, neig: neig.has_options()
             and neig not in visited
-            and var.max_rank <= neig.min_rank
+            and var.rank <= neig.rank
         )
 
         vars_to_refresh = [neig for neig in var._related_vars if do_refresh(var, neig)]

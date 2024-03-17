@@ -6,6 +6,8 @@ from ProConPy.csp_solver import csp
 from ProConPy.options_spec import OptionsSpec
 from ProConPy.dummy_widget import DummyWidget
 from ProConPy.dev_utils import ProConPyError, DEBUG
+from ProConPy.stage import Stage
+from ProConPy.stage_rank import StageRank
 
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
@@ -89,13 +91,12 @@ class ConfigVar(HasTraits):
         self._widget_none_val = widget_none_val
         self._widget = DummyWidget(value=widget_none_val)
 
-        # The ranks of a ConfigVar indicates the order of the Stages it belongs to. The lower 
-        # the ranks, the earlier the Stages are in the sequence of Stages and thus the higher 
-        # the precedence of the ConfigVar in CSP solver. The ranks are set by the Stage class.
-        # and are used to compare the precedence of the ConfigVar instances. Therefore, we
-        # only keep track of min and max ranks of the Stages that the ConfigVar belongs to.
-        self._max_rank = None
-        self._min_rank = None
+        # The rank of a ConfigVar indicates the order of the Stage it belongs to. The lower 
+        # the rank, the earlier the Stage is in the sequence of Stages and thus the higher 
+        # the precedence of the ConfigVar in CSP solver. The rank is set when the stage the
+        # ConfigVar belongs to is enabled. If a ConfigVar belongs to multiple stages, its rank
+        # depends on which execution trace is being followed.
+        self._rank = StageRank(None)
 
         # properties for instances that have finite options
         self._options = []
@@ -197,22 +198,17 @@ class ConfigVar(HasTraits):
         return len(self._related_vars) > 0
 
     @property
-    def max_rank(self):
-        """The maximum rank of the variable. This is the rank of the last Stage that the variable belongs to."""
-        return self._max_rank
+    def rank(self):
+        """The rank of the variable. If None, the stage(s) the variable belongs to hasn't been enabled yet."""
+        return self._rank
     
-    @property
-    def min_rank(self):
-        """The minimum rank of the variable. This is the rank of the first Stage that the variable belongs to."""
-        return self._min_rank
-
-    def add_rank(self, new_rank):
-        """Add a new stage rank to the variable. Each integer in the variable ranks corresponds to the rank of
-        the Stages that the variable belongs to. While it is possible to assign multiple ranks to a variable,
-        it is not recommended to do so since it may lead to ambiguity in the precedence of the variable in the CSP."""
-        assert isinstance(new_rank, int), "new_rank must be an integer"
-        self._min_rank = min(new_rank, self._min_rank) if self._min_rank is not None else new_rank
-        self._max_rank = max(new_rank, self._max_rank) if self._max_rank is not None else new_rank
+    @rank.setter
+    def rank(self, new_rank):
+        """Set the rank of the variable. This method is called by the Stage class when the stage is enabled."""
+        assert isinstance(new_rank, StageRank), "new_rank must be a StageRank"
+        assert new_rank.is_none() or self._rank.is_none() or new_rank == self._rank, \
+            "Cannot change the rank of a ConfigVar before resetting it."
+        self._rank = new_rank
 
     @property
     def is_guard_var(self):
@@ -224,6 +220,11 @@ class ConfigVar(HasTraits):
         if self._is_guard_var is True:
             assert value is True, "Cannot change is_guard_var from True to False"
         self._is_guard_var = value
+    
+    @property
+    def is_aux_var(self):
+        """Returns True if this variable is an auxiliary variable of the current stage."""
+        return Stage.active() is not None and Stage.active().rank == self._rank and self._widget.disabled is True
 
     @property
     def options(self):

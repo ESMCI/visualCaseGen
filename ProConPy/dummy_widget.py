@@ -24,6 +24,15 @@ class DummyWidget(HasTraits):
             self.set_trait("options", options)
         self.layout = DummyLayout()
         self.tooltips = ()
+        self._disabled = False
+    
+    @property
+    def disabled(self):
+        return self._disabled
+    
+    @disabled.setter
+    def disabled(self, value):
+        self._disabled = value
 
 
 class DummyLayout:

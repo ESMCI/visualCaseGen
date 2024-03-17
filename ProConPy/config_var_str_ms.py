@@ -6,6 +6,7 @@ from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.config_var_str import ConfigVarStr
 from ProConPy.csp_solver import csp
 from ProConPy.dialog import alert_error
+from ProConPy.stage_rank import StageRank
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
@@ -32,13 +33,20 @@ class ConfigVarStrMS(ConfigVarStr):
 
         # confirm the value validity. If not valid, the below call will raise an exception.
         for new_val in new_vals.split("%"):
-            if new_val not in self._options:
-                raise ConstraintViolation(
-                    f"Value {new_val} not found in {self.name} options list: {self.options}"
-                )
-            if self._options_validities[new_val] is False:
-                err_msg = csp.retrieve_error_msg(self, new_val)
-                raise ConstraintViolation(err_msg)
+            if self.has_options():
+                if new_val not in self._options:
+                    raise ConstraintViolation(
+                        f"Value {new_val} not found in {self.name} options list: {self.options}"
+                    )
+                if self._options_validities[new_val] is False:
+                    err_msg = csp.retrieve_error_msg(self, new_val)
+                    raise ConstraintViolation(err_msg)
+            else:
+                # If a ConfigVarStrMS has no options, it must be an aux var of the current stage.
+                assert self.is_aux_var is True, \
+                    f"Encountered a ConfigVarStrMS with no options list that is not an aux var "+\
+                    "of the current stage: {self.name}"
+                csp.check_assignment(self, new_val)
 
         # finally, set self.value by returning new_vals
         logger.debug("Validation done. Assigning %s=%s", self.name, new_vals)
@@ -59,7 +67,12 @@ class ConfigVarStrMS(ConfigVarStr):
                 self._valid_opt_char + " " + val for val in self.value.split("%")
             )
         else:
-            raise NotImplementedError  # the variable has infinite domain
+            # If a ConfigVarStrMS has no options, it must be an aux var of the current stage.
+            assert self.is_aux_var is True, \
+                f"Encountered a ConfigVarStrMS with no options list that is not an aux var "+\
+                "of the current stage: {self.name}"
+            # Hence, no need to set the widget value.
+            self._widget.value = ()
 
     @owh.out.capture()
     def _process_frontend_value_change(self, change):

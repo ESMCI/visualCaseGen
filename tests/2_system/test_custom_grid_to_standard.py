@@ -54,6 +54,8 @@ def test_custom_compset_configuration():
     assert cvars['COMP_LND_OPTION'].value == "SP"
     assert cvars['COMP_ICE_OPTION'].value == "PRES"
     assert cvars['COMP_OCN_OPTION'].value == "DOM"
+    # Check that COMPSET_LNAME is auto-set accordingly when COMPSET_ALIAS is set by the user.
+    assert cvars['COMPSET_LNAME'].value == "2000_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV"
 
     # (2) Configure the grid
 
