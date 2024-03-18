@@ -13,6 +13,9 @@ logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 @owh.out.capture()
 def initialize_grid_variables(cime):
+
+    ConfigVarStr("GRID_MODE") # Standard or Custom
+
     initialize_standard_grid_variables(cime)
     initialize_custom_grid_variables(cime)
 
