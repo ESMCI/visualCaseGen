@@ -29,6 +29,7 @@ def get_relational_constraints(cvars):
     WAV_GRID = cvars['WAV_GRID']
     OCN_GRID_MODE = cvars['OCN_GRID_MODE']; OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
+    LND_GRID_MODE = cvars['LND_GRID_MODE']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
@@ -56,7 +57,7 @@ def get_relational_constraints(cvars):
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
 
         Implies(In(COMP_OCN, ["mom", "pop"]), COMP_ATM!="satm") :
-            "If the ocean component is active, then the atmosphere component cannot be made stub.",
+            "An active or data atm model is needed to force active ocean models.",
         
         Implies(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",
@@ -98,13 +99,13 @@ def get_relational_constraints(cvars):
         Implies(COMP_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
         
-        # mom6_bathy-related constraints
+        # mom6_bathy-related constraints ------------------
 
         Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
              "LND or ICE must be present to hide Global MOM6 grid poles.",
 
         Implies(And(COMP_OCN != "mom", COMP_LND!="clm"), GRID_MODE=="Standard"):
-            "Custom grids can only be generated when MOM6 or CLM are selected.",
+            "Custom grids can only be generated when MOM6 and/or CLM are selected.",
 
         Implies(COMP_OCN!="mom", OCN_GRID_MODE=="Standard"):
             "Custom OCN grids can only be generated for MOM6.",
@@ -135,6 +136,10 @@ def get_relational_constraints(cvars):
 
         Implies(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
             "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+
+        # Custom lnd grid constraints ------------------
+        Implies(COMP_LND!="clm", LND_GRID_MODE=="Standard"):
+            "Custom LND grids can only be generated for CLM.",
 
         #### Assertions to stress-test the CSP solver
 

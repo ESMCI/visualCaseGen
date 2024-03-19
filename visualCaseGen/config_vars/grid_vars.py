@@ -33,7 +33,7 @@ def initialize_custom_grid_variables(cime):
     # The path where all custom grid input files are stored
     ConfigVarStr("CUSTOM_GRID_PATH")
 
-    # Standard ATM grid picked for custom grid
+    # A preexisting ATM grid picked for custom grid
     ConfigVarStrMS("CUSTOM_ATM_GRID")
 
     # Custom ocean grid variables
@@ -49,5 +49,9 @@ def initialize_custom_grid_variables(cime):
     ConfigVarReal('OCN_LENY') # grid length in y-direction
     ConfigVarStr('MOM6_BATHY_STATUS', widget_none_val='') # a status variable to prevent the completion of the stage
 
-
+    # Select a base CLM grid.
+    ConfigVarStr("LND_GRID_MODE") # Standard, Modified
+    ConfigVarStrMS("CUSTOM_LND_GRID") # A preexisting land grid picked for the custom grid
+    ConfigVarStr("INPUT_MASK_MESH")
+ 
 

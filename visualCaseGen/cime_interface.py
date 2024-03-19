@@ -24,6 +24,8 @@ from CIME.case.case import Case
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
 Compset = namedtuple("Compset", ["alias", "lname", "model"])
+Resolution = namedtuple("Resolution", ["alias", "compset", "not_compset", "desc"])
+ComponentGrid = namedtuple("ComponentGrid", ["name", "nx", "ny", "mesh", "desc", "compset_constr", "not_compset_constr"])
 
 
 class CIME_interface:
@@ -75,7 +77,7 @@ class CIME_interface:
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class, model)
 
-        self._retrieve_model_grids()
+        self._retrieve_domains_and_resolutions()
         self._retrieve_compsets()
         self._retrieve_machines()
         self._retrieve_clm_fsurdat()
@@ -291,76 +293,135 @@ class CIME_interface:
                 continue
             self.models[comp_class].append(model)
 
-    def _retrieve_model_grids(self):
-        self._grids_obj = Grids(comp_interface=self.driver)
+    def _get_domains(self):
+        """Reads and returns component grids, i.e., domains, from the CIME XML file. The 
+        compset_constr and not_compset_constr attributes of the ComponentGrid object are not
+        filled in here, but are filled in later in the _retrieve_component_grid_constraints method
+        
+        Returns
+        -------
+        dict
+            A dictionary of ComponentGrid objects, where keys are domain names.
+        """
 
-        # read component grids, i.e., domains
-        self.domains_desc = {}
+        # read component grids, i.e., domains (from component_grids file)
+        domains = {}
         domain_nodes = self._grids_obj.get_children("domain", root=self._grids_obj.get_child("domains"))
         for domain_node in domain_nodes:
+
+            # domain name
             name = self._grids_obj.get(domain_node, "name")
-            if name == "null":
-                continue
+
+            # mesh path
+            mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node)
+            if len(mesh_nodes) > 1:
+                logger.warning(
+                    f"Multiples mesh files encountered for the {name} domain."
+                )
+            mesh_filepath = self._grids_obj.text(mesh_nodes[0]) if mesh_nodes else ''
+
+            # nx, ny
+            nx_node = self._grids_obj.get_children("nx", root=domain_node)
+            nx = self._grids_obj.text(nx_node[0]) if nx_node else ''
+            ny_node = self._grids_obj.get_children("ny", root=domain_node)
+            ny = self._grids_obj.text(ny_node[0]) if ny_node else ''
+
+            # domain description and support
             desc = self._grids_obj.text(self._grids_obj.get_child("desc", root=domain_node))
             support = self._grids_obj.get_optional_child("support", root=domain_node)
             support = '. '+self._grids_obj.text(support) if support is not None else ''
-            self.domains_desc[name] = desc+support
 
-        # read model grids, i.e., resolutions 
+            # ComponentGrid object
+            domains[name] = ComponentGrid(
+                name=name,
+                nx=nx,
+                ny=ny,
+                mesh=mesh_filepath,
+                desc=desc+support,
+                compset_constr=set(), # to be filled in later
+                not_compset_constr=set(), # to be filled in later
+            )
+
+        return domains
+
+    def _retrieve_domains_and_resolutions(self):
+        """Retrieves and stores component grids and model resolutions from the corresponding CIME 
+        XML files. Retrieved resolutions are stored in self.resolutions list and component grids are
+        stored in self.domains dict."""
+
+        self._grids_obj = Grids(comp_interface=self.driver)
+
+        # Get the initial (temporary) dict of domains from the component_grids file
+        domains = self._get_domains()
 
         grids = self._grids_obj.get_child("grids")
-        model_grid_nodes = self._grids_obj.get_children("model_grid", root=grids)
 
+        # Component grids dict and resolutions list to be populated in the loop below
+        self.domains = {comp: {} for comp in self._grids_obj._comp_gridnames}
         self.resolutions = []
-        self.component_grids = {comp: set() for comp in self._grids_obj._comp_gridnames}
+
+        # loop through model grids (resolutions)
+        model_grid_nodes = self._grids_obj.get_children("model_grid", root=grids)
         for model_grid_node in model_grid_nodes:
             alias = self._grids_obj.get(model_grid_node, "alias")
             compset = self._grids_obj.get(model_grid_node, "compset")
             not_compset = self._grids_obj.get(model_grid_node, "not_compset")
             desc = ""
+
+            # loop through component grids that are part of this resolution
+            all_component_grids_found = True
             grid_nodes = self._grids_obj.get_children("grid", root=model_grid_node)
             for grid_node in grid_nodes:
-                comp_name = self._grids_obj.get(grid_node, "name")
+                comp_name = self._grids_obj.get(grid_node, "name") # e.g., atm, lnd, ocnice, etc.
                 comp_grid = self._grids_obj.text(grid_node)
-                self.component_grids[comp_name].add(comp_grid)
-                desc += ' | ' + ' ' + comp_name.upper() + ': ' + self.domains_desc[comp_grid] if comp_grid in self.domains_desc else ''
-            self.resolutions.append((alias, compset, not_compset, desc))
+                if comp_grid in domains:
+                    if comp_grid not in self.domains[comp_name]:
+                        self.domains[comp_name][comp_grid] = ComponentGrid(
+                            name=comp_grid,
+                            nx=domains[comp_grid].nx,
+                            ny=domains[comp_grid].ny,
+                            mesh=domains[comp_grid].mesh,
+                            desc=domains[comp_grid].desc,
+                            compset_constr=set(),
+                            not_compset_constr=set(),
+                        )
+                    domain = self.domains[comp_name][comp_grid]
+                    desc += ' | ' + ' ' + comp_name.upper() + ': ' + domain.desc
+                    domain.compset_constr.add(compset)
+                    domain.not_compset_constr.add(not_compset)
+                else:
+                    #logger.warning(f"Domain {comp_grid} not found in component_grids file.")
+                    all_component_grids_found = False
+                    break
+    
+            if not all_component_grids_found:
+                continue
 
-    def get_domain_properties(self, domain_name):
+            self.resolutions.append(Resolution(alias, compset, not_compset, desc))
+    
+        self._process_domain_constraints()
 
-        if self._grids_obj is None:
-            logger.error(
-                "In CIME interface module, get_domain_properties called before grids_obj is initialized."
-            )
-        if self.din_loc_root is None:
-            logger.error(
-                "In CIME interface module, get_domain_properties called before DIN_LOC_ROOT is retrieved."
-            )
+    def _process_domain_constraints(self):
+        """Update the compset_constr and not_compset_constr attributes of the ComponentGrid objects in
+        the self.domains dict. This method is called after the component grids and resolutions have 
+        been retrieved. It updates the compset and not_compset constraints for each domain: If a domain
+        is part of one or more resolutions that have no compset/not_compset constraints, then the domain
+        is deemed unconstrained. Otherwise, the domain is constrained by the disjunction of the
+        compset/not_compset constraints of all the resolutions it is part of.
+        """
 
-        domain_node = self._grids_obj.get_optional_child(
-            "domain",
-            attributes={"name": domain_name},
-            root=self._grids_obj.get_child("domains"),
-        )
-
-        mesh_nodes = self._grids_obj.get_children("mesh", root=domain_node)
-        if len(mesh_nodes) > 1:
-            logger.warning(
-                f"Multiples mesh files encountered for the {domain_name} domain."
-            )
-
-        mesh_filepath = self._grids_obj.text(mesh_nodes[0])
-        mesh_filepath = mesh_filepath.replace(
-            "$DIN_LOC_ROOT", self.din_loc_root
-        ).replace("${DIN_LOC_ROOT}", self.din_loc_root)
-
-        nx_node = self._grids_obj.get_children("nx", root=domain_node)
-        nx = self._grids_obj.text(nx_node[0])
-
-        ny_node = self._grids_obj.get_children("ny", root=domain_node)
-        ny = self._grids_obj.text(ny_node[0])
-
-        return {"mesh": mesh_filepath, "nx": nx, "ny": ny}
+        for comp_name, domains in self.domains.items():
+            for domain_name, domain in domains.items():
+                final_compset_constr = ''
+                if None not in domain.compset_constr and len(domain.compset_constr) >= 0:
+                    final_compset_constr = '|'.join(domain.compset_constr)
+                final_not_compset_constr = ''
+                if None not in domain.not_compset_constr and len(domain.not_compset_constr) >= 0:
+                    final_not_compset_constr = '|'.join(domain.not_compset_constr)
+                self.domains[comp_name][domain_name] = domain._replace(
+                    compset_constr=final_compset_constr,
+                    not_compset_constr=final_not_compset_constr
+                )
 
     def get_grid_lname_parts(self, grid_alias, compset, atmnlev=None, lndnlev=None):
         """Returns a dictionary of parts of grid long name for a grid whose alias is provided as the function arg."""

@@ -1,5 +1,5 @@
 import logging
-from ipywidgets import ToggleButtons, Text
+from ipywidgets import ToggleButtons, Text, Dropdown
 from ipyfilechooser import FileChooser
 from pathlib import Path
 from ProConPy.config_var import cvars
@@ -24,7 +24,9 @@ def initialize_grid_widgets(cime):
     )
 
     initialize_standard_grid_widgets(cime)
-    initialize_custom_grid_widgets(cime)
+    initialize_custom_atm_grid_widgets(cime)
+    initialize_custom_ocn_grid_widgets(cime)
+    initialize_custom_lnd_grid_widgets(cime)
 
 def initialize_standard_grid_widgets(cime):
     # Standard grid options
@@ -35,7 +37,7 @@ def initialize_standard_grid_widgets(cime):
     )
     cv_grid.valid_opt_char = chr(int("27A4", base=16))
 
-def initialize_custom_grid_widgets(cime):
+def initialize_custom_atm_grid_widgets(cime):
 
     default_path = Path.home() 
     if cime.cime_output_root is not None:
@@ -57,6 +59,8 @@ def initialize_custom_grid_widgets(cime):
         description="Custom ATM Grid:",
         allow_multi_select=False,
     )
+
+def initialize_custom_ocn_grid_widgets(cime):
 
     cv_custom_ocn_grid_mode = cvars["OCN_GRID_MODE"]
     cv_custom_ocn_grid_mode.widget = ToggleButtons(
@@ -128,4 +132,31 @@ def initialize_custom_grid_widgets(cime):
         placeholder = "Incomplete",
         layout={"width": "300px", "padding": "5px", "align_self": "flex-end"},
         style={"description_width": "150px", "background":"lightgray", "text_color":"white"},
+    )
+
+def initialize_custom_lnd_grid_widgets(cime):
+
+
+    cv_lnd_grid_mode = cvars["LND_GRID_MODE"]
+    cv_lnd_grid_mode.widget = ToggleButtons(
+        description="LND grid mode:",
+        layout={"display": "flex", "width": "max-content", "padding": "10px"},
+        style={"button_width": "140px", "description_width": description_width},
+    )
+
+    cv_custom_lnd_grid = cvars["CUSTOM_LND_GRID"]
+    cv_custom_lnd_grid.widget = MultiCheckbox(
+        description="Custom LND Grid:",
+        allow_multi_select=False,
+    )
+
+    cv_input_mask_mesh = cvars["INPUT_MASK_MESH"]
+    cv_input_mask_mesh.widget = FileChooser(
+        #path=Path.home(),
+        filename="",
+        title="Input mask mesh:",
+        new_only=True,
+        filename_placeholder="Enter new grid name",
+        filter_pattern="*.nc",
+        layout={'width': '90%', 'margin': '10px'},
     )

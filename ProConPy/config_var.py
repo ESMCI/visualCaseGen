@@ -265,6 +265,7 @@ class ConfigVar(HasTraits):
         new_options_spec: OptionsSpec
             The new options specification
         """
+        assert len(self._options) == 0, "Cannot set options_spec when options are already set"
         assert isinstance(
             new_options_spec, OptionsSpec
         ), "new_options_spec must be an OptionsSpec instance"
