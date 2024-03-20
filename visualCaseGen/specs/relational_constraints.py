@@ -9,20 +9,13 @@ def get_relational_constraints(cvars):
     # references to ConfigVars appearing in relational constraints
     INITTIME = cvars['INITTIME']
     COMPSET_MODE = cvars['COMPSET_MODE']
-    COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_PHYS = cvars['COMP_ATM_PHYS'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
-    COMP_LND = cvars['COMP_LND'];  COMP_LND_PHYS = cvars['COMP_LND_PHYS'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
-    COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_PHYS = cvars['COMP_ICE_PHYS'];  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
-    COMP_OCN = cvars['COMP_OCN'];  COMP_OCN_PHYS = cvars['COMP_OCN_PHYS'];  COMP_OCN_OPTION = cvars['COMP_OCN_OPTION']
-    COMP_ROF = cvars['COMP_ROF'];  COMP_ROF_PHYS = cvars['COMP_ROF_PHYS'];  COMP_ROF_OPTION = cvars['COMP_ROF_OPTION']
-    COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_PHYS = cvars['COMP_GLC_PHYS'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
-    COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_PHYS = cvars['COMP_WAV_PHYS'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
-    COMP_ATM_PHYS = cvars['COMP_ATM_PHYS']
-    COMP_LND_PHYS = cvars['COMP_LND_PHYS']
-    COMP_ICE_PHYS = cvars['COMP_ICE_PHYS']
-    COMP_OCN_PHYS = cvars['COMP_OCN_PHYS']
-    COMP_ROF_PHYS = cvars['COMP_ROF_PHYS']
-    COMP_GLC_PHYS = cvars['COMP_GLC_PHYS']
-    COMP_WAV_PHYS = cvars['COMP_WAV_PHYS']
+    COMP_ATM = cvars['COMP_ATM'];  COMP_ATM_OPTION = cvars['COMP_ATM_OPTION']
+    COMP_LND = cvars['COMP_LND'];  COMP_LND_OPTION = cvars['COMP_LND_OPTION']
+    COMP_ICE = cvars['COMP_ICE'];  COMP_ICE_OPTION = cvars['COMP_ICE_OPTION']
+    COMP_OCN = cvars['COMP_OCN'];  COMP_OCN_OPTION = cvars['COMP_OCN_OPTION']
+    COMP_ROF = cvars['COMP_ROF'];  COMP_ROF_OPTION = cvars['COMP_ROF_OPTION']
+    COMP_GLC = cvars['COMP_GLC'];  COMP_GLC_OPTION = cvars['COMP_GLC_OPTION']
+    COMP_WAV = cvars['COMP_WAV'];  COMP_WAV_OPTION = cvars['COMP_WAV_OPTION']
     GRID_MODE = cvars['GRID_MODE']
     ATM_GRID = cvars['ATM_GRID']
     OCN_GRID = cvars['OCN_GRID']
@@ -99,6 +92,12 @@ def get_relational_constraints(cvars):
         Implies(COMP_ATM_OPTION != "SCAM", ATM_GRID != "T42"):
             "T42 grid can only be used with SCAM option.",
         
+        Implies(Contains(COMP_ATM_OPTION, "JRA"), ATM_GRID == "TL319"):
+            "JRA forcing can only be used with TL319 ATM grid.",
+        
+        Implies(In(COMP_ATM_OPTION, ["IAF", "NYF"]), ATM_GRID == "T62"):
+            "Core2 forcing can only be used with T62 grid.",
+
         # mom6_bathy-related constraints ------------------
 
         Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):

@@ -1,5 +1,5 @@
 """Module to define and register ConfigVars"""
-
+import os
 import logging
 from ProConPy.out_handler import handler as owh
 from ProConPy.config_var import cvars
@@ -53,5 +53,30 @@ def initialize_custom_grid_variables(cime):
     ConfigVarStr("LND_GRID_MODE") # Standard, Modified
     ConfigVarStrMS("CUSTOM_LND_GRID") # A preexisting land grid picked for the custom grid
     ConfigVarStr("INPUT_MASK_MESH")
- 
 
+    # Auto-fill the INPUT_MASK_MESH variable based on the CUSTOM_LND_GRID variable
+    def on_custom_lnd_grid_mode_change(change):
+        """Update INPUT_MASK_MESH default value based on CUSTOM_LND_GRID and iff LND_GRID_MODE is Modified"""
+
+        cvars["INPUT_MASK_MESH"].value = None
+        new_custom_lnd_grid = change['new']
+        if new_custom_lnd_grid is None or cvars['LND_GRID_MODE'].value == "Standard":
+            return
+        if (domain := cime.domains['lnd'].get(new_custom_lnd_grid, None)) is None:
+            return
+        mesh_path = domain.mesh
+        if 'DIN_LOC_ROOT' in mesh_path and cime.din_loc_root:
+            mesh_path = mesh_path.replace('$DIN_LOC_ROOT', cime.din_loc_root).replace('${DIN_LOC_ROOT}', cime.din_loc_root)
+        if os.path.exists(mesh_path):
+            cvars["INPUT_MASK_MESH"].value = mesh_path
+    
+    cvars["CUSTOM_LND_GRID"].observe(on_custom_lnd_grid_mode_change, names='value', type='change')
+
+    # Land mask file
+    ConfigVarStr("LAND_MASK")
+
+    # Lat/lon variable and dimension names:
+    ConfigVarStr("LAT_VAR_NAME", widget_none_val='')
+    ConfigVarStr("LON_VAR_NAME", widget_none_val='')
+    ConfigVarStr("LAT_DIM_NAME", widget_none_val='')
+    ConfigVarStr("LON_DIM_NAME", widget_none_val='')

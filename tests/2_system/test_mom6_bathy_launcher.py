@@ -52,7 +52,7 @@ def test_mom6_bathy_launcher():
         cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
     ## Pick a standard compset
-    cvars['COMPSET_ALIAS'].value = "GMOM"
+    cvars['COMPSET_ALIAS'].value = "GMOM_JRA"
 
     # Create a custom grid
     assert Stage.active().title.startswith('2. Grid')
@@ -64,9 +64,8 @@ def test_mom6_bathy_launcher():
 
     cvars['CUSTOM_GRID_PATH'].value = str(custom_grid_path)
 
-    # Set the atmosphere grid
-    assert Stage.active().title.startswith('Atm')
-    cvars['CUSTOM_ATM_GRID'].value = "TL319"
+    # since this is a JRA run, the atmosphere grid must automatically be set to TL319
+    assert cvars['CUSTOM_ATM_GRID'].value == "TL319"
 
     # Set the custom ocean grid mode
     assert Stage.active().title.startswith('Ocean')
