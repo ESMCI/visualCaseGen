@@ -4,6 +4,7 @@ import pytest
 import shutil
 import os
 from pathlib import Path
+import tempfile
 
 from ProConPy.config_var import ConfigVar, cvars
 from ProConPy.stage import Stage
@@ -22,7 +23,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.CRITICAL)
 
-temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
+base_temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
 
 def test_mom6_bathy_launcher():
     ConfigVar.reboot()
@@ -34,7 +35,7 @@ def test_mom6_bathy_launcher():
     set_options(cime)
     csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
 
-    assert os.path.exists(temp_dir), "temp testing directory does not exist"
+    assert os.path.exists(base_temp_dir), "temp testing directory does not exist"
 
     # At initialization, the first stage should be enabled
     assert Stage.first().enabled
@@ -60,52 +61,49 @@ def test_mom6_bathy_launcher():
 
     # Set the custom grid path
     assert Stage.active().title.startswith('Custom Grid')
-    custom_grid_path = Path(temp_dir) / "custom_grid"
 
-    cvars['CUSTOM_GRID_PATH'].value = str(custom_grid_path)
+    with tempfile.TemporaryDirectory(dir=base_temp_dir) as temp_grid_path:
 
-    # since this is a JRA run, the atmosphere grid must automatically be set to TL319
-    assert cvars['CUSTOM_ATM_GRID'].value == "TL319"
+        cvars['CUSTOM_GRID_PATH'].value = str(temp_grid_path)
 
-    # Set the custom ocean grid mode
-    assert Stage.active().title.startswith('Ocean')
-    cvars['OCN_GRID_MODE'].value = "Create New"
+        # since this is a JRA run, the atmosphere grid must automatically be set to TL319
+        assert cvars['CUSTOM_ATM_GRID'].value == "TL319"
 
-    # Set the custom ocean grid properties
-    assert Stage.active().title.startswith('Custom Ocean')
-    cvars['OCN_GRID_EXTENT'].value = "Global"
-    cvars['OCN_CYCLIC_X'].value = "Yes"
-    cvars['OCN_NX'].value = 180
-    cvars['OCN_NY'].value = 80
-    cvars['OCN_LENX'].value = 360.0
-    cvars['OCN_LENY'].value = 160.0
-    cvars['CUSTOM_OCN_GRID_NAME'].value = "test_grid"
+        # Set the custom ocean grid mode
+        assert Stage.active().title.startswith('Ocean')
+        cvars['OCN_GRID_MODE'].value = "Create New"
 
-    # remove all old mom6_bathy *ipynb files in custom_grid_path:
-    for file in (custom_grid_path/'ocn').glob("*.ipynb"):
-        os.remove(file)
+        # Set the custom ocean grid properties
+        assert Stage.active().title.startswith('Custom Ocean')
+        cvars['OCN_GRID_EXTENT'].value = "Global"
+        cvars['OCN_CYCLIC_X'].value = "Yes"
+        cvars['OCN_NX'].value = 180
+        cvars['OCN_NY'].value = 80
+        cvars['OCN_LENX'].value = 360.0
+        cvars['OCN_LENY'].value = 160.0
+        cvars['CUSTOM_OCN_GRID_NAME'].value = "test_grid"
 
-    # now launch the mom6_bathy notebook
-    nb_path = Path("mom6_bathy_notebooks") / f"mom6_bathy_{cvars['CUSTOM_OCN_GRID_NAME'].value}.ipynb"
-    mom6_bathy_launcher_widget = MOM6BathyLauncher()
+        # now launch the mom6_bathy notebook
+        nb_path = Path("mom6_bathy_notebooks") / f"mom6_bathy_{cvars['CUSTOM_OCN_GRID_NAME'].value}.ipynb"
+        mom6_bathy_launcher_widget = MOM6BathyLauncher()
 
-    # After setting all the required parameters, the launch button should be enabled
-    assert mom6_bathy_launcher_widget._btn_launch_mom6_bathy.disabled is False
+        # After setting all the required parameters, the launch button should be enabled
+        assert mom6_bathy_launcher_widget._btn_launch_mom6_bathy.disabled is False
 
-    # *Click* the launch button
-    mom6_bathy_launcher_widget._on_btn_launch_clicked(b=None)
+        # *Click* the launch button
+        mom6_bathy_launcher_widget._on_btn_launch_clicked(b=None)
     
-    # The confirm button should be visible:
-    assert mom6_bathy_launcher_widget._btn_confirm_completion.layout.display != 'none'
+        # The confirm button should be visible:
+        assert mom6_bathy_launcher_widget._btn_confirm_completion.layout.display != 'none'
 
-    # *Click* the confirm button
-    mom6_bathy_launcher_widget._on_btn_confirm_completion_clicked(b=None)
+        # *Click* the confirm button
+        mom6_bathy_launcher_widget._on_btn_confirm_completion_clicked(b=None)
 
-    # Since the notebook wasn't fully executed, we should remain in the same stage
-    assert Stage.active().title.startswith('Custom Ocean')
+        # Since the notebook wasn't fully executed, we should remain in the same stage
+        assert Stage.active().title.startswith('Custom Ocean')
 
-    # remove mom6_bathy notebook belonging to the test_grid:
-    os.remove(nb_path)
+        # remove mom6_bathy notebook belonging to the test_grid:
+        os.remove(nb_path)
 
 
 

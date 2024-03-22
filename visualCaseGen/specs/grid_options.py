@@ -200,3 +200,9 @@ def set_custom_lnd_grid_options(cime):
         func=custom_lnd_grid_options_func,
         args=(cvars["COMP_LND"], cvars["CUSTOM_ATM_GRID"], cvars["LND_GRID_MODE"]),
     )
+
+    cv_fsurdat_idealized = cvars["FSURDAT_IDEALIZED"]
+    cv_fsurdat_idealized.options = ["True", "False"]
+
+    cv_lnd_include_nonveg = cvars["LND_INCLUDE_NONVEG"]
+    cv_lnd_include_nonveg.options = ["True", "False"]

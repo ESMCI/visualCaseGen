@@ -312,8 +312,9 @@ class StageWidget(VBox):
 
     def _update_btn_reset(self, old_state, new_state):
         """Update the reset button based on the old and new stage status."""
-        if new_state == StageStat.PARTIAL and self._btn_reset.layout.display == "none":
-            self._btn_reset.layout.display = ""
+        if new_state == StageStat.PARTIAL:
+            if self._btn_reset.layout.display == "none":
+                self._btn_reset.layout.display = ""
         elif old_state == StageStat.SEALED and new_state == StageStat.COMPLETE:
             self._btn_reset.layout.display = ""
         else:

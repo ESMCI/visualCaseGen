@@ -4,6 +4,7 @@ chg.txt
 
 # some temp files
 proto.ipynb
+tests/temp/tmp*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

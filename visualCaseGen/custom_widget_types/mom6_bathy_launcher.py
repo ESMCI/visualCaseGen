@@ -36,7 +36,7 @@ class MOM6BathyLauncher(VBox):
 
         # observe changes in the required variables
         for var in self.required_mom6_bathy_vars:
-            var.observe(self._on_required_var_change, names="value", type="change")
+            var._widget.observe(self._on_required_var_change, names="_property_lock", type="change")
 
         # Create the main child widgets: Launcg button, Output, and Confirm button
 

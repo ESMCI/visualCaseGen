@@ -2,6 +2,7 @@
 
 import time
 import pytest
+import tempfile
 import os
 from pathlib import Path
 
@@ -22,7 +23,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.CRITICAL)
 
-temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
+base_temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
 
 def test_custom_compset_configuration():
     ConfigVar.reboot()
@@ -68,8 +69,24 @@ def configure_custom_clm_grid(cime):
 
     # custom grid path
     assert Stage.active().title.startswith('Custom Grid Generator')
-    custom_grid_path = Path(temp_dir) / "custom_grid_b"
-    cvars['CUSTOM_GRID_PATH'].value = str(custom_grid_path)
+
+    with tempfile.TemporaryDirectory(dir=base_temp_dir) as temp_grid_path:
+
+        cvars['CUSTOM_GRID_PATH'].value = str(temp_grid_path)
+
+        # custom atm grid
+        cvars['CUSTOM_ATM_GRID'].value = '0.9x1.25'
+
+        # custom ocean grid is set to atm grid since its not active
+
+        # custom clm grid
+        cvars['LND_GRID_MODE'].value = 'Modified'
+        cvars['CUSTOM_LND_GRID'].value = '0.9x1.25'
+
+        # check if mesh file is set automatically. If not, return (CI)
+        if cvars['INPUT_MASK_MESH'].value is None:
+            assert cime.machine not in ['derecho', 'casper'], "INPUT_MASK_MESH should be set automatically"
+        
 
     
 def revert_to_first_stage():
