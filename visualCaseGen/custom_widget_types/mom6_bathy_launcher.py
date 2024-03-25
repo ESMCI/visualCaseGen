@@ -107,13 +107,14 @@ class MOM6BathyLauncher(VBox):
             return
 
         # Reset the attempt_id and mom6_bathy_status
-        cvars['MB_ATTEMPT_ID'].value = str(uuid.uuid1())[:6]
+        new_attempt_id = str(uuid.uuid1())[:6]
+        cvars['MB_ATTEMPT_ID'].value = new_attempt_id
         cvars["MOM6_BATHY_STATUS"].value = None
 
         # Determine the path to the new notebook
         custom_ocn_grid_name = cvars["CUSTOM_OCN_GRID_NAME"].value
         nb_path = (
-            Path("mom6_bathy_notebooks") / f"mom6_bathy_{custom_ocn_grid_name}.ipynb"
+            Path("mom6_bathy_notebooks") / f"mom6_bathy_{custom_ocn_grid_name}_{new_attempt_id}.ipynb"
         )
 
         # Launch the mom6_bathy notebook
@@ -161,22 +162,10 @@ class MOM6BathyLauncher(VBox):
         )
 
         # See if all required files are created:
-        mom6_supergrid_file = (
-            custom_ocn_grid_path
-            / f"ocean_grid_{custom_ocn_grid_name}_{attempt_id}.nc"
-        )
-        mom6_topog_file = (
-            custom_ocn_grid_path
-            / f"ocean_topog_{custom_ocn_grid_name}_{attempt_id}.nc"
-        )
-        esmf_mesh_file = (
-            custom_ocn_grid_path
-            / f"ESMF_mesh_{custom_ocn_grid_name}_{attempt_id}.nc"
-        )
-        cice_grid_file = (
-            custom_ocn_grid_path
-            / f"cice_grid.{custom_ocn_grid_name}_{attempt_id}.nc"
-        )
+        mom6_supergrid_file = MOM6BathyLauncher.supergrid_file_path()
+        mom6_topog_file = MOM6BathyLauncher.topo_file_path()
+        esmf_mesh_file = MOM6BathyLauncher.esmf_mesh_file_path()
+        cice_grid_file = MOM6BathyLauncher.cice_grid_file_path()
         required_files = [mom6_supergrid_file, mom6_topog_file, esmf_mesh_file]
         if "CICE" in cvars["COMP_ICE_PHYS"].value:
             required_files.append(cice_grid_file)
@@ -245,24 +234,21 @@ class MOM6BathyLauncher(VBox):
         ]
 
         if ocn_grid_mode == "Create New":
-            nb["cells"].extend(
-                [
-                    nbf.v4.new_code_cell(
-                        f"""grd = mom6grid(
-                nx         = {nx},         # Number of grid points in x direction
-                ny         = {ny},          # Number of grid points in y direction
-                config     = "spherical",
-                axis_units = "degrees",
-                lenx       = {lenx},        # grid length in x direction, e.g., 360.0 (degrees)
-                leny       = {leny},        # grid length in y direction
-                cyclic_x   = {True if cyclic_x == "Yes" else False},
-                cyclic_y   = False,
-                session_id   = "TODO", # do not modify
+            nb["cells"].extend([
+                nbf.v4.new_code_cell(
+                f'# Do NOT modify this cell!\n'
+                f'grd = mom6grid(\n'
+                f'  nx         = {nx},          # Number of grid points in x direction\n'
+                f'  ny         = {ny},          # Number of grid points in y direction\n'
+                f'  config     = "spherical",\n'
+                f'  axis_units = "degrees",\n'
+                f'  lenx       = {lenx},        # grid length in x direction (degrees).\n'
+                f'  leny       = {leny},        # grid length in y direction (degrees).\n'
+                f'  cyclic_x   = {True if cyclic_x == "Yes" else False},\n'
+                f'  cyclic_y   = False,\n'
+                f')'
                 )
-                """
-                    ),
-                ]
-            )
+            ])
         elif ocn_grid_mode == "Modify Existing":
             raise NotImplementedError(
                 "Modify Existing ocean grid mode is not yet implemented"
@@ -311,7 +297,7 @@ class MOM6BathyLauncher(VBox):
         )
 
         save_files_cmd = (
-            "# Save MOM6 supergrid file (DO NOT MODIFY this cell):\n"
+            "# Save MOM6 supergrid file. Do NOT modify this cell!\n"
             f'grd.to_netcdf(supergrid_path = f"{custom_ocn_grid_path}/ocean_grid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
             "# Save MOM6 topography file:\n"
             f'bathy.to_topog(f"{custom_ocn_grid_path}/ocean_topog_{ocn_grid_name}_{attempt_id}.nc")\n\n'
@@ -333,6 +319,13 @@ class MOM6BathyLauncher(VBox):
                 nbf.v4.new_markdown_cell("## 4. Save the grid and bathymetry files"),
                 nbf.v4.new_code_cell(save_files_cmd),
             ]
+        )
+
+        nb["cells"].append(
+            nbf.v4.new_markdown_cell(
+                "If all cells have been executed successfully, you can return to visualCaseGen and "
+                "click the 'Confirm completion' button to proceed to the next stage."
+            )
         )
 
         return nb
@@ -376,3 +369,29 @@ class MOM6BathyLauncher(VBox):
             window.open(new_url)
         """
         display(Javascript(js))
+    
+    @staticmethod
+    def nc_file_suffix():
+        custom_ocn_grid_name = cvars["CUSTOM_OCN_GRID_NAME"].value
+        attempt_id = cvars['MB_ATTEMPT_ID'].value
+        return f"{custom_ocn_grid_name}_{attempt_id}.nc"
+
+    @staticmethod
+    def supergrid_file_path():
+        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ocean_grid_{MOM6BathyLauncher.nc_file_suffix()}"
+    
+    @staticmethod
+    def topo_file_path():
+        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ocean_topog_{MOM6BathyLauncher.nc_file_suffix()}"
+
+    @staticmethod
+    def esmf_mesh_file_path():
+        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ESMF_mesh_{MOM6BathyLauncher.nc_file_suffix()}"
+    
+    @staticmethod
+    def cice_grid_file_path():
+        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"cice_grid.{MOM6BathyLauncher.nc_file_suffix()}"

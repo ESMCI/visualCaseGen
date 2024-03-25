@@ -29,7 +29,10 @@ logger.setLevel(logging.CRITICAL)
 base_temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "temp"))
 
 
-def test_mom6_bathy_launcher():
+def test_custom_mom6_grid():
+    """This test configures a case with a custom MOM6 grid using the MOM6BathyLauncher widget
+    and attempts to create the CESM case."""
+
     ConfigVar.reboot()
     Stage.reboot()
     cime = CIME_interface()
@@ -87,10 +90,7 @@ def test_mom6_bathy_launcher():
         cvars["CUSTOM_OCN_GRID_NAME"].value = "custom_ocn_grid"
 
         # now launch the mom6_bathy notebook
-        nb_path = (
-            Path("mom6_bathy_notebooks")
-            / f"mom6_bathy_{cvars['CUSTOM_OCN_GRID_NAME'].value}.ipynb"
-        )
+
         mom6_bathy_launcher_widget = Stage.active()._widget._main_body.children[-1]
         assert isinstance(mom6_bathy_launcher_widget, MOM6BathyLauncher)
 
@@ -114,6 +114,12 @@ def test_mom6_bathy_launcher():
         # now, programmatically run the notebook
         import nbformat
         from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
+
+        # find the only mom6_bathy_*.ipynb file in the mom6_bathy_notebooks directory
+        ocn_grid_name = cvars['CUSTOM_OCN_GRID_NAME'].value
+        nb_files = list(Path("mom6_bathy_notebooks").glob(f"mom6_bathy_{ocn_grid_name}*.ipynb"))
+        assert len(nb_files) == 1, "Expected only one mom6_bathy notebook file"
+        nb_path = nb_files[0]
 
         with open(nb_path, "r") as f:
             nb = nbformat.read(f, as_version=4)
@@ -155,7 +161,7 @@ def test_mom6_bathy_launcher():
             )
 
             # Click the create_case button
-            case_creator._create_case(b=None, do_exec=True)
+            case_creator._create_case()
 
         finally:
             # Restore ccs_config xml files
