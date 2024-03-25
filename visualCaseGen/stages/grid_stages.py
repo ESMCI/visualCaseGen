@@ -152,8 +152,7 @@ def initialize_grid_stages(cime):
 
     stg_standard_custom_lnd_grid = Stage(
         title="Land Grid",
-        description="If the land component is not CLM, then the land grid is set to be set to the "
-        "atmosphere grid.",
+        description="Select a standard land grid to be used as the land grid within the new, custom CESM grid.",
         widget=StageWidget(VBox),
         parent=stg_standard_custom_lnd_grid_guard,
         varlist=[cvars["CUSTOM_LND_GRID"]],
@@ -168,8 +167,8 @@ def initialize_grid_stages(cime):
 
     stg_base_lnd_grid = Stage(
         title="Base Land Grid",
-        description="Select a base CLM grid. In the following stages, you will be able to modify the "
-        "base land mask and surface data.",
+        description="Select a base CLM grid. In the following stages, you will be able modify its "
+        "land mask and surface data using the auxiliary tools that come with CESM.",
         widget=StageWidget(VBox),
         parent=stg_custom_new_lnd_grid,
         varlist=[cvars["CUSTOM_LND_GRID"]],
@@ -184,7 +183,10 @@ def initialize_grid_stages(cime):
 
     stg_fsurdat_modifier_no_mom = Stage(
         title="Surface Data Modifier",
-        description="The fsurdat modifier tool is used to modify the surface data file. ",
+        description= "At this stage, you will be prompted to configure are run the fsurdat modifier "
+        "tool to modify the surface data of the selected CLM grid. The properties to configure and "
+        "modify include soil properties, vegetation properties, urban areas, etc. See CLM documentation "
+        "for more information.",
         widget=StageWidget(VBox),
         parent=stg_custom_clm_grid_with_mom,
         varlist=[
@@ -237,7 +239,10 @@ def initialize_grid_stages(cime):
 
     stg_fsurdat_modifier = Stage(
         title="Surface Data Modifier",
-        description="The fsurdat modifier tool is used to modify the surface data file. ",
+        description= "At this stage, you will be prompted to configure are run the fsurdat modifier "
+        "tool to modify the surface data of the selected CLM grid. The properties to configure and "
+        "modify include soil properties, vegetation properties, urban areas, etc. See CLM documentation "
+        "for more information.",
         widget=StageWidget(VBox),
         parent=stg_custom_clm_grid_no_mom,
         varlist=[

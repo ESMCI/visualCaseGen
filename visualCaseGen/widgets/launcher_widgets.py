@@ -5,6 +5,7 @@ from ipyfilechooser import FileChooser
 
 
 from ProConPy.config_var import cvars
+from visualCaseGen.custom_widget_types.disabled_text import DisabledText
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -35,12 +36,8 @@ def initialize_launcher_widgets(cime):
     cv_machine.widget = widgets.Dropdown(
         description='Machine:',
         layout={'width': '250px', 'margin': '10px'}, # If the items' names are long
-        style={'description_width': '70px'},
+        style={'description_width': '80px'},
     )
 
-    cv_project = cvars["PROJECT"]
-    cv_project.widget = widgets.Text(
-        description='Project:',
-        layout={'width': '250px', 'margin': '10px'}, # If the items' names are long
-        style={'description_width': '70px'},
-    )
+    cv_case_creator_status = cvars["CASE_CREATOR_STATUS"]
+    cv_case_creator_status.widget = DisabledText(value = '',)

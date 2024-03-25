@@ -16,7 +16,5 @@ def initialize_launcher_variables(cime):
         "MACHINE",
         default_value = cime.machine,
     )
-    ConfigVarStr(
-        "PROJECT",
-        widget_none_val="",
-    )
+
+    ConfigVarStr("CASE_CREATOR_STATUS", widget_none_val="") # a status variable to prevent the completion of the stage

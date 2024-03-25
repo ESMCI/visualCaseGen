@@ -45,17 +45,24 @@ def initialize_standard_compset_variables(cime):
     # Compset Alias
     cv_compset_alias = ConfigVarStrMS("COMPSET_ALIAS")
 
+    def reset_all_comp_vars():
+        """Reset all component variables to None. This gets called every time the compset alias is changed."""
+        if cvars['COMPSET_LNAME'].value is not None:
+            cvars['COMPSET_LNAME'].value = None
+        for comp_class in cime.comp_classes:
+            if cvars[f'COMP_{comp_class}'].value is not None:
+                cvars[f'COMP_{comp_class}'].value = None
+            if cvars[f'COMP_{comp_class}_PHYS'].value is not None:
+                cvars[f'COMP_{comp_class}_PHYS'].value = None
+            if cvars[f'COMP_{comp_class}_OPTION'].value is not None:
+                cvars[f'COMP_{comp_class}_OPTION'].value = None
+
     @owh.out.capture()
     def compset_alias_tracker(change):
         """If the compset alias is changed, then set the compset lname automatically."""
         new_compset_alias = change['new']
-        if new_compset_alias in [None, ()]:
-            cvars['COMPSET_LNAME'].value = None
-            for comp_class in cime.comp_classes:
-                cvars[f'COMP_{comp_class}_OPTION'].value = None
-                cvars[f'COMP_{comp_class}_PHYS'].value = None
-                cvars[f'COMP_{comp_class}'].value = None
-        else:
+        reset_all_comp_vars()
+        if new_compset_alias not in [None, ()]:
             new_compset_lname = cime.compsets[new_compset_alias].lname
             compset_lname_parts = cime.get_components_from_compset_lname(new_compset_lname)
             for comp_class in cime.comp_classes:

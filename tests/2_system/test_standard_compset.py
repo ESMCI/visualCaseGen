@@ -62,9 +62,14 @@ def configure_standard_compset(cime):
         cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
     ## Pick a standard compset
-    cvars['COMPSET_ALIAS'].value = "B1850"
+    cvars['COMPSET_ALIAS'].value = "B1850MOM"
+
+    # Generate standard grids list (but don't select any yet)
+    cvars['GRID_MODE'].value = 'Standard'
 
     ## Change of mind, revert and pick a supported compset
+    Stage.active().revert()
+    assert Stage.active().title.startswith('2. Grid')
     Stage.active().revert()
     assert Stage.active().title.startswith('Standard Compsets')
     Stage.active().revert()
@@ -76,6 +81,9 @@ def configure_standard_compset(cime):
     cvars['COMPSET_ALIAS'].value = "F2000climo"
     # Check if COMPSET_LNAME is set accordingly:
     assert cvars['COMPSET_LNAME'].value == '2000_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV'
+
+    # Generate standard grids list (but don't select any yet)
+    cvars['GRID_MODE'].value = 'Standard'
 
     
 def revert_to_first_stage():

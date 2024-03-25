@@ -2,8 +2,7 @@ import re
 from ProConPy.config_var import cvars
 from ProConPy.options_spec import OptionsSpec
 from ProConPy.dev_utils import ConstraintViolation
-from ProConPy.csp_solver import csp
-
+from ProConPy.csp_solver import csp, unsat
 
 def set_grid_options(cime):
 
@@ -36,37 +35,49 @@ def set_standard_grid_options(cime):
             support_level != "Supported" or compset_alias is not None
         ), "Support level is 'Supported', but no compset alias is selected."
 
-        for alias, compset_attr, not_compset_attr, desc in cime.resolutions:
-            if (
-                support_level == "Supported"
-                and alias not in cime.sci_supported_grids[compset_alias]
-            ):
-                continue
-            if compset_attr and not re.search(compset_attr, compset_lname):
-                continue
-            if not_compset_attr and re.search(not_compset_attr, compset_lname):
-                continue
+        comp_grid_vars = [
+            cvars["ATM_GRID"],
+            cvars["LND_GRID"],
+            cvars["OCN_GRID"],
+            cvars["ICE_GRID"],
+            cvars["ROF_GRID"],
+            cvars["GLC_GRID"],
+            cvars["WAV_GRID"],
+            cvars["MASK_GRID"],
+        ]
 
-            grid_lname_parts = cime.get_grid_lname_parts(alias, compset_lname)
+        with csp._solver as s:
 
-            try:
-                csp.check_assignments(
-                    (
-                        (cvars["ATM_GRID"], grid_lname_parts["a%"]),
-                        (cvars["LND_GRID"], grid_lname_parts["l%"]),
-                        (cvars["OCN_GRID"], grid_lname_parts["oi%"]),
-                        (cvars["ICE_GRID"], grid_lname_parts["oi%"]),
-                        (cvars["ROF_GRID"], grid_lname_parts["r%"]),
-                        (cvars["GLC_GRID"], grid_lname_parts["g%"]),
-                        (cvars["WAV_GRID"], grid_lname_parts["w%"]),
-                        (cvars["MASK_GRID"], grid_lname_parts["m%"]),
-                    )
-                )
-            except ConstraintViolation:
-                continue
+            csp.apply_assignment_assertions(s, exclude_vars=comp_grid_vars)
+            csp.apply_options_assertions(s, exclude_vars=comp_grid_vars)
 
-            compatible_grids.append(alias)
-            grid_descriptions.append(desc)
+            for alias, compset_attr, not_compset_attr, desc in cime.resolutions:
+                if (
+                    support_level == "Supported"
+                    and alias not in cime.sci_supported_grids[compset_alias]
+                ):
+                    continue
+                if compset_attr and not re.search(compset_attr, compset_lname):
+                    continue
+                if not_compset_attr and re.search(not_compset_attr, compset_lname):
+                    continue
+
+                grid_lname_parts = cime.get_grid_lname_parts(alias, compset_lname)
+
+                if s.check([
+                    cvars["ATM_GRID"] == grid_lname_parts["a%"],
+                    cvars["LND_GRID"] == grid_lname_parts["l%"],
+                    cvars["OCN_GRID"] == grid_lname_parts["oi%"],
+                    cvars["ICE_GRID"] == grid_lname_parts["oi%"],
+                    cvars["ROF_GRID"] == grid_lname_parts["r%"],
+                    cvars["GLC_GRID"] == grid_lname_parts["g%"],
+                    cvars["WAV_GRID"] == grid_lname_parts["w%"],
+                    cvars["MASK_GRID"] == grid_lname_parts["m%"],
+                ]) == unsat:
+                    continue # Skip this grid if it is deemed invalid by the CSP solver
+
+                compatible_grids.append(alias)
+                grid_descriptions.append(desc)
 
         return compatible_grids, grid_descriptions
 

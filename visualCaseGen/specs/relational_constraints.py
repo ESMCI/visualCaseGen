@@ -22,7 +22,8 @@ def get_relational_constraints(cvars):
     WAV_GRID = cvars['WAV_GRID']
     OCN_GRID_MODE = cvars['OCN_GRID_MODE']; OCN_GRID_EXTENT = cvars['OCN_GRID_EXTENT']; OCN_CYCLIC_X = cvars['OCN_CYCLIC_X']
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
-    LND_GRID_MODE = cvars['LND_GRID_MODE']
+    LND_GRID_MODE = cvars['LND_GRID_MODE']; LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']
+    LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']; LND_STD_ELEV = cvars['LND_STD_ELEV']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
@@ -139,6 +140,18 @@ def get_relational_constraints(cvars):
         # Custom lnd grid constraints ------------------
         Implies(COMP_LND!="clm", LND_GRID_MODE=="Standard"):
             "Custom LND grids can only be generated for CLM.",
+
+        And(0<=LND_SOIL_COLOR, LND_SOIL_COLOR<=20):
+            "Soil color must be set to an integer value between 0 and 20",
+
+        LND_DOM_PFT >= 0.0:
+            "PFT/CFT must be set to a nonnegative number",
+
+        And(0<=LND_MAX_SAT_AREA, LND_MAX_SAT_AREA<=1):
+            "Max fraction of saturated area must be set to a value between 0 and 1.",
+
+        LND_STD_ELEV >= 0.0:
+            "Standard deviation of elevation must be a nonnegative number."
 
         #### Assertions to stress-test the CSP solver
 

@@ -5,6 +5,7 @@ import shutil
 import os
 from pathlib import Path
 import tempfile
+import time
 
 from ProConPy.config_var import ConfigVar, cvars
 from ProConPy.stage import Stage
@@ -16,22 +17,25 @@ from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.case_creator import CaseCreator
 
 
 # do not show logger output
 import logging
+
 logger = logging.getLogger()
 logger.setLevel(logging.CRITICAL)
 
-base_temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
+base_temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "temp"))
+
 
 def test_mom6_bathy_launcher():
     ConfigVar.reboot()
     Stage.reboot()
     cime = CIME_interface()
     initialize_configvars(cime)
-    initialize_widgets(cime) 
-    initialize_stages(cime) 
+    initialize_widgets(cime)
+    initialize_stages(cime)
     set_options(cime)
     csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
 
@@ -39,72 +43,139 @@ def test_mom6_bathy_launcher():
 
     # At initialization, the first stage should be enabled
     assert Stage.first().enabled
-    cvars['COMPSET_MODE'].value = 'Standard'
+    cvars["COMPSET_MODE"].value = "Standard"
 
     # COMPSET_MODE is the only variable in the first stage, so assigning a value to it should disable the first stage
     assert not Stage.first().enabled
-    
+
     # The next stage is Custom Component Set, whose first child is Model Time Period
-    assert Stage.active().title.startswith('Support Level')
-    cvars['SUPPORT_LEVEL'].value = 'All'
+    assert Stage.active().title.startswith("Support Level")
+    cvars["SUPPORT_LEVEL"].value = "All"
 
     # Apply filters
     for comp_class in cime.comp_classes:
         cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
     ## Pick a standard compset
-    cvars['COMPSET_ALIAS'].value = "GMOM_JRA"
+    cvars["COMPSET_ALIAS"].value = "GMOM_JRA"
 
     # Create a custom grid
-    assert Stage.active().title.startswith('2. Grid')
-    cvars['GRID_MODE'].value = "Custom"
+    assert Stage.active().title.startswith("2. Grid")
+    cvars["GRID_MODE"].value = "Custom"
 
     # Set the custom grid path
-    assert Stage.active().title.startswith('Custom Grid')
+    assert Stage.active().title.startswith("Custom Grid")
 
     with tempfile.TemporaryDirectory(dir=base_temp_dir) as temp_grid_path:
 
-        cvars['CUSTOM_GRID_PATH'].value = str(temp_grid_path)
-
+        cvars["CUSTOM_GRID_PATH"].value = temp_grid_path
         # since this is a JRA run, the atmosphere grid must automatically be set to TL319
-        assert cvars['CUSTOM_ATM_GRID'].value == "TL319"
+        assert cvars["CUSTOM_ATM_GRID"].value == "TL319"
 
         # Set the custom ocean grid mode
-        assert Stage.active().title.startswith('Ocean')
-        cvars['OCN_GRID_MODE'].value = "Create New"
+        assert Stage.active().title.startswith("Ocean")
+        cvars["OCN_GRID_MODE"].value = "Create New"
 
         # Set the custom ocean grid properties
-        assert Stage.active().title.startswith('Custom Ocean')
-        cvars['OCN_GRID_EXTENT'].value = "Global"
-        cvars['OCN_CYCLIC_X'].value = "Yes"
-        cvars['OCN_NX'].value = 180
-        cvars['OCN_NY'].value = 80
-        cvars['OCN_LENX'].value = 360.0
-        cvars['OCN_LENY'].value = 160.0
-        cvars['CUSTOM_OCN_GRID_NAME'].value = "test_grid"
+        assert Stage.active().title.startswith("Custom Ocean")
+        cvars["OCN_GRID_EXTENT"].value = "Global"
+        cvars["OCN_CYCLIC_X"].value = "Yes"
+        cvars["OCN_NX"].value = 60
+        cvars["OCN_NY"].value = 30
+        cvars["OCN_LENX"].value = 360.0
+        cvars["OCN_LENY"].value = 160.0
+        cvars["CUSTOM_OCN_GRID_NAME"].value = "custom_ocn_grid"
 
         # now launch the mom6_bathy notebook
-        nb_path = Path("mom6_bathy_notebooks") / f"mom6_bathy_{cvars['CUSTOM_OCN_GRID_NAME'].value}.ipynb"
-        mom6_bathy_launcher_widget = MOM6BathyLauncher()
+        nb_path = (
+            Path("mom6_bathy_notebooks")
+            / f"mom6_bathy_{cvars['CUSTOM_OCN_GRID_NAME'].value}.ipynb"
+        )
+        mom6_bathy_launcher_widget = Stage.active()._widget._main_body.children[-1]
+        assert isinstance(mom6_bathy_launcher_widget, MOM6BathyLauncher)
 
         # After setting all the required parameters, the launch button should be enabled
         assert mom6_bathy_launcher_widget._btn_launch_mom6_bathy.disabled is False
 
         # *Click* the launch button
         mom6_bathy_launcher_widget._on_btn_launch_clicked(b=None)
-    
+
         # The confirm button should be visible:
-        assert mom6_bathy_launcher_widget._btn_confirm_completion.layout.display != 'none'
+        assert (
+            mom6_bathy_launcher_widget._btn_confirm_completion.layout.display != "none"
+        )
 
         # *Click* the confirm button
         mom6_bathy_launcher_widget._on_btn_confirm_completion_clicked(b=None)
 
         # Since the notebook wasn't fully executed, we should remain in the same stage
-        assert Stage.active().title.startswith('Custom Ocean')
+        assert Stage.active().title.startswith("Custom Ocean")
 
+        # now, programmatically run the notebook
+        import nbformat
+        from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
+
+        with open(nb_path, "r") as f:
+            nb = nbformat.read(f, as_version=4)
+            ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
+            try:
+                ep.preprocess(nb, {"metadata": {"path": str(nb_path.parent)}})
+            except CellExecutionError:
+                msg = f"Error executing the notebook {nb_path}"
+                print(msg)
+                raise
+
+        # confirm completion:
+        Stage.active()._proceed()
+
+        # Since land grid gets set automatically, we should be in the Launch stage:
+        assert Stage.active().title.startswith("3. Launch")
+        launch_stage = Stage.active()
+
+        with tempfile.TemporaryDirectory(dir=base_temp_dir) as temp_case_path:
+            pass    # immediately remove the random temporary directory,
+                    # which will become the caseroot directory below
+
+        cvars["CASEROOT"].value = temp_case_path
+
+        case_creator = launch_stage._widget._main_body.children[-1]
+        assert isinstance(case_creator, CaseCreator)
+
+        case_creator._txt_project.value = "12345"
+
+        try:
+            # back up ccs_config xml files to be modified
+            shutil.copy(
+                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml",
+                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml.bak",
+            )
+            shutil.copy(
+                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml",
+                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml.bak",
+            )
+
+            # Click the create_case button
+            case_creator._create_case(b=None, do_exec=True)
+
+        finally:
+            # Restore ccs_config xml files
+            shutil.move(
+                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml.bak",
+                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml",
+            )
+            shutil.move(
+                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml.bak",
+                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml",
+            )
+        
+        # sleep for a bit to allow the case to be created
+        time.sleep(5)
+        
         # remove mom6_bathy notebook belonging to the test_grid:
         os.remove(nb_path)
 
+        # remove the caseroot directory
+        shutil.rmtree(temp_case_path)
 
 
 if __name__ == "__main__":

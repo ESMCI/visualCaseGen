@@ -502,6 +502,15 @@ class CIME_interface:
         self.machine = machines_obj.get_machine_name()
         self.machines = machines_obj.list_available_machines()
 
+        # TODO: although the below loop appears to loop through all machines, it actually doesn't. As of schema 3.0,
+        # i.e., since the config_machines.xml file is split into separate files for each machine, the below
+        # loop only looks at self.machine (regardless of the if statement: machine_name == self.machine)
+        # So, this loop only retrieves the CIME_OUTPUT_ROOT and DIN_LOC_ROOT for the current machine. This should
+        # be updated to retrieve the CIME_OUTPUT_ROOT and DIN_LOC_ROOT for all available machines, in case the user
+        # wants to switch machines. However, this would also necessitate determining the machine early on in the
+        # configuration process, which is not currently done. Note: see the subsequent loop that determines the
+        # project_required attribute for all machines properly.
+
         for machine_node in machines_obj.get_children("machine"):
             machine_name = machines_obj.get(machine_node, "MACH")
             if machine_name == self.machine:
@@ -533,19 +542,21 @@ class CIME_interface:
                     logger.error(f"DIN_LOC_ROOT doesn't exist: {self.din_loc_root}")
 
                 break
-
-        # Is a PROJECT variable required by this machine?
-        for machine_node in machines_obj.get_children("machine"):
-            machine_name = machines_obj.get(machine_node, "MACH")
-            try:
-                project_required_node = machines_obj.get_child(
-                    root=machine_node, name="PROJECT_REQUIRED"
-                )
-                self.project_required[machine_name] = (
-                    machines_obj.text(project_required_node).lower() == "true"
-                )
-            except:
-                self.project_required[machine_name] = False
+        
+        # Keep a record of whether a project id is required for each machine
+        for machine in self.machines:
+            machines_obj = Machines(machs_file, machine=machine)
+            for machine_node in machines_obj.get_children("machine"):
+                machine_name = machines_obj.get(machine_node, "MACH")
+                try:
+                    project_required_node = machines_obj.get_child(
+                        root=machine_node, name="PROJECT_REQUIRED"
+                    )
+                    self.project_required[machine_name] = (
+                        machines_obj.text(project_required_node).lower() == "true"
+                    )
+                except:
+                    self.project_required[machine_name] = False
 
     def _retrieve_clm_fsurdat(self):
         clm_root = Path(Path(CIMEROOT).parent, "components", "clm")

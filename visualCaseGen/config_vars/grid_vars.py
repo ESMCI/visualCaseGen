@@ -53,6 +53,7 @@ def initialize_custom_grid_variables(cime):
     ConfigVarInt("OCN_NY")  # number of cells in y-direction
     ConfigVarReal("OCN_LENX")  # grid length in x-direction
     ConfigVarReal("OCN_LENY")  # grid length in y-direction
+    ConfigVarStr('MB_ATTEMPT_ID') # latest mom6_bathy attempt id (auxiliary variable)
     ConfigVarStr(
         "MOM6_BATHY_STATUS", widget_none_val=""
     )  # a status variable to prevent the completion of the stage

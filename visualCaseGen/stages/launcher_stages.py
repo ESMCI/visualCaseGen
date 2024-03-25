@@ -5,7 +5,7 @@ from ProConPy.config_var import cvars
 from ProConPy.stage import Stage
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
-from visualCaseGen.utils.create_case import create_case
+from visualCaseGen.custom_widget_types.case_creator import CaseCreator
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -17,15 +17,8 @@ def initialize_launcher_stages(cime):
     launcher_vars = [
         cvars["CASEROOT"],
         cvars["MACHINE"],
+        cvars["CASE_CREATOR_STATUS"]
     ]
-
-    # Check if PROJECT id is required for the machine
-    project_required = True
-    if cime.machine is not None:
-        project_required = cime.project_required[cime.machine]
-
-    if project_required:
-        launcher_vars.append(cvars["PROJECT"])
 
     stg_launch = Stage(
         title="3. Launch",
@@ -40,23 +33,4 @@ def initialize_launcher_stages(cime):
         varlist=launcher_vars,
     )
 
-
-    btn_create_case = Button(
-        description="Create Case",
-        layout={"width": "160px", "margin": "5px"},
-    )
-    btn_create_case.on_click(lambda b: create_case(b, cime))
-
-
-
-    btn_show_commands = Button(
-        description="Show Commands",
-        layout={"width": "160px", "margin": "5px"},
-    )
-
-    stg_launch._widget.children += (
-        HBox(
-            [btn_create_case, btn_show_commands],
-            layout={"display": "flex", "justify_content": "center"},
-        ),
-    )
+    stg_launch._widget.children += (CaseCreator(cime),)

@@ -361,38 +361,6 @@ class CspSolver:
 
         return new_options_and_tooltips
 
-    def check_assignments(self, assignments):
-        """Check multiple assignments at once. This method is more efficient than calling
-        check_assignment() multiple times because it applies the assignment assertions and the
-        options assertions to the solver only once.
-
-        Parameters
-        ----------
-        assignments : tuple of (ConfigVar, any)
-            A tuple of (variable, value) pairs to be checked for validity.
-
-        Raises
-        ------
-        ConstraintViolation : If any of the assignments is invalid.
-        """
-
-        logger.debug("Checking multiple assignments...")
-        assert (
-            self._initialized
-        ), "Must finalize initialization before CspSolver can operate."
-
-        assignments = tuple(a for a in assignments if a[1] is not None)
-        vars = [var for var, _ in assignments]
-        assignment_assertions = And([var == new_value for var, new_value in assignments])
-
-        with self._solver as s:
-            self.apply_assignment_assertions(s, exclude_vars=vars)
-            self.apply_options_assertions(s, exclude_vars=vars)
-            if s.check(assignment_assertions) == unsat:
-                raise ConstraintViolation(
-                    f"The assignments led to infeasible options for dependent variable(s). "
-                )
-
     def check_expression(self, expr):
         """Check if the given z3 BoolRef expression is satisfiable.
 

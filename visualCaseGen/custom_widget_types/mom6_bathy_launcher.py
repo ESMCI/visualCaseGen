@@ -22,7 +22,7 @@ class MOM6BathyLauncher(VBox):
 
         super().__init__(*args, **kwargs)
 
-        self.attempt_id = None
+        cvars['MB_ATTEMPT_ID'].value = None
         self.required_mom6_bathy_vars = [
             cvars["CUSTOM_GRID_PATH"],
             cvars["OCN_GRID_MODE"],
@@ -83,9 +83,9 @@ class MOM6BathyLauncher(VBox):
         return Path(custom_grid_path) / "ocnice"
 
     def _on_required_var_change(self, change):
-        """If any of the required variables are changed, reset the attempt_id and mom6_bathy_status."""
+        """If any of the required variables are changed, reset the attempt id and mom6_bathy_status."""
         self._btn_confirm_completion.layout.display = "none"
-        self.attempt_id = None
+        cvars['MB_ATTEMPT_ID'].value = None
         cvars["MOM6_BATHY_STATUS"].value = None
         self._out.clear_output()
 
@@ -107,7 +107,7 @@ class MOM6BathyLauncher(VBox):
             return
 
         # Reset the attempt_id and mom6_bathy_status
-        self.attempt_id = str(uuid.uuid1())[:6]
+        cvars['MB_ATTEMPT_ID'].value = str(uuid.uuid1())[:6]
         cvars["MOM6_BATHY_STATUS"].value = None
 
         # Determine the path to the new notebook
@@ -144,7 +144,9 @@ class MOM6BathyLauncher(VBox):
                 "No custom_ocn_grid_path found. Cannot confirm completion of mom6_bathy"
             )
             return
-        if self.attempt_id is None:
+
+        attempt_id = cvars['MB_ATTEMPT_ID'].value
+        if attempt_id is None:
             alert_warning(
                 "No attempt_id found. Cannot confirm completion of mom6_bathy"
             )
@@ -161,19 +163,19 @@ class MOM6BathyLauncher(VBox):
         # See if all required files are created:
         mom6_supergrid_file = (
             custom_ocn_grid_path
-            / f"ocean_grid_{custom_ocn_grid_name}_{self.attempt_id}.nc"
+            / f"ocean_grid_{custom_ocn_grid_name}_{attempt_id}.nc"
         )
         mom6_topog_file = (
             custom_ocn_grid_path
-            / f"ocean_topog_{custom_ocn_grid_name}_{self.attempt_id}.nc"
+            / f"ocean_topog_{custom_ocn_grid_name}_{attempt_id}.nc"
         )
         esmf_mesh_file = (
             custom_ocn_grid_path
-            / f"ESMF_mesh_{custom_ocn_grid_name}_{self.attempt_id}.nc"
+            / f"ESMF_mesh_{custom_ocn_grid_name}_{attempt_id}.nc"
         )
         cice_grid_file = (
             custom_ocn_grid_path
-            / f"cice_grid.{custom_ocn_grid_name}_{self.attempt_id}.nc"
+            / f"cice_grid.{custom_ocn_grid_name}_{attempt_id}.nc"
         )
         required_files = [mom6_supergrid_file, mom6_topog_file, esmf_mesh_file]
         if "CICE" in cvars["COMP_ICE_PHYS"].value:
@@ -195,22 +197,13 @@ class MOM6BathyLauncher(VBox):
     def _launch_mom6_bathy(self, nb_filepath):
         """Generate a new mom6_bathy notebook and open it in a new tab. This method gets called when
         the user clicks the "Launch mom6_bathy" button."""
-        nb = MOM6BathyLauncher._create_notebook_object(self.attempt_id)
+        nb = MOM6BathyLauncher._create_notebook_object()
         MOM6BathyLauncher._write_notebook(nb, nb_filepath)
         MOM6BathyLauncher._open_notebook_in_browser(nb_filepath)
 
     @staticmethod
-    def _create_notebook_object(attempt_id):
+    def _create_notebook_object():
         """Create a mom6_bathy notebook object based on the current values of the required variables.
-
-        Parameters
-        ----------
-        attempt_id : str
-            A unique identifier for the current attempt to create a new mom6_bathy notebook.
-            When the user executes the notebook, the attempt_id is used to create unique file names
-            for the grid and bathymetry files. The attempt_id is also used to determine of the
-            most recent attempt to create the notebook was successful when the user clicks
-            the "Confirm completion" button.
 
         Returns
         -------
@@ -225,6 +218,7 @@ class MOM6BathyLauncher(VBox):
         leny = cvars["OCN_LENY"].value
         cyclic_x = cvars["OCN_CYCLIC_X"].value
         ocn_grid_name = cvars["CUSTOM_OCN_GRID_NAME"].value
+        attempt_id = cvars['MB_ATTEMPT_ID'].value
 
         # if custom_grid_path doesn't exist, create it:
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()

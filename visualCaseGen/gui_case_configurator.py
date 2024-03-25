@@ -22,7 +22,7 @@ class GUI_case_configurator(widgets.VBox):
         welcome_text = widgets.HTML(value="""
                 <p style='text-align:center;font-size:140%'><b><i>Welcome to visualCaseGen!</i></b></p>
                 <p style='text-align:center'>
-                visualCaseGen is a tool for generating custom CESM case configurations. <br>
+                visualCaseGen guides users through the process of creating CESM experiments.<br>
             """, layout={'left':'-2px', 'top':'20px'}) 
 
         self.btn_start = widgets.Button(
