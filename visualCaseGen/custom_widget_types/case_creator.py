@@ -155,6 +155,8 @@ class CaseCreator(VBox):
         except Exception as e:
             with owh.out:
                 alert_error(str(e))
+            with self._out:
+                print(f"{ERROR}{str(e)}{RESET}")
             self.revert_launch(do_exec)
             return
 
@@ -235,6 +237,11 @@ class CaseCreator(VBox):
         # Run create_newcase
         self._run_create_newcase(caseroot, compset, resolution, do_exec)
 
+        # Navigate to the case directory:
+        with self._out:
+            print(f"{COMMENT}Navigate to the case directory:{RESET}\n")
+            print(f"cd {caseroot}\n")
+
         # Apply case modifications, e.g., xmlchanges and user_nl changes
         self._apply_xmlchanges(caseroot, do_exec)
 
@@ -258,12 +265,14 @@ class CaseCreator(VBox):
             ), f"Unknown grid mode: {cvars['GRID_MODE'].value}"
 
         # check if custom grid path exists:
+        ocn_grid_mode = cvars["OCN_GRID_MODE"].value
+        lnd_grid_mode = cvars["LND_GRID_MODE"].value
         custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
         if not custom_grid_path.exists():
-            raise RuntimeError(f"Custom grid path {custom_grid_path} does not exist.")
+            if ocn_grid_mode != "Standard" or lnd_grid_mode != "Standard":
+                raise RuntimeError(f"Custom grid path {custom_grid_path} does not exist.")
 
         ocn_grid = None
-        ocn_grid_mode = cvars["OCN_GRID_MODE"].value
         if ocn_grid_mode == "Standard":
             ocn_grid = cvars["CUSTOM_OCN_GRID"].value
         elif ocn_grid_mode in ["Modify Existing", "Create New"]:
@@ -314,8 +323,9 @@ class CaseCreator(VBox):
         # log the modification of modelgrid_aliases.xml:
         with self._out:
             print(
-                f"{BPOINT} Update modelgrid_aliases.xml with resolution {resolution_name}."
-                f" Atm grid: {atm_grid}, Lnd grid: {lnd_grid}, Ocn grid: {ocn_grid}.\n"
+                f'{BPOINT} Update ccs_config/modelgrid_aliases_nuopc.xml file to include the new '
+                f'resolution "{resolution_name}" consisting of the following component grids.\n'
+                f' atm grid: "{atm_grid}", lnd grid: "{lnd_grid}", ocn grid: "{ocn_grid}".\n'
             )
 
         # Read in xml file and generate grids object file:
@@ -418,9 +428,10 @@ class CaseCreator(VBox):
             # log the modification of component_grids.xml:
             with self._out:
                 print(
-                    f"{BPOINT} Update component_grids.xml with ocean grid {ocn_grid}."
-                    f" nx: {cvars['OCN_NX'].value}, ny: {cvars['OCN_NY'].value}."
-                    f" Ocean mesh: {ocn_mesh}.{RESET}\n"
+                    f'{BPOINT} Update ccs_config/component_grids_nuopc.xml file to include '
+                    f'newly generated ocean grid "{ocn_grid}" with the following properties:\n'
+                    f' nx: {cvars["OCN_NX"].value}, ny: {cvars["OCN_NY"].value}.'
+                    f' ocean mesh: {ocn_mesh}.{RESET}\n'
                 )
 
             # Read in xml file and generate component_grids object file:
@@ -537,6 +548,7 @@ class CaseCreator(VBox):
                 raise RuntimeError("Error creating case.")
 
     def _apply_xmlchanges(self, caseroot, do_exec):
+
         def exec_xmlchange(var, val):
 
             cmd = f"./xmlchange {var}={val}"
@@ -552,8 +564,28 @@ class CaseCreator(VBox):
             if runout.returncode != 0:
                 raise RuntimeError(f"Error running {cmd}.")
 
-        pass
+        lnd_grid_mode = cvars["LND_GRID_MODE"].value
+        if lnd_grid_mode == "Modified":
+            if cvars["COMP_OCN"].value != "mom":
+                with self._out:
+                    print(f"{COMMENT}Apply custom land grid xml changes:{RESET}\n")
 
+                # TODO: instead of xmlchanges, these changes should be made via adding the new lnd domain mesh to
+                # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
+
+                # lnd domain mesh
+                exec_xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value)
+
+                # mask mesh (if modified)
+                base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
+                custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
+                lnd_dir = custom_grid_path / "lnd"
+                modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
+                assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
+                exec_xmlchange("MASK_MESH", modified_mask_mesh)
+        else:
+            assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
+            
     def _run_case_setup(self, caseroot, do_exec):
         """Run the case.setup script to set up the case instance.
         
@@ -620,11 +652,6 @@ class CaseCreator(VBox):
             If True, execute the commands. If False, only print them.
         """
 
-        # Navigate to the case directory:
-        with self._out:
-            print(f"{COMMENT}Navigate to the case directory:{RESET}\n")
-            print(f"cd {caseroot}\n")
-
         # If standard grid is selected, no modifications are needed:
         grid_mode = cvars["GRID_MODE"].value
         if grid_mode == "Standard":
@@ -632,9 +659,11 @@ class CaseCreator(VBox):
         else:
             assert grid_mode == "Custom", f"Unknown grid mode: {grid_mode}"
 
-        self._apply_ocnice_changes(do_exec)
-    
-    def _apply_ocnice_changes(self, do_exec):
+        self._apply_user_nl_mom_changes(do_exec)
+        self._apply_user_nl_cice_changes(do_exec)
+        self._apply_user_nl_clm_changes(do_exec)
+
+    def _apply_user_nl_mom_changes(self, do_exec):
         """Apply all necessary changes to user_nl_mom and user_nl_cice files."""
 
         ocn_grid_mode = cvars["OCN_GRID_MODE"].value
@@ -664,6 +693,8 @@ class CaseCreator(VBox):
             [
                 ("INPUTDIR", ocn_grid_path),
                 ("TRIPOLAR_N", "False"),
+                ("REENTRANT_X", cvars["OCN_CYCLIC_X"].value),
+                ("REENTRANT_Y", "False"), # todo
                 ("NIGLOBAL", cvars["OCN_NX"].value),
                 ("NJGLOBAL", cvars["OCN_NY"].value),
                 ("GRID_CONFIG", "mosaic"),
@@ -684,15 +715,67 @@ class CaseCreator(VBox):
             do_exec,
         )
 
-        # apply custom CICE grid changes:
-        if cvars["COMP_ICE"].value.startswith("cice"):
-            cice_grid_file_path = MOM6BathyLauncher.cice_grid_file_path()
-            self._apply_user_nl(
-                "user_nl_cice",
-                [
-                    ("grid_format", '"nc"'),
-                    ("grid_file", f'"{cice_grid_file_path}"'),
-                    ("kmt_file", f'"{cice_grid_file_path}"'),
-                ],
-                do_exec,
-            )
+    def _apply_user_nl_cice_changes(self, do_exec):
+        """Apply all necessary changes to user_nl_cice file."""
+
+        ocn_grid_mode = cvars["OCN_GRID_MODE"].value
+        if ocn_grid_mode == "Standard":
+            return # no modifications needed for standard ocean grid
+
+        comp_ice = cvars["COMP_ICE"].value
+        if not comp_ice.startswith("cice"):
+            return
+
+        cice_grid_file_path = MOM6BathyLauncher.cice_grid_file_path()
+        self._apply_user_nl(
+            "user_nl_cice",
+            [
+                ("grid_format", '"nc"'),
+                ("grid_file", f'"{cice_grid_file_path}"'),
+                ("kmt_file", f'"{cice_grid_file_path}"'),
+            ],
+            do_exec,
+        )
+
+    def _apply_user_nl_clm_changes(self, do_exec):
+        """Apply all necessary changes to user_nl_clm file."""
+
+        lnd_grid_mode = cvars["LND_GRID_MODE"].value
+        if lnd_grid_mode == "Standard":
+            return
+        assert lnd_grid_mode == "Modified", f"Unknown land grid mode: {lnd_grid_mode}"
+
+        # TODO: below way of getting the modified fsurdat file path is fragile
+        base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
+        custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
+        lnd_dir = custom_grid_path / "lnd"
+        modified_fsurdat = lnd_dir / f"{base_lnd_grid}_fsurdat_modifier.nc"
+        assert modified_fsurdat.exists(), f"Modified fsurdat file {modified_fsurdat} does not exist."
+
+        # fsurdat:
+        user_nl_clm_changes = [
+            ("fsurdat", f'"{modified_fsurdat}"'),
+        ]
+
+        inittime = cvars["INITTIME"].value
+        if inittime is None:
+            inittime = cvars["COMPSET_LNAME"].value.split("_")[0]
+        
+        # For transient runs, we need to:
+        #  - set check_dynpft_consistency to .false.
+        #  - set flanduse_timeseries
+        if inittime == "HIST" or "SSP" in inittime:
+
+            flanduse_timeseries_path = self._cime.clm_flanduse[base_lnd_grid]
+            assert flanduse_timeseries_path is not None, f"Land use timeseries file for {base_lnd_grid} not found."
+            assert Path(flanduse_timeseries_path).exists(), f"Land use timeseries file {flanduse_timeseries_path} does not exist."
+
+            user_nl_clm_changes.extend([
+                ("check_dynpft_consistency", ".false."),
+                #TODO:("flanduse_timeseries", f'"{flanduse_timeseries_path}"'),
+                # as of cesm2_3alpha17b, there is an issue with flanduse_timeseries:
+                # cft dimensions included in clm namelist xml files don't match the dimensions that clm expects: 64 vs 2.
+            ])
+
+        self._apply_user_nl("user_nl_clm", user_nl_clm_changes, do_exec)
+        

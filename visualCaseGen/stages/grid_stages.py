@@ -175,7 +175,7 @@ def initialize_grid_stages(cime):
     )
 
     stg_custom_clm_grid_with_mom = Stage(
-        title="Parent of Mesh Mask tage",
+        title="Parent of custom CLM grid when MOM6 is selected.",
         description="",
         parent=stg_base_lnd_grid,
         activation_guard=cvars["COMP_OCN"] == "mom",
@@ -208,7 +208,7 @@ def initialize_grid_stages(cime):
     )
 
     stg_custom_clm_grid_no_mom = Stage(
-        title="Branch for creating custom CLM grids when MOM6 is not selected.",
+        title="Parent of custom CLM grid when MOM6 is NOT selected.",
         description="",
         parent=stg_base_lnd_grid,
         activation_guard=cvars["COMP_OCN"] != "mom",

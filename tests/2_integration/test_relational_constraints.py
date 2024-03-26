@@ -107,7 +107,7 @@ def test_relational_constraints():
     assert Stage.active().title.startswith('Custom Ocean')
     cvars['OCN_GRID_EXTENT'].value = "Global"
     with pytest.raises(ConstraintViolation):
-        cvars['OCN_CYCLIC_X'].value = "No"
+        cvars['OCN_CYCLIC_X'].value = "False"
     cvars['OCN_NX'].value = 100
     cvars['OCN_NY'].value = 50
     with pytest.raises(ConstraintViolation):

@@ -80,7 +80,7 @@ class CIME_interface:
         self._retrieve_domains_and_resolutions()
         self._retrieve_compsets()
         self._retrieve_machines()
-        self._retrieve_clm_fsurdat()
+        self._retrieve_clm_data()
 
     def _retrieve_cime_basics(self):
         """Determine basic CIME variables and properties, including:
@@ -558,7 +558,8 @@ class CIME_interface:
                 except:
                     self.project_required[machine_name] = False
 
-    def _retrieve_clm_fsurdat(self):
+    def _retrieve_clm_data(self):
+        """Retrieve clm fsurdat and flanduse data from the namelist_defaults_ctsm.xml file."""
         clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
         clm_namelist_defaults_file = Path(
             clm_root, "bld", "namelist_files", "namelist_defaults_ctsm.xml"
@@ -574,7 +575,19 @@ class CIME_interface:
             filedir = clm_namelist_xml.text(fsurdat_node)
             if sim_year not in self.clm_fsurdat:
                 self.clm_fsurdat[sim_year] = {}
-            self.clm_fsurdat[sim_year][hgrid] = filedir
+            self.clm_fsurdat[sim_year][hgrid] = os.path.join(
+                self.din_loc_root.strip(),
+                filedir.strip()
+            )
+
+        self.clm_flanduse = {}
+        for flanduse_node in clm_namelist_xml.get_children("flanduse_timeseries"):
+            hgrid = clm_namelist_xml.get(flanduse_node, "hgrid")
+            filedir = clm_namelist_xml.text(flanduse_node)
+            self.clm_flanduse[hgrid] = os.path.join(
+                self.din_loc_root.strip(),
+                filedir.strip()
+            )
 
     def expand_env_vars(self, expr):
         """Given an expression (of type string) read from a CIME xml file,

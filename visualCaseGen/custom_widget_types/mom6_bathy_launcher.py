@@ -244,7 +244,7 @@ class MOM6BathyLauncher(VBox):
                 f'  axis_units = "degrees",\n'
                 f'  lenx       = {lenx},        # grid length in x direction (degrees).\n'
                 f'  leny       = {leny},        # grid length in y direction (degrees).\n'
-                f'  cyclic_x   = {True if cyclic_x == "Yes" else False},\n'
+                f'  cyclic_x   = {True if cyclic_x == "True" else False},\n'
                 f'  cyclic_y   = False,\n'
                 f')'
                 )

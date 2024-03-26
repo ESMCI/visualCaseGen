@@ -18,6 +18,7 @@ from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
 from visualCaseGen.custom_widget_types.case_creator import CaseCreator
+from tests.utils import safe_create_case
 
 
 # do not show logger output
@@ -82,7 +83,7 @@ def test_custom_mom6_grid():
         # Set the custom ocean grid properties
         assert Stage.active().title.startswith("Custom Ocean")
         cvars["OCN_GRID_EXTENT"].value = "Global"
-        cvars["OCN_CYCLIC_X"].value = "Yes"
+        cvars["OCN_CYCLIC_X"].value = "True"
         cvars["OCN_NX"].value = 60
         cvars["OCN_NY"].value = 30
         cvars["OCN_LENX"].value = 360.0
@@ -149,30 +150,8 @@ def test_custom_mom6_grid():
 
         case_creator._txt_project.value = "12345"
 
-        try:
-            # back up ccs_config xml files to be modified
-            shutil.copy(
-                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml",
-                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml.bak",
-            )
-            shutil.copy(
-                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml",
-                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml.bak",
-            )
-
-            # Click the create_case button
-            case_creator._create_case()
-
-        finally:
-            # Restore ccs_config xml files
-            shutil.move(
-                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml.bak",
-                Path(cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml",
-            )
-            shutil.move(
-                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml.bak",
-                Path(cime.srcroot) / "ccs_config/component_grids_nuopc.xml",
-            )
+        # *Click* the create_case button
+        safe_create_case(cime.srcroot, case_creator)
         
         # sleep for a bit to allow the case to be created
         time.sleep(5)
@@ -185,5 +164,5 @@ def test_custom_mom6_grid():
 
 
 if __name__ == "__main__":
-    test_mom6_bathy_launcher()
+    test_custom_mom6_grid()
     print("All tests passed!")

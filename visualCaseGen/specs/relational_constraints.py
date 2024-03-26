@@ -125,10 +125,10 @@ def get_relational_constraints(cvars):
         Implies(OCN_GRID_EXTENT=="Regional", COMP_ICE=="sice"):
             "A regional ocean model cannot be coupled with an ice component.",
 
-        Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="No"):
+        Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="False"):
             "Regional ocean domain cannot be reentrant (due to an ESMF limitation.)",
 
-        Implies(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X=="Yes"):
+        Implies(OCN_GRID_EXTENT=="Global", OCN_CYCLIC_X=="True"):
             "Global ocean domains must be reentrant in the x-direction.",
 
         Implies(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0):

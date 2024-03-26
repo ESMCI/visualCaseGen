@@ -173,7 +173,7 @@ def set_custom_ocn_grid_options(cime):
 
     # OCN_CYCLIC_X options
     cv_ocn_cyclic_x = cvars["OCN_CYCLIC_X"]
-    cv_ocn_cyclic_x.options = ["Yes", "No"]
+    cv_ocn_cyclic_x.options = ["True", "False"]
     cv_ocn_cyclic_x.tooltips = ["Cyclic in x-direction", "Non-cyclic in x-direction"]
 
 
