@@ -42,6 +42,7 @@ jobs:
       # Run all tests
       - name: Run tests
         run: |
+          cd visualCaseGen/
           conda activate visualCaseGen
           pytest tests
 
