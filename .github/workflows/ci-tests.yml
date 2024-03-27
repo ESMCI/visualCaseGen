@@ -31,9 +31,6 @@ jobs:
 
       # set up conda
       - uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: visualCaseGen
-        #  auto-activate-base: true
 
       # visualCaseGen conda env
       - name: Create visualCaseGen conda env
@@ -43,12 +40,8 @@ jobs:
           conda activate visualCaseGen
 
       # Run all tests
-      - name: Unit
-        run: pytest tests/1_unit
-      - name: Integration
-        run: pytest tests/2_integration
-      - name: System
-        run: pytest tests/3_system
-      - name: Static
-        run: pytest tests/4_static
+      - name: Run tests
+        run: |
+          conda activate visualCaseGen
+          pytest tests
 
