@@ -31,8 +31,8 @@ jobs:
 
       # set up conda
       - uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-activate-base: true
+        #with:
+        #  auto-activate-base: true
 
       # visualCaseGen conda env
       - name: Create visualCaseGen conda env
