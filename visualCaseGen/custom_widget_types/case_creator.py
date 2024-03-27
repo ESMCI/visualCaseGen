@@ -239,7 +239,7 @@ class CaseCreator(VBox):
 
         # Navigate to the case directory:
         with self._out:
-            print(f"{COMMENT}Navigate to the case directory:{RESET}\n")
+            print(f"{COMMENT}Navigating to the case directory:{RESET}\n")
             print(f"cd {caseroot}\n")
 
         # Apply case modifications, e.g., xmlchanges and user_nl changes
@@ -323,7 +323,7 @@ class CaseCreator(VBox):
         # log the modification of modelgrid_aliases.xml:
         with self._out:
             print(
-                f'{BPOINT} Update ccs_config/modelgrid_aliases_nuopc.xml file to include the new '
+                f'{BPOINT} Updating ccs_config/modelgrid_aliases_nuopc.xml file to include the new '
                 f'resolution "{resolution_name}" consisting of the following component grids.\n'
                 f' atm grid: "{atm_grid}", lnd grid: "{lnd_grid}", ocn grid: "{ocn_grid}".\n'
             )
@@ -428,7 +428,7 @@ class CaseCreator(VBox):
             # log the modification of component_grids.xml:
             with self._out:
                 print(
-                    f'{BPOINT} Update ccs_config/component_grids_nuopc.xml file to include '
+                    f'{BPOINT} Updating ccs_config/component_grids_nuopc.xml file to include '
                     f'newly generated ocean grid "{ocn_grid}" with the following properties:\n'
                     f' nx: {cvars["OCN_NX"].value}, ny: {cvars["OCN_NY"].value}.'
                     f' ocean mesh: {ocn_mesh}.{RESET}\n'
@@ -531,7 +531,7 @@ class CaseCreator(VBox):
         # log the command:
         with self._out:
             print(
-                f"{COMMENT}Run the create_newcase tool with the following command:{RESET}\n"
+                f"{COMMENT}Running the create_newcase tool with the following command:{RESET}\n"
             )
             print(f"{cmd}\n")
 
@@ -603,7 +603,7 @@ class CaseCreator(VBox):
             cmd += " --non-local"
         with self._out:
             print(
-                f"{COMMENT}Run the case.setup script with the following command:{RESET}\n"
+                f"{COMMENT}Running the case.setup script with the following command:{RESET}\n"
             )
             print(f"{cmd}\n")
         if do_exec:
@@ -629,7 +629,7 @@ class CaseCreator(VBox):
         assert all(isinstance(pair, tuple) for pair in var_val_pairs)
 
         with self._out:
-            print(f"{COMMENT}Add parameter changes to {user_nl_filename}:{RESET}\n")
+            print(f"{COMMENT}Adding parameter changes to {user_nl_filename}:{RESET}\n")
             for var, val in var_val_pairs:
                 print(f"  {var} = {val}")
             print("")
