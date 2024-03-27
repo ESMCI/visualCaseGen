@@ -50,7 +50,7 @@ jobs:
           CIME_TEST_PLATFORM: ubuntu-latest
         run: |
           export SRC_PATH="${GITHUB_WORKSPACE}"
-          mkdir scratch
+          mkdir -p /home/runner/cesm/scratch
           cd visualCaseGen/
           conda activate visualCaseGen
           pytest tests
