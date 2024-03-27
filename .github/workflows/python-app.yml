@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ "main", "ci" ]
 
+permissions:
+  contents: write
+
 jobs:
   example-3:
     name: Ex3 Linux
