@@ -16,6 +16,9 @@ jobs:
   ci_tests:
     name: visualCaseGen CI tests
     runs-on: "ubuntu-latest"
+    defaults:
+      run:
+        shell: bash -el {0}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,11 +27,11 @@ jobs:
         with:
           auto-activate-base: true
       - name: Create visualCaseGen conda env
-        shell: bash -el {0}
         run: |
           conda env create --file environment.yml
           conda activate visualCaseGen
-      - name: Run unittests
-        run: pytest tests/1_unit
+          pytest tests/1_unit
+      #- name: Run unittests
+      #  run: pytest tests/1_unit
         
 
