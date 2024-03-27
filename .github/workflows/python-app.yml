@@ -18,5 +18,4 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: environment.yml
-          activate-environment: whatever
 
