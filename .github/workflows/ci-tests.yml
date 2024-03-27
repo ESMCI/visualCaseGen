@@ -17,6 +17,9 @@ jobs:
         shell: bash -el {0}
     steps:
 
+      - name: Install xmllint
+        run: sudo apt-get install -y libxml2-utils
+
       # clone CESM
       - uses: actions/checkout@v4
         with:
