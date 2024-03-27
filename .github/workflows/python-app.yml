@@ -20,22 +20,31 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
+
+      # clone CESM
       - uses: actions/checkout@v4
         with:
           repository: alperaltuntas/CESM
           ref: cesm2_3_alpha17b_gui    
           #submodules: recursive
+
+      # Run manage_Externals
       - name: checkout CESM
         run: |
           ./manage_externals/checkout_externals -o
-      #- uses: conda-incubator/setup-miniconda@v3
-      #  with:
-      #    auto-activate-base: true
-      #- name: Create visualCaseGen conda env
-      #  run: |
-      #    conda env create --file environment.yml
-      #    conda activate visualCaseGen
-      #    pytest tests/1_unit
+
+      # set up conda
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: true
+
+      # visualCaseGen conda env
+      - name: Create visualCaseGen conda env
+        run: |
+          cd visualCaseGen/
+          conda env create --file environment.yml
+          conda activate visualCaseGen
+          pytest tests/1_unit
       #- name: Run unittests
       #  run: pytest tests/1_unit
         
