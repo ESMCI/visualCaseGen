@@ -21,9 +21,10 @@ jobs:
         with:
           submodules: recursive
       - uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: true
       - name: Create visualCaseGen conda env
         run: |
-          conda init
           conda env create --file environment.yml
           conda activate visualCaseGen
       - name: Run unittests
