@@ -526,9 +526,11 @@ class CIME_interface:
                         f"Couldn't determine CIME_OUTPUT_ROOT for {self.machine}"
                     )
                 if not os.path.exists(self.cime_output_root):
-                    logger.error(
-                        f"CIME_OUTPUT_ROOT doesn't exist: {self.cime_output_root}"
+                    logger.warning(
+                        f"CIME_OUTPUT_ROOT doesn't exist. Creating it at {self.cime_output_root}"
                     )
+                    # recursively create the directory
+                    os.makedirs(self.cime_output_root)
 
                 # Determine DIN_LOC_ROOT
                 din_loc_root_node = machines_obj.get_child(
@@ -542,7 +544,7 @@ class CIME_interface:
                     logger.error(f"DIN_LOC_ROOT doesn't exist: {self.din_loc_root}")
 
                 break
-        
+
         # Keep a record of whether a project id is required for each machine
         for machine in self.machines:
             machines_obj = Machines(machs_file, machine=machine)
