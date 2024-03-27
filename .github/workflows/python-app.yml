@@ -24,6 +24,7 @@ jobs:
         with:
           auto-activate-base: true
       - name: Create visualCaseGen conda env
+        shell: bash -el {0}
         run: |
           conda env create --file environment.yml
           conda activate visualCaseGen
