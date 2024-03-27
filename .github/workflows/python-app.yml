@@ -22,15 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-activate-base: true
-      - name: Create visualCaseGen conda env
-        run: |
-          conda env create --file environment.yml
-          conda activate visualCaseGen
-          pytest tests/1_unit
+          name: alperaltuntas/CESM
+          ref: refs/heads/cesm2_3_alpha17b_gui    
+          #submodules: recursive
+      #- uses: conda-incubator/setup-miniconda@v3
+      #  with:
+      #    auto-activate-base: true
+      #- name: Create visualCaseGen conda env
+      #  run: |
+      #    conda env create --file environment.yml
+      #    conda activate visualCaseGen
+      #    pytest tests/1_unit
       #- name: Run unittests
       #  run: pytest tests/1_unit
         
