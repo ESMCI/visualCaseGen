@@ -132,7 +132,7 @@ def set_custom_ocn_grid_options(cime):
 
     # OCN_GRID_MODE options
     cv_custom_ocn_grid_mode = cvars["OCN_GRID_MODE"]
-    cv_custom_ocn_grid_mode.options = ["Standard", "Modify Existing", "Create New"]
+    cv_custom_ocn_grid_mode.options = ["Standard", "Create New"] # TODO: add "Modify Existing" option.
     cv_custom_ocn_grid_mode.tooltips = [
         "Select from a list of existing MOM6 grids",
         "Modify an existing MOM6 grid",
