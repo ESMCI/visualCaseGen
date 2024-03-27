@@ -9,12 +9,12 @@ on:
   pull_request:
     branches: [ "main", "ci" ]
 
-permissions:
-  contents: write
+#permissions:
+#  contents: write
 
 jobs:
-  example-3:
-    name: Ex3 Linux
+  ci_tests:
+    name: visualCaseGen CI tests
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v4
@@ -23,4 +23,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: environment.yml
+      - name: Run unittests
+        run: pytest tests/1_unit
+        
 
