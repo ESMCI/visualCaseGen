@@ -27,8 +27,9 @@ jobs:
           #submodules: recursive
       - name: checkout CESM
         run: |
-          cd cesm
-          ./manage_externals/checkout_externals -o
+          ls
+          #cd cesm
+          #./manage_externals/checkout_externals -o
       #- uses: conda-incubator/setup-miniconda@v3
       #  with:
       #    auto-activate-base: true
