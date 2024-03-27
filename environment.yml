@@ -10,5 +10,5 @@ dependencies:
   - pip
   - pip:
     #- -e ./external/mom6_bathy/
-    - -e ./external/ipyfilechooser/
+    #- -e ./external/ipyfilechooser/
     - -e ./ # visualCaseGen
