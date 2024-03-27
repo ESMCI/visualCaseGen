@@ -41,10 +41,16 @@ jobs:
           cd visualCaseGen/
           conda env create --file environment.yml
           conda activate visualCaseGen
-
+    
       # Run all tests
       - name: Run tests
+        env:
+          CIME_MODEL: "cesm"
+          CIME_DRIVER: "nuopc"
+          CIME_TEST_PLATFORM: ubuntu-latest
         run: |
+          export SRC_PATH="${GITHUB_WORKSPACE}"
+          echo $SRC_PATH
           cd visualCaseGen/
           conda activate visualCaseGen
           pytest tests
