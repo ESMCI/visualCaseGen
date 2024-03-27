@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           name: alperaltuntas/CESM
-          ref: refs/heads/cesm2_3_alpha17b_gui    
+          ref: cesm2_3_alpha17b_gui    
           #submodules: recursive
       #- uses: conda-incubator/setup-miniconda@v3
       #  with:
