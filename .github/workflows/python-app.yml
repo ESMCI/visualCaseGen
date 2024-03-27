@@ -1,16 +1,12 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# This workflow will install CESM, create visualCaseGen conda env, and run all CI tests.
 
-name: visualCaseGen CI tests
+name: visualCaseGen CI
 
 on:
   push:
     branches: [ "main", "ci" ]
   pull_request:
     branches: [ "main", "ci" ]
-
-#permissions:
-#  contents: write
 
 jobs:
   ci_tests:
@@ -44,8 +40,14 @@ jobs:
           cd visualCaseGen/
           conda env create --file environment.yml
           conda activate visualCaseGen
-          pytest tests/1_unit
-      #- name: Run unittests
-      #  run: pytest tests/1_unit
-        
+
+      # Run all tests
+      - name: Unit
+        run: pytest tests/1_unit
+      - name: Integration
+        run: pytest tests/2_integration
+      - name: System
+        run: pytest tests/3_system
+      - name: Static
+        run: pytest tests/4_static
 
