@@ -23,8 +23,8 @@ logger.setLevel(logging.CRITICAL)
 
 temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
 
-def test_relational_constraints():
-    """Check several relational constraints for the custom compset configuration."""
+def test_constraint_violation_detection():
+    """Confirm relational constraint violations are caught for the custom compset configuration."""
 
     ConfigVar.reboot()
     Stage.reboot()
@@ -46,24 +46,35 @@ def test_relational_constraints():
     cvars['COMP_ATM'].value = "cam"
 
     with pytest.raises(ConstraintViolation):
+        # CAM cannot be coupled with Data ICE
         cvars['COMP_ICE'].value = "dice"
 
     cvars['COMP_LND'].value = "clm"
-    cvars['COMP_ICE'].value = "cice"
 
-    cvars['COMP_OCN'].value = "socn"
+    cvars['COMP_ICE'].value = "cice"
     with pytest.raises(ConstraintViolation):
+        # to enable CICE, must pick an active/data ocn
+        cvars['COMP_OCN'].value = "socn"
+    
+    cvars['COMP_ICE'].value = "sice"
+    cvars['COMP_OCN'].value = "socn"
+
+    with pytest.raises(ConstraintViolation):
+        # cannot couple stub ocn with active wave
         cvars['COMP_WAV'].value = "ww3"
     assert cvars['COMP_WAV'].value == None
 
     cvars['COMP_OCN'].value = "mom"
+    cvars['COMP_ICE'].value = "cice"
 
     with pytest.raises(ConstraintViolation):
+        # MOM6 cannot be coupled with data wave component
         cvars['COMP_WAV'].value = "dwav"
     assert cvars['COMP_WAV'].value == None
 
     cvars['COMP_ROF'].value = "mosart"
     with pytest.raises(ConstraintViolation):
+        # MOSART cannot be run with slim
         cvars['COMP_LND'].value = "slim"
     assert cvars['COMP_LND'].value == "clm"
 
@@ -81,6 +92,7 @@ def test_relational_constraints():
     cvars['COMP_ATM_OPTION'].value = "(none)"
 
     with pytest.raises(ConstraintViolation):
+        # must pick a valid CLM option
         cvars['COMP_LND_OPTION'].value = "(none)"
     cvars['COMP_LND_OPTION'].value = "SP"
 
@@ -146,6 +158,6 @@ def test_multiple_reasons():
     cvars['COMP_WAV'].value = "swav"
 
 if __name__ == "__main__":
-    test_relational_constraints()
+    test_constraint_violation_detection()
     test_multiple_reasons()
 

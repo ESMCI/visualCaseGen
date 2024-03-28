@@ -41,8 +41,8 @@ def get_relational_constraints(cvars):
         Implies(COMP_WAV=="ww3", In(COMP_OCN, ["mom", "pop"])) :
             "WW3 can only be selected if either POP2 or MOM6 is the ocean component.",
 
-        Implies(Or(COMP_ROF=="rtm", COMP_ROF=="mosart"), COMP_LND=='clm') :
-            "RTM or MOSART can only be selected if CLM is the land component.",
+        Implies(Or(COMP_ROF=="rtm", COMP_ROF=="mosart", COMP_ROF=="mizuroute"), COMP_LND=='clm') :
+            "Active runoff models can only be selected if CLM is the land component.",
 
         Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
             "When MOM|POP is coupled with data atmosphere (datm), LND component must be stub (slnd).",
@@ -50,8 +50,23 @@ def get_relational_constraints(cvars):
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
 
-        Implies(In(COMP_OCN, ["mom", "pop"]), COMP_ATM!="satm") :
-            "An active or data atm model is needed to force active ocean models.",
+        Implies(COMP_ATM=="satm", And(COMP_ICE=="sice", COMP_ROF=="srof", COMP_OCN=="socn")) :
+            "An active or data atmosphere model is needed to force ocean, ice, and/or runoff models.",
+        
+        Implies(COMP_LND=="slnd", COMP_GLC=="sglc") :
+            "GLC cannot be coupled with a stub land model.",
+        
+        Implies(COMP_LND=="slim", And(COMP_GLC=="sglc", COMP_ROF=="srof", COMP_WAV=="swav")) :
+            "GLC, ROF, and WAV cannot be coupled with SLIM.",
+        
+        Implies(COMP_OCN=="socn", COMP_ICE=="sice") :
+            "When ocean is made stub, ice must also be stub.",
+        
+        Implies(COMP_LND=="clm", COMP_ROF!="drof") :
+            "CLM cannot be coupled with a data runoff model.",
+        
+        Implies(COMP_LND=="dlnd", COMP_ATM!="cam") : # TODO: check this constraint.
+            "Data land model cannot be coupled with CAM.",
         
         Implies(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",
@@ -132,10 +147,10 @@ def get_relational_constraints(cvars):
             "Global ocean domains must be reentrant in the x-direction.",
 
         Implies(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0):
-            "Global ocean model domains musth have a length of 360 degrees in the x-direction.",
+            "Global ocean model domains must have a length of 360 degrees in the x-direction.",
 
         Implies(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
-            "OCN grid length in Y direction must be less than or equal to 180.0 when OCN grid extent is global.",
+            "OCN grid length in Y direction must be <= 180.0 when OCN grid extent is global.",
 
         # Custom lnd grid constraints ------------------
         Implies(COMP_LND!="clm", LND_GRID_MODE=="Standard"):
