@@ -75,6 +75,7 @@ def initialize_grid_stages(cime):
         widget=StageWidget(HBox),
         parent=stg_custom_grid,
         varlist=[cvars["CUSTOM_ATM_GRID"]],
+        auto_set_default_value=False,
     )
 
     stg_custom_ocn_grid_mode = Stage(
@@ -156,6 +157,7 @@ def initialize_grid_stages(cime):
         widget=StageWidget(VBox),
         parent=stg_standard_custom_lnd_grid_guard,
         varlist=[cvars["CUSTOM_LND_GRID"]],
+        auto_set_default_value=False,
     )
 
     stg_custom_new_lnd_grid = Stage(
@@ -172,6 +174,7 @@ def initialize_grid_stages(cime):
         widget=StageWidget(VBox),
         parent=stg_custom_new_lnd_grid,
         varlist=[cvars["CUSTOM_LND_GRID"]],
+        auto_set_default_value=False,
     )
 
     stg_custom_clm_grid_with_mom = Stage(

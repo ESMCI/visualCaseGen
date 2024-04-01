@@ -115,9 +115,8 @@ def get_relational_constraints(cvars):
             "Core2 forcing can only be used with T62 grid.",
 
         # mom6_bathy-related constraints ------------------
-
-        Implies (And(COMP_LND=="slnd", COMP_ICE=="sice"), Or(COMP_OCN!="mom", OCN_GRID_EXTENT!="Global")):
-             "LND or ICE must be present to hide Global MOM6 grid poles.",
+        Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<=179.0):
+            "MOM6 grid cannot reach the poles when coupled with stub land and ice components.",
 
         Implies(And(COMP_OCN != "mom", COMP_LND!="clm"), GRID_MODE=="Standard"):
             "Custom grids can only be generated when MOM6 and/or CLM are selected.",

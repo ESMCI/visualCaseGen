@@ -38,7 +38,7 @@ def initialize_custom_grid_variables(cime):
     ConfigVarStr("CUSTOM_GRID_PATH")
 
     # A preexisting ATM grid picked for custom grid
-    ConfigVarStrMS("CUSTOM_ATM_GRID")
+    ConfigVarStrMS("CUSTOM_ATM_GRID", default_value="0.9x1.25")
 
     # Custom ocean grid variables
     ConfigVarStr("OCN_GRID_MODE")  # Standard, Modify Existing, Create New
@@ -61,7 +61,8 @@ def initialize_custom_grid_variables(cime):
     # Select a base CLM grid.
     ConfigVarStr("LND_GRID_MODE")  # Standard, Modified
     ConfigVarStrMS(
-        "CUSTOM_LND_GRID"
+        "CUSTOM_LND_GRID",
+        default_value="0.9x1.25"
     )  # A preexisting land grid picked for the custom grid
 
     # Auto-fill the INPUT_MASK_MESH variable based on the CUSTOM_LND_GRID variable

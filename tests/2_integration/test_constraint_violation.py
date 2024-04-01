@@ -146,16 +146,47 @@ def test_multiple_reasons():
     set_options(cime)
     csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
 
-    cvars['COMP_LND'].value = "slnd"
-    cvars['COMP_ICE'].value = "sice"
-    cvars['COMP_OCN'].value = "mom"
+    assert Stage.first().enabled
+    cvars['COMPSET_MODE'].value = 'Custom'
+    cvars['INITTIME'].value = '2000'
 
+    assert Stage.active().title.startswith('Components')
+
+    cvars['COMP_ICE'].value = "cice"
+    cvars['COMP_ROF'].value = "mosart"
+
+    # Combination of two reasons
     with pytest.raises(ConstraintViolation) as exc_info:
-        cvars['COMP_WAV'].value = "ww3"
+        cvars['COMP_ATM'].value = "datm"
     err_msg = str(exc_info.value)
-    assert "LND or ICE must be present to hide Global MOM6 grid poles." in err_msg
-    assert "A regional ocean model cannot be coupled with a wave component." in err_msg
-    cvars['COMP_WAV'].value = "swav"
+    assert "Active runoff models can only be selected if CLM is the land component." in err_msg
+    assert "If CLM is coupled with DATM, then both ICE and OCN must be stub." in err_msg
+
+    # Reset active stage
+    Stage.active().reset()
+
+    cvars['COMP_ROF'].value = "drof"
+    cvars['COMP_GLC'].value = "cism"
+
+    # Combination of three reasons
+    with pytest.raises(ConstraintViolation) as exc_info:
+        cvars['COMP_ATM'].value = "cam"
+    err_msg = str(exc_info.value)
+    assert "Data land model cannot be coupled with CAM." in err_msg
+    assert "CLM cannot be coupled with a data runoff model." in err_msg
+    assert "GLC cannot be coupled with a stub land model." in err_msg
+
+    # Combination of six reasons
+    with pytest.raises(ConstraintViolation) as exc_info:
+        cvars['COMP_OCN'].value = "mom"
+    err_msg = str(exc_info.value)
+    assert "Data land model cannot be coupled with CAM." in err_msg
+    assert "CLM cannot be coupled with a data runoff model." in err_msg
+    assert "GLC cannot be coupled with a stub land model." in err_msg
+    assert "GLC, ROF, and WAV cannot be coupled with SLIM." in err_msg
+    assert "An active or data atmosphere model is needed to force ocean, ice, and/or runoff models." in err_msg
+    assert "When MOM|POP is coupled with data atmosphere (datm), LND component must be stub (slnd)." in err_msg
+
 
 if __name__ == "__main__":
     test_constraint_violation_detection()
