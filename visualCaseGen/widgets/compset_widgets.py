@@ -24,7 +24,7 @@ def initialize_compset_widgets(cime):
 
     cv_support_level = cvars["SUPPORT_LEVEL"]
     cv_support_level.widget = widgets.ToggleButtons(
-        description="Include all compsets or scientifically supported only?",
+        description="Browse all compsets or scientifically supported only?",
         layout={"display": "flex", "width": "max-content", "padding": "10px"},
         style={"button_width": button_width, "description_width": "max-content"},
     )
