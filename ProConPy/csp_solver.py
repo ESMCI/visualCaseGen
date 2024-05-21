@@ -438,7 +438,15 @@ class CspSolver:
                 )
 
             error_messages = [str(err_msg) for err_msg in s.unsat_core()]
-            return f'Invalid assignment of {var} to {new_value}. Reason(s): {". ".join(error_messages)}'
+            msg = f'Invalid assignment of {var} to {new_value}.' 
+            if len(error_messages) == 1:
+                msg += f' Reason: {error_messages[0]}'
+            else:
+                msg +=' Reasons:'
+                for i, err_msg in enumerate(error_messages):
+                    msg += f' {i+1}: {err_msg}.'
+                msg = msg.replace('..', '.')
+            return msg
 
     def register_assignment(self, var, new_value):
         """Register the assignment of the given variable to the given value. The assignment is

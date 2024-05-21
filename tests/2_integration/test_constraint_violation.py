@@ -164,29 +164,19 @@ def test_multiple_reasons():
 
     # Reset active stage
     Stage.active().reset()
-
+    cvars['COMP_ATM'].value = "cam"
     cvars['COMP_ROF'].value = "drof"
-    cvars['COMP_GLC'].value = "cism"
+    cvars['COMP_WAV'].value = "dwav"
 
-    # Combination of three reasons
+    # Combination of five reasons
     with pytest.raises(ConstraintViolation) as exc_info:
-        cvars['COMP_ATM'].value = "cam"
+        cvars['COMP_GLC'].value = "cism"
     err_msg = str(exc_info.value)
-    assert "Data land model cannot be coupled with CAM." in err_msg
-    assert "CLM cannot be coupled with a data runoff model." in err_msg
-    assert "GLC cannot be coupled with a stub land model." in err_msg
-
-    # Combination of six reasons
-    with pytest.raises(ConstraintViolation) as exc_info:
-        cvars['COMP_OCN'].value = "mom"
-    err_msg = str(exc_info.value)
-    assert "Data land model cannot be coupled with CAM." in err_msg
-    assert "CLM cannot be coupled with a data runoff model." in err_msg
-    assert "GLC cannot be coupled with a stub land model." in err_msg
+    assert "CLM cannot be coupled with a data runoff model" in err_msg
     assert "GLC, ROF, and WAV cannot be coupled with SLIM." in err_msg
-    assert "An active or data atmosphere model is needed to force ocean, ice, and/or runoff models." in err_msg
-    assert "When MOM|POP is coupled with data atmosphere (datm), LND component must be stub (slnd)." in err_msg
-
+    assert "MOM6 cannot be coupled with data wave component" in err_msg
+    assert "GLC cannot be coupled with a stub land model, unless it is coupled with MOM6" in err_msg
+    assert "CAM-DLND coupling is not supported" in err_msg
 
 if __name__ == "__main__":
     test_constraint_violation_detection()

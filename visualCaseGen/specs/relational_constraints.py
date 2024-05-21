@@ -51,10 +51,10 @@ def get_relational_constraints(cvars):
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
 
         Implies(COMP_ATM=="satm", And(COMP_ICE=="sice", COMP_ROF=="srof", COMP_OCN=="socn")) :
-            "An active or data atmosphere model is needed to force ocean, ice, and/or runoff models.",
+            "An active/data atmosphere is needed to force ocean, ice, and/or runoff models.",
         
-        Implies(COMP_LND=="slnd", COMP_GLC=="sglc") :
-            "GLC cannot be coupled with a stub land model.",
+        Implies(COMP_LND=="slnd", Or(COMP_OCN=="mom", COMP_GLC=="sglc")) :
+            "GLC cannot be coupled with a stub land model, unless it is coupled with MOM6.",
         
         Implies(COMP_LND=="slim", And(COMP_GLC=="sglc", COMP_ROF=="srof", COMP_WAV=="swav")) :
             "GLC, ROF, and WAV cannot be coupled with SLIM.",
@@ -66,7 +66,7 @@ def get_relational_constraints(cvars):
             "CLM cannot be coupled with a data runoff model.",
         
         Implies(COMP_LND=="dlnd", COMP_ATM!="cam") : # TODO: check this constraint.
-            "Data land model cannot be coupled with CAM.",
+            "CAM-DLND coupling is not supported.",
         
         Implies(COMP_OCN=="docn", COMP_OCN_OPTION != "(none)"):
             "Must pick a valid DOCN option.",
@@ -115,8 +115,8 @@ def get_relational_constraints(cvars):
             "Core2 forcing can only be used with T62 grid.",
 
         # mom6_bathy-related constraints ------------------
-        Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<=179.0):
-            "MOM6 grid cannot reach the poles when coupled with stub land and ice components.",
+        Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<180.0):
+            "If LND and ICE are stub, custom MOM6 grid must exclude poles (singularity).",
 
         Implies(And(COMP_OCN != "mom", COMP_LND!="clm"), GRID_MODE=="Standard"):
             "Custom grids can only be generated when MOM6 and/or CLM are selected.",
@@ -148,8 +148,11 @@ def get_relational_constraints(cvars):
         Implies(OCN_GRID_EXTENT=="Global", OCN_LENX==360.0):
             "Global ocean model domains must have a length of 360 degrees in the x-direction.",
 
-        Implies(OCN_GRID_EXTENT=="Global", And(OCN_LENY>0.0, OCN_LENY<=180.0) ):
-            "OCN grid length in Y direction must be <= 180.0 when OCN grid extent is global.",
+        And(OCN_LENY>0.0, OCN_LENY<=180.0):
+            "OCN grid length in Y direction must be <= 180.0.",
+        
+        And(OCN_LENX>0.0, OCN_LENX<=360.0):
+            "OCN grid length in X direction must be <= 360.0.",
 
         # Custom lnd grid constraints ------------------
         Implies(COMP_LND!="clm", LND_GRID_MODE=="Standard"):
