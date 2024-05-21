@@ -29,6 +29,8 @@ jobs:
 
       # Run manage_Externals
       - name: checkout CESM
+        env:
+          GIT_CLONE_PROTECTION_ACTIVE: false
         run: |
           ./manage_externals/checkout_externals -o
 
