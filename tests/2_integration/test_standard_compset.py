@@ -49,11 +49,10 @@ def configure_standard_compset(cime):
     # At initialization, the first stage should be enabled
     assert Stage.first().enabled
     cvars['COMPSET_MODE'].value = 'Standard'
-
-    # CCOMPSET_MODE is the only variable in the first stage, so assigning a value to it should disable the first stage
     assert not Stage.first().enabled
     
-    # The next stge is Custom Component Set, whose first child is Model Time Period
+    ## ATTEMPT 1/3: Pick a standard compset
+    # The next stage is Custom Component Set, whose first child is Model Time Period
     assert Stage.active().title.startswith('Support Level')
     cvars['SUPPORT_LEVEL'].value = 'All'
 
@@ -67,7 +66,7 @@ def configure_standard_compset(cime):
     # Generate standard grids list (but don't select any yet)
     cvars['GRID_MODE'].value = 'Standard'
 
-    ## Change of mind, revert and pick a supported compset
+    ## ATTEMPT 2/3: Change of mind, revert and pick a supported compset
     Stage.active().revert()
     assert Stage.active().title.startswith('2. Grid')
     Stage.active().revert()
@@ -85,6 +84,22 @@ def configure_standard_compset(cime):
     # Generate standard grids list (but don't select any yet)
     cvars['GRID_MODE'].value = 'Standard'
 
+    ## ATTEMPT 3/3: Change of mind again, revert and pick a supported compset
+    Stage.active().revert()
+    assert Stage.active().title.startswith('2. Grid')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Supported compsets')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Support Level')
+
+    cvars['SUPPORT_LEVEL'].value = 'All'
+    cvars['COMP_ATM_FILTER'].value = 'cam'
+    cvars['COMP_LND_FILTER'].value = 'clm'
+    Stage.active().set_vars_to_defaults() # Set all remaining filters to 'any'
+    cvars['COMPSET_ALIAS'].value = "FW1850"
+
+    ## Generate standard grids list (but don't select any yet)
+    cvars['GRID_MODE'].value = 'Standard'
     
 def revert_to_first_stage():
     # Revert back to the first stage

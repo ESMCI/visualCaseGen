@@ -93,6 +93,59 @@ def configure_custom_compset():
     assert Stage.active().title.startswith('2. Grid')
     cvars['GRID_MODE'].value = 'Standard'
     assert Stage.active().title.startswith('Standard Grid Selector')
+
+    # change of mind, revert and pick new components
+    Stage.active().revert()
+    assert Stage.active().title.startswith('2. Grid')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Component Options')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Component Physics')
+    Stage.active().revert()
+    assert Stage.active().title.startswith('Components')
+
+    Stage.active().reset()
+
+    cvars['COMP_ATM'].value = "cam"
+    with pytest.raises(ConstraintViolation):
+        cvars['COMP_LND'].value = "cam" # cam is not a valid value for COMP_LND
+    cvars['COMP_LND'].value = "clm"
+    cvars['COMP_ROF'].value = "mosart"
+
+    with pytest.raises(ConstraintViolation):
+        cvars['COMP_ROF'].value = "drof"
+    cvars['COMP_ROF'].value = "mosart"
+
+    with pytest.raises(ConstraintViolation):
+        cvars['COMP_LND'].value = "slim"
+    assert cvars['COMP_LND'].value == "clm"
+
+    cvars['COMP_OCN'].value = "docn"
+    cvars['COMP_ICE'].value = "cice"
+    cvars['COMP_GLC'].value = "sglc"
+    cvars['COMP_WAV'].value = "dwav"
+
+    # All COMP_ variables have been set, so the next stage is Component Physics
+    cvars['COMP_ATM_PHYS'].value = "CAM60"
+    cvars['COMP_LND_PHYS'].value = "CLM50"
+
+    # All COMP_?_PHYS variables have been set, so the next stage is Component Options
+    cvars['COMP_ATM_OPTION'].value = "(none)"
+    with pytest.raises(ConstraintViolation):
+        cvars['COMP_LND_OPTION'].value = "(none)"
+    cvars['COMP_LND_OPTION'].value = "SP"
+    cvars['COMP_ICE_OPTION'].value = "PRES"
+    cvars['COMP_OCN_OPTION'].value = "DOM"
+    cvars['COMP_WAV_OPTION'].value = "(none)"
+    cvars['COMP_ROF_OPTION'].value = "FLOOD"
+
+    for comp_class in ['ATM', 'LND', 'ICE', 'OCN', 'ROF', 'GLC', 'WAV']:
+        if cvars[f"COMP_{comp_class}_OPTION"].value is None:
+            print(f"COMP_{comp_class}_OPTION is None")
+
+    assert Stage.active().title.startswith('2. Grid')
+    cvars['GRID_MODE'].value = 'Standard'
+
     
 def revert_to_first_stage():
     # Revert back to the first stage
