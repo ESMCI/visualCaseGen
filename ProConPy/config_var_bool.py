@@ -1,11 +1,10 @@
 import logging
-from traitlets import Bool, validate
+from traitlets import Bool
 from z3 import BoolRef, main_ctx, Z3_mk_const, to_symbol, BoolSort
 
 from ProConPy.out_handler import handler as owh
 from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.config_var import ConfigVar
-from ProConPy.csp_solver import csp
 from ProConPy.dialog import alert_error
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
@@ -37,21 +36,6 @@ class ConfigVarBool(ConfigVar, BoolRef):
         self._options = [True, False]
         self.tooltips = ["True", "False"]
         self.update_options_validities()
-
-    @validate("value")
-    def _validate_value(self, proposal):
-        """This method is called automatially to verify that the new value is valid.
-        Note that this method is NOT called if the new value is None."""
-
-        new_val = proposal["value"]
-        logger.debug("Validating %s=%s", self.name, new_val)
-
-        # confirm the value validity. If not valid, the below call will raise an exception.
-        csp.check_assignment(self, new_val)
-
-        # finally, set self.value by returning new_vals
-        logger.debug("Validation done. Assigning %s=%s", self.name, new_val)
-        return new_val
 
     @owh.out.capture()
     def _update_widget_value(self):

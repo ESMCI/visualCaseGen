@@ -44,7 +44,7 @@ class ConfigVar(HasTraits):
     _invalid_opt_char = chr(int("274C", base=16))
     _valid_opt_char = chr(int("200B", base=16))
 
-    def __init__(self, name, default_value=None, widget_none_val=None, hide_invalid=False):
+    def __init__(self, name, default_value=None, widget_none_val=None, hide_invalid=False, value_delimiter=None):
         """
         ConfigVar constructor.
 
@@ -61,6 +61,9 @@ class ConfigVar(HasTraits):
             e.g., those that can have multiple values, this may be set to ().
         hide_invalid:
             If True, the widget displays only the valid options.
+        value_delimiter: str, optional
+            Delimiter used to separate multiple values in the value trait.
+            Can only be specified for String (Unicode) variables.
         """
 
         # Check if the variable has already been defined
@@ -105,11 +108,12 @@ class ConfigVar(HasTraits):
         self._dependent_vars = (
             set()
         )  # ConfigVar instances whose options depend on the value of this instance
-        self._related_vars = (
-            set()
-        )  # ConfigVar instances in the same relational constraints as this instance
         self._is_guard_var = False  # True if this variable appears in the guard of any Stage
         self._hide_invalid = hide_invalid
+
+
+        assert isinstance(value_delimiter, (str, type(None))), "value_delimiter must be a string or None"
+        self._value_delimiter = value_delimiter
 
         # Finally, Observe value to call _post_value_change method after every value change.
         self.observe(self._post_value_change, names="value", type="change")
@@ -191,11 +195,6 @@ class ConfigVar(HasTraits):
         """Returns True if there are dependent variables, i.e., variables whose
         options depend on the value of this variable."""
         return len(self._dependent_vars) > 0
-
-    def has_related_vars(self):
-        """Returns True if there are related variables, i.e, variables that are
-        involved in the same relational constraints as this variable."""
-        return len(self._related_vars) > 0
 
     @property
     def rank(self):
@@ -436,10 +435,17 @@ class ConfigVar(HasTraits):
     @validate("value")
     def _validate_value(self, proposal):
         """This method is called automatially to verify that the new value is valid.
-        Note that this method is NOT called if the new value is None."""
-        raise NotImplementedError(
-            "This method must be implemented in the derived class"
-        )
+        Note that this method is NOT called if the new value is None. Do not override this method."""
+
+        new_val = proposal["value"]
+        logger.debug("Validating %s=%s", self.name, new_val)
+
+        # confirm the value validity. If not valid, the below call will raise an exception.
+        csp.check_assignment(self, new_val)
+
+        # finally, set self.value by returning new_val
+        logger.debug("Validation done. Assigning %s=%s", self.name, new_val)
+        return new_val
 
     def _update_widget_value(self):
         """This methods gets called by _post_value_change and other methods to update the

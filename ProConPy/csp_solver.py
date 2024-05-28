@@ -1,6 +1,5 @@
 import logging
-from z3 import Solver, sat, unsat, BoolRef
-from z3 import Implies, And, Or
+from z3 import Solver, sat, unsat, BoolRef, Or
 from z3 import BoolRef
 from z3 import z3util
 
@@ -30,6 +29,8 @@ class CspSolver:
         self._options_assertions = {}
         self._past_options_assertions = []
         self._tlock = TraversalLock()
+        self._checked_assignment = None # A record of the current assignment being processed. This is used
+                                     # as a hand-shake mechanism between check_assignment and register_assignment.
 
     @owh.out.capture()
     def proceed(self):
@@ -103,7 +104,7 @@ class CspSolver:
         self._relational_constraints = relational_constraints
 
         # Construct constraint hypergraph and add constraints to solver
-        self._construct_hypergraph(cvars)
+        self._process_relational_constraints(cvars)
 
         # Determine the ranks of the stages
         self._determine_stage_ranks(first_stage, 0, cvars)
@@ -118,18 +119,14 @@ class CspSolver:
 
         self._initialized = True
         logger.info("CspSolver initialized.")
+    
+    def _process_relational_constraints(self, cvars):
+        """Process the relational constraints to construct a constraint graph and add constraints
+        to the solver. The constraint graph is a directed graph where the nodes are the variables
+        and the edges are (one or more) relational constraints that connect the variables."""
 
-    def _construct_hypergraph(self, cvars):
-        """Construct a hypergraph from:
-        (1) relational constraints
-        (2) options specs
-        (3) functional dependencies
-        """
-
-        self.hgraph = {}
-        self.vars2constraints = {}
-
-        # (1) relational constraints
+        # constraint graph
+        self._cgraph = {var : set() for var in cvars.values()}
 
         warn = (
             "The relational_constraints must be a dictionary where keys are the z3 boolean expressions "
@@ -147,25 +144,13 @@ class CspSolver:
                 + f"The value {self._relational_constraints[constr]} is not a string."
             )
 
-            # add constraint to solver
+            # add constraint to the solver
             self._solver.add(constr)
 
-            constr_vars = [cvars[var.sexpr()] for var in z3util.get_vars(constr)]
+            constr_vars = {cvars[var.sexpr()] for var in z3util.get_vars(constr)}
 
             for var in constr_vars:
-                var._related_vars.update(set(constr_vars) - {var})
-                if var not in self.vars2constraints:
-                    self.vars2constraints[var] = []
-                self.vars2constraints[var].append(constr)
-
-            # edges from constraints to variables
-            self.hgraph[constr] = constr_vars
-
-            # edges from variables to constraints
-            for var in constr_vars:
-                if var not in self.hgraph:
-                    self.hgraph[var] = []
-                self.hgraph[var].append(constr)
+                self._cgraph[var].update(constr_vars - {var})
 
     def _determine_stage_ranks(self, stage, rank, cvars):
         """Recursive depth-first traversal of the stage tree to determine the rank of the stages
@@ -274,49 +259,51 @@ class CspSolver:
         """
 
         logger.debug("Checking assignment of %s to %s", var, new_value)
-        assert (
-            self._initialized
-        ), "Must finalize initialization before CspSolver can operate."
-
-        # None is always a valid assignment
-        if new_value is None:
+        if var.value == new_value:
+            logger.debug("Assignment is the same as the current value. Returning.")
             return
 
+        # Sanity checks
+        assert self._initialized, "Must finalize initialization to check assignments."
+        assert self._checked_assignment is None, "A check/register cycle is in progress."
+        assert new_value is not None, "None is always a valid assignment."
+
+        # Depending on the domain of the variable, check the assignment
         if var.has_options():
-            try:
-                if var._options_validities[new_value] is False:
-                    raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
-            except KeyError:
+            self._check_assignment_of_finite_domain_var(var, new_value)
+        else:
+            self._check_assignment_of_infinite_domain_var(var, new_value)
+
+        # Record the currently checked assignment for registration
+        self._checked_assignment = (var, new_value)
+
+    def _check_assignment_of_finite_domain_var(self, var, new_value):
+        """Check the assignment of a variable with a finite domain to a new value. The check
+        is simply done by looking up the validity of the new value in the options_validities
+        of the variable.  This method is called by check_assignment when the variable being
+        assigned has options."""
+
+        if var._value_delimiter is None:
+            if (validity := var._options_validities.get(new_value)) is False:
+                raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
+            if validity is None:
                 raise ConstraintViolation(f"{new_value} not an option for {var}")
-        else:  # variable has no finite list of options
-            self._do_check_assignment(var, new_value)
+        else:
+            new_values = new_value.split(var._value_delimiter)
+            for new_val in new_values:
+                if (validity := var._options_validities.get(new_val)) is False:
+                    raise ConstraintViolation(self.retrieve_error_msg(var, new_val))
+                if validity is None:
+                    raise ConstraintViolation(f"{new_val} not an option for {var}")
+        
 
-    def _do_check_assignment(self, var, new_value):
-        """Check if the given value is a valid assignment for the given variable. The assignment
-        is checked by applying the assignment assertions and the options assertions to the solver.
-        Also, return the new options and tooltips for the dependent variables to avoid recomputation.
-
-        Parameters
-        ----------
-        var : ConfigVar
-            The variable being assigned.
-        new_value : any
-            The new value of the variable.
-
-        Returns
-        -------
-        dict
-            A dictionary with the dependent variables as keys and the new options and tooltips as values.
-
-        Raises
-        ------
-        ConstraintViolation : If the assignment is invalid.
-        """
-
-        if new_value is None:
-            # None is always a valid assignment, so return, but also make sure that the dependent
-            # variables' options specs are reset to None.
-            return {dependent_var: (None, None) for dependent_var in var._dependent_vars}
+    def _check_assignment_of_infinite_domain_var(self, var, new_value):
+        """Check the assignment of a variable with an infinite domain to a new value. The check
+        is done by applying the assignment assertions and the options assertions to the solver
+        and checking the satisfiability of the solver. If the assignment is invalid, a
+        ConstraintViolation is raised with an error message that explains the reason for the
+        invalid assignment. This method is called by check_assignment when the variable being
+        assigned has no options."""
 
         with self._solver as s:
 
@@ -329,7 +316,6 @@ class CspSolver:
             # apply the assignment assertion for the variable being assigned.
             s.add(var == new_value)
 
-            # todo: below intermediate check is likely redundant.
             if s.check() == unsat:
                 raise ConstraintViolation(self.retrieve_error_msg(var, new_value))
 
@@ -358,8 +344,6 @@ class CspSolver:
                     f"Your current configuration settings have created infeasible options for future settings. "\
                     "Please reset or revise your selections."
                 )
-
-        return new_options_and_tooltips
 
     def check_expression(self, expr):
         """Check if the given z3 BoolRef expression is satisfiable.
@@ -466,35 +450,31 @@ class CspSolver:
         """
 
         logger.debug(f"Registering assignment of {var} to {new_value}.")
+        if new_value is not None:
+            assert self._checked_assignment == (var, new_value), (
+                "The assignment to be registered does not match the latest checked assignment."
+            )
+            # Handshake complete. Reset the checked assignment:
+            self._checked_assignment = None
 
-        if not (var.has_dependent_vars() or var.has_related_vars() or var.is_guard_var):
+        if not (var.has_dependent_vars() or self._cgraph[var] or var.is_guard_var):
             logger.debug("%s has no dependent or related variables. Returning.", var)
             return
 
-        if self._tlock.is_locked():
-            # Traversal lock is acquired, so return without doing anything. This happens when
-            # the assignment of a variable triggers the assignment of another variable from within this function.
-            logger.debug(
-                "Traversal lock is already acquired. Returning without doing anything."
-            )
-            return
+        assert not self._tlock.is_locked(), "Traversal lock is acquired. Cannot register assignment."
 
-        with self._tlock:  # acquire the lock to prevent recursive traversal of constraint hypergraph
+        with self._tlock:  # acquire the lock to detect recursive traversal of constraint hypergraph
 
-            # First, confirm that assignment is indeed valid and doesn't lead to infeasibilities in future stages.
-            # Also, get the new options and tooltips for the dependent variables to avoid recomputation.
-            new_options_and_tooltips = self._do_check_assignment(var, new_value)
-
-            # Aassignment is feasible. Register the assignment, except when the assignment is None
+            # Register the assignment, except when the assignment is None
             # or the variable has no dependent variables.
-            if var.has_related_vars() or var.is_guard_var:
+            if self._cgraph[var] or var.is_guard_var:
                 if new_value is not None:
                     self._assignment_assertions[var] = var == new_value
                 else:
                     self._assignment_assertions.pop(var, None)
 
             # Update the options of the dependent variables
-            self._update_options_of_dependent_vars(new_options_and_tooltips)
+            self._update_options_of_dependent_vars(var, new_value)
 
             # refresh the options validities of affected variables
             self._refresh_options_validities(var)
@@ -503,16 +483,33 @@ class CspSolver:
             self._assignment_history.append((var, new_value))
 
     @staticmethod
-    def _update_options_of_dependent_vars(new_options_and_tooltips):
+    def _update_options_of_dependent_vars(var, new_value):
         """Update the options of variables in new_options_and_tooltips. This method is called
         after a variable is assigned to a new value. The new options are determined by the
         options specs of the variables whose options depend on the variable being assigned.
 
         Parameters
         ----------
-        new_options_and_tooltips : dict
-            A dictionary with the dependent variables as keys and the new options and tooltips as values.
+        var : ConfigVar
+            The variable whose assignment triggers the update of the options of dependent variables.
+        new_value : any
+            The new value of the variable.
         """
+
+        if new_value is None:
+            new_options_and_tooltips = {dependent_var: (None, None) for dependent_var in var._dependent_vars}
+        else:
+            new_options_and_tooltips = {}
+            for dependent_var in var._dependent_vars:
+                new_options, new_tooltips = dependent_var._options_spec()
+
+                new_options_and_tooltips[dependent_var] = (
+                    new_options,
+                    new_tooltips,
+                )
+            # Note: For variables with infinite domain, the options_spec methods are called both
+            # within check_assignment and register_assignment. This doesn't appear to lead to 
+            # noticeable performance issues, but it may be worth revisiting in the future.
 
         for dependent_var, (
             new_options,
@@ -525,41 +522,38 @@ class CspSolver:
                 dependent_var.options = []
                 dependent_var.tooltips = []
 
-    @staticmethod
-    def _refresh_options_validities(var):
-        """Traverse the hypergraph to refresh the options validities of all affected variables
-        by the assignment of the given variable.
+    def _refresh_options_validities(self, var):
+        """Traverse the constraint graph to refresh the options validities of all possibly affected
+        variables by the assignment of the given variable.
 
         Parameters
         ----------
         var : ConfigVar
-            The variable whose assignment is to be refreshed.
+            The variable whose assignment triggers the refresh of the options validities of other variables.
         """
 
-        # Refresh the options validities of affected variables:
+        # Set of variables that have been visited
         visited = set()
 
-        # a lambda function to determine if a neighboring variable should be refreshed
-        do_refresh = (
-            lambda var, neig: neig.has_options()
-            and neig not in visited
-            and var.rank <= neig.rank
-        )
+        # Queue of variables to be visited
+        queue = [neig for neig in self._cgraph[var] if neig.has_options() and var.rank <= neig.rank]
 
-        vars_to_refresh = [neig for neig in var._related_vars if do_refresh(var, neig)]
-        while len(vars_to_refresh) > 0:
-            neig = vars_to_refresh.pop(0)
-            logger.debug(f"Refreshing options validities of {neig}.")
-            visited.add(neig)
+        # Traverse the constraint graph to refresh the options validities of all possibly affected variables
+        while queue:
 
-            # update the validities of the neighboring (affected) variable and extend the list
-            # of variables to refresh to include the affected variables of the neighboring variable.
-            if neig.update_options_validities() is True:  # validities have changed
-                vars_to_refresh.extend(
+            # Pop the first variable from the queue and mark it as visited
+            var = queue.pop(0)
+            logger.debug("Refreshing options validities of %s.", var)
+            visited.add(var)
+
+            # Update the validities of the variable and extend the list of variables to refresh
+            validities_changed = var.update_options_validities()
+            if validities_changed:
+                queue.extend(
                     [
-                        neig_neig
-                        for neig_neig in neig._related_vars
-                        if do_refresh(neig, neig_neig)
+                        neig
+                        for neig in self._cgraph[var]
+                        if neig.has_options() and var.rank <= neig.rank and neig not in visited
                     ]
                 )
 
