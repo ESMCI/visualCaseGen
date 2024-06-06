@@ -113,7 +113,7 @@ def initialize_compset_stages(cime):
     )
 
     stg_inittime = Stage(
-        title="Model Time Period:",
+        title="Time Period",
         description="Select the initialization time for the experiment. This "
         "influences the initial conditions and forcings used in the simulation. 1850 "
         "corresponds to pre-industrial conditions and is appropriate for fixed-time-period "

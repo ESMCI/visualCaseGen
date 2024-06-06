@@ -23,6 +23,9 @@ class Node:
     # Top level nodes, i.e., nodes that have no parent
     _top_level = []
 
+    # Set of titles of all the nodes in the stage tree
+    _titles = set()
+
     def __init__(self, title, parent=None, condition=None):
         """Initialize a node.
 
@@ -35,6 +38,10 @@ class Node:
         condition : z3.BoolRef, optional
             The logical condition that must be satisfied for the node to be enabled.
         """
+
+        if title in Node._titles:
+            raise ValueError(f"The title {title} is already used.")
+        Node._titles.add(title)
 
         self._title = title
         self._children = []
@@ -61,6 +68,13 @@ class Node:
 
     def __str__(self):
         return self._title
+
+    @classmethod
+    def reboot(cls):
+        """Class method to reset the Node class so that it can be re-initialized.
+        This is useful for testing purposes and need not be utilized in production."""
+        cls._top_level = []
+        cls._titles.clear()
 
     @classmethod
     def first(cls):
@@ -265,7 +279,7 @@ class Stage(Node, HasTraits):
     def reboot(cls):
         """Class method to reset the Stage class so that it can be re-initialized.
         This is useful for testing purposes and should not be utilized in production."""
-        Node._top_level = []
+        Node.reboot()
         cls._completed_stages = []
         cls._active_stage = None
         # todo: remove all instances of Stage

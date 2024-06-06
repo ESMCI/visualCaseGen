@@ -80,7 +80,7 @@ def construct_custom_fhist_compset():
     assert Stage.first().enabled
     cvars["COMPSET_MODE"].value = "Custom"
 
-    assert Stage.active().title.startswith("Model Time Period")
+    assert Stage.active().title.startswith("Time Period")
     cvars["INITTIME"].value = "HIST"
 
     assert Stage.active().title.startswith("Components")
@@ -192,7 +192,7 @@ def construct_custom_res_from_modified_clm_grid(cime):
         # click the "Run Mesh Mask Modifier" button
         mesh_mask_modifier_launcher._on_launch_clicked(b=None)
 
-        assert Stage.active().title.startswith("Surface Data Modifier")
+        assert Stage.active().title.startswith("fsurdat")
         assert cvars["INPUT_FSURDAT"].value is not None, "INPUT_FSURDAT should be auto-filled"
         assert cvars["FSURDAT_AREA_SPEC"].value.startswith("mask_file:"), "FSURDAT_AREA_SPEC should be auto-filled"
         cvars["FSURDAT_IDEALIZED"].value = "True"

@@ -58,7 +58,7 @@ def configure_custom_compset():
     assert not Stage.first().enabled
     
     # The next stge is Custom Component Set, whose first child is Model Time Period
-    assert Stage.active().title.startswith('Model Time Period')
+    assert Stage.active().title.startswith('Time Period')
     cvars['INITTIME'].value = '2000'
 
     # Set components
@@ -92,7 +92,7 @@ def configure_custom_compset():
     # COMP_?_OPTIONS variables have been set, so the next stage is Grid:
     assert Stage.active().title.startswith('2. Grid')
     cvars['GRID_MODE'].value = 'Standard'
-    assert Stage.active().title.startswith('Standard Grid Selector')
+    assert Stage.active().title.startswith('Standard Grid')
 
     # change of mind, revert and pick new components
     Stage.active().revert()

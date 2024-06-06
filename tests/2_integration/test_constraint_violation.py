@@ -102,7 +102,7 @@ def test_constraint_violation_detection():
     # Grid
     assert Stage.active().title.startswith('2. Grid')
     cvars['GRID_MODE'].value = 'Custom'
-    assert Stage.active().title.startswith('Custom Grid Generator')
+    assert Stage.active().title.startswith('Custom Grid')
 
     custom_grid_path = Path(temp_dir) / "custom_grid"
     cvars['CUSTOM_GRID_PATH'].value = str(custom_grid_path)

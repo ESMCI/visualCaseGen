@@ -30,7 +30,7 @@ def initialize_grid_stages(cime):
     )
 
     stg_standard_grid_selector = Stage(
-        title="Standard Grid Selector",
+        title="Standard Grid",
         description="Please select from the below list of resolutions (collection of model grids). "
         "This list omits the resolutions that are known to be incompatible with the compset you have "
         "chosen in the first step. You may use the search box to further narrow down the list. For "
@@ -38,7 +38,7 @@ def initialize_grid_stages(cime):
         "containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
         parent=Guard(
-            title="Standard",
+            title="Standard ",
             parent=stg_grid,
             condition=cvars["GRID_MODE"] == "Standard",
         ),
@@ -47,13 +47,13 @@ def initialize_grid_stages(cime):
     )
 
     guard_custom_grid = Guard(
-        title="Custom",
+        title="Custom ",
         parent=stg_grid,
         condition=cvars["GRID_MODE"] == "Custom",
     )
 
     stg_custom_grid_selector = Stage(
-        title="Custom Grid Generator",
+        title="Custom Grid",
         description="Create a new, custom grid by mixing and matching standard model grids or by "
         "creating new MOM6 and/or CLM grids using the auxiliary tools that come with visualCaseGen. "
         "Before creating the new grid, specify a path where the new grid files will be stored. Also, "
@@ -162,14 +162,14 @@ def initialize_grid_stages(cime):
     )
 
     stg_fsurdat_modifier_w_mom = Stage(
-        title="Surface Data Modifier",
+        title="fsurdat",
         description= "At this stage, you will be prompted to configure are run the fsurdat modifier "
         "tool to modify the surface data of the selected CLM grid. The properties to configure and "
         "modify include soil properties, vegetation properties, urban areas, etc. See CLM documentation "
         "for more information.",
         widget=StageWidget(VBox),
         parent=Guard(
-            title="Custom clm grid w/ mom",
+            title="Custom w/ mom",
             parent=stg_base_lnd_grid,
             condition=cvars["COMP_OCN"] == "mom",
         ),
@@ -192,7 +192,7 @@ def initialize_grid_stages(cime):
     )
 
     guard_custom_clm_grid_wo_mom = Guard(
-        title="Custom clm Grid w/o mom",
+        title="Custom w/o mom",
         parent=stg_base_lnd_grid,
         condition=cvars["COMP_OCN"] != "mom",
     )
@@ -221,7 +221,7 @@ def initialize_grid_stages(cime):
     stg_mesh_mask_modifier._widget.children += (MeshMaskModifierLauncher(cime.srcroot),)
 
     stg_fsurdat_modifier = Stage(
-        title="Surface Data Modifier",
+        title="fsurdat ",
         description= "At this stage, you will be prompted to configure are run the fsurdat modifier "
         "tool to modify the surface data of the selected CLM grid. The properties to configure and "
         "modify include soil properties, vegetation properties, urban areas, etc. See CLM documentation "

@@ -81,7 +81,7 @@ def construct_custom_f2000_compset():
     assert Stage.first().enabled
     cvars["COMPSET_MODE"].value = "Custom"
 
-    assert Stage.active().title.startswith("Model Time Period")
+    assert Stage.active().title.startswith("Time Period")
     cvars["INITTIME"].value = "2000"
 
     assert Stage.active().title.startswith("Components")
@@ -222,7 +222,7 @@ def construct_custom_res_from_modified_clm_grid(cime):
         # click the "Run Mesh Mask Modifier" button
         mesh_mask_modifier_launcher._on_launch_clicked(b=None)
 
-        assert Stage.active().title.startswith("Surface Data Modifier")
+        assert Stage.active().title.startswith("fsurdat")
         assert cvars["INPUT_FSURDAT"].value is not None, "INPUT_FSURDAT should be auto-filled"
         assert cvars["FSURDAT_AREA_SPEC"].value.startswith("mask_file:"), "FSURDAT_AREA_SPEC should be auto-filled"
         cvars["FSURDAT_IDEALIZED"].value = "True"
@@ -338,7 +338,7 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
         assert Stage.active().title.startswith("Base Land Grid")
         cvars["CUSTOM_LND_GRID"].value = "4x5"
 
-        assert Stage.active().title.startswith("Surface Data Modifier")
+        assert Stage.active().title.startswith("fsurdat")
         assert cvars["INPUT_FSURDAT"].value is not None, "INPUT_FSURDAT should be auto-filled"
         cvars["FSURDAT_AREA_SPEC"].value = "mask_file:/glade/work/altuntas/cesm.input/vcg/mask_fillIO_f45.nc"
         cvars["FSURDAT_IDEALIZED"].value = "True"
