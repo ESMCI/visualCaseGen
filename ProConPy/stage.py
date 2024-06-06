@@ -15,25 +15,163 @@ from ProConPy.stage_rank import StageRank
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class Stage(HasTraits):
-    """A class to represent configuration stages where the user can set a number of
-    parameters, of type ConfigVar, to configure the system.
+class Node:
+    """A class to represent a node in the stage hierarchy tree. A node can be a stage or a guard.
+    The node can have children and a parent. The node can have a condition that must be satisfied
+    for the node to be enabled. The node can have a left and right sibling."""
 
-    Only a single stage can be active at a time.
-    A stage is deemed complete when all the parameters in the variable list are set.
+    # Top level nodes, i.e., nodes that have no parent
+    _top_level = []
+
+    def __init__(self, title, parent=None, condition=None):
+        """Initialize a node.
+
+        Parameters
+        ----------
+        title : str
+            The title of the node.
+        parent : Node, optional
+            The parent node of the node.
+        condition : z3.BoolRef, optional
+            The logical condition that must be satisfied for the node to be enabled.
+        """
+
+        self._title = title
+        self._children = []
+        self._parent = parent
+        self._condition = condition
+
+        if self._parent is None:
+            Node._top_level.append(self)
+        else:
+            assert isinstance(
+                self._parent, Node
+            ), "The parent node must be an instance of the Node class."
+            parent._children.append(self)
+
+        # set _left and _right nodes to be used in fast retrieval of adjacent nodes:
+        self._left = None
+        self._right = None
+        if parent is None and len(Node._top_level) > 1:
+            self._left = Node._top_level[-2]
+            self._left._right = self
+        if parent is not None and len(parent._children) > 1:
+            self._left = parent._children[-2]
+            self._left._right = self
+
+    def __str__(self):
+        return self._title
+
+    @classmethod
+    def first(cls):
+        """Class method that returns the first top-level node"""
+        return cls._top_level[0]
+
+    @classmethod
+    def top_level(cls):
+        """Class method that returns the list of top-level nodes."""
+        return cls._top_level
+
+    def is_first(self):
+        """Return True if the node is the first top-level node."""
+        return Node._top_level[0] is self
+
+    def has_children(self):
+        """Return True if the node has children."""
+        return len(self._children) > 0
+
+    def has_condition(self):
+        """Return True if the node has an associated condition."""
+        return self._condition is not None
+
+    def children_have_conditions(self):
+        """Return True if any of the children of the node have conditions."""
+        return any([child.has_condition() for child in self._children])
+
+    @property
+    def title(self):
+        return self._title
+
+    def siblings_to_right(self):
+        """Return a list of the right siblings of the node."""
+        right_siblings = []
+        stage = self
+        while stage._right is not None:
+            right_siblings.append(stage._right)
+            stage = stage._right
+        return right_siblings
+
+    def check_condition(self):
+        """Check if the condition of the node is satisfied."""
+        logger.debug("Checking condition of %s: %s", self._title, self._condition)
+        return csp.check_expression(self._condition)
+
+    def get_next(self, full_dfs=False):
+        """Return the next node in the stage tree. This method must be implemented in the subclass
+        since the retrieval of the next node depends on the type of the node.
+
+        Parameters
+        ----------
+        full_dfs : bool
+            If True, visit all the nodes in the stage tree. Otherwise, skip nodes (and its children)
+            whose conditions are not satisfied."""
+
+        raise NotImplementedError(
+            "The get_next method must be implemented in the subclass."
+        )
+
+
+class Guard(Node):
+    """A class to represent a guard node in the stage hierarchy tree. A guard node is a node that
+    has a condition that must be satisfied for the node (and its children) to be visited.
+    """
+
+    def __init__(self, title, parent, condition):
+        """Initialize a guard.
+
+        Parameters
+        ----------
+        title : str
+            The title of the guard.
+        parent : Stage
+            The parent stage of the guard.
+        condition : z3.BoolRef
+            The logical guard expression."""
+
+        assert (
+            isinstance(condition, BoolRef) or condition is True
+        ), "The guard expression must be a z3.BoolRef."
+        assert isinstance(
+            parent, Stage
+        ), "The parent must be an instance of the Stage class."
+
+        if parent.has_children():
+            assert (
+                parent.children_have_conditions()
+            ), f"The {title} guard's siblings must all be guards."
+
+        super().__init__(title, parent)
+        self._condition = condition
+
+    def get_next(self, full_dfs):
+        """Return the next node in the stage tree, which is always the first child for a guard node."""
+        return self._children[0]
+
+
+class Stage(Node, HasTraits):
+    """A class to represent configuration stages where the user can set a number of parameters, of type
+    ConfigVar, to configure the system. Only a single stage can be active at a time. A stage is deemed
+    complete when all the parameters in the variable list are set.
 
     Stage precedence and sequencing rules:
-    - A stage can have previous, next, parent and/or child stages.
+    - A stage can have parent/child stages and left/right siblings.
     - A stage cannot be its own previous stage or its own ancestor. These relationships must be fully acyclic.
-    - A following (next or child) stage gets activated as soon as the previous stage is completed.
-    - A child stage gets activated if the parent stage is completed and its activation guard is satisfied.
-    - Only one activation guard must evaluate to True in a list of guarded child stages.
+    - The next stage gets activated as soon as the current stage is complete.
+    - A child stage gets activated if the parent stage is completed and its guard is satisfied.
+    - Only one guard must evaluate to True among the children of a parent stage.
     """
 
     status = UseEnum(StageStat, default_value=StageStat.INACTIVE)
-
-    # Top level stages, i.e., stages that have no parent stage
-    _top_level = []
 
     # List of stages in the order they are completed. To be used for reverting to the previous stage.
     _completed_stages = []
@@ -49,14 +187,13 @@ class Stage(HasTraits):
         varlist: list = [],
         aux_varlist: list = [],
         parent: "Stage" = None,
-        activation_guard=None,
         hide_when_inactive=True,
         auto_proceed=True,
         auto_set_default_value=True,
         auto_set_valid_option=True,
     ):
         """Initialize a stage.
-    
+
         Parameters
         ----------
         title : str
@@ -66,16 +203,12 @@ class Stage(HasTraits):
         widget : optional
             The container widget to display the stage's variables
         varlist : list, optional
-            The list of variables to be set in the stage. Guarded stages cannot have
-            a variable list. Other stages must have a non-empty variable list.
+            The list of variables to be set in the stage.
         aux_varlist : list, optional
-            The list of auxiliary variables that are not directly set by the user. These 
+            The list of auxiliary variables that are not directly set by the user. These
             variables are used to track the state of the stage.
         parent : Stage, optional
             The parent stage of the stage.
-        activation_guard : optional
-            The activation guard of the stage If a stage has an activation guard, all of 
-            its siblings must also have activation guards.
         hide_when_inactive : bool, optional
             If True, hide the stage when it is disabled.
         auto_proceed : bool, optional
@@ -88,77 +221,31 @@ class Stage(HasTraits):
             valid option if the variable has only one valid option.
         """
 
-        if parent is None:  # This is a top-level stage
-            assert (
-                activation_guard is None
-            ), "A top-level stage cannot have an activation guard."
-            Stage._top_level.append(self)
-
-        else:  # This is a child stage, i.e., it has a parent stage
-            assert isinstance(
-                parent, Stage
-            ), "The parent stage must be an instance of the Stage class."
-
+        if parent is not None:  # This is a child stage, i.e., it has a parent stage
             if parent.has_children():
-                if parent.has_guarded_children():
-                    assert activation_guard is not None, (
-                        f"Attempted to add a child stage, {title}, with no activation guard to a parent stage, "
-                        + f"{parent}, that has child(ren) with activation guards."
-                    )
-                    assert activation_guard is True or isinstance(
-                        activation_guard, BoolRef
-                    ), f"The activation guard of the child stage, {title} must be a z3.BoolRef or True."
-                else:
-                    assert activation_guard is None, (
-                        f"Attempted to add a child stage, {title}, with activation guard to a parent stage, "
-                        + f"{parent}, that has child(ren) with no activation guards."
-                    )
+                assert not parent.children_have_conditions(), (
+                    f"Attempted to add a child stage, {title}, to a parent stage, "
+                    + f"{parent}, that has guards as children."
+                )
 
-            parent._children.append(self)
+        assert (
+            widget is not None
+        ), f'The unguarded "{self._title}" stage must have a widget.'
+        assert (
+            len(varlist) > 0
+        ), f'The unguarded "{self._title}" stage must have a non-empty variable list.'
 
-        self._title = title
+        super().__init__(title, parent)
+
         self._description = description
         self._varlist = varlist
         self._aux_varlist = aux_varlist
-        self._parent = parent
-        self._activation_guard = activation_guard
-        self._children = []  # to be appended by the child stage(s) (if any)
+        self._disabled = None
         self._hide_when_inactive = hide_when_inactive
         self._auto_proceed = auto_proceed
         self._auto_set_default_value = auto_set_default_value
         self._auto_set_valid_option = auto_set_valid_option
-        self._rank = StageRank(None) # to be set by the csp solver
-
-        if self.is_guarded():
-            assert (
-                widget is None
-            ), f'The guarded "{self._title}" stage cannot have a widget.'
-            assert (
-                len(varlist) == 0
-            ), f'The guarded "{self._title}" stage cannot have a variable list.'
-        else:
-            assert (
-                widget is not None
-            ), f'The unguarded "{self._title}" stage must have a widget.'
-            assert (
-                len(varlist) > 0
-            ), f'The unguarded "{self._title}" stage must have a non-empty variable list.'
-
-        # set _prev and _next stages to be used in fast retrieval of adjacent stages:
-        self._prev = None
-        self._next = None
-        if parent is None and len(Stage._top_level) > 1:
-            self._prev = Stage._top_level[-2]
-            self._prev._next = self
-        if parent is not None and len(parent._children) > 1:
-            self._prev = parent._children[-2]
-            self._prev._next = self
-        
-        # Check sibling stages for consistent specification of guards
-        if self._prev is not None:
-            assert self.is_guarded() == self._prev.is_guarded(), (
-                f"If a stage is guarded, all of its siblings must also be guarded."
-            )
+        self._rank = StageRank(None)  # to be set by the csp solver
 
         self._construct_observances()
 
@@ -174,28 +261,15 @@ class Stage(HasTraits):
         if self._widget is not None:
             self._widget.stage = self
 
-    def __str__(self):
-        return self._title
-
     @classmethod
     def reboot(cls):
         """Class method to reset the Stage class so that it can be re-initialized.
         This is useful for testing purposes and should not be utilized in production."""
-        cls._top_level = []
+        Node._top_level = []
         cls._completed_stages = []
         cls._active_stage = None
         # todo: remove all instances of Stage
 
-    @classmethod
-    def first(cls):
-        """Class method that returns the first stage of the stage hierarchy."""
-        return cls._top_level[0]
-
-    @classmethod
-    def top_level(cls):
-        """Class method that returns the top-level stages."""
-        return cls._top_level
-    
     @classmethod
     def active(cls):
         """Class method that returns the active stage."""
@@ -205,22 +279,6 @@ class Stage(HasTraits):
     def proceed(cls):
         """Class method to proceed the active stage."""
         cls._active_stage._proceed()
-
-    def is_first(self):
-        return Stage._top_level[0] is self
-
-    def has_children(self):
-        return len(self._children) > 0
-
-    def has_guarded_children(self):
-        return any([child._activation_guard is not None for child in self._children])
-
-    def is_guarded(self):
-        return self._activation_guard is not None
-
-    @property
-    def title(self):
-        return self._title
 
     @property
     def description(self):
@@ -235,17 +293,15 @@ class Stage(HasTraits):
         if self.is_first():
             return StageRank(0)
         return self._rank
-    
+
     @rank.setter
     def rank(self, new_rank):
         assert self._rank.is_none(), "The rank of the stage is already set."
         assert isinstance(new_rank, StageRank), "The rank must be an integer."
-        assert not self.is_first() or new_rank == StageRank(0), "The rank of the first stage must be 0."
+        assert not self.is_first() or new_rank == StageRank(
+            0
+        ), "The rank of the first stage must be 0."
         self._rank = new_rank
-
-    def check_for_cyclic_relations(self):
-        # TODO: Implement a check for cyclic relations, probably in the CSP module and not here.
-        pass
 
     def _construct_observances(self):
         for var in self._varlist:
@@ -265,39 +321,38 @@ class Stage(HasTraits):
                 self._proceed()
 
     def _proceed(self):
-        """End this stage and move on to the following stage. This may be a child stage or the next stage.
-        If no child or next stage is found, backtrack to an ancestor stage that has a next stage.
-        """
+        """End this stage and move on to the next stage. This may be a child stage, the right sibling,
+        or the right sibling of an ancestor stage (in that order). If no next stage is found, the stage
+        tree traversal is complete."""
+
         self._disable()
 
         Stage._completed_stages.append(self)
 
-        stage_to_enable = self.get_following_stage(visit_all=False)
+        next_stage = self.get_next()
 
-        if stage_to_enable is None:
+        if next_stage is None:
             logger.info("SUCCESS: All stages are complete.")
             return
 
-        # Display the child stage and its subsequent stages by appending them to the current stage's widget
+        # Display the child stage and its siblings by appending them to the current stage's widget
         if self.has_children():
-            self._widget.append_child_stages(first_child=stage_to_enable)
+            self._widget.append_child_stages(first_child=next_stage)
 
         # Proceed the csp solver before enabling the next stage
         csp.proceed()
 
-        # Enable the following stage
-        stage_to_enable._enable()
+        # Enable the next stage
+        next_stage._enable()
 
-    def get_following_stage(self, visit_all):
-        """Determine the following stage to visit during a stage tree traversal. Note that in ProConPy
-        nomeclature, "next" stage refers to the next sibling stage, while "child" stage refers to a stage
-        whose parent is the current stage. Depending on the stage tree structure, the following stage can
-        be a child or a next stage. If no such stage is found, backtrack to an ancestor stage that has a
-        next stage.
+    def get_next(self, full_dfs=False):
+        """Determine the next stage to visit during a stage tree traversal. Note that the next stage may
+        be the first child, the right sibling, or the right sibling of the closest ancestor who has an
+        unvisited right sibling.
 
         Parameters
         ----------
-        visit_all : bool
+        full_dfs : bool
             If True, visit all the stages in the stage tree. Otherwise, skip stages whose guards
             are not satisfied.
 
@@ -308,74 +363,51 @@ class Stage(HasTraits):
         """
 
         if self.has_children():
-            return self._get_child_to_enable(visit_all)
-        elif self._next is not None:
-            return self._next
-        else:
-            return self._backtrack(visit_all)
+            return self._get_child_to_enable(full_dfs)
+        elif self._right is not None:
+            return self._right
+        else:  # Backtrack
+            ancestor = self._parent
+            while ancestor is not None:
+                if ancestor._right is not None and (
+                    full_dfs or not ancestor.has_condition()
+                ):
+                    return ancestor._right
+                else:
+                    ancestor = ancestor._parent
+            return None
 
-
-    def _backtrack(self, visit_all):
-        """While attempting to proceed, recursively backtrack until an ancestor stage that has a next
-        stage is found. When such a stage is found, return its next stage. If no such stage is found, 
-        return None to indicate that the stage tree is fully traversed.
-
-        Parameters
-        ----------
-        visit_all : bool, optional
-            If True, visit all the stages in the stage tree. Otherwise, skip stages whose guards
-            are not satisfied.
-        Returns
-        -------
-        Stage or None
-            The next stage to activate, if found. Otherwise, None.
-        """
-
-        if (parent := self._parent) is not None:
-            if parent._next is None or (parent.is_guarded() and not visit_all):
-                return parent._backtrack(visit_all)
-            else:
-                return parent._next
-
-        return None  # The stage tree is complete
-
-    def _get_child_to_enable(self, visit_all):
+    def _get_child_to_enable(self, full_dfs):
         """Determine the child stage to activate.
-        
+
         Parameters
         ----------
-        visit_all : bool
+        full_dfs : bool
             If True, visit all the stages in the stage tree. Otherwise, skip stages whose guards
             are not satisfied."""
 
         child_to_activate = None
 
-        if self.has_guarded_children() and not visit_all:
-            # If there are guarded children, evaluate activation guards of each child
-            # and select the child to activate. Only one child can be activated at a time.
+        if self.children_have_conditions() and not full_dfs:
+            # Children are guards. Pick the child whose condition is satisfied.
             for child in self._children:
-                logger.debug(
-                    "Checking activation guard of child stage %s: %s",
-                    child,
-                    child._activation_guard,
-                )
-                if csp.check_expression(child._activation_guard) is True:
+                if child.check_condition() is True:
                     assert (
                         child_to_activate is None
                     ), "Only one child stage can be activated at a time."
                     child_to_activate = child
         else:
-            # If there are no guarded children, the first child is activated.
+            # If children are not guards, the first child is activated.
             # Note the remaining children will be activated in sequence by their siblings.
             child_to_activate = self._children[0]
+
+        # If the child to activate is a Guard, return it's first child
+        if child_to_activate.has_condition():
+            return child_to_activate._children[0]
 
         assert (
             child_to_activate is not None
         ), "At least one child stage must be activated."
-
-        # If the child to activate is guarded, recursively determine the child to enable
-        if child_to_activate.is_guarded():
-            return child_to_activate._get_child_to_enable(visit_all)
 
         return child_to_activate
 
@@ -395,7 +427,9 @@ class Stage(HasTraits):
 
         if some_vals_set:
             if some_vals_unset:
-                self.status = StageStat.INACTIVE if self._disabled else StageStat.PARTIAL
+                self.status = (
+                    StageStat.INACTIVE if self._disabled else StageStat.PARTIAL
+                )
             else:
                 self.status = StageStat.SEALED if self._disabled else StageStat.COMPLETE
         else:
@@ -405,7 +439,9 @@ class Stage(HasTraits):
         """Deactivate the stage, preventing the user from setting the parameters in the varlist."""
         logger.debug("Disabling stage %s.", self._title)
         if self._disabled is not None:
-            assert self._disabled is False, f"Attempted to disable an already disabled stage: {self._title}"
+            assert (
+                self._disabled is False
+            ), f"Attempted to disable an already disabled stage: {self._title}"
             assert Stage._active_stage is self, "The active stage is not this stage."
             Stage._active_stage = None
 
@@ -424,7 +460,9 @@ class Stage(HasTraits):
         """Activate the stage, allowing the user to set the parameters in the varlist."""
 
         logger.info("Enabling stage %s.", self._title)
-        assert self._disabled is not False, f"Attempted to enable an already enabled stage: {self._title}"
+        assert (
+            self._disabled is not False
+        ), f"Attempted to enable an already enabled stage: {self._title}"
         assert Stage._active_stage is None, "Another stage is already active."
 
         Stage._active_stage = self
@@ -434,23 +472,23 @@ class Stage(HasTraits):
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._proceed()
-        
+
         # Set the rank of the variables in the stage
         for var in self._varlist:
             var.rank = self.rank
         for var in self._aux_varlist:
             var.rank = self.rank
-        
+
         # If a default vaulue is assigned, set the value of the ConfigVar to the default value
         # Otherwise, set the value of the ConfigVar to the valid option if there is only one.
         if self._auto_set_default_value is True:
-            self.set_vars_to_defaults() 
+            self.set_vars_to_defaults()
         if self._auto_set_valid_option is True:
             self.set_vars_to_single_valid_option()
 
     def set_vars_to_defaults(self, b=None):
         """Set the value of the ConfigVars to their default values (if valid).
-        
+
         Parameters
         ----------
         b : Button, optional
@@ -461,7 +499,9 @@ class Stage(HasTraits):
                 try:
                     var.value = dv
                 except ConstraintViolation:
-                    logger.debug("The default value of the variable %s is not valid.", var.name)
+                    logger.debug(
+                        "The default value of the variable %s is not valid.", var.name
+                    )
                     var.value = None
 
     def set_vars_to_single_valid_option(self):
@@ -495,15 +535,6 @@ class Stage(HasTraits):
         if len(valid_opts) == 1:
             return valid_opts[0]
         return None
-
-    def subsequent_siblings(self):
-        """Return a list of subsequent sibling stages"""
-        subsequent_siblings = []
-        stage = self
-        while stage._next is not None:
-            subsequent_siblings.append(stage._next)
-            stage = stage._next
-        return subsequent_siblings
 
     def reset(self, b=None):
         """Reset the stage.
@@ -539,13 +570,13 @@ class Stage(HasTraits):
         if len(Stage._completed_stages) == 0:
             logger.info("No stage to revert to.")
         else:
-            stage_to_enable = Stage._completed_stages.pop()
-            logger.info("Reverting to stage %s.", stage_to_enable._title)
+            previous_stage = Stage._completed_stages.pop()
+            logger.info("Reverting to stage %s.", previous_stage._title)
             self._disable()
             csp.revert()
-            # If the stage to enable has guarded children, remove them from the widget
-            if stage_to_enable.has_guarded_children():
-                stage_to_enable._widget.children = [
-                    var.widget for var in stage_to_enable._varlist
+            # If the stage to enable has guards as children, remove them from the widget
+            if previous_stage.children_have_conditions():
+                previous_stage._widget.children = [
+                    var.widget for var in previous_stage._varlist
                 ]
-            stage_to_enable._enable()
+            previous_stage._enable()

@@ -5,7 +5,7 @@ import time
 import os
 
 from ProConPy.config_var import cvars
-from ProConPy.stage import Stage
+from ProConPy.stage import Stage, Guard
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
@@ -29,13 +29,6 @@ def initialize_grid_stages(cime):
         varlist=[cvars["GRID_MODE"]],
     )
 
-    stg_standard_grid = Stage(
-        title="Standard Grid",
-        description="",
-        parent=stg_grid,
-        activation_guard=cvars["GRID_MODE"] == "Standard",
-    )
-
     stg_standard_grid_selector = Stage(
         title="Standard Grid Selector",
         description="Please select from the below list of resolutions (collection of model grids). "
@@ -44,16 +37,19 @@ def initialize_grid_stages(cime):
         "exact matches, you can use double quotes. Otherwise, the search will display all grids "
         "containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
-        parent=stg_standard_grid,
+        parent=Guard(
+            title="Standard",
+            parent=stg_grid,
+            condition=cvars["GRID_MODE"] == "Standard",
+        ),
         varlist=[cvars["GRID"]],
         auto_set_valid_option=False,
     )
 
-    stg_custom_grid = Stage(
-        title="Custom Grid",
-        description="",
+    guard_custom_grid = Guard(
+        title="Custom",
         parent=stg_grid,
-        activation_guard=cvars["GRID_MODE"] == "Custom",
+        condition=cvars["GRID_MODE"] == "Custom",
     )
 
     stg_custom_grid_selector = Stage(
@@ -64,7 +60,7 @@ def initialize_grid_stages(cime):
         "specify the grid (resolution) name that will be used to refer to the new grid in the rest of "
         "the configuration process and afterwards.",
         widget=StageWidget(VBox),
-        parent=stg_custom_grid,
+        parent=guard_custom_grid,
         varlist=[cvars["CUSTOM_GRID_PATH"]],
     )
 
@@ -73,7 +69,7 @@ def initialize_grid_stages(cime):
         description="From the below list of standard atmosphere grids, select one to be used as the "
         "atmosphere grid within the new, custom CESM grid.",
         widget=StageWidget(HBox),
-        parent=stg_custom_grid,
+        parent=guard_custom_grid,
         varlist=[cvars["CUSTOM_ATM_GRID"]],
         auto_set_default_value=False,
     )
@@ -85,15 +81,8 @@ def initialize_grid_stages(cime):
         "you will be prompted to specify the grid extent, resolution, and other parameters. You "
         "will then be directed to a new notebook to create the new grid using the mom6_bathy tool.",
         widget=StageWidget(VBox),
-        parent=stg_custom_grid,
+        parent=guard_custom_grid,
         varlist=[cvars["OCN_GRID_MODE"]],
-    )
-
-    stg_custom_preexisting_ocn_grid = Stage(
-        title="Custom Standard Ocean Grid",
-        description="",
-        parent=stg_custom_ocn_grid_mode,
-        activation_guard=cvars["OCN_GRID_MODE"] == "Standard",
     )
 
     stg_custom_ocn_grid = Stage(
@@ -101,15 +90,12 @@ def initialize_grid_stages(cime):
         description="From the below list of standard ocean grids, select one to be used as the "
         "ocean grid within the new, custom CESM grid.",
         widget=StageWidget(VBox),
-        parent=stg_custom_preexisting_ocn_grid,
+        parent=Guard(
+            title="Std Ocn Grid",
+            parent=stg_custom_ocn_grid_mode,
+            condition=cvars["OCN_GRID_MODE"] == "Standard",
+        ),
         varlist=[cvars["CUSTOM_OCN_GRID"]],
-    )
-
-    stg_custom_new_ocn_grid = Stage(
-        title="Custom New Ocean Grid",
-        description="",
-        parent=stg_custom_ocn_grid_mode,
-        activation_guard=cvars["OCN_GRID_MODE"] != "Standard",
     )
 
     stg_new_ocn_grid = Stage(
@@ -120,7 +106,11 @@ def initialize_grid_stages(cime):
         "grid. Once all the cells are executed, return to this tab and click the Confirm Completion "
         "button to proceed to the next stage.",
         widget=StageWidget(VBox),
-        parent=stg_custom_new_ocn_grid,
+        parent=Guard(
+            title="Custom Ocn Grid",
+            parent=stg_custom_ocn_grid_mode,
+            condition=cvars["OCN_GRID_MODE"] != "Standard",
+        ),
         auto_proceed=False,
         varlist=[
             cvars["OCN_GRID_EXTENT"],
@@ -140,31 +130,21 @@ def initialize_grid_stages(cime):
         title="Land Grid Mode",
         description="Determine whether to use a standard land grid or modify an existing land grid.",
         widget=StageWidget(VBox),
-        parent=stg_custom_grid,
+        parent=guard_custom_grid,
         varlist=[cvars["LND_GRID_MODE"]],
-    )
-
-    stg_standard_custom_lnd_grid_guard = Stage(
-        title="Custom Standard Land Grid",
-        description="",
-        parent=stg_custom_lnd_grid_mode,
-        activation_guard=cvars["LND_GRID_MODE"] == "Standard",
     )
 
     stg_standard_custom_lnd_grid = Stage(
         title="Land Grid",
         description="Select a standard land grid to be used as the land grid within the new, custom CESM grid.",
         widget=StageWidget(VBox),
-        parent=stg_standard_custom_lnd_grid_guard,
+        parent=Guard(
+            title="Std Lnd Grid",
+            parent=stg_custom_lnd_grid_mode,
+            condition=cvars["LND_GRID_MODE"] == "Standard",
+        ),
         varlist=[cvars["CUSTOM_LND_GRID"]],
         auto_set_default_value=False,
-    )
-
-    stg_custom_new_lnd_grid = Stage(
-        title="Custom New Land Grid",
-        description="",
-        parent=stg_custom_lnd_grid_mode,
-        activation_guard=cvars["LND_GRID_MODE"] == "Modified",
     )
 
     stg_base_lnd_grid = Stage(
@@ -172,26 +152,27 @@ def initialize_grid_stages(cime):
         description="Select a base CLM grid. In the following stages, you will be able modify its "
         "land mask and surface data using the auxiliary tools that come with CESM.",
         widget=StageWidget(VBox),
-        parent=stg_custom_new_lnd_grid,
+        parent=Guard(
+            title="Modified Lnd Grid",
+            parent=stg_custom_lnd_grid_mode,
+            condition=cvars["LND_GRID_MODE"] == "Modified",
+        ),
         varlist=[cvars["CUSTOM_LND_GRID"]],
         auto_set_default_value=False,
     )
 
-    stg_custom_clm_grid_with_mom = Stage(
-        title="Parent of custom CLM grid when MOM6 is selected.",
-        description="",
-        parent=stg_base_lnd_grid,
-        activation_guard=cvars["COMP_OCN"] == "mom",
-    )
-
-    stg_fsurdat_modifier_no_mom = Stage(
+    stg_fsurdat_modifier_w_mom = Stage(
         title="Surface Data Modifier",
         description= "At this stage, you will be prompted to configure are run the fsurdat modifier "
         "tool to modify the surface data of the selected CLM grid. The properties to configure and "
         "modify include soil properties, vegetation properties, urban areas, etc. See CLM documentation "
         "for more information.",
         widget=StageWidget(VBox),
-        parent=stg_custom_clm_grid_with_mom,
+        parent=Guard(
+            title="Custom clm grid w/ mom",
+            parent=stg_base_lnd_grid,
+            condition=cvars["COMP_OCN"] == "mom",
+        ),
         varlist=[
             cvars["INPUT_FSURDAT"],
             cvars["FSURDAT_AREA_SPEC"],
@@ -205,16 +186,15 @@ def initialize_grid_stages(cime):
         ],
     )
     fsurdat_modifier_launcher = FsurdatModifierLauncher(cime.srcroot)
-    stg_fsurdat_modifier_no_mom._widget.children += (
+    stg_fsurdat_modifier_w_mom._widget.children += (
         cvars["FSURDAT_MATRIX"]._widget,
         fsurdat_modifier_launcher
     )
 
-    stg_custom_clm_grid_no_mom = Stage(
-        title="Parent of custom CLM grid when MOM6 is NOT selected.",
-        description="",
+    guard_custom_clm_grid_wo_mom = Guard(
+        title="Custom clm Grid w/o mom",
         parent=stg_base_lnd_grid,
-        activation_guard=cvars["COMP_OCN"] != "mom",
+        condition=cvars["COMP_OCN"] != "mom",
     )
 
     stg_mesh_mask_modifier = Stage(
@@ -227,7 +207,7 @@ def initialize_grid_stages(cime):
         "You may then specify the variable and dimension names of latitude and longitude in the mask file. "
         "Finally, specify the output file name to be generated by the mesh_mask_modifier tool.",
         widget=StageWidget(VBox),
-        parent=stg_custom_clm_grid_no_mom,
+        parent=guard_custom_clm_grid_wo_mom,
         varlist=[
             cvars["INPUT_MASK_MESH"],
             cvars["LAND_MASK"],
@@ -247,7 +227,7 @@ def initialize_grid_stages(cime):
         "modify include soil properties, vegetation properties, urban areas, etc. See CLM documentation "
         "for more information.",
         widget=StageWidget(VBox),
-        parent=stg_custom_clm_grid_no_mom,
+        parent=guard_custom_clm_grid_wo_mom,
         varlist=[
             cvars["INPUT_FSURDAT"],
             cvars["FSURDAT_AREA_SPEC"],

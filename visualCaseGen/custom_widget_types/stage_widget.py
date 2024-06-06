@@ -256,7 +256,7 @@ class StageWidget(VBox):
             itertools.chain(
                 [var.widget for var in self._stage._varlist],
                 [first_child._widget],
-                [stage._widget for stage in first_child.subsequent_siblings()],
+                [stage._widget for stage in first_child.siblings_to_right()],
             )
         )
 

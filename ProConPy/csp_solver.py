@@ -162,19 +162,19 @@ class CspSolver:
         logger.debug("Traversing stage: %s, rank: %s", stage, rank)
 
         # flag variables that appear in guards
-        if stage.is_guarded():
+        if stage.has_condition():
             assert stage.has_children(), (
                 f"The stage {stage} is guarded but has no children."
             )
 
-            guard = stage._activation_guard
+            guard = stage._condition
             if isinstance(guard, BoolRef):
                 guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(guard)]
                 for var in guard_vars:
                     var.is_guard_var = True
 
         # move on to the following stage
-        stage = stage.get_following_stage(visit_all=True)
+        stage = stage.get_next(full_dfs=True)
         if stage is not None:
             self._determine_stage_ranks(stage, rank+1, cvars)
 

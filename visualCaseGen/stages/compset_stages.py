@@ -2,7 +2,7 @@ import logging
 from ipywidgets import VBox, HBox, Tab
 
 from ProConPy.config_var import cvars
-from ProConPy.stage import Stage
+from ProConPy.stage import Stage, Guard
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
 
@@ -26,13 +26,6 @@ def initialize_compset_stages(cime):
 
     # Standard Component Set Stages
 
-    stg_standard_compset = Stage(
-        title="Standard Component Set",
-        description="",
-        parent=stg_compset,
-        activation_guard=cvars["COMPSET_MODE"] == "Standard",
-    )
-
     stg_support_level = Stage(
         title="Support Level",
         description="When selecting a standard compset, you have the option to choose from "
@@ -40,15 +33,18 @@ def initialize_compset_stages(cime):
         "validated by the CESM developers. The former options is useful for testing and "
         "development. The latter option is recommended for production runs.",
         widget=StageWidget(VBox),
-        parent=stg_standard_compset,
+        parent=Guard(
+            title= "Standard",
+            parent=stg_compset,
+            condition=cvars["COMPSET_MODE"] == "Standard",
+        ),
         varlist=[cvars["SUPPORT_LEVEL"]],
     )
 
-    stg_support_level_all = Stage(
-        title="All standard compsets",
-        description="",
+    guard_support_level_all = Guard(
+        title="All",
         parent=stg_support_level,
-        activation_guard=cvars["SUPPORT_LEVEL"] == "All",
+        condition=cvars["SUPPORT_LEVEL"] == "All",
     )
 
     stg_comp_filter = Stage(
@@ -59,7 +55,7 @@ def initialize_compset_stages(cime):
         "models. If you are interested in all compsets, you can click *any* buttons for all "
         "component classes. ",
         widget=StageWidget(HBox),
-        parent=stg_support_level_all,
+        parent=guard_support_level_all,
         varlist=[
             cvars[f"COMP_{comp_class}_FILTER"] for comp_class in cime.comp_classes
         ],
@@ -74,7 +70,7 @@ def initialize_compset_stages(cime):
         "For exact matches, you can use double quotes. Otherwise, the search will display all "
         "compsets containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
-        parent=stg_support_level_all,
+        parent=guard_support_level_all,
         varlist=[
             cvars["COMPSET_ALIAS"],
         ],
@@ -85,13 +81,6 @@ def initialize_compset_stages(cime):
             [cvars["COMPSET_LNAME"]]
     )
 
-    stg_support_level_sci = Stage(
-        title="Scentifically supported compsets",
-        description="",
-        parent=stg_support_level,
-        activation_guard=cvars["SUPPORT_LEVEL"] == "Supported",
-    )
-
     stg_scientific_compset_aliases = Stage(
         title="Supported compsets",
         description="Please select from the below list of compsets, where each compset is "
@@ -100,7 +89,11 @@ def initialize_compset_stages(cime):
         "For exact matches, you can use double quotes. Otherwise, the search will display all "
         "compsets containing one or more of the words in the search box.",
         widget=StageWidget(VBox),
-        parent=stg_support_level_sci,
+        parent=Guard(
+            title="Supported",
+            parent=stg_support_level,
+            condition=cvars["SUPPORT_LEVEL"] == "Supported",
+        ),
         varlist=[
             cvars["COMPSET_ALIAS"],
         ],
@@ -113,11 +106,10 @@ def initialize_compset_stages(cime):
 
     # Custom Component Set Stages
 
-    stg_custom_compset = Stage(
-        title="Custom Component Set",
-        description="",
+    guard_custom_compset = Guard(
+        title="Custom",
         parent=stg_compset,
-        activation_guard=cvars["COMPSET_MODE"] == "Custom",
+        condition=cvars["COMPSET_MODE"] == "Custom",
     )
 
     stg_inittime = Stage(
@@ -129,7 +121,7 @@ def initialize_compset_stages(cime):
         "fixed-time-period runs, but with present-day conditions. HIST is appropriate for "
         "transient runs, e.g., for simulations from 1850 through 2015.",
         widget=StageWidget(VBox),
-        parent=stg_custom_compset,
+        parent=guard_custom_compset,
         varlist=[cvars["INITTIME"]],
     )
 
@@ -140,7 +132,7 @@ def initialize_compset_stages(cime):
         "the letter s, (e.g., sice) are stub models (placeholders that have no impact). Others "
         "are fully active models.",
         widget=StageWidget(HBox),
-        parent=stg_custom_compset,
+        parent=guard_custom_compset,
         varlist=[cvars[f"COMP_{comp_class}"] for comp_class in cime.comp_classes],
     )
 
@@ -150,7 +142,7 @@ def initialize_compset_stages(cime):
         "configuration determines the complexity of the model and the computational cost. "
         "Refer to individual model documentations for more information.",
         widget=StageWidget(HBox),
-        parent=stg_custom_compset,
+        parent=guard_custom_compset,
         varlist=[cvars[f"COMP_{comp_class}_PHYS"] for comp_class in cime.comp_classes],
     )
 
@@ -163,7 +155,7 @@ def initialize_compset_stages(cime):
         "apply more than one modifier by switching to multi selection mode, but be aware that "
         "visualCaseGen does not check for compatibility between multiple modifiers.",
         widget=StageWidget(Tab),
-        parent=stg_custom_compset,
+        parent=guard_custom_compset,
         varlist=[
             cvars[f"COMP_{comp_class}_OPTION"] for comp_class in cime.comp_classes
         ],
