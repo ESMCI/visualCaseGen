@@ -28,8 +28,9 @@ class CspSolver:
         self._options_assertions = {}
         self._past_options_assertions = []
         self._tlock = TraversalLock()
-        self._checked_assignment = None # A record of the current assignment being processed. This is used
-                                     # as a hand-shake mechanism between check_assignment and register_assignment.
+        self._checked_assignment = None
+        # ^ A record of the current assignment being processed. This is used
+        # as a hand-shake mechanism between check_assignment and register_assignment.
 
     @owh.out.capture()
     def proceed(self):
@@ -61,19 +62,18 @@ class CspSolver:
         self._options_assertions = self._past_options_assertions.pop()
         self._refresh_solver()
 
-
     def _refresh_solver(self):
         """Reset the solver and (re-)apply the relational constraints, the past assignment
         assertions, and the past options assertions. This method is called when the user wants
         to proceed/revert to a following/previous stage. Resetting the solver turned out to
-        be more efficient than the initial approach of using push/pop to manage the solver."""
+        be more efficient than the initial approach of using push/pop to manage the solver.
+        """
         self._solver.reset()
         self._solver.add([asrt for asrt, _ in self._relational_constraints.items()])
         for scope in self._past_assignment_assertions:
             self._solver.add([asrt for _, asrt in scope.items()])
         for scope in self._past_options_assertions:
             self._solver.add([asrt for _, asrt in scope.items()])
-
 
     def initialize(self, cvars, relational_constraints, first_stage):
         """Initialize the CSP solver with relational constraints. The relational constraints are
@@ -117,30 +117,34 @@ class CspSolver:
         logger.info("CspSolver initialized.")
 
     def _determine_variable_ranks(self, stage, cvars):
+        """Determine the ranks of the variables. The ranks are determined by checking the
+        consistency of the variable precedence. The precedence of the variables is determined by
+        the order in which the variables are assigned in the stage tree. The lower the rank, the
+        higher the precedence."""
 
         # Solver to check if a consistent ranking of variables is possible
         s = Solver()
 
         # Instantiate temporary rank variables for each config variable to determine their ranks
-        [Int(f'{var}_rank') for var in cvars]
+        [Int(f"{var}_rank") for var in cvars]
 
         # The maximum rank
-        max_rank = Int('max_rank')
+        max_rank = Int("max_rank")
 
         while stage is not None:
 
             varlist = stage._varlist
             assert len(varlist) > 0, "Stage has no variables."
 
-            curr_rank = Int(f'{varlist[0]}_rank')
+            curr_rank = Int(f"{varlist[0]}_rank")
 
             # All ranks must be nonnegative and less than or equal to the maximum rank
             s.add([0 <= curr_rank, curr_rank <= max_rank])
 
             # All stage vars must have the same rank
             for var in varlist[1:]:
-                s.add(curr_rank == Int(f'{var}_rank'))
-            
+                s.add(curr_rank == Int(f"{var}_rank"))
+
             # The next stage in stage tree (via full DFS traversal)
             dfs_next_stage = stage.get_next(full_dfs=True)
             if dfs_next_stage is None:
@@ -151,16 +155,24 @@ class CspSolver:
                 dfs_next_stage = dfs_next_stage.get_next(full_dfs=True)
                 # Now, process the guard variables.
                 if isinstance(condition, BoolRef):
-                    guard_vars = [cvars[var.sexpr()] for var in z3util.get_vars(condition)]
+                    guard_vars = [
+                        cvars[var.sexpr()] for var in z3util.get_vars(condition)
+                    ]
                     for guard_var in guard_vars:
                         # Mark guard variables
                         guard_var.is_guard_var = True
                         # All guard variables must have a lower rank than the variables in the next stage:
-                        s.add(Int(f'{guard_var}_rank') < Int(f'{dfs_next_stage._varlist[0]}_rank'))
+                        s.add(
+                            Int(f"{guard_var}_rank")
+                            < Int(f"{dfs_next_stage._varlist[0]}_rank")
+                        )
 
             # Find out the stage that would follow the current stage in an actual run.
             true_next_stage = dfs_next_stage
-            if not(stage.is_sibling_of(dfs_next_stage) or stage.is_ancestor_of(dfs_next_stage)):
+            if not (
+                stage.is_sibling_of(dfs_next_stage)
+                or stage.is_ancestor_of(dfs_next_stage)
+            ):
                 ancestor = stage._parent
                 while ancestor is not None:
                     if (not ancestor.has_condition()) and ancestor._right is not None:
@@ -169,14 +181,15 @@ class CspSolver:
                     ancestor = ancestor._parent
 
             # All variables in the current stage must have a lower rank than the variables in the (true) next stage:
-            s.add(curr_rank < Int(f'{true_next_stage._varlist[0]}_rank'))
+            s.add(curr_rank < Int(f"{true_next_stage._varlist[0]}_rank"))
 
             for aux_var in stage._aux_varlist:
                 # All auxiliary variables must have a higher rank than the variables in the current stage:
-                s.add(curr_rank < Int(f'{aux_var}_rank'))
+                s.add(curr_rank < Int(f"{aux_var}_rank"))
                 # All auxiliary variables must have a lower rank than the variables in the (true) next stage:
-                s.add(Int(f'{aux_var}_rank') < Int(f'{true_next_stage._varlist[0]}_rank'))
-
+                s.add(
+                    Int(f"{aux_var}_rank") < Int(f"{true_next_stage._varlist[0]}_rank")
+                )
 
             # Check if the current stage is consistent
             if s.check() == unsat:
@@ -184,6 +197,15 @@ class CspSolver:
 
             # continue dfs traversal:
             stage = dfs_next_stage
+
+        # Also take options dependencies into account
+        for var in cvars.values():
+            for dependent_var in var._dependent_vars:
+                s.add(Int(f"{var}_rank") < Int(f"{dependent_var}_rank"))
+        if s.check() == unsat:
+            raise RuntimeError(
+                "Inconsistent variable ranks encountered due to options dependencies."
+            )
 
         # Now minimize the maximum rank (This is optional and can be removed if performance becomes an issue)
         opt = Optimize()
@@ -194,18 +216,19 @@ class CspSolver:
 
         for var in cvars:
             try:
-                cvars[var].rank = model.eval(Int(f'{var}_rank')).as_long()
+                cvars[var].rank = model.eval(Int(f"{var}_rank")).as_long()
             except AttributeError:
                 # This variable is not contained by any stage. Set its rank to max_rank + 1
-                cvars[var].rank = model.eval(Int('max_rank')).as_long() + 1
-    
+                cvars[var].rank = model.eval(Int("max_rank")).as_long() + 1
+
     def _process_relational_constraints(self, cvars):
         """Process the relational constraints to construct a constraint graph and add constraints
         to the solver. The constraint graph is a directed graph where the nodes are the variables
-        and the edges are (one or more) relational constraints that connect the variables."""
+        and the edges are (one or more) relational constraints that connect the variables.
+        """
 
         # constraint graph
-        self._cgraph = {var : set() for var in cvars.values()}
+        self._cgraph = {var: set() for var in cvars.values()}
 
         warn = (
             "The relational_constraints must be a dictionary where keys are the z3 boolean expressions "
@@ -229,7 +252,13 @@ class CspSolver:
             constr_vars = {cvars[var.sexpr()] for var in z3util.get_vars(constr)}
 
             for var in constr_vars:
-                self._cgraph[var].update(constr_vars - {var})
+                self._cgraph[var].update(
+                    set(
+                        var_other
+                        for var_other in constr_vars
+                        if var_other is not var and var_other.rank >= var.rank
+                    )
+                )
 
     @property
     def initialized(self):
@@ -264,7 +293,9 @@ class CspSolver:
 
         # Sanity checks
         assert self._initialized, "Must finalize initialization to check assignments."
-        assert self._checked_assignment is None, "A check/register cycle is in progress."
+        assert (
+            self._checked_assignment is None
+        ), "A check/register cycle is in progress."
         assert new_value is not None, "None is always a valid assignment."
 
         # Depending on the domain of the variable, check the assignment
@@ -294,7 +325,6 @@ class CspSolver:
                     raise ConstraintViolation(self.retrieve_error_msg(var, new_val))
                 if validity is None:
                     raise ConstraintViolation(f"{new_val} not an option for {var}")
-        
 
     def _check_assignment_of_infinite_domain_var(self, var, new_value):
         """Check the assignment of a variable with an infinite domain to a new value. The check
@@ -340,7 +370,7 @@ class CspSolver:
                 # Set variable value to None, and raise an exception.
                 var.value = None
                 raise ConstraintViolation(
-                    f"Your current configuration settings have created infeasible options for future settings. "\
+                    f"Your current configuration settings have created infeasible options for future settings. "
                     "Please reset or revise your selections."
                 )
 
@@ -421,14 +451,14 @@ class CspSolver:
                 )
 
             error_messages = [str(err_msg) for err_msg in s.unsat_core()]
-            msg = f'Invalid assignment of {var} to {new_value}.' 
+            msg = f"Invalid assignment of {var} to {new_value}."
             if len(error_messages) == 1:
-                msg += f' Reason: {error_messages[0]}'
+                msg += f" Reason: {error_messages[0]}"
             else:
-                msg +=' Reasons:'
+                msg += " Reasons:"
                 for i, err_msg in enumerate(error_messages):
-                    msg += f' {i+1}: {err_msg}.'
-                msg = msg.replace('..', '.')
+                    msg += f" {i+1}: {err_msg}."
+                msg = msg.replace("..", ".")
             return msg
 
     def register_assignment(self, var, new_value):
@@ -450,9 +480,10 @@ class CspSolver:
 
         logger.debug(f"Registering assignment of {var} to {new_value}.")
         if new_value is not None:
-            assert self._checked_assignment == (var, new_value), (
-                "The assignment to be registered does not match the latest checked assignment."
-            )
+            assert self._checked_assignment == (
+                var,
+                new_value,
+            ), "The assignment to be registered does not match the latest checked assignment."
             # Handshake complete. Reset the checked assignment:
             self._checked_assignment = None
 
@@ -460,7 +491,9 @@ class CspSolver:
             logger.debug("%s has no dependent or related variables. Returning.", var)
             return
 
-        assert not self._tlock.is_locked(), "Traversal lock is acquired. Cannot register assignment."
+        assert (
+            not self._tlock.is_locked()
+        ), "Traversal lock is acquired. Cannot register assignment."
 
         with self._tlock:  # acquire the lock to detect recursive traversal of constraint hypergraph
 
@@ -496,7 +529,9 @@ class CspSolver:
         """
 
         if new_value is None:
-            new_options_and_tooltips = {dependent_var: (None, None) for dependent_var in var._dependent_vars}
+            new_options_and_tooltips = {
+                dependent_var: (None, None) for dependent_var in var._dependent_vars
+            }
         else:
             new_options_and_tooltips = {}
             for dependent_var in var._dependent_vars:
@@ -507,7 +542,7 @@ class CspSolver:
                     new_tooltips,
                 )
             # Note: For variables with infinite domain, the options_spec methods are called both
-            # within check_assignment and register_assignment. This doesn't appear to lead to 
+            # within check_assignment and register_assignment. This doesn't appear to lead to
             # noticeable performance issues, but it may be worth revisiting in the future.
 
         for dependent_var, (
@@ -535,7 +570,7 @@ class CspSolver:
         visited = set()
 
         # Queue of variables to be visited
-        queue = [neig for neig in self._cgraph[var] if neig.has_options() and var.rank <= neig.rank]
+        queue = [neig for neig in self._cgraph[var] if neig.has_options()]
 
         # Traverse the constraint graph to refresh the options validities of all possibly affected variables
         while queue:
@@ -552,7 +587,7 @@ class CspSolver:
                     [
                         neig
                         for neig in self._cgraph[var]
-                        if neig.has_options() and var.rank <= neig.rank and neig not in visited
+                        if neig.has_options() and neig not in visited
                     ]
                 )
 

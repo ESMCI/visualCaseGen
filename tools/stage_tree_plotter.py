@@ -9,7 +9,6 @@ from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 
 import networkx as nx
-from networkx.drawing.nx_pydot import graphviz_layout
 import matplotlib.pyplot as plt
 
 
