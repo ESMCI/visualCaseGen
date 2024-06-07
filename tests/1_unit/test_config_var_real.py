@@ -19,7 +19,7 @@ def test_config_var_real():
     assert cv_foo.widget.continuous_update == False
 
     # Create a Main Stage object and initialize the csp solver
-    Stage("MainStage", "Main Stage", widget=StageWidget(VBox), varlist=cvars.values())
+    Stage("MainStage", "Main Stage", widget=StageWidget(VBox), varlist=list(cvars.values()))
     csp.initialize(cvars, {}, Stage.first())
 
     # set the initial value of the ConfigVarInt object

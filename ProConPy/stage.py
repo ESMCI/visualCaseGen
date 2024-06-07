@@ -10,7 +10,6 @@ from ProConPy.csp_solver import csp
 from ProConPy.out_handler import handler as owh
 from ProConPy.dev_utils import DEBUG
 from ProConPy.stage_stat import StageStat
-from ProConPy.stage_rank import StageRank
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -101,6 +100,22 @@ class Node:
     def children_have_conditions(self):
         """Return True if any of the children of the node have conditions."""
         return any([child.has_condition() for child in self._children])
+    
+    def is_sibling_of(self, node):
+        """Return True if the node is a sibling of the given node."""
+        return self._parent is node._parent
+    
+    def is_descendant_of(self, other):
+        """Return True if the node is a descendant of the given other node."""
+        node = self
+        while (node := node._parent) is not None:
+            if node is other:
+                return True
+        return False
+    
+    def is_ancestor_of(self, other):
+        """Return True if the node is an ancestor of the given other node."""
+        return other.is_descendant_of(self)
 
     @property
     def title(self):
@@ -167,7 +182,7 @@ class Guard(Node):
         super().__init__(title, parent)
         self._condition = condition
 
-    def get_next(self, full_dfs):
+    def get_next(self, full_dfs=None):
         """Return the next node in the stage tree, which is always the first child for a guard node."""
         return self._children[0]
 
@@ -244,10 +259,13 @@ class Stage(Node, HasTraits):
 
         assert (
             widget is not None
-        ), f'The unguarded "{self._title}" stage must have a widget.'
+        ), f'The "{title}" stage must have a widget.'
+        assert isinstance(
+            varlist, list
+        ), f'The "{title}" stage must have a variable list.'
         assert (
             len(varlist) > 0
-        ), f'The unguarded "{self._title}" stage must have a non-empty variable list.'
+        ), f'The "{title}" stage must have a non-empty variable list.'
 
         super().__init__(title, parent)
 
@@ -259,7 +277,6 @@ class Stage(Node, HasTraits):
         self._auto_proceed = auto_proceed
         self._auto_set_default_value = auto_set_default_value
         self._auto_set_valid_option = auto_set_valid_option
-        self._rank = StageRank(None)  # to be set by the csp solver
 
         self._construct_observances()
 
@@ -301,21 +318,6 @@ class Stage(Node, HasTraits):
     @property
     def enabled(self):
         return not self._disabled
-
-    @property
-    def rank(self):
-        if self.is_first():
-            return StageRank(0)
-        return self._rank
-
-    @rank.setter
-    def rank(self, new_rank):
-        assert self._rank.is_none(), "The rank of the stage is already set."
-        assert isinstance(new_rank, StageRank), "The rank must be an integer."
-        assert not self.is_first() or new_rank == StageRank(
-            0
-        ), "The rank of the first stage must be 0."
-        self._rank = new_rank
 
     def _construct_observances(self):
         for var in self._varlist:
@@ -462,13 +464,6 @@ class Stage(Node, HasTraits):
         self._disabled = True
         self.refresh_status()
 
-        # Reset the rank of the variables in the stage
-        if self.status != StageStat.COMPLETE and self.status != StageStat.SEALED:
-            for var in self._varlist:
-                var.rank = StageRank(None)
-            for var in self._aux_varlist:
-                var.rank = StageRank(None)
-
     @owh.out.capture()
     def _enable(self):
         """Activate the stage, allowing the user to set the parameters in the varlist."""
@@ -486,12 +481,6 @@ class Stage(Node, HasTraits):
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._proceed()
-
-        # Set the rank of the variables in the stage
-        for var in self._varlist:
-            var.rank = self.rank
-        for var in self._aux_varlist:
-            var.rank = self.rank
 
         # If a default vaulue is assigned, set the value of the ConfigVar to the default value
         # Otherwise, set the value of the ConfigVar to the valid option if there is only one.

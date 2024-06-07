@@ -1,7 +1,6 @@
 import pytest
 from traitlets import TraitError
 from ipywidgets import VBox, Text
-from ProConPy.dev_utils import ConstraintViolation
 from ProConPy.config_var import ConfigVar, cvars
 from ProConPy.config_var_str import ConfigVarStr
 from ProConPy.stage import Stage
@@ -17,7 +16,7 @@ def test_config_var_str():
     cv_foo.widget = Text()
 
     # Create a Main Stage object and initialize the csp solver
-    Stage("MainStage", "Main Stage", widget=StageWidget(VBox), varlist=cvars.values())
+    Stage("MainStage", "Main Stage", widget=StageWidget(VBox), varlist=list(cvars.values()))
     csp.initialize(cvars, {}, Stage.first())
 
     # set the initial value of the ConfigVarStr object

@@ -7,7 +7,6 @@ from ProConPy.options_spec import OptionsSpec
 from ProConPy.dummy_widget import DummyWidget
 from ProConPy.dev_utils import ProConPyError, DEBUG
 from ProConPy.stage import Stage
-from ProConPy.stage_rank import StageRank
 
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
@@ -96,10 +95,9 @@ class ConfigVar(HasTraits):
 
         # The rank of a ConfigVar indicates the order of the Stage it belongs to. The lower 
         # the rank, the earlier the Stage is in the sequence of Stages and thus the higher 
-        # the precedence of the ConfigVar in CSP solver. The rank is set when the stage the
-        # ConfigVar belongs to is enabled. If a ConfigVar belongs to multiple stages, its rank
-        # depends on which execution trace is being followed.
-        self._rank = StageRank(None)
+        # the precedence of the ConfigVar in CSP solver. The ranks are determined by the
+        # CSP solver during initialization and via full traversal of the stage tree.
+        self._rank = None
 
         # properties for instances that have finite options
         self._options = []
@@ -204,9 +202,8 @@ class ConfigVar(HasTraits):
     @rank.setter
     def rank(self, new_rank):
         """Set the rank of the variable. This method is called by the Stage class when the stage is enabled."""
-        assert isinstance(new_rank, StageRank), "new_rank must be a StageRank"
-        assert new_rank.is_none() or self._rank.is_none() or new_rank == self._rank, \
-            "Cannot change the rank of a ConfigVar before resetting it."
+        assert self._rank is None, "Cannot reassign the rank of a variable"
+        assert isinstance(new_rank, int), "new_rank must be an integer"
         self._rank = new_rank
 
     @property
@@ -223,7 +220,7 @@ class ConfigVar(HasTraits):
     @property
     def is_aux_var(self):
         """Returns True if this variable is an auxiliary variable of the current stage."""
-        return Stage.active() is not None and Stage.active().rank == self._rank and self._widget.disabled is True
+        return Stage.active() is not None and self in Stage.active()._aux_varlist
 
     @property
     def options(self):
