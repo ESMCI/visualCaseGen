@@ -566,30 +566,29 @@ class CspSolver:
             The variable whose assignment triggers the refresh of the options validities of other variables.
         """
 
-        # Set of variables that have been visited
-        visited = set()
-
         # Queue of variables to be visited
         queue = [neig for neig in self._cgraph[var] if neig.has_options()]
+
+        # Set of all variables that have been queued
+        queued = set(queue)
 
         # Traverse the constraint graph to refresh the options validities of all possibly affected variables
         while queue:
 
-            # Pop the first variable from the queue and mark it as visited
+            # Pop the first variable from the queue
             var = queue.pop(0)
             logger.debug("Refreshing options validities of %s.", var)
-            visited.add(var)
 
-            # Update the validities of the variable and extend the list of variables to refresh
+            # Update the validities of the variable and extend the queue if necessary
             validities_changed = var.update_options_validities()
             if validities_changed:
-                queue.extend(
-                    [
-                        neig
-                        for neig in self._cgraph[var]
-                        if neig.has_options() and neig not in visited
-                    ]
-                )
+                extension = [
+                    neig
+                    for neig in self._cgraph[var]
+                    if neig.has_options() and neig not in queued
+                ]
+                queue.extend(extension)
+                queued.update(extension)
 
     def apply_assignment_assertions(self, solver, exclude_var=None, exclude_vars=None):
         """Apply the assignment assertions to the given solver. The assignment assertions are
