@@ -570,7 +570,7 @@ class CspSolver:
         queue = [neig for neig in self._cgraph[var] if neig.has_options()]
 
         # Set of all variables that have been queued
-        queued = set(queue)
+        queued = {var} | set(queue)
 
         # Traverse the constraint graph to refresh the options validities of all possibly affected variables
         while queue:

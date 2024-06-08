@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: alperaltuntas/CESM
-          ref: cesm2_3_alpha17b_gui    
+          ref: cesm2_3_beta17_gui
           #submodules: recursive
 
       # Run manage_Externals
