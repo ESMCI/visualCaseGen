@@ -24,15 +24,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: alperaltuntas/CESM
-          ref: cesm2_3_beta17_gui
+          ref: cesm3_0_beta03_gui
           #submodules: recursive
 
-      # Run manage_Externals
+      # Run git-fleximod
       - name: checkout CESM
         env:
           GIT_CLONE_PROTECTION_ACTIVE: false
         run: |
-          ./manage_externals/checkout_externals -o
+          ./bin/git-fleximod update
+
+      # Checkout the correct visualCaseGen branch
+      - name: Checkout initial event (Pull Request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          echo "Handling pull request"
+          cd visualCaseGen/
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
+          git checkout pr-${{ github.event.pull_request.number }}
+
+      - name: Checkout initial event (Push)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "Handling push"
+          cd visualCaseGen/
+          git checkout ${{ github.sha }}
 
       # set up conda
       - uses: conda-incubator/setup-miniconda@v3
