@@ -83,6 +83,7 @@ def configure_custom_compset():
     # Physics stage should be automatically completed. The next stage is Component Options.
     assert Stage.active().title.startswith('Component Options')
     cvars['COMP_ATM_OPTION'].value = "JRA"
+    cvars['COMP_OCN_OPTION'].value = "(none)"
     cvars['COMP_ICE_OPTION'].value = "PRES"
 
     # check if COMPSET_LNAME is set to the correct value

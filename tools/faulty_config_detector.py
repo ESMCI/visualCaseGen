@@ -155,7 +155,6 @@ def main():
 
     # narrow down the search to simpler models configs:
     s.add(cvars['INITTIME'] == "2000")
-    s.add(cvars['COMP_OCN'] != "pop")
     s.add(cvars['COMP_WAV'] != "ww3dev")
 
     # Check that assertions are satisfiable

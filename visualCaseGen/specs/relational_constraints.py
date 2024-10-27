@@ -38,14 +38,14 @@ def get_relational_constraints(cvars):
         Implies(COMP_ATM=="cam", COMP_ICE!="dice") :
             "CAM cannot be coupled with Data ICE.",
 
-        Implies(COMP_WAV=="ww3", In(COMP_OCN, ["mom", "pop"])) :
-            "WW3 can only be selected if either POP2 or MOM6 is the ocean component.",
+        Implies(COMP_WAV=="ww3", COMP_OCN!="socn") :
+            "WW3 can only be selected if an active or data ocean component is present.",
 
         Implies(Or(COMP_ROF=="rtm", COMP_ROF=="mosart", COMP_ROF=="mizuroute"), COMP_LND=='clm') :
             "Active runoff models can only be selected if CLM is the land component.",
 
-        Implies(And(In(COMP_OCN, ["pop", "mom"]), COMP_ATM=="datm"), COMP_LND=="slnd") :
-            "When MOM|POP is coupled with data atmosphere (datm), LND component must be stub (slnd).",
+        Implies(And(COMP_OCN=="mom", COMP_ATM=="datm"), COMP_LND=="slnd") :
+            "When MOM is coupled with data atmosphere (datm), LND component must be stub (slnd).",
 
         Implies(And(COMP_ATM=="datm", COMP_LND=="clm"), And(COMP_ICE=="sice", COMP_OCN=="socn")) :
             "If CLM is coupled with DATM, then both ICE and OCN must be stub.",
@@ -95,9 +95,6 @@ def get_relational_constraints(cvars):
 
         Implies(COMP_OCN=="mom", In(OCN_GRID, ["tx2_3v2", "tx0.66v1", "gx1v6", "tx0.25v1"])):
             "Not a valid MOM6 grid.",
-
-        Implies(COMP_OCN=="pop", In(OCN_GRID, ["gx1v6", "gx1v7", "gx3v7", "tx0.1v2", "tx0.1v3", "tx1v1"])):
-            "Not a valid POP2 grid.",
 
         Implies(Contains(COMP_OCN_OPTION, "AQ"), In(OCN_GRID,["0.9x1.25", "1.9x2.5", "4x5"])):
             "When in aquaplanet mode, the ocean grid must be set to f09, f19, or f45",

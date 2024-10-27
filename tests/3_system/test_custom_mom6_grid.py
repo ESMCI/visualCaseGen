@@ -61,7 +61,7 @@ def test_custom_mom6_grid():
         cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
     ## Pick a standard compset
-    cvars["COMPSET_ALIAS"].value = "GMOM_JRA"
+    cvars["COMPSET_ALIAS"].value = "G_JRA"
 
     # Create a custom grid
     assert Stage.active().title.startswith("2. Grid")

@@ -61,7 +61,7 @@ def configure_standard_compset(cime):
         cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
     ## Pick a standard compset
-    cvars['COMPSET_ALIAS'].value = "B1850MOM"
+    cvars['COMPSET_ALIAS'].value = "BLT1850"
 
     # Generate standard grids list (but don't select any yet)
     cvars['GRID_MODE'].value = 'Standard'

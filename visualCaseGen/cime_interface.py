@@ -586,6 +586,8 @@ class CIME_interface:
         for flanduse_node in clm_namelist_xml.get_children("flanduse_timeseries"):
             hgrid = clm_namelist_xml.get(flanduse_node, "hgrid")
             filedir = clm_namelist_xml.text(flanduse_node)
+            if filedir is None:
+                continue
             self.clm_flanduse[hgrid] = os.path.join(
                 self.din_loc_root.strip(),
                 filedir.strip()

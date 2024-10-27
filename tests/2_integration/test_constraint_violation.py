@@ -97,6 +97,7 @@ def test_constraint_violation_detection():
     cvars['COMP_LND_OPTION'].value = "SP"
 
     cvars['COMP_ICE_OPTION'].value = "(none)"
+    cvars['COMP_OCN_OPTION'].value = "(none)"
     cvars['COMP_ROF_OPTION'].value = "(none)"
 
     # Grid
@@ -168,12 +169,11 @@ def test_multiple_reasons():
     cvars['COMP_ROF'].value = "drof"
     cvars['COMP_WAV'].value = "dwav"
 
-    # Combination of five reasons
+    # Combination of four reasons
     with pytest.raises(ConstraintViolation) as exc_info:
         cvars['COMP_GLC'].value = "cism"
     err_msg = str(exc_info.value)
     assert "CLM cannot be coupled with a data runoff model" in err_msg
-    assert "GLC, ROF, and WAV cannot be coupled with SLIM." in err_msg
     assert "MOM6 cannot be coupled with data wave component" in err_msg
     assert "GLC cannot be coupled with a stub land model, unless it is coupled with MOM6" in err_msg
     assert "CAM-DLND coupling is not supported" in err_msg
