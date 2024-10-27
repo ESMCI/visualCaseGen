@@ -39,7 +39,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           echo "Handling pull request"
-          cd $GITHUB_WORKSPACE/CESM/visualCaseGen/
+          cd visualCaseGen/
           git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
           git checkout pr-${{ github.event.pull_request.number }}
 
@@ -47,7 +47,7 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         run: |
           echo "Handling push"
-          cd $GITHUB_WORKSPACE/CESM/components/mom/
+          cd visualCaseGen/
           git checkout ${{ github.sha }}
 
       # set up conda
@@ -56,7 +56,7 @@ jobs:
       # visualCaseGen conda env
       - name: Create visualCaseGen conda env
         run: |
-          cd $GITHUB_WORKSPACE/CESM/visualCaseGen/
+          cd visualCaseGen/
           conda env create --file environment.yml
           conda activate visualCaseGen
     
