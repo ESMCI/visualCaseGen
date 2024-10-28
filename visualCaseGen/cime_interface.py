@@ -495,7 +495,7 @@ class CIME_interface:
 
         # casper jupyter hub patch
         fqdn = socket.getfqdn()
-        if fqdn.startswith("crhtc") and fqdn.endswith("hpc.ucar.edu"):
+        if (fqdn.startswith("crhtc") or fqdn.startswith("casper")) and fqdn.endswith("hpc.ucar.edu"):
             self.machine = "casper"
 
         machines_obj = Machines(machs_file, machine=self.machine)
@@ -520,6 +520,11 @@ class CIME_interface:
                     root=machine_node, name="CIME_OUTPUT_ROOT"
                 )
                 self.cime_output_root = machines_obj.text(cime_output_root_node)
+
+                # TODO: get rid of this casper fix by properly setting CIME_OUTPUT_ROOT in casper/config_machines.xml
+                if self.machine == "casper":
+                    self.cime_output_root = "/glade/derecho/scratch/$USER"
+
                 self.cime_output_root = self.expand_env_vars(self.cime_output_root)
                 if self.cime_output_root is None:
                     logger.error(
