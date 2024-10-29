@@ -1,0 +1,189 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ridge World &mdash; visualCaseGen 0.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8bafd125"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Fill Indian Ocean" href="fillindian.html" />
+    <link rel="prev" title="Troubleshooting" href="troubleshooting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Ridge World</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#stage-0-open-visualcasegen">Stage 0: Open visualCaseGen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-1-select-compset">Stage 1: Select Compset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initialization-time">Initialization time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#models">Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-physics">Model Physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#component-options-modifiers">Component Options (Modifiers)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-2-grid">Stage 2: Grid</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Ridge World</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ridge.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ridge-world">
+<h1>Ridge World<a class="headerlink" href="#ridge-world" title="Link to this heading"></a></h1>
+<p>This example provides step-by-step guidance on how to generate a coupled idealized
+configuration that consists of an aquaplanet with land caps at the pole and a narrow
+land ridge extending between the two poles, similar to the configuration used in <a class="reference external" href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL093966">Wu et al (2021)</a> .
+In the example given below, the visualCaseGen GUI is used to guide users through choosing
+their CESM components, setting up all the ocean input files, setting up all the land input
+files, and finally setting up and configuring their case.</p>
+<p>Here we are not running a standard case with CESM.  We are modifying the configuration substantially by changing the ocean grid, ocean bathymetry, continental geometry and land surface properties, so you should select “Custom” here.</p>
+<section id="stage-0-open-visualcasegen">
+<h2>Stage 0: Open visualCaseGen<a class="headerlink" href="#stage-0-open-visualcasegen" title="Link to this heading"></a></h2>
+<p>Follow the instructions in the <a class="reference internal" href="open.html#open"><span class="std std-ref">Opening the GUI</span></a> to open visualCaseGen in your Jupyter notebook environment.</p>
+</section>
+<section id="stage-1-select-compset">
+<h2>Stage 1: Select Compset<a class="headerlink" href="#stage-1-select-compset" title="Link to this heading"></a></h2>
+<p>After having executed the cell with the command <cite>from visualCaseGen import gui; gui</cite>,
+and clicking the <strong>Start</strong> button, you will see the main interface of visualCaseGen.</p>
+<p>Click the <strong>Custom</strong> button to proceed with creating a custom compset for our idealized
+Ridge World configuration.</p>
+<img alt="_images/stage1_1.png" src="_images/stage1_1.png" />
+<section id="initialization-time">
+<h3>Initialization time<a class="headerlink" href="#initialization-time" title="Link to this heading"></a></h3>
+<p>Once the <cite>Custom</cite> button is clicked, you will be prompted to select the initialization time.
+For this example, we will select <cite>1850`</cite> as the initialization time.</p>
+<img alt="_images/stage1_5.png" src="_images/stage1_5.png" />
+</section>
+<section id="models">
+<h3>Models<a class="headerlink" href="#models" title="Link to this heading"></a></h3>
+<p>Once you’ve selected the initialization time, visualCaseGen will prompt you to select the
+models for each component class. In this ridge world case we select the following component options:
+<cite>cam</cite> as the atmosphere;
+<cite>clm`</cite> as the land component; <cite>cice`</cite> as the ice component; <cite>mom`</cite> as the ocean component, <cite>srof`</cite>
+(i.e., stub run off) as the river component; <cite>sglc`</cite> (i.e., stub land ice) as the land ice component;
+and, <cite>swav</cite> (i.e. stub wave) as the wave component. After all the selections are made, the
+model matrix should look like:</p>
+<img alt="_images/ridge1.png" src="_images/ridge1.png" />
+</section>
+<section id="model-physics">
+<h3>Model Physics<a class="headerlink" href="#model-physics" title="Link to this heading"></a></h3>
+<p>Having selected the models, you will proceed to select the physics options for each. The physics
+settings determine the complexity of each model component and impact computational requirements.
+For this example, we will select the following physics options which are based on the selections
+made in <a class="reference external" href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL093966">Wu et al (2021)</a> :</p>
+<img alt="_images/ridge2.png" src="_images/ridge2.png" />
+</section>
+<section id="component-options-modifiers">
+<h3>Component Options (Modifiers)<a class="headerlink" href="#component-options-modifiers" title="Link to this heading"></a></h3>
+<p>We are now ready to finalize the compset by selecting optional physics modifiers. For this example,
+we will select <cite>(none)</cite> for all the components except for the <cite>clm</cite> component where we will select
+the satellite phenology (SP) mode for the land which means that aspects of the land model such as
+leaf-area index are prescribed as opposed to being prognosed interactively by the land biogeochemistry.</p>
+<img alt="_images/ridge3.png" src="_images/ridge3.png" />
+</section>
+</section>
+<section id="stage-2-grid">
+<h2>Stage 2: Grid<a class="headerlink" href="#stage-2-grid" title="Link to this heading"></a></h2>
+<p>Having completed the compset configuration, you will now proceed to the <cite>Grid</cite> stage …</p>
+<p>Further instructions will be added as the example is developed…</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="troubleshooting.html" class="btn btn-neutral float-left" title="Troubleshooting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fillindian.html" class="btn btn-neutral float-right" title="Fill Indian Ocean" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
