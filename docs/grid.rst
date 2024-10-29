@@ -8,7 +8,7 @@ existing model grids. In `Custom` mode, you can also generate custom model grids
 using auxiliary tools included in visualCaseGen. Begin by selecting between `Standard`
 and `Custom` grid modes.
 
-.. image:: assets/stage2_1.png
+.. image:: assets/Stage2_1.png
 
 .. note:: In CESM terminology, *resolution* and *grid* are often used interchangeably,
    both referring to the combination of model grids used in a CESM simulation. Unless 
@@ -25,7 +25,7 @@ from this list. Use the search box to refine the list further. For exact matches
 use double quotes; otherwise, the search will display all grids containing one 
 or more of the search terms.
 
-.. image:: assets/stage2_2.png
+.. image:: assets/Stage2_2.png
 
 After selecting a grid, visualCaseGen will advance to the `Launch` stage, where
 you can create your CESM case using the chosen compset and grid configuration.
@@ -38,13 +38,13 @@ model grids or generating new MOM6 and/or CLM grids with specialized tools that 
 Start by specifying a path to save the new grid files and a name to refer to this
 new grid in the configuration process and beyond.
 
-.. image:: assets/stage2_3.png
+.. image:: assets/Stage2_3.png
 
 After clicking `Select`, a file browser will open to help you locate your preferred
 directory for saving the new grid files. Once the directory is selected, enter the
 new grid name in the text box at the top right and click `Select` to proceed.
 
-.. image:: assets/stage2_4.png
+.. image:: assets/Stage2_4.png
 
 Atmosphere Grid
 ~~~~~~~~~~~~~~~
@@ -53,7 +53,7 @@ Next, choose an atmosphere grid from the list of compatible options based on the
 compset you selected in the `Compset` stage. Use the search box to filter options if needed.
 This chosen atmosphere grid will be integrated with other model grids to form your custom CESM grid (resolution).
 
-.. image:: assets/stage2_5.png
+.. image:: assets/Stage2_5.png
 
 Ocean Grid
 ~~~~~~~~~~
@@ -67,7 +67,7 @@ If using a standard ocean grid, select one from the list compatible with your ch
 and atmosphere grid. If creating a new MOM6 grid, complete the required parameters, then proceed
 to launch the `mom6_bathy` tool for final customization.
 
-.. image:: assets/stage2_6.png
+.. image:: assets/Stage2_6.png
 
 After specifying all ocean grid parameters, click `Launch mom6_bathy`. This will open an 
 auto-generated Jupyter notebook where you can fine-tune the ocean grid bathymetry and generate
@@ -86,7 +86,7 @@ Following ocean grid selection or creation, you'll move to land grid selection. 
 as the land model, you can also modify an existing CLM grid. If so, select a base land grid for
 customization.
 
-.. image:: assets/stage2_7.png
+.. image:: assets/Stage2_7.png
 
 .. note:: Detailed instructions on customizing an existing CLM grid will be added here shortly.
 

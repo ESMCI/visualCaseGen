@@ -76,7 +76,7 @@ coupler infrastructure but have no impact on the simulation. This variety allows
 configure a custom compset that includes as many or as few active components as desired,
 depending on the specific goals of your simulation.
 
-  .. image:: assets/stage1_6.png
+  .. image:: assets/Stage1_6.png
 
 As you make selections in this stage and elsewhere, visualCaseGen will guide you by crossing
 out incompatible options, helping to prevent invalid configurations. For example, if you select
@@ -84,12 +84,12 @@ out incompatible options, helping to prevent invalid configurations. For example
 options that are incompatible with this combination. This real-time feedback keeps your
 configuration process streamlined and ensures that all selected options work together compatibly.
 
-   .. image:: assets/stage1_7.png
+   .. image:: assets/Stage1_7.png
 
 At any stage, you can click on any crossed-out option to view a brief explanation of
 why it's incompatible with your current selections for additional guidance.
 
-   .. image:: assets/stage1_8.png
+   .. image:: assets/Stage1_8.png
 
 After choosing your models, you'll proceed to select the physics options for each. The physics
 settings determine the complexity of each model component and impact computational requirements.
@@ -100,7 +100,7 @@ will be selected by default. Since each physics option provides different levels
 the selection should be based on the specific requirements of your simulation. Refer to 
 the individual model documentations for more information on the available physics options.
 
-   .. image:: assets/stage1_9.png
+   .. image:: assets/Stage1_9.png
 
 The final part of custom compset creation is selecting optional physics modifiers.
 Modifiers allow additional adjustments to physics and parameter settings, offering
@@ -113,7 +113,7 @@ does not verify compatibility between multiple modifiers within a single compone
 so it's advisable to consult CESM documentation or model experts if you're using complex
 modifier combinations.
 
-   .. image:: assets/stage1_10.png
+   .. image:: assets/Stage1_10.png
 
 Once you've completed the selection of models, physics, and optional modifiers,
 visualCaseGen will automatically advance to the next main stage, `Grid`, where

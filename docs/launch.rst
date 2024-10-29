@@ -5,7 +5,7 @@ The final main stage of visualCaseGen is the `Launch` stage, where you bring you
 life with the selected compset and grid configuration. In this stage, you'll find tools to
 select the case directory, choose a target machine, and initiate case creation. 
 
-.. image:: assets/stage3_1.png
+.. image:: assets/Stage3_1.png
 
 Chosing the case directory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@ To begin, open the file browser widget by clicking the `Select` button to set th
 the new case. Navigate to your desired location, then enter a unique name for the case in the
 text box at the top right of the browser. Click `Select` to confirm your directory and case name.
 
-.. image:: assets/stage3_2.png
+.. image:: assets/Stage3_2.png
 
 Selecting the target machine
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +40,7 @@ example of the interface after clicking `Create Case`. Notice how visualCaseGen 
 case setup process, including modifying CESM XML files, executing the create_newcase tool,
 running the `case.setup` script, and applying any XML and namelist changes needed.
 
-.. image:: assets/stage3_3.png
+.. image:: assets/Stage3_3.png
 
 The completion log provides confirmation of a successful case creation, including the path to
 the new case directory, where you can proceed with case customization, building, and execution.
