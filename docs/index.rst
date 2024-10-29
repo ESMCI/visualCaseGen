@@ -53,3 +53,10 @@ For more information on each step, please refer to the corresponding sections in
    grid
    launch
    troubleshooting
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Examples:
+
+   ridge
+   fillindian
