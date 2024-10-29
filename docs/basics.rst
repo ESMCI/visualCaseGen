@@ -43,3 +43,12 @@ visualCaseGen assists users through the custom configuration process to maximize
 but custom setups may require additional troubleshooting. For any issues with custom configurations,
 please refer to the Troubleshooting section of this guide.
 
+
+Resolution vs Grid vs Model Grid
+--------------------------------
+
+In CESM terminology, *resolution* and *grid* are often used interchangeably,
+both referring to the combination of model grids used in a CESM simulation. Unless 
+specifically noted as a *model grid* (i.e., a grid unique to a particular component,
+such as the ocean grid), the term *grid* in the context of visualCaseGen should be understood as
+*resolution*, meaning the full collection of *model grids* used in a particular CESM case.

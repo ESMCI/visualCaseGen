@@ -22,3 +22,9 @@ Commonly Encountered Issues
 - **Hanging Loadbar:** If the loadbar hangs after clicking the `Start` button, click the `Help` button on the top
   right corner of the welcome dialog to see if any error messages are displayed. If so, submit an issue on the
   visualCaseGen GitHub repository with the error messages.
+
+- **mom6_bathy notebook doesn't open automatically:** If the `mom6_bathy` notebook doesn't open automatically, 
+  make sure that your browser allows
+  pop-ups from visualCaseGen. If the notebook still doesn't open, you can manually launch it by
+  navigating to the `mom6_bathy_notebooks/` directory in your visualCaseGen installation and opening
+  the notebook corresponding to your custom grid.

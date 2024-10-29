@@ -43,7 +43,7 @@ For more information on each step, please refer to the corresponding sections in
 
 .. toctree::
    :maxdepth: 3
-   :caption: Contents:
+   :caption: User Manual:
 
    installation
    open

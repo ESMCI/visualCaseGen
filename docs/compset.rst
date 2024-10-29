@@ -116,6 +116,6 @@ modifier combinations.
    .. image:: assets/stage1_10.png
 
 Once you've completed the selection of models, physics, and optional modifiers,
-visualCaseGen will automatically advance to the next primary stage, `Grid`, where
+visualCaseGen will automatically advance to the next main stage, `Grid`, where
 you'll select a model resolution compatible with your chosen compset.
 
