@@ -43,7 +43,7 @@ Standard Compsets
   it easy to locate specific compsets or explore different configurations to find the most
   suitable one for your simulation needs.
 
-  .. image:: assets/stage1_4.png
+  .. image:: assets/Stage1_4.png
 
 After selecting a compset, visualCaseGen will guide you to the next primary stage, `Grid`, where
 you'll select a model resolution compatible with your chosen compset.

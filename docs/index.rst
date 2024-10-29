@@ -53,11 +53,3 @@ For more information on each step, please refer to the corresponding sections in
    grid
    launch
    troubleshooting
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
