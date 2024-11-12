@@ -42,6 +42,7 @@ jobs:
           cd visualCaseGen/
           git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
           git checkout pr-${{ github.event.pull_request.number }}
+          git submodule update --init
 
       - name: Checkout initial event (Push)
         if: ${{ github.event_name == 'push' }}
@@ -49,6 +50,7 @@ jobs:
           echo "Handling push"
           cd visualCaseGen/
           git checkout ${{ github.sha }}
+          git submodule update --init
 
       # set up conda
       - uses: conda-incubator/setup-miniconda@v3
