@@ -28,3 +28,12 @@ Commonly Encountered Issues
   pop-ups from visualCaseGen. If the notebook still doesn't open, you can manually launch it by
   navigating to the `mom6_bathy_notebooks/` directory in your visualCaseGen installation and opening
   the notebook corresponding to your custom grid.
+
+- **The mom6_bathy interactive point-and-click feature is not working on JupyterHub.**
+  If you are experiencing issues with interactive features, such as point-and-click highlighting of individual 
+  cells, you may need to (re)install the ipympl extension. Steps to (re)install the ipympl extension: (1) Open 
+  JupyterHub. (2) Locate the *Extension Manager* tab on the left sidebar: Look for an icon that resembles a puzzle
+  piece. (3) Search for ipympl in the search bar. (4) In the search results, click the Install button at the bottom right
+  of the ipympl listing. (5) Refresh the page after installation to see the changes.
+
+  .. image:: assets/ipymplExtension.png
