@@ -13,7 +13,7 @@ classifiers = [
   "Programming Language :: Python",
   "Framework :: Jupyter"
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12.7,<3.13"
 dependencies = [
   "ipykernel>=6.29,<6.30",
   "ipython>=8.2,<8.3",
@@ -23,7 +23,6 @@ dependencies = [
   "PyYAML>=6.0,<6.1",
   "z3-solver>=4.12.3,<4.13",
   "networkx>=3.3,<3.4",
-  "matplotlib>3.6,<3.7",
   "netcdf4>=1.6,<1.7",
   "xarray>=2023.12,<2024",
   "black>=24.1,<24.2",

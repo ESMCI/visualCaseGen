@@ -55,7 +55,7 @@ For more information on each step, please refer to the corresponding sections in
    troubleshooting
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Examples:
 
    ridge
