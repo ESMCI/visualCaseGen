@@ -1,5 +1,5 @@
 ---
-title: 'visualCaseGen: An Experiment Configuration Interface for Community Earth System Model'
+title: 'visualCaseGen: A User Interface for Configuring Community Earth System Model Experiments'
 tags:
   - Python
   - cesm
@@ -25,7 +25,7 @@ bibliography: paper.bib
 visualCaseGen is a graphical user interface (GUI) developed to streamline
 the complex workflow of creating and configuring experiments with the 
 Community Earth System Model (CESM), a leading climate model developed
-by NSF’s National Center for Atmospheric Research (NCAR). visualCaseGen
+by NSF National Center for Atmospheric Research (NCAR). visualCaseGen
 guides users through key stages of experiment setup, ensuring that all
 necessary high-level modeling decisions are compatible and consistent.
 
