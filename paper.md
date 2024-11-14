@@ -1,107 +1,75 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'visualCaseGen: An Experiment Configuration Interface for Community Earth System Model'
 tags:
   - Python
-  - astronomy
-  - dynamics
+  - cesm
+  - climate modeling
   - galactic dynamics
-  - milky way
 authors:
-  - name: Adrian M. Price-Whelan
+  - name: Alper Altuntas
+    orcid: 0000-0003-1708-9518
+    affiliation: "1"
+  - name: et al.
     orcid: 0000-0000-0000-0000
-    equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Author Without ORCID
-    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
-  - name: Author with no affiliation
-    corresponding: true # (This is how to denote the corresponding author)
-    affiliation: 3
-  - given-names: Ludwig
-    dropping-particle: van
-    surname: Beethoven
-    affiliation: 3
+    affiliation: "1"
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University, USA
+ - name: NSF National Center for Atmospheric Research, Boulder CO
    index: 1
-   ror: 00hx57361
- - name: Institution Name, Country
-   index: 2
- - name: Independent Researcher, Country
-   index: 3
 date: 13 August 2017
 bibliography: paper.bib
 
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+visualCaseGen is a graphical user interface (GUI) developed to streamline
+the complex workflow of creating and configuring experiments with the 
+Community Earth System Model (CESM), a leading climate model developed
+by NSF’s National Center for Atmospheric Research (NCAR). visualCaseGen
+guides users through key stages of experiment setup, ensuring that all
+necessary high-level modeling decisions are compatible and consistent.
+
+Built as a Jupyter-based GUI, visualCaseGen enables users to efficiently
+browse standard CESM configurations or build new, custom ones. In standard
+mode, users can explore and select from predefined (1) component sets, 
+i.e., collections of model components, physics options, and other high-level model options, and 
+(2) resolutions, i.e., combinations of grids corresponding to 
+the discrete representations of each component’s spatial domains. In custom
+configuration mode, users can further extend CESM’s capabilities by creating
+unique component sets and resolutions, mixing complexity levels across 
+components and generating idealized or sophisticated configurations suited to 
+specific research goals. 
+
+With either configuration mode, visualCaseGen 
+enhances the setup process by flagging incompatible options and providing
+detailed descriptions of constraints, guiding users to make informed and
+valid choices in their experiment designs. This framework makes CESM 
+experiment configuration more accessible, significantly reducing setup time
+and expanding the range of modeling applications available to users.
+
+
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
+...
 
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+# Software Design
 
-# Mathematics
+lorem ipsun
 
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
+## The stage mechanism
 
-Double dollars make self-standing equations:
+lorem ipsum
 
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
+## Constraint specification and solver
 
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
+lorem ipsum, SMT-based, z3py, constraint graph, ...
 
-# Citations
+## visual elements and dynamic behavior
 
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
+ipywidgets, traitlets, ...
 
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
+highly portable, robust, familiar to scientists, ...
 
 # Figures
 
@@ -114,8 +82,7 @@ Figure sizes can be customized by adding an optional second parameter:
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+We acknowledge ...
 
 # References
 
