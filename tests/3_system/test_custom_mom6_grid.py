@@ -154,7 +154,7 @@ def test_custom_mom6_grid():
         safe_create_case(cime.srcroot, case_creator)
         
         # sleep for a bit to allow the case to be created
-        time.sleep(5)
+        time.sleep(15)
         
         # remove mom6_bathy notebook belonging to the test_grid:
         os.remove(nb_path)

@@ -177,7 +177,7 @@ def construct_custom_res_from_std_grids(cime):
         safe_create_case(cime.srcroot, case_creator)
         
         # sleep for a bit to allow the case to be created
-        time.sleep(9)
+        time.sleep(15)
         
         # remove the caseroot directory
         shutil.rmtree(temp_case_path)
