@@ -12,6 +12,8 @@ customizations to the ocean grid, bathymetry, and land surface
 properties.
 
 
+.. note:: A video demonstration of this example is available `at this link <https://www.youtube.com/watch?v=YwBqcIlW_fg>`_.
+
 Stage 0: Open visualCaseGen
 ---------------------------
 
