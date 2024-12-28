@@ -171,7 +171,7 @@ def construct_custom_res_from_std_grids(cime):
         case_creator = launch_stage._widget._main_body.children[-1]
         assert isinstance(case_creator, CaseCreator)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
         # *Click* the create_case button
         safe_create_case(cime.srcroot, case_creator)
@@ -251,7 +251,7 @@ def construct_custom_res_from_modified_clm_grid(cime):
         case_creator = launch_stage._widget._main_body.children[-1]
         assert isinstance(case_creator, CaseCreator)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
         # *Click* the create_case button
         safe_create_case(cime.srcroot, case_creator)
@@ -367,7 +367,7 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
         case_creator = launch_stage._widget._main_body.children[-1]
         assert isinstance(case_creator, CaseCreator)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
         # *Click* the create_case button
         safe_create_case(cime.srcroot, case_creator)

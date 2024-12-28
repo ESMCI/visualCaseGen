@@ -148,7 +148,7 @@ def test_custom_mom6_grid():
         case_creator = launch_stage._widget._main_body.children[-1]
         assert isinstance(case_creator, CaseCreator)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
         # *Click* the create_case button
         safe_create_case(cime.srcroot, case_creator)

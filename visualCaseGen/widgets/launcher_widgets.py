@@ -39,5 +39,12 @@ def initialize_launcher_widgets(cime):
         style={'description_width': '80px'},
     )
 
+    cv_project = cvars["PROJECT"]
+    cv_project.widget = widgets.Text(
+        description='Project ID:',
+        layout={'width': '250px', 'margin': '10px'},
+        style={'description_width': '80px'},
+    )
+
     cv_case_creator_status = cvars["CASE_CREATOR_STATUS"]
     cv_case_creator_status.widget = DisabledText(value = '',)

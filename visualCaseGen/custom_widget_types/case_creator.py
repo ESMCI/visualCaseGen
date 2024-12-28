@@ -32,12 +32,6 @@ class CaseCreator(VBox):
         # A reference to the CIME instance
         self._cime = cime
 
-        self._txt_project = Text(
-            description="Project ID:",
-            layout={"width": "250px", "margin": "10px"},  # If the items' names are long
-            style={"description_width": "80px"},
-        )
-
         cvars["CASEROOT"].observe(
             self._on_caseroot_change, names="value", type="change"
         )
@@ -59,7 +53,7 @@ class CaseCreator(VBox):
         self._out = Output()
 
         self.children = [
-            self._txt_project,
+            cvars["PROJECT"].widget,
             HBox(
                 [self._btn_create_case, self._btn_show_commands],
                 layout={"display": "flex", "justify_content": "center"},
@@ -76,7 +70,7 @@ class CaseCreator(VBox):
         # disable/enable all children
         self._btn_create_case.disabled = value
         self._btn_show_commands.disabled = value
-        self._txt_project.disabled = value
+        cvars["PROJECT"].widget.disabled = value
         if cvars["CASE_CREATOR_STATUS"].value != "OK":
             # clear only if the case creator wasn't completed
             self._out.clear_output()
@@ -90,12 +84,12 @@ class CaseCreator(VBox):
         It also shows/hides the project ID text box based on whether the machine requires
         a project ID."""
         new_machine = change["new"]
-        self._txt_project.value = ""
+        cvars["PROJECT"].value = ""
         project_required = self._cime.project_required.get(new_machine, False)
         if project_required:
-            self._txt_project.layout.display = "flex"
+            cvars["PROJECT"].widget.layout.display = "flex"
         else:
-            self._txt_project.layout.display = "none"
+            cvars["PROJECT"].widget.layout.display = "none"
         self._out.clear_output()
 
     def revert_launch(self, do_exec=True):
@@ -186,7 +180,7 @@ class CaseCreator(VBox):
         elif cvars["MACHINE"].value is None:
             raise RuntimeError("No machine specified yet.")
         elif (
-            self._txt_project.value.strip() == ""
+            cvars["PROJECT"].value in [None, ""]
             and self._cime.project_required.get(cvars["MACHINE"].value, False) is True
         ):
             raise RuntimeError("No project specified yet.")
@@ -521,8 +515,8 @@ class CaseCreator(VBox):
         )
 
         # append project id if needed:
-        if self._txt_project.value.strip() != "":
-            cmd += f"--project {self._txt_project.value.strip()} "
+        if project := cvars["PROJECT"].value:
+            cmd += f"--project {project} "
 
         # append --nonlocal if needed:
         if self._is_non_local():

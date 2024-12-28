@@ -19,6 +19,7 @@ def initialize_launcher_stages(cime):
         cvars["MACHINE"],
         cvars["CASE_CREATOR_STATUS"]
     ]
+    # Note: PROJECT is not included in the launcher_vars list because it is not always required.
 
     stg_launch = Stage(
         title="3. Launch",
