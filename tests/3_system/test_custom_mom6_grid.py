@@ -17,7 +17,7 @@ from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
-from visualCaseGen.custom_widget_types.case_creator import CaseCreator
+from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 from tests.utils import safe_create_case
 
 
@@ -146,7 +146,7 @@ def test_custom_mom6_grid():
         cvars["CASEROOT"].value = temp_case_path
 
         case_creator = launch_stage._widget._main_body.children[-1]
-        assert isinstance(case_creator, CaseCreator)
+        assert isinstance(case_creator, CaseCreatorWidget)
 
         cvars["PROJECT"].value = "12345"
 

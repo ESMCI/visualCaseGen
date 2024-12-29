@@ -17,7 +17,7 @@ from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
-from visualCaseGen.custom_widget_types.case_creator import CaseCreator
+from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 from tests.utils import safe_create_case
 
 
@@ -139,7 +139,7 @@ def construct_custom_res_from_std_grids(cime):
         cvars["CASEROOT"].value = temp_case_path
 
         case_creator = launch_stage._widget._main_body.children[-1]
-        assert isinstance(case_creator, CaseCreator)
+        assert isinstance(case_creator, CaseCreatorWidget)
 
         cvars["PROJECT"].value = "12345"
 
@@ -219,7 +219,7 @@ def construct_custom_res_from_modified_clm_grid(cime):
         cvars["CASEROOT"].value = temp_case_path
 
         case_creator = launch_stage._widget._main_body.children[-1]
-        assert isinstance(case_creator, CaseCreator)
+        assert isinstance(case_creator, CaseCreatorWidget)
 
         cvars["PROJECT"].value = "12345"
 

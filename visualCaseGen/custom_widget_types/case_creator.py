@@ -1,18 +1,15 @@
 import os
 import logging
-from ipywidgets import VBox, HBox, Button, Output, Text
 from pathlib import Path
 import subprocess
-import time
 import shutil
 from xml.etree.ElementTree import SubElement
 import xml.etree.ElementTree as ET
 import xarray as xr
 
-from ProConPy.out_handler import handler as owh
 from ProConPy.config_var import cvars
-from ProConPy.dialog import alert_error
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
 
 COMMENT = "\033[01;96m"  # bold, cyan
 SUCCESS = "\033[1;32m"  # bold, green
@@ -21,76 +18,26 @@ RESET = "\033[0m"
 BPOINT = "\u2022"
 
 
-class CaseCreator(VBox):
-    """A widget for creating a new case and applying initial modifications to it."""
+class CaseCreator:
+    """The base class for CaseCreatorWidget. Here, backend functionalities are implemented."""
 
-    def __init__(self, cime, **kwargs):
-        """Initialize the CaseCreator widget."""
+    def __init__(self, cime, output=None, allow_xml_override=False):
+        """Initialize CaseCreator object.
+        
+        Parameters
+        ----------
+        cime : CIME
+            The CIME instance.
+        output : Output, optional
+            The output widget to use for displaying log messages.
+        allow_xml_override : bool, optional
+            If True, allow overwriting existing entries in CESM xml files such as modelgrid_aliases_nuopc.xml
+            and component_grids_nuopc.xml. If False, raise an error if an entry with the same name already exists.
+        """
 
-        super().__init__(**kwargs)
-
-        # A reference to the CIME instance
         self._cime = cime
-
-        cvars["CASEROOT"].observe(
-            self._on_caseroot_change, names="value", type="change"
-        )
-        cvars["MACHINE"].observe(self._on_machine_change, names="value", type="change")
-
-        self._btn_create_case = Button(
-            description="Create Case",
-            layout={"width": "160px", "margin": "5px"},
-            button_style="success",
-        )
-        self._btn_create_case.on_click(self._create_case)
-
-        self._btn_show_commands = Button(
-            description="Show Commands",
-            layout={"width": "160px", "margin": "5px"},
-        )
-        self._btn_show_commands.on_click(self._create_case)
-
-        self._out = Output()
-
-        self.children = [
-            cvars["PROJECT"].widget,
-            HBox(
-                [self._btn_create_case, self._btn_show_commands],
-                layout={"display": "flex", "justify_content": "center"},
-            ),
-            self._out,
-        ]
-
-    @property
-    def disabled(self):
-        return super().disabled
-
-    @disabled.setter
-    def disabled(self, value):
-        # disable/enable all children
-        self._btn_create_case.disabled = value
-        self._btn_show_commands.disabled = value
-        cvars["PROJECT"].widget.disabled = value
-        if cvars["CASE_CREATOR_STATUS"].value != "OK":
-            # clear only if the case creator wasn't completed
-            self._out.clear_output()
-
-    def _on_caseroot_change(self, change):
-        """This function is called when the caseroot changes. It resets the output widget."""
-        self._out.clear_output()
-
-    def _on_machine_change(self, change):
-        """This function is called when the machine changes. It resets the output widget.
-        It also shows/hides the project ID text box based on whether the machine requires
-        a project ID."""
-        new_machine = change["new"]
-        cvars["PROJECT"].value = ""
-        project_required = self._cime.project_required.get(new_machine, False)
-        if project_required:
-            cvars["PROJECT"].widget.layout.display = "flex"
-        else:
-            cvars["PROJECT"].widget.layout.display = "none"
-        self._out.clear_output()
+        self._out = DummyOutput() if output is None else output
+        self._allow_xml_override = allow_xml_override
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
@@ -128,47 +75,6 @@ class CaseCreator(VBox):
             and self._cime.machine != cvars["MACHINE"].value
         )
 
-    def _create_case(self, b=None):
-        """The main function that creates the case and applies initial modifications to it.
-        This function is called when the "Create Case" button or the "Show Commands" button
-        is clicked.
-        
-        Parameters
-        ----------
-        b : Button
-            The button that was clicked.
-        """
-        
-        # Determine if the commands should be printed or executed:
-        do_exec = b is not self._btn_show_commands
-
-        self._out.clear_output()
-        try:
-            self._final_checks()
-            self._do_create_case(do_exec)
-        except Exception as e:
-            with owh.out:
-                alert_error(str(e))
-            with self._out:
-                print(f"{ERROR}{str(e)}{RESET}")
-            self.revert_launch(do_exec)
-            return
-
-        if do_exec is True:
-            # Set the case creator status to OK and thus complete all stages.
-            # Remove the backup xml files
-            self._remove_orig_xml_files()
-            with owh.out:
-                cvars["CASE_CREATOR_STATUS"].value = "OK"
-            with self._out:
-                caseroot = cvars["CASEROOT"].value
-                print(
-                    f"{SUCCESS}Case created successfully at {caseroot}.{RESET}\n\n"
-                    f"{COMMENT}To further customize, build, and run the case, "
-                    f"navigate to the case directory in your terminal. To create "
-                    f"another case, restart the notebook.{RESET}\n"                   
-                )
-
     def _final_checks(self):
         """Perform final checks before attempting to create the case."""
 
@@ -185,7 +91,7 @@ class CaseCreator(VBox):
         ):
             raise RuntimeError("No project specified yet.")
 
-    def _do_create_case(self, do_exec):
+    def create_case(self, do_exec):
         """Create and configure the case by running the necessary tools.
 
         Parameters
@@ -195,6 +101,11 @@ class CaseCreator(VBox):
         do_exec : bool, optional
             If True, print and execute the commands. If False, only print them
         """
+
+        self._out.clear_output()
+
+        # Perform final checks before creating the case:
+        self._final_checks()
 
         # Determine compset:
         if cvars["COMPSET_MODE"].value == "Standard":
@@ -245,6 +156,18 @@ class CaseCreator(VBox):
         # Apply user_nl changes
         self._appy_user_nl_changes(caseroot, do_exec)
 
+        # Clean up:
+        if do_exec:
+            self._remove_orig_xml_files()
+            cvars["CASE_CREATOR_STATUS"].value = "OK"
+            with self._out:
+                caseroot = cvars["CASEROOT"].value
+                print(
+                    f"{SUCCESS}Case created successfully at {caseroot}.{RESET}\n\n"
+                    f"{COMMENT}To further customize, build, and run the case, "
+                    f"navigate to the case directory in your terminal. To create "
+                    f"another case, restart the notebook.{RESET}\n"                   
+                )
 
     def _update_ccs_config(self, do_exec):
         """Update the modelgrid_aliases and component_grids xml files with custom grid 
@@ -327,12 +250,16 @@ class CaseCreator(VBox):
         grids_tree = ET.parse(modelgrid_aliases_xml, parser=parser)
         grids_root = grids_tree.getroot()
 
-        # check if resolution is already in xml file:
+        # Check if a resp;iton with the same name already exists. If so, remove it or raise an error
+        # depending on the value of self._allow_xml_override:
         for resolution in grids_root.findall("model_grid"):
             if resolution.attrib["alias"] == resolution_name:
-                raise RuntimeError(
-                    f"Resolution {resolution_name} already exists in modelgrid_aliases."
-                )
+                if self._allow_xml_override:
+                    grids_root.remove(resolution)
+                else:
+                    raise RuntimeError(
+                        f"Resolution {resolution_name} already exists in modelgrid_aliases."
+                    )
 
         # Create new resolution entry in xml file:
         new_resolution = SubElement(
@@ -434,12 +361,16 @@ class CaseCreator(VBox):
             # ET.indent(domains_tree, space="  ", level=0)
             domains_root = domains_tree.getroot()
 
-            # check if domain is already in xml file:
+            # Check if a domain with the same name already exists. If so, remove it or raise an error
+            # depending on the value of self._allow_xml_override:
             for domain in domains_root.findall("domain"):
                 if domain.attrib["name"] == ocn_grid:
-                    raise RuntimeError(
-                        f"Ocean grid {ocn_grid} already exists in component_grids."
-                    )
+                    if self._allow_xml_override:
+                        domains_root.remove(domain)
+                    else:
+                        raise RuntimeError(
+                            f"Ocean grid {ocn_grid} already exists in component_grids."
+                        )
 
             # Create new domain entry in xml file:
             new_domain = SubElement(

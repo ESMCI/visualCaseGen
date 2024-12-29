@@ -18,7 +18,7 @@ def frontend_change(cvar, new_val):
 
 
 def safe_create_case(srcroot, case_creator):
-    """This method safely creates a case using the CaseCreator widget. It backs up the ccs_config 
+    """This method safely creates a case using the CaseCreatorWidget. It backs up the ccs_config 
     xml files before creating the case and restores them after the case is created. This is useful
     for testing purposes."""
 
@@ -34,7 +34,7 @@ def safe_create_case(srcroot, case_creator):
         )
 
         # Click the create_case button
-        case_creator._create_case()
+        case_creator._on_create_case_clicked()
 
     finally:
         # Restore ccs_config xml files

@@ -5,7 +5,7 @@ from ProConPy.config_var import cvars
 from ProConPy.stage import Stage
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
-from visualCaseGen.custom_widget_types.case_creator import CaseCreator
+from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -34,4 +34,4 @@ def initialize_launcher_stages(cime):
         varlist=launcher_vars,
     )
 
-    stg_launch._widget.children += (CaseCreator(cime),)
+    stg_launch._widget.children += (CaseCreatorWidget(cime),)
