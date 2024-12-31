@@ -602,15 +602,25 @@ class CaseCreator:
             ), f"Unknown ocean grid mode: {ocn_grid_mode}"
 
         supergrid_file_path = MOM6BathyLauncher.supergrid_file_path()
-        supergrid_file_name = supergrid_file_path.name
         topo_file_path = MOM6BathyLauncher.topo_file_path()
-        topo_file_name = topo_file_path.name
+        vgrid_file_path = MOM6BathyLauncher.vgrid_file_path()
         ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
 
         # read in min and max depth from the MOM6 topo file:
         ds_topo = xr.open_dataset(topo_file_path)
         min_depth = ds_topo.attrs["min_depth"]
         max_depth = ds_topo.attrs["max_depth"]
+
+        # number of vertical levels:
+        nk = len(xr.open_dataset(vgrid_file_path).dz)
+
+        # Determine timesteps based on the grid resolution:
+        res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)
+        res_y = float(cvars['OCN_LENY'].value) / int(cvars["OCN_NY"].value)
+        dt = 1800.0 * min(res_x,res_y) # A 1-deg grid should have ~1800 sec tstep (a safe value)
+        dt = max(min(1800.0, dt), 10.0) # 10.0 <= dt < 1800.0 (seconds)
+        dt = 1800.0 / round(1800.0 / dt) # round to nearest 1800.0/n
+        dt_therm = min(1800.0, dt*4) # 4x the barotropic time step, but not more than 1800.0
 
         # apply custom MOM6 grid changes:
         self._apply_user_nl(
@@ -623,19 +633,20 @@ class CaseCreator:
                 ("NIGLOBAL", cvars["OCN_NX"].value),
                 ("NJGLOBAL", cvars["OCN_NY"].value),
                 ("GRID_CONFIG", "mosaic"),
+                ("GRID_FILE", supergrid_file_path.name),
                 ("TOPO_CONFIG", "file"),
+                ("TOPO_FILE", topo_file_path.name),
                 ("MAXIMUM_DEPTH", max_depth),
                 ("MINIMUM_DEPTH", min_depth),
-                ("DT", "900"),  # TODO: generalize this
-                ("NK", "20"),  # TODO: generalize this
+                ("NK", nk),
                 ("COORD_CONFIG", "none"),
+                ("ALE_COORDINATE_CONFIG", f"FILE:{vgrid_file_path.name}"),
                 ("REGRIDDING_COORDINATE_MODE", "Z*"),
-                ("ALE_COORDINATE_CONFIG", "UNIFORM"),
+                ("DT", str(dt)),
+                ("DT_THERM", str(dt_therm)),
                 ("TS_CONFIG", "fit"),
                 ("T_REF", 5.0),  # TODO: generalize this
                 ("FIT_SALINITY", "True"),
-                ("GRID_FILE", supergrid_file_name),
-                ("TOPO_FILE", topo_file_name),
             ],
             do_exec,
         )

@@ -690,3 +690,11 @@ class CIME_interface:
         expr = re.sub(regex, user, expr)
 
         return expr
+
+    def get_case(self, caseroot, read_only=True, record=False, non_local=False):
+        """Returns a CIME case object for a given caseroot. This object
+        provides methods to interact with the case, such as reading and
+        writing xml variables."""
+
+        from CIME.case.case import Case
+        return Case(caseroot, read_only=read_only, record=record, non_local=non_local)

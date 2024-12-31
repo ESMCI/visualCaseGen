@@ -228,7 +228,8 @@ class MOM6BathyLauncher(VBox):
             nbf.v4.new_code_cell(
                 "%%capture\n"
                 "from mom6_bathy.grid import Grid\n"
-                "from mom6_bathy.topo import Topo"
+                "from mom6_bathy.topo import Topo\n"
+                "from mom6_bathy.vgrid import VGrid"
             ),
             nbf.v4.new_markdown_cell("## 2. Create horizontal grid\n"),
         ]
@@ -293,12 +294,31 @@ class MOM6BathyLauncher(VBox):
             ]
         )
 
+        vgrid_cmd = (
+            "# Create a vertical grid\n"
+            "vgrid = VGrid.hyperbolic(\n"
+            "  nk    = 20,             # number of layers \n"
+            "  depth = topo.max_depth, # Do NOT modify this argument \n"
+            "  ratio = 10.0, # ratio of top to bottom layer thicknesses (=1.0 for uniform layers)\n"
+            ")\n"
+            "print('layer thicknesses:\n', vgrid.dz)"
+        )
+
+        nb["cells"].extend(
+            [
+                nbf.v4.new_markdown_cell("## 4. Create vertical grid"),
+                nbf.v4.new_code_cell(vgrid_cmd),
+            ]
+        )
+
         save_files_cmd = (
             "# Do NOT modify this cell!\n\n"
             "# MOM6 supergrid file.\n"
             f'grid.write_supergrid(f"{custom_ocn_grid_path}/ocean_grid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
             "# Save MOM6 topography file:\n"
             f'topo.write_topo(f"{custom_ocn_grid_path}/ocean_topog_{ocn_grid_name}_{attempt_id}.nc")\n\n'
+            "# Save MOM6 vertical grid file:\n"
+            f'vgrid.write(f"{custom_ocn_grid_path}/ocean_vgrid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
         )
 
         if "CICE" in cvars["COMP_ICE_PHYS"].value:
@@ -314,7 +334,7 @@ class MOM6BathyLauncher(VBox):
 
         nb["cells"].extend(
             [
-                nbf.v4.new_markdown_cell("## 4. Save the grid, bathymetry, and mesh files"),
+                nbf.v4.new_markdown_cell("## 5. Save the grid, bathymetry, and mesh files"),
                 nbf.v4.new_code_cell(save_files_cmd),
             ]
         )
@@ -383,6 +403,11 @@ class MOM6BathyLauncher(VBox):
     def topo_file_path():
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
         return custom_ocn_grid_path / f"ocean_topog_{MOM6BathyLauncher.nc_file_suffix()}"
+
+    @staticmethod
+    def vgrid_file_path():
+        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ocean_vgrid_{MOM6BathyLauncher.nc_file_suffix()}"
 
     @staticmethod
     def esmf_mesh_file_path():
