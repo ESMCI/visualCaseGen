@@ -301,7 +301,7 @@ class MOM6BathyLauncher(VBox):
             "  depth = topo.max_depth, # Do NOT modify this argument \n"
             "  ratio = 10.0, # ratio of top to bottom layer thicknesses (=1.0 for uniform layers)\n"
             ")\n"
-            "print('layer thicknesses:\n', vgrid.dz)"
+            "print('layer thicknesses:', vgrid.dz)"
         )
 
         nb["cells"].extend(

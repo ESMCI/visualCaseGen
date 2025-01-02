@@ -124,6 +124,48 @@ def initialize_grid_stages(cime):
         ],
     )
 
+    stg_new_ocn_grid_ic_mode = Stage(
+        title="New Ocean Grid Initial Conditions",
+        description="Select the mode for specifying the initial conditions for the new ocean grid."
+        "You may either use the simple initial conditions or specify the initial temperature and "
+        "salinity from a file. In the case of the simple initial conditions, the surface temperature "
+        "is set to a constant reference value and salinity is fit accordingly. This is rather a simple "
+        "configuration and users are encouraged to further customize the initial conditions in the user_nl_mom6 "
+        "file once the case is created.",
+        widget=StageWidget(VBox),
+        parent=stg_new_ocn_grid,
+        varlist=[cvars["OCN_IC_MODE"]],
+    )
+
+    stg_new_ocn_grid_ic_standard = Stage(
+        title="Simple Initial Conditions",
+        description="Set a uniform reference temperature for the new ocean grid. Salinity will be "
+        "fit accordingly.",
+        widget=StageWidget(VBox),
+        parent=Guard(
+            title="Std IC",
+            parent=stg_new_ocn_grid_ic_mode,
+            condition=cvars["OCN_IC_MODE"] == "Simple",
+        ),
+        varlist=[cvars["T_REF"]],
+    )
+
+    stg_new_ocn_grid_ic_file = Stage(
+        title="Initial Conditions from File",
+        description="Specify the path to the initial temperature and salinity file for the new ocean grid.",
+        widget=StageWidget(VBox),
+        parent=Guard(
+            title="File IC",
+            parent=stg_new_ocn_grid_ic_mode,
+            condition=cvars["OCN_IC_MODE"] == "From File",
+        ),
+        varlist=[
+            cvars["TEMP_SALT_Z_INIT_FILE"],
+            cvars["IC_PTEMP_NAME"],
+            cvars["IC_SALT_NAME"],
+        ],
+    )
+
     stg_new_ocn_grid._widget.children += (MOM6BathyLauncher(),)
 
     stg_custom_lnd_grid_mode = Stage(

@@ -536,7 +536,7 @@ class CaseCreator:
             if runout.returncode != 0:
                 raise RuntimeError(f"Error running {cmd}.")
 
-    def _apply_user_nl(self, user_nl_filename, var_val_pairs, do_exec):
+    def _apply_user_nl(self, user_nl_filename, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file.
         
         Parameters
@@ -547,21 +547,34 @@ class CaseCreator:
             A list of tuples, where each tuple contains a variable name and its value.
         do_exec : bool
             If True, execute the commands. If False, only print them.
+        comment : str, optional
+            A comment to print before the changes.
+        log_title: bool, optional
+            If True, print the log title "Adding parameter changes to user_nl_filename".
         """
 
         # confirm var_val_pairs is a list of tuples:
         assert isinstance(var_val_pairs, list)
         assert all(isinstance(pair, tuple) for pair in var_val_pairs)
 
+        # Print the changes to the user_nl file:
         with self._out:
-            print(f"{COMMENT}Adding parameter changes to {user_nl_filename}:{RESET}\n")
+            if log_title:
+                print(f"{COMMENT}Adding parameter changes to {user_nl_filename}:{RESET}\n")
+            if comment:
+                print(f"  ! {comment}")
             for var, val in var_val_pairs:
                 print(f"  {var} = {val}")
             print("")
+        
         if not do_exec:
             return
+        
+        # Apply the changes to the user_nl file:
         caseroot = cvars["CASEROOT"].value
         with open(Path(caseroot) / user_nl_filename, "a") as f:
+            if comment:
+                f.write(f"\n! {comment}\n")
             for var, val in var_val_pairs:
                 f.write(f"{var} = {val}\n")
 
@@ -614,13 +627,14 @@ class CaseCreator:
         # number of vertical levels:
         nk = len(xr.open_dataset(vgrid_file_path).dz)
 
-        # Determine timesteps based on the grid resolution:
+        # Determine timesteps based on the grid resolution (assuming coupling frequency of 1800.0 sec):
         res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)
         res_y = float(cvars['OCN_LENY'].value) / int(cvars["OCN_NY"].value)
-        dt = 1800.0 * min(res_x,res_y) # A 1-deg grid should have ~1800 sec tstep (a safe value)
-        dt = max(min(1800.0, dt), 10.0) # 10.0 <= dt < 1800.0 (seconds)
-        dt = 1800.0 / round(1800.0 / dt) # round to nearest 1800.0/n
-        dt_therm = min(1800.0, dt*4) # 4x the barotropic time step, but not more than 1800.0
+        dt = 600.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
+        # Make sure 1800.0 is a multiple of dt and dt is a power of 2 and/or 3:
+        dt = min((1800.0 / n for n in [2**i * 3**j for i in range(10) for j in range(6)] if 1800.0 % n == 0), key=lambda x: abs(dt - x))
+        # Try setting dt_therm to dt*4, or dt*3, or  dt*3, depending on whether 1800.0 becomes a multiple of dt:
+        dt_therm = dt * 4 if 1800.0 % (dt*4) == 0 else dt * 3 if 1800.0 % (dt * 3) == 0 else dt * 2 if 1800.0 % (dt * 2) == 0 else dt
 
         # apply custom MOM6 grid changes:
         self._apply_user_nl(
@@ -642,14 +656,55 @@ class CaseCreator:
                 ("COORD_CONFIG", "none"),
                 ("ALE_COORDINATE_CONFIG", f"FILE:{vgrid_file_path.name}"),
                 ("REGRIDDING_COORDINATE_MODE", "Z*"),
-                ("DT", str(dt)),
-                ("DT_THERM", str(dt_therm)),
-                ("TS_CONFIG", "fit"),
-                ("T_REF", 5.0),  # TODO: generalize this
-                ("FIT_SALINITY", "True"),
             ],
             do_exec,
+            comment="Custom Horizonal Grid, Topography, and Vertical Grid",
         )
+
+        self._apply_user_nl(
+            "user_nl_mom",
+            [
+                ("DT", str(dt)),
+                ("DT_THERM", str(dt_therm)),
+            ],
+            do_exec,
+            comment="Timesteps (based on grid resolution)",
+            log_title=False,
+        )
+
+        # Set MOM6 Initial Conditions parameters:
+        if cvars["OCN_IC_MODE"].value == "Simple":
+            self._apply_user_nl(
+                "user_nl_mom",
+                [
+                    ("TS_CONFIG", "fit"),
+                    ("T_REF", cvars["T_REF"].value),
+                    ("FIT_SALINITY", "True"),
+                ],
+                do_exec,
+                comment="Simple Initial Conditions",
+                log_title=False,
+            )
+        elif cvars["OCN_IC_MODE"].value == "From File":
+            # First, copy the initial conditions file to INPUTDIR:
+            temp_salt_z_init_file = Path(cvars["TEMP_SALT_Z_INIT_FILE"].value)
+            if not temp_salt_z_init_file.name in [f.name for f in ocn_grid_path.glob("*.nc")]:
+                shutil.copy(temp_salt_z_init_file, ocn_grid_path / temp_salt_z_init_file.name)
+            # Apply the user_nl changes:
+            self._apply_user_nl(
+                "user_nl_mom",
+                [
+                    ("INIT_LAYERS_FROM_Z_FILE", "True"),
+                    ("TEMP_SALT_Z_INIT_FILE", temp_salt_z_init_file.name),
+                    ("Z_INIT_FILE_PTEMP_VAR", cvars["IC_PTEMP_NAME"].value),
+                    ("Z_INIT_FILE_SALT_VAR", cvars["IC_SALT_NAME"].value),
+                ],
+                do_exec,
+                comment="Initial Conditions from File",
+                log_title=False,
+            )
+        else:
+            raise RuntimeError(f"Unknown ocean initial conditions mode: {cvars['OCN_IC_MODE'].value}")
 
     def _apply_user_nl_cice_changes(self, do_exec):
         """Apply all necessary changes to user_nl_cice file."""

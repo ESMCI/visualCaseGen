@@ -135,6 +135,12 @@ def test_custom_mom6_grid():
         # confirm completion:
         Stage.active()._proceed()
 
+        assert Stage.active().title.startswith("New Ocean Grid Initial Conditions")
+        cvars["OCN_IC_MODE"].value = "Simple"
+        
+        assert Stage.active().title.startswith("Simple Initial Conditions")
+        cvars["T_REF"].value = 10.0
+
         # Since land grid gets set automatically, we should be in the Launch stage:
         assert Stage.active().title.startswith("3. Launch")
         launch_stage = Stage.active()

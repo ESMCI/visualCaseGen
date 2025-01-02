@@ -58,6 +58,13 @@ def initialize_custom_grid_variables(cime):
         "MOM6_BATHY_STATUS", widget_none_val=""
     )  # a status variable to prevent the completion of the stage
 
+    # Ocean initial conditions
+    ConfigVarStr("OCN_IC_MODE")  # "Simple" or "From File"
+    ConfigVarReal("T_REF")  # Reference temperature for "Simple" mode
+    ConfigVarStr("TEMP_SALT_Z_INIT_FILE") # Path to the initial temperature and salinity file
+    ConfigVarStr("IC_PTEMP_NAME", widget_none_val="") # Name of the potential temperature variable in the i.c. file
+    ConfigVarStr("IC_SALT_NAME", widget_none_val="") # Name of the salinity variable in the initial i.c. file
+
     # Select a base CLM grid.
     ConfigVarStr("LND_GRID_MODE")  # Standard, Modified
     ConfigVarStrMS(
