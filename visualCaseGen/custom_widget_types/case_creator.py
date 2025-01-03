@@ -688,21 +688,28 @@ class CaseCreator:
         elif cvars["OCN_IC_MODE"].value == "From File":
             # First, copy the initial conditions file to INPUTDIR:
             temp_salt_z_init_file = Path(cvars["TEMP_SALT_Z_INIT_FILE"].value)
-            if not temp_salt_z_init_file.name in [f.name for f in ocn_grid_path.glob("*.nc")]:
-                shutil.copy(temp_salt_z_init_file, ocn_grid_path / temp_salt_z_init_file.name)
-            # Apply the user_nl changes:
-            self._apply_user_nl(
-                "user_nl_mom",
-                [
-                    ("INIT_LAYERS_FROM_Z_FILE", "True"),
-                    ("TEMP_SALT_Z_INIT_FILE", temp_salt_z_init_file.name),
-                    ("Z_INIT_FILE_PTEMP_VAR", cvars["IC_PTEMP_NAME"].value),
-                    ("Z_INIT_FILE_SALT_VAR", cvars["IC_SALT_NAME"].value),
-                ],
-                do_exec,
-                comment="Initial Conditions from File",
-                log_title=False,
-            )
+            if temp_salt_z_init_file.as_posix() == "TBD":
+                pass # do nothing: TEMP_SALT_Z_INIT_FILE can only be set to TBD when visualCaseGen
+                        # is used as an external tool by another application, in which case setting
+                        # TEMP_SALT_Z_INIT_FILE to TBD is a signal from the external application that
+                        # the initial conditions will be handled by the application itself.
+            else:
+                # Copy the initial conditions file to INPUTDIR:
+                if temp_salt_z_init_file.name not in [f.name for f in ocn_grid_path.glob("*.nc")]:
+                    shutil.copy(temp_salt_z_init_file, ocn_grid_path / temp_salt_z_init_file.name)
+                # Apply the user_nl changes:
+                self._apply_user_nl(
+                    "user_nl_mom",
+                    [
+                        ("INIT_LAYERS_FROM_Z_FILE", "True"),
+                        ("TEMP_SALT_Z_INIT_FILE", temp_salt_z_init_file.name),
+                        ("Z_INIT_FILE_PTEMP_VAR", cvars["IC_PTEMP_NAME"].value),
+                        ("Z_INIT_FILE_SALT_VAR", cvars["IC_SALT_NAME"].value),
+                    ],
+                    do_exec,
+                    comment="Initial Conditions from File",
+                    log_title=False,
+                )
         else:
             raise RuntimeError(f"Unknown ocean initial conditions mode: {cvars['OCN_IC_MODE'].value}")
 
