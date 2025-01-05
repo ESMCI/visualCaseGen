@@ -314,7 +314,7 @@ class MOM6BathyLauncher(VBox):
         save_files_cmd = (
             "# Do NOT modify this cell!\n\n"
             "# MOM6 supergrid file.\n"
-            f'grid.write_supergrid(f"{custom_ocn_grid_path}/ocean_grid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
+            f'grid.write_supergrid(f"{custom_ocn_grid_path}/ocean_hgrid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
             "# Save MOM6 topography file:\n"
             f'topo.write_topo(f"{custom_ocn_grid_path}/ocean_topog_{ocn_grid_name}_{attempt_id}.nc")\n\n'
             "# Save MOM6 vertical grid file:\n"
@@ -397,7 +397,7 @@ class MOM6BathyLauncher(VBox):
     @staticmethod
     def supergrid_file_path():
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"ocean_grid_{MOM6BathyLauncher.nc_file_suffix()}"
+        return custom_ocn_grid_path / f"ocean_hgrid_{MOM6BathyLauncher.nc_file_suffix()}"
     
     @staticmethod
     def topo_file_path():

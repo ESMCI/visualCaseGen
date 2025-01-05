@@ -10,6 +10,7 @@ import xarray as xr
 from ProConPy.config_var import cvars
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
 from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
+from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl
 
 COMMENT = "\033[01;96m"  # bold, cyan
 SUCCESS = "\033[1;32m"  # bold, green
@@ -148,13 +149,13 @@ class CaseCreator:
             print(f"cd {caseroot}\n")
 
         # Apply case modifications, e.g., xmlchanges and user_nl changes
-        self._apply_xmlchanges(caseroot, do_exec)
+        self._apply_all_xmlchanges(caseroot, do_exec)
 
         # Run case.setup
         self._run_case_setup(caseroot, do_exec)
 
         # Apply user_nl changes
-        self._appy_user_nl_changes(caseroot, do_exec)
+        self._apply_all_namelist_changes(do_exec)
 
         # Clean up:
         if do_exec:
@@ -472,22 +473,7 @@ class CaseCreator:
             if runout.returncode != 0:
                 raise RuntimeError("Error creating case.")
 
-    def _apply_xmlchanges(self, caseroot, do_exec):
-
-        def exec_xmlchange(var, val):
-
-            cmd = f"./xmlchange {var}={val}"
-            if self._is_non_local() is True:
-                cmd += " --non-local"
-            with self._out:
-                print(f"{cmd}\n")
-
-            if not do_exec:
-                return
-
-            runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
-            if runout.returncode != 0:
-                raise RuntimeError(f"Error running {cmd}.")
+    def _apply_all_xmlchanges(self, caseroot, do_exec):
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
         if lnd_grid_mode == "Modified":
@@ -499,7 +485,7 @@ class CaseCreator:
                 # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
 
                 # lnd domain mesh
-                exec_xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value)
+                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, caseroot, do_exec, self._is_non_local(), self._out)
 
                 # mask mesh (if modified)
                 base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
@@ -507,79 +493,20 @@ class CaseCreator:
                 lnd_dir = custom_grid_path / "lnd"
                 modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
                 assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
-                exec_xmlchange("MASK_MESH", modified_mask_mesh)
+                xmlchange("MASK_MESH", modified_mask_mesh, caseroot, do_exec, self._is_non_local(), self._out)
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
-            
+
     def _run_case_setup(self, caseroot, do_exec):
-        """Run the case.setup script to set up the case instance.
-        
-        Parameters
-        ----------
-        caseroot : Path
-            The path to the case directory.
-        do_exec : bool
-            If True, execute the commands. If False, only print them.    
-        """
+        """Run the case.setup script to set up the case instance."""
+        run_case_setup(caseroot, do_exec, self._is_non_local(), self._out)
 
-        # Run ./case.setup
-        cmd = "./case.setup"
-        if self._is_non_local():
-            cmd += " --non-local"
-        with self._out:
-            print(
-                f"{COMMENT}Running the case.setup script with the following command:{RESET}\n"
-            )
-            print(f"{cmd}\n")
-        if do_exec:
-            runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
-            if runout.returncode != 0:
-                raise RuntimeError(f"Error running {cmd}.")
-
-    def _apply_user_nl(self, user_nl_filename, var_val_pairs, do_exec, comment=None, log_title=True):
-        """Apply changes to a given user_nl file.
-        
-        Parameters
-        ----------
-        user_nl_filename : str
-            The name of the user_nl file to modify.
-        var_val_pairs : list of tuples
-            A list of tuples, where each tuple contains a variable name and its value.
-        do_exec : bool
-            If True, execute the commands. If False, only print them.
-        comment : str, optional
-            A comment to print before the changes.
-        log_title: bool, optional
-            If True, print the log title "Adding parameter changes to user_nl_filename".
-        """
-
-        # confirm var_val_pairs is a list of tuples:
-        assert isinstance(var_val_pairs, list)
-        assert all(isinstance(pair, tuple) for pair in var_val_pairs)
-
-        # Print the changes to the user_nl file:
-        with self._out:
-            if log_title:
-                print(f"{COMMENT}Adding parameter changes to {user_nl_filename}:{RESET}\n")
-            if comment:
-                print(f"  ! {comment}")
-            for var, val in var_val_pairs:
-                print(f"  {var} = {val}")
-            print("")
-        
-        if not do_exec:
-            return
-        
-        # Apply the changes to the user_nl file:
+    def _apply_user_nl_changes(self, user_nl_filename, var_val_pairs, do_exec, comment=None, log_title=True):
+        """Apply changes to a given user_nl file."""
         caseroot = cvars["CASEROOT"].value
-        with open(Path(caseroot) / user_nl_filename, "a") as f:
-            if comment:
-                f.write(f"\n! {comment}\n")
-            for var, val in var_val_pairs:
-                f.write(f"{var} = {val}\n")
+        append_user_nl(user_nl_filename, var_val_pairs, caseroot, do_exec, comment, log_title, self._out)
 
-
-    def _appy_user_nl_changes(self, caseroot, do_exec):
+    def _apply_all_namelist_changes(self, do_exec):
         """Apply all the necessary user_nl changes to the case.
         
         Parameters
@@ -597,11 +524,11 @@ class CaseCreator:
         else:
             assert grid_mode == "Custom", f"Unknown grid mode: {grid_mode}"
 
-        self._apply_user_nl_mom_changes(do_exec)
-        self._apply_user_nl_cice_changes(do_exec)
-        self._apply_user_nl_clm_changes(do_exec)
+        self._apply_mom_namelist_changes(do_exec)
+        self._apply_cice_namelist_changes(do_exec)
+        self._apply_clm_namelist_changes(do_exec)
 
-    def _apply_user_nl_mom_changes(self, do_exec):
+    def _apply_mom_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_mom and user_nl_cice files."""
 
         ocn_grid_mode = cvars["OCN_GRID_MODE"].value
@@ -637,7 +564,7 @@ class CaseCreator:
         dt_therm = dt * 4 if 1800.0 % (dt*4) == 0 else dt * 3 if 1800.0 % (dt * 3) == 0 else dt * 2 if 1800.0 % (dt * 2) == 0 else dt
 
         # apply custom MOM6 grid changes:
-        self._apply_user_nl(
+        self._apply_user_nl_changes(
             "user_nl_mom",
             [
                 ("INPUTDIR", ocn_grid_path),
@@ -661,7 +588,7 @@ class CaseCreator:
             comment="Custom Horizonal Grid, Topography, and Vertical Grid",
         )
 
-        self._apply_user_nl(
+        self._apply_user_nl_changes(
             "user_nl_mom",
             [
                 ("DT", str(dt)),
@@ -674,7 +601,7 @@ class CaseCreator:
 
         # Set MOM6 Initial Conditions parameters:
         if cvars["OCN_IC_MODE"].value == "Simple":
-            self._apply_user_nl(
+            self._apply_user_nl_changes(
                 "user_nl_mom",
                 [
                     ("TS_CONFIG", "fit"),
@@ -698,7 +625,7 @@ class CaseCreator:
                 if temp_salt_z_init_file.name not in [f.name for f in ocn_grid_path.glob("*.nc")]:
                     shutil.copy(temp_salt_z_init_file, ocn_grid_path / temp_salt_z_init_file.name)
                 # Apply the user_nl changes:
-                self._apply_user_nl(
+                self._apply_user_nl_changes(
                     "user_nl_mom",
                     [
                         ("INIT_LAYERS_FROM_Z_FILE", "True"),
@@ -713,7 +640,7 @@ class CaseCreator:
         else:
             raise RuntimeError(f"Unknown ocean initial conditions mode: {cvars['OCN_IC_MODE'].value}")
 
-    def _apply_user_nl_cice_changes(self, do_exec):
+    def _apply_cice_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_cice file."""
 
         ocn_grid_mode = cvars["OCN_GRID_MODE"].value
@@ -725,7 +652,7 @@ class CaseCreator:
             return
 
         cice_grid_file_path = MOM6BathyLauncher.cice_grid_file_path()
-        self._apply_user_nl(
+        self._apply_user_nl_changes(
             "user_nl_cice",
             [
                 ("grid_format", '"nc"'),
@@ -735,7 +662,7 @@ class CaseCreator:
             do_exec,
         )
 
-    def _apply_user_nl_clm_changes(self, do_exec):
+    def _apply_clm_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_clm file."""
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
@@ -775,5 +702,5 @@ class CaseCreator:
                 # cft dimensions included in clm namelist xml files don't match the dimensions that clm expects: 64 vs 2.
             ])
 
-        self._apply_user_nl("user_nl_clm", user_nl_clm_changes, do_exec)
+        self._apply_user_nl_changes("user_nl_clm", user_nl_clm_changes, do_exec)
         
