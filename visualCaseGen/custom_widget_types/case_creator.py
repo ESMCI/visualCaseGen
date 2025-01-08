@@ -24,7 +24,7 @@ class CaseCreator:
 
     def __init__(self, cime, output=None, allow_xml_override=False):
         """Initialize CaseCreator object.
-        
+
         Parameters
         ----------
         cime : CIME
@@ -149,10 +149,10 @@ class CaseCreator:
             print(f"cd {caseroot}\n")
 
         # Apply case modifications, e.g., xmlchanges and user_nl changes
-        self._apply_all_xmlchanges(caseroot, do_exec)
+        self._apply_all_xmlchanges(do_exec)
 
         # Run case.setup
-        self._run_case_setup(caseroot, do_exec)
+        run_case_setup(do_exec, self._is_non_local(), self._out)
 
         # Apply user_nl changes
         self._apply_all_namelist_changes(do_exec)
@@ -167,11 +167,11 @@ class CaseCreator:
                     f"{SUCCESS}Case created successfully at {caseroot}.{RESET}\n\n"
                     f"{COMMENT}To further customize, build, and run the case, "
                     f"navigate to the case directory in your terminal. To create "
-                    f"another case, restart the notebook.{RESET}\n"                   
+                    f"another case, restart the notebook.{RESET}\n"
                 )
 
     def _update_ccs_config(self, do_exec):
-        """Update the modelgrid_aliases and component_grids xml files with custom grid 
+        """Update the modelgrid_aliases and component_grids xml files with custom grid
         information if needed. This function is called before running create_newcase."""
 
         # If Custom grid is selected, update modelgrid_aliases and component_grids xml files:
@@ -206,7 +206,7 @@ class CaseCreator:
     def _update_modelgrid_aliases(self, custom_grid_path, ocn_grid, do_exec):
         """Update the modelgrid_aliases xml file with custom resolution information.
         This function is called before running create_newcase.
-        
+
         Parameters
         ----------
         custom_grid_path : Path
@@ -309,7 +309,7 @@ class CaseCreator:
     ):
         """Update the component_grids xml file with custom ocnice grid information.
         This function is called before running create_newcase.
-        
+
         Parameters
         ----------
         custom_grid_path : Path
@@ -420,7 +420,7 @@ class CaseCreator:
 
     def _run_create_newcase(self, caseroot, compset, resolution, do_exec):
         """Run CIME's create_newcase tool to create a new case instance.
-        
+
         Parameters
         ----------
         caseroot : Path
@@ -450,6 +450,11 @@ class CaseCreator:
         if project := cvars["PROJECT"].value:
             cmd += f"--project {project} "
 
+        # append number of model instances if needed:
+        ninst = 1 if cvars["NINST"].value is None else cvars["NINST"].value
+        if ninst != 1:
+            cmd += f"--ninst {ninst} "
+
         # append --nonlocal if needed:
         if self._is_non_local():
             cmd += "--non-local "
@@ -473,7 +478,7 @@ class CaseCreator:
             if runout.returncode != 0:
                 raise RuntimeError("Error creating case.")
 
-    def _apply_all_xmlchanges(self, caseroot, do_exec):
+    def _apply_all_xmlchanges(self, do_exec):
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
         if lnd_grid_mode == "Modified":
@@ -485,7 +490,7 @@ class CaseCreator:
                 # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
 
                 # lnd domain mesh
-                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, caseroot, do_exec, self._is_non_local(), self._out)
+                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, do_exec, self._is_non_local(), self._out)
 
                 # mask mesh (if modified)
                 base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
@@ -493,22 +498,17 @@ class CaseCreator:
                 lnd_dir = custom_grid_path / "lnd"
                 modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
                 assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
-                xmlchange("MASK_MESH", modified_mask_mesh, caseroot, do_exec, self._is_non_local(), self._out)
+                xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
 
-    def _run_case_setup(self, caseroot, do_exec):
-        """Run the case.setup script to set up the case instance."""
-        run_case_setup(caseroot, do_exec, self._is_non_local(), self._out)
-
-    def _apply_user_nl_changes(self, user_nl_filename, var_val_pairs, do_exec, comment=None, log_title=True):
+    def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
-        caseroot = cvars["CASEROOT"].value
-        append_user_nl(user_nl_filename, var_val_pairs, caseroot, do_exec, comment, log_title, self._out)
+        append_user_nl(model, var_val_pairs, do_exec, comment, log_title, self._out)
 
     def _apply_all_namelist_changes(self, do_exec):
         """Apply all the necessary user_nl changes to the case.
-        
+
         Parameters
         ----------
         caseroot : Path
@@ -565,7 +565,7 @@ class CaseCreator:
 
         # apply custom MOM6 grid changes:
         self._apply_user_nl_changes(
-            "user_nl_mom",
+            "mom",
             [
                 ("INPUTDIR", ocn_grid_path),
                 ("TRIPOLAR_N", "False"),
@@ -589,7 +589,7 @@ class CaseCreator:
         )
 
         self._apply_user_nl_changes(
-            "user_nl_mom",
+            "mom",
             [
                 ("DT", str(dt)),
                 ("DT_THERM", str(dt_therm)),
@@ -602,7 +602,7 @@ class CaseCreator:
         # Set MOM6 Initial Conditions parameters:
         if cvars["OCN_IC_MODE"].value == "Simple":
             self._apply_user_nl_changes(
-                "user_nl_mom",
+                "mom",
                 [
                     ("TS_CONFIG", "fit"),
                     ("T_REF", cvars["T_REF"].value),
@@ -626,7 +626,7 @@ class CaseCreator:
                     shutil.copy(temp_salt_z_init_file, ocn_grid_path / temp_salt_z_init_file.name)
                 # Apply the user_nl changes:
                 self._apply_user_nl_changes(
-                    "user_nl_mom",
+                    "mom",
                     [
                         ("INIT_LAYERS_FROM_Z_FILE", "True"),
                         ("TEMP_SALT_Z_INIT_FILE", temp_salt_z_init_file.name),
@@ -653,7 +653,7 @@ class CaseCreator:
 
         cice_grid_file_path = MOM6BathyLauncher.cice_grid_file_path()
         self._apply_user_nl_changes(
-            "user_nl_cice",
+            "cice",
             [
                 ("grid_format", '"nc"'),
                 ("grid_file", f'"{cice_grid_file_path}"'),
@@ -685,7 +685,7 @@ class CaseCreator:
         inittime = cvars["INITTIME"].value
         if inittime is None:
             inittime = cvars["COMPSET_LNAME"].value.split("_")[0]
-        
+
         # For transient runs, we need to:
         #  - set check_dynpft_consistency to .false.
         #  - set flanduse_timeseries
@@ -702,5 +702,4 @@ class CaseCreator:
                 # cft dimensions included in clm namelist xml files don't match the dimensions that clm expects: 64 vs 2.
             ])
 
-        self._apply_user_nl_changes("user_nl_clm", user_nl_clm_changes, do_exec)
-        
+        self._apply_user_nl_changes("clm", user_nl_clm_changes, do_exec)
