@@ -502,6 +502,27 @@ class CaseCreator:
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
 
+        # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
+        self._set_ntasks_based_on_grid(self, do_exec)
+
+    def _set_ntasks_based_on_grid(self, do_exec, min_points_per_core = 16, max_points_per_core = 800):
+        """Set NTASKS based on Grid Size"""
+        num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
+        cores = 128 # Default
+
+        pts_per_core = num_points/cores
+        
+        while pts_per_core > max_points_per_core:
+            cores = cores + 1
+            pts_per_core = num_points/cores
+
+        while pts_per_core < min_points_per_core:
+            cores = cores - 1
+            pts_per_core = num_points/cores
+
+        xmlchange("NTASKS",cores, do_exec, self.is_non_local(), self._out)
+        return
+
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
         append_user_nl(model, var_val_pairs, do_exec, comment, log_title, self._out)
