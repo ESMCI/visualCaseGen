@@ -88,6 +88,19 @@ customization.
 
 .. image:: assets/Stage2_7.png
 
+.. note:: **Initialization of Custom Land Points:**
+  When users define their own continental geometries, the model initializes land points
+  by reading an initial conditions file (`finidat` specified in the CLM namelist). The model 
+  interpolates the nearest neighbor information to populate land points that lack existing data.
+
+.. note:: **Runoff Behavior with Idealized Land:**
+    In scenarios with idealized land configurations, the new land points do not have an 
+    updated routing map to direct water downstream. As a result, runoff from these land points
+    is routed to the nearest ocean point. To verify that water is not lost in the process, users
+    can consult the budget tables available in the log files.
+    These tables provide detailed information on water budgets and confirm the conservation of water within the model.
+
+
 .. note:: Detailed instructions on customizing an existing CLM grid will be added here shortly.
 
 Once atmosphere, ocean, and land grids have been chosen or created, custom grid setup is complete.
