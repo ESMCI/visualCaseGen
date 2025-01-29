@@ -502,15 +502,15 @@ class CaseCreator:
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
 
-        # Set NTASKS_OCN based on grid size. e.g. NX * NY < max_pts_per_core
-        self._set_ntasks_ocean_based_on_grid(do_exec)
+        # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
+        num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
+        self._set_ntasks_based_on_grid(do_exec, num_points)
 
-    def _set_ntasks_ocean_based_on_grid(self, do_exec, min_points_per_core = 32, max_points_per_core = 800):
+    def _set_ntasks_based_on_grid(self, do_exec, num_points, min_points_per_core = 32, max_points_per_core = 800):
         """Set NTASKS OCN based on Grid Size"""
 
         with self._out:
             print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
-        num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
         cores = 128 # Start from 128 which is the default 128 cores per node in derecho
         iteration_amount = 16
         pts_per_core = num_points/cores
@@ -523,7 +523,7 @@ class CaseCreator:
             cores = cores - iteration_amount
             pts_per_core = num_points/cores
 
-        xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
+        xmlchange("NTASKS",cores, do_exec, self._is_non_local(), self._out)
         return
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
