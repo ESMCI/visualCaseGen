@@ -112,6 +112,8 @@ class CaseCreator:
         if cvars["COMPSET_MODE"].value == "Standard":
             compset = cvars["COMPSET_ALIAS"].value
         elif cvars["COMPSET_MODE"].value == "Custom":
+            with self._out:
+                print(f"{COMMENT}{cvars["COMPSET_LNAME"].value}{RESET}\n")
             compset = cvars["COMPSET_LNAME"].value
         else:
             raise RuntimeError(f"Unknown compset mode: {cvars['COMPSET_MODE'].value}")
@@ -504,13 +506,16 @@ class CaseCreator:
 
         # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
         num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
-        self._set_ntasks_based_on_grid(do_exec, num_points)
-
-    def _set_ntasks_based_on_grid(self, do_exec, num_points, min_points_per_core = 32, max_points_per_core = 800):
-        """Set NTASKS OCN based on Grid Size"""
-
+        cores = CaseCreator._set_cores_based_on_grid(num_points)
         with self._out:
             print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
+            xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
+
+    @staticmethod
+    def _set_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800):
+        """Calculate the number of cores based on the grid size."""
+
+
         cores = 128 # Start from 128 which is the default 128 cores per node in derecho
         iteration_amount = 16
         pts_per_core = num_points/cores
@@ -522,8 +527,7 @@ class CaseCreator:
         while pts_per_core < min_points_per_core and cores > 1: # Don't let cores get below 1
             cores = cores - iteration_amount
             pts_per_core = num_points/cores
-
-        xmlchange("NTASKS",cores, do_exec, self._is_non_local(), self._out)
+        return cores
         return
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
