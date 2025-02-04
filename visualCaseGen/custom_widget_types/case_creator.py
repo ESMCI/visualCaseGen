@@ -506,29 +506,30 @@ class CaseCreator:
 
         # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
         num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
-        cores = CaseCreator._set_cores_based_on_grid(num_points)
+        cores = CaseCreator._calc_cores_based_on_grid(num_points)
         with self._out:
             print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
             xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
 
     @staticmethod
-    def _set_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800):
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800):
         """Calculate the number of cores based on the grid size."""
 
 
         cores = 128 # Start from 128 which is the default 128 cores per node in derecho
         iteration_amount = 16
-        pts_per_core = num_points/cores
+        pts_per_core = num_points/float(cores)
         
         while pts_per_core > max_points_per_core:
             cores = cores + iteration_amount
             pts_per_core = num_points/cores
 
-        while pts_per_core < min_points_per_core and cores > 1: # Don't let cores get below 1
+        while pts_per_core < min_points_per_core and cores > iteration_amount: # Don't let cores get below iteration amount
             cores = cores - iteration_amount
             pts_per_core = num_points/cores
+
+
         return cores
-        return
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
