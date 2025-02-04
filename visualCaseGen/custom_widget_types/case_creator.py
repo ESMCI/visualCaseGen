@@ -112,8 +112,6 @@ class CaseCreator:
         if cvars["COMPSET_MODE"].value == "Standard":
             compset = cvars["COMPSET_ALIAS"].value
         elif cvars["COMPSET_MODE"].value == "Custom":
-            with self._out:
-                print(f"{COMMENT}{cvars["COMPSET_LNAME"].value}{RESET}\n")
             compset = cvars["COMPSET_LNAME"].value
         else:
             raise RuntimeError(f"Unknown compset mode: {cvars['COMPSET_MODE'].value}")
