@@ -208,7 +208,7 @@ configurations are presented. This interactive feedback mechanism guides users
 through the configuration process, helping them make informed decisions and
 avoiding incompatible selections.
 
-[The "Components" stage. \label{fig:Stage1_7}](Stage1_7.png)
+![The "Components" stage. \label{fig:Stage1_7}](Stage1_7.png)
 
 At any stage, users can click on crossed-out options to view a
 brief explanation of why a particular choice is incompatible with their current
@@ -216,7 +216,7 @@ selections, as illustrated in \autoref{fig:Stage1_8}. This feature helps guide
 users through complex configuration dependencies, and helping them make informed
 adjustments.
 
-[Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_7.png)
+![Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_7.png)
 
 Beyond model selection, visualCaseGen provides point-and-click utilities for
 modifying ocean bathymetry, as shown in \autoref{fig:TopoEditor}. This feature
@@ -240,7 +240,7 @@ manually editing CESM, modifying runtime parameters, consulting experts for
 component-specific adjustments, and extensive trial-and-error testing. As a
 result, configuring the model took weeks before achieving a working setup.
 
-[Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png)
+![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png)
 
 
 As described in this paper, visualCaseGen can significantly accelerate similar
