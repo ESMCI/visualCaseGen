@@ -27,10 +27,10 @@ visualCaseGen is a graphical user interface (GUI) designed to streamline the
 creation and configuration of Community Earth System Model (CESM) experiments.
 Developed at the NSF National Center for Atmospheric Research (NCAR), CESM is a
 leading climate model capable of simulating the Earth's climate system at
-varying levels of complexity. Since configuring custom CESM experiments
-requires intricate knowledge of component compatibility, grid settings,
-parameterization choices, and model hierarchies, the setup process is
-complex and time-consuming for unique or breakthrough applications.
+varying levels of complexity [@danabasoglu2020community]. Since configuring
+custom CESM experiments requires intricate knowledge of component compatibility,
+grid settings, parameterization choices, and model hierarchies, the setup
+process is complex and time-consuming for unique or breakthrough applications.
 visualCaseGen provides a user-friendly interface that simplifies these tasks,
 significantly reducing setup time and improving ease of use for modelers.
 
@@ -102,10 +102,13 @@ LND_DOM_PFT >= 0.0:
     "PFT/CFT must be set to a nonnegative number",
 
 Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="False"):
-    "Regional ocean domain cannot be reentrant (due to an ESMF limitation.)",
+    "Regional ocean domain cannot be reentrant"
+    "(due to an ESMF limitation.)",
 
-Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<180.0):
-    "If LND and ICE are stub, custom MOM6 grid must exclude poles (singularity).",
+Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"),
+        OCN_LENY<180.0):
+    "If LND and ICE are stub, custom MOM6 grid must exclude poles"
+    "to avoid singularities in open water",
 
 ```
 
@@ -155,16 +158,16 @@ which dictates:
  - The sequence in which configuration variables are presented to the user. 
  - The precedence of variables: earlier stages have higher priority over later ones.
 
-A key complexity arises when the same variable appears in multiple stages. This
+![The visualCaseGen stage pipeline, starting from the top node (1. Component Set) and ending at the bottom node (3. Launch). The user follows a path along this pipeline based on their modeling needs and selections. \label{fig:pipeline}](stage_pipeline.png)
+
+A complexity arises when the same variable appears in multiple stages. This
 is allowed as long as it is not reachable along the same path within the stage
 pipeline. To prevent cyclic dependencies, the stage pipeline must therefore form a
 directed acyclic graph (DAG), enabling a consistent variable precedence
 hierarchy and eliminating the possibility of loops or contradictory variable
 settings.
 
-![The visualCaseGen stage pipeline, starting from the top node (1. Component Set) and ending at the bottom node (3. Launch). The user follows a path along this pipeline based on their modeling needs and selections. \label{fig:pipeline}](stage_pipeline.png)
-
-## Constraint Graph
+## Constraint Graph and its Traversal
 
 Using the stage pipeline and specified constraints, visualCaseGen constructs a
 constraint graph, as shown in \autoref{fig:cgraph}. In this graph:
@@ -175,110 +178,89 @@ constraint graph, as shown in \autoref{fig:cgraph}. In this graph:
  
 ![The visualCaseGen constraint graph. \label{fig:cgraph}](cgraph.png)
 
-## Interactive Constraint Checking
-
 During the configuration process, when a user makes a selection, the constraint
 graph is traversed to identify all variables that are affected by the selection.
 This traversal is done in a breadth-first manner, starting from the selected
 variable and following the edges in the direction of the constraints. The
 traversal stops at variables whose options validities are not affected by the
 selection. As such the traversal is limited to the variables that are directly
-or indirectly affected by the user's selection, which in turn depends on the
-the user input, stage hierarchy, and the specified constraints., Below is 
-visualCaseGen's simplified interactive constraint checking algorithm:
-
---- 
-
-| **Algorithm: Interactive Constraint Checking** |
-|------------------------------------------------|
-### **Input:** |
-- `selected_var`: The configuration variable modified by the user.
-- `selected_val`: The new value chosen for `selected_var`.
-- `constr_graph`: The constraint graph.
-- `constraints`: A dictionary mapping constraints to their corresponding error messages.
-- `valid_options`: A dictionary mapping each variable to its currently valid options.
-
-### **Output:**
-- If `selected_val` is invalid, return the associated **error message(s)**.
-- Otherwise, update `valid_options` for all affected variables.
-
-### **Algorithm:**
-
-1. **Check for Immediate Constraint Violations** 
-   - If `selected_val` is invalid:
-     - **Return the associated error message(s)** to the user.
-     - **Exit the algorithm** without propagating changes.
-   - Evaluate the **constraints** related to `selected_var` using  **Z3**.
- 
-2. **Initialize Traversal** 
-   - Create a queue `Q` and enqueue `selected_var`.
-   - Initialize a set `visited = {selected_var}` to track processed variables.
- 
-3. **Breadth-First Traversal for Constraint Propagation**
-   - While `Q` is not empty:
-     1. **Dequeue** `current_variable` from `Q`. 
-     2. **Retrieve all dependent variables** `D` from `constr_graph` that have edges from `current_variable`. 
-     3. **For each dependent variable** `var ∈ D`:
-        - If `var` is already in `visited`, **skip it**. 
-        - **Evaluate constraints** involving `var`: 
-          - Call the **Z3 solver** to check which options remain valid for `var`. 
-          - Update `valid_options[var]` accordingly. 
-        - If `valid_options[var]` has changed: 
-          - Enqueue `var` into `Q`. 
-          - Add `var` to `visited`. 
-
-4. **Terminate** 
-   - Stop when all affected variables have been updated.
-   - If any variable has no remaining valid options, **return an appropriate error message**.
-
-By dynamically re-evaluating constraints and adjusting available options,
-visualCaseGen provides real-time feedback, preventing invalid configurations and
-ensuring scientific consistency in CESM setups.
-
+or indirectly affected by the user's selection, which in turn depends on the the
+user input, stage hierarchy, and the specified constraints. By dynamically
+re-evaluating constraints and adjusting available options, visualCaseGen
+provides real-time feedback, preventing invalid configurations and ensuring
+scientific consistency in CESM setups.
 
 # Frontend 
 
-ipywidgets, traitlets, ...
+The visualCaseGen frontend provides an intuitive and interactive interface for
+configuring CESM experiments. Built with Jupyter ipywidgets [@ipywidgets], it
+can operate on local
+machines, HPC clusters, and cloud environments. This portability and flexibility allows
+researchers to configure CESM experiments efficiently, whether prototyping
+lightweight simulations on personal computers or running sophisticated applications on remote supercomputing
+systems.
 
-highly portable, robust, familiar to scientists, ...
+\autoref{fig:Stage1_7} displays an example stage from the visualCaseGen GUI,
+where users can select the individual models to be coupled in their CESM
+experiment. As the user makes selections, the GUI dynamically updates available
+options by crossing out incompatible choices, ensuring that only valid
+configurations are presented. This interactive feedback mechanism guides users
+through the configuration process, helping them make informed decisions and
+avoiding incompatible selections.
 
+[The "Components" stage. \label{fig:Stage1_7}](Stage1_7.png)
 
-# Workflow 
+At any stage, users can click on crossed-out options to view a
+brief explanation of why a particular choice is incompatible with their current
+selections, as illustrated in \autoref{fig:Stage1_8}. This feature helps guide
+users through complex configuration dependencies, and helping them make informed
+adjustments.
 
-With either configuration mode, visualCaseGen 
-enhances the setup process by flagging incompatible options and providing
-detailed descriptions of constraints, guiding users to make informed and
-valid choices in their experiment designs. This framework makes CESM 
-experiment configuration more accessible, significantly reducing setup time
-and expanding the range of modeling applications available to users.
+[Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_7.png)
 
+Beyond model selection, visualCaseGen provides point-and-click utilities for
+modifying ocean bathymetry, as shown in \autoref{fig:TopoEditor}. This feature
+enables users to interactively adjust individual grid points, creating custom
+ocean domains without the need for manual data manipulation. Such interactive
+capabilities make visualCaseGen a powerful tool for both novice and experienced
+CESM users, enhancing usability while maintaining the scientific rigor required
+for climate modeling studies.
 
-In standard
-mode, users can explore and select from predefined (1) *component sets*, 
-i.e., collection of models to be coupled, along with physics packages and
-other high-level option for each individual model, and 
-(2) *resolutions*, i.e., combinations of grids representing each component’s
-spatial domains. In custom
-configuration mode, users can further extend CESM’s capabilities by creating
-unique component sets and resolutions, mixing complexity levels across 
-components and generating idealized or sophisticated configurations suited to 
-specific research goals. 
 
 # Remarks
 
+In a recent study, @wu2021coupled configured an idealized CESM experiment to
+study atmosphere-ocean interactions in simplified climate models
+(\autoref{fig:wuEtAl}). Their approach involved modifying CESM to create two
+idealized ocean-covered models, one without continents and another with a
+pole-to-pole strip continent to investigate how simplified configurations affect
+Hadley circulation, equatorial upwelling, and precipitation patterns. However,
+setting up these experiments was a labor-intensive process that required
+manually editing CESM, modifying runtime parameters, consulting experts for
+component-specific adjustments, and extensive trial-and-error testing. As a
+result, configuring the model took weeks before achieving a working setup.
 
-# Figures
+[Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png)
 
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
 
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
+As described in this paper, visualCaseGen can significantly accelerate similar
+studies by automating key aspects of experiment configuration. Instead of
+manually modifying CESM files, modelers can use visualCaseGen’s interactive GUI
+to define custom model setups, mix and match component configurations, and
+automatically resolve compatibility constraints. The SMT-based constraint solver
+ensures that only valid model settings are selected, reducing the need for
+trial-and-error debugging. While complex custom cases may still require
+fine-tuning, visualCaseGen allows modelers to generate an initial working
+configuration in a matter of hours rather than weeks, greatly improving
+efficiency and accessibility.
+
 
 # Acknowledgements
 
-We acknowledge ...
+This work was supported by the NSF Cyberinfrastructure for Sustained Scientific
+Innovation (CSSI) program under award number 2004575. Special thanks to the
+CESM Software Engineering Group for their support and feedback during the
+development of visualCaseGen.
 
 # References
 
