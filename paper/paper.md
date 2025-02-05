@@ -1,5 +1,5 @@
 ---
-title: 'visualCaseGen: An Experiment Configurator for Community Earth System Model'
+title: 'visualCaseGen: An SMT-based Configurator for Community Earth System Model'
 tags:
   - Python
   - cesm
@@ -81,11 +81,15 @@ idealized and sophisticated climate modeling studies.
 
 # Constraint Solver
 
-One of the key challenges in configuring CESM is ensuring that different
-model settings are compatible. visualCaseGen addresses this challenge by
-incorporating an SMT-based constraint solver built using the Z3 solver
-[@de2008z3]. Z3 was chosen for its ability to manage complex logical
-relationships and efficiently reasoning about (in)compatibilities.
+One of the main challenges in configuring Community Earth System Model (CESM)
+experiments is ensuring that different model settings remain compatible. CESM’s
+configuration involves numerous interdependent components, grids, and
+parameterization choices, many of which have strict compatibility constraints.
+visualCaseGen addresses this challenge by integrating an SMT-based constraint
+solver, built using the Z3 solver [@de2008z3]. Z3 was chosen for its ability to
+efficiently manage complex logical relationships and reason about compatibility
+constraints, making it well-suited for handling CESM’s intricate configuration
+dependencies.
 
 In visualCaseGen, constraints are specified as key-value pairs, where the key
 represents a Z3 logical expression defining a condition, and the value is the
@@ -105,7 +109,7 @@ Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<180.0
 
 ```
 
-These constraints enforce scientifically valid model configurations, preventing
+These constraints enforce scientifically consistent model configurations, preventing
 users from selecting incompatible options.
 
 ## Why Use a Constraint Solver?
@@ -151,7 +155,7 @@ which dictates:
  - The sequence in which configuration variables are presented to the user. 
  - The precedence of variables: earlier stages have higher priority over later ones.
 
-[Insert Figure: Stage Pipeline]
+![The visualCaseGen stage pipeline, starting from the top node (Component Set) and ending at the bottom node (Launch).\label{fig:pipeline}](stage_pipeline.png)
 
 A key complexity arises when the same variable appears in multiple stages. This
 is allowed as long as the variable is not reachable along the same path within
@@ -164,17 +168,18 @@ a directed acyclic graph (DAG), ensuring:
 ## Constraint Graph
 
 Using the stage pipeline and specified constraints, visualCaseGen constructs a
-constraint graph. In this graph:
+constraint graph, as shown in Figure \autoref{fig:cgraph}. In this graph:
 
  - Nodes represent configuration variables. 
  - Directed edges represent dependencies or constraints between variables.
  - Edges are directed from higher-precedence variables to lower-precedence variables.
  
- This constraint graph enforces the correct order of
+This constraint graph enforces the correct order of
 configuration steps, ensuring that dependencies are resolved before
 lower-priority settings are adjusted.
 
-[Insert Figure: Constraint Graph]
+![The visualCaseGen constraint graph.\label{fig:cgraph}](cgraph.png)
+
 
 ## Interactive Constraint Checking
 
@@ -190,51 +195,51 @@ visualCaseGen's simplified interactive constraint checking algorithm:
 
 --- 
 
-### **Input:**
-- `selected_variable`: The configuration variable modified by the user.
-- `selected_value`: The new value chosen for `selected_variable`.
-- `constraint_graph`: A directed graph where nodes represent configuration variables and edges represent constraints.
-- `constraints`: A dictionary mapping constraints to their corresponding **Z3 logical expressions** and **error messages**.
-- `valid_options`: A dictionary mapping each variable to its currently valid options.
-
-### **Output:**
-- If `selected_value` is invalid, return the associated **error message(s)**.
-- Otherwise, update `valid_options` for all affected variables.
-
-### **Algorithm:**
-
-1. **Check for Immediate Constraint Violations**  
-   - If `selected_value` is invalid:  
-     - **Return the associated error message(s)** to the user.  
-     - **Exit the algorithm** without propagating changes.  
-   - Evaluate the **constraints** related to `selected_variable` using  **Z3**.
-
-2. **Initialize Traversal**  
-   - Create a queue `Q` and enqueue `selected_variable`.
-   - Initialize a set `visited = {selected_variable}` to track processed variables.
-
-3. **Breadth-First Traversal for Constraint Propagation**  
-   - While `Q` is not empty:
-     1. **Dequeue** `current_variable` from `Q`.
-     2. **Retrieve all dependent variables** `D` from `constraint_graph` that have edges from `current_variable`.
-     3. **For each dependent variable** `var ∈ D`:
-        - If `var` is already in `visited`, **skip it**.
-        - **Evaluate constraints** involving `var`:
-          - Call the **Z3 solver** to check which options remain valid for `var`.
-          - Update `valid_options[var]` accordingly.
-        - If `valid_options[var]` has changed:
-          - Enqueue `var` into `Q`.
-          - Add `var` to `visited`.
-
-4. **Terminate**  
-   - Stop when all affected variables have been updated.
-   - If any variable has no remaining valid options, **return an appropriate error message**.
-
-By dynamically re-evaluating constraints and adjusting available options,
-visualCaseGen provides real-time feedback, preventing invalid configurations and
-ensuring scientific consistency in CESM setups.
-
----
+| **Algorithm: Interactive Constraint Checking** |
+|------------------------------------------------|
+|### **Input:** |
+|- `selected_var`: The configuration variable modified by the user. |
+|- `selected_val`: The new value chosen for `selected_var`. |
+|- `constr_graph`: The constraint graph. |
+|- `constraints`: A dictionary mapping constraints to their corresponding error messages. |
+|- `valid_options`: A dictionary mapping each variable to its currently valid options. |
+| |
+|### **Output:** |
+|- If `selected_val` is invalid, return the associated **error message(s)**. |
+|- Otherwise, update `valid_options` for all affected variables. |
+| |
+|### **Algorithm:** |
+| |
+|1. **Check for Immediate Constraint Violations**   |
+|   - If `selected_val` is invalid:   |
+|     - **Return the associated error message(s)** to the user.   |
+|     - **Exit the algorithm** without propagating changes.   |
+|   - Evaluate the **constraints** related to `selected_var` using  **Z3**. |
+| |
+|2. **Initialize Traversal**   |
+|   - Create a queue `Q` and enqueue `selected_var`. |
+|   - Initialize a set `visited = {selected_var}` to track processed variables. |
+| |
+|3. **Breadth-First Traversal for Constraint Propagation**   |
+|   - While `Q` is not empty: |
+|     1. **Dequeue** `current_variable` from `Q`. |
+|     2. **Retrieve all dependent variables** `D` from `constr_graph` that have edges from `current_variable`. |
+|     3. **For each dependent variable** `var ∈ D`: |
+|        - If `var` is already in `visited`, **skip it**. |
+|        - **Evaluate constraints** involving `var`: |
+|          - Call the **Z3 solver** to check which options remain valid for `var`. |
+|          - Update `valid_options[var]` accordingly. |
+|        - If `valid_options[var]` has changed: |
+|          - Enqueue `var` into `Q`. |
+|          - Add `var` to `visited`. |
+| |
+|4. **Terminate**   |
+|   - Stop when all affected variables have been updated. |
+|   - If any variable has no remaining valid options, **return an appropriate error message**. |
+| |
+|By dynamically re-evaluating constraints and adjusting available options, |
+|visualCaseGen provides real-time feedback, preventing invalid configurations and |
+|ensuring scientific consistency in CESM setups. |
 
 
 # Frontend 
