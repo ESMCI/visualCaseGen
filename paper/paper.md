@@ -49,10 +49,11 @@ further simplifying model customization.
 
 By automating and simplifying CESM configuration, visualCaseGen makes the model
 more accessible and custumizable, particularly for researchers exploring
-hierarchical modeling, idealized experiments, or custom coupled simulations.
-As such, the tool allows users to focus on their scientific objectives rather than
-technical setup challenges, ultimately enabling a more efficient and streamlined
-experiment workflow.
+hierarchical modeling [@maher2019model], idealized experiments
+[@polvani2017less], or custom coupled simulations. As such, the tool allows
+users to focus on their scientific objectives rather than technical setup
+challenges, ultimately enabling a more efficient and streamlined experiment
+workflow.
 
 
 # Statement of need
@@ -218,14 +219,12 @@ adjustments.
 
 ![Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_7.png)
 
-Beyond model selection, visualCaseGen provides point-and-click utilities for
-modifying ocean bathymetry, as shown in \autoref{fig:TopoEditor}. This feature
-enables users to interactively adjust individual grid points, creating custom
-ocean domains without the need for manual data manipulation. Such interactive
-capabilities make visualCaseGen a powerful tool for both novice and experienced
-CESM users, enhancing usability while maintaining the scientific rigor required
-for climate modeling studies.
+As another example of streamlining model customization, \autoref{fig:TopoEditor}
+shows the TopoEditor widget that comes with visualCaseGen. This tool allows users
+to interactively modify ocean bathymetry, enhancing customizability and
+ease of use.
 
+![TopoEditor widget \label{fig:STopoEditor}](TopoEditor.png)
 
 # Remarks
 
@@ -243,8 +242,8 @@ result, configuring the model took weeks before achieving a working setup.
 ![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png)
 
 
-As described in this paper, visualCaseGen can significantly accelerate similar
-studies by automating key aspects of experiment configuration. Instead of
+visualCaseGen can significantly accelerate similar
+studies by automating many aspects of experiment configuration. Instead of
 manually modifying CESM files, modelers can use visualCaseGen’s interactive GUI
 to define custom model setups, mix and match component configurations, and
 automatically resolve compatibility constraints. The SMT-based constraint solver
@@ -253,7 +252,6 @@ trial-and-error debugging. While complex custom cases may still require
 fine-tuning, visualCaseGen allows modelers to generate an initial working
 configuration in a matter of hours rather than weeks, greatly improving
 efficiency and accessibility.
-
 
 # Acknowledgements
 
