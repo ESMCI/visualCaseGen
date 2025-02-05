@@ -1,5 +1,5 @@
 ---
-title: 'visualCaseGen: An SMT-based Configurator for Community Earth System Model'
+title: 'visualCaseGen: An SMT-based Experiment Configurator for Community Earth System Model'
 tags:
   - Python
   - cesm
@@ -21,15 +21,15 @@ bibliography: paper.bib
 
 ---
 
-# Summary
+# Introduction
 
 visualCaseGen is a graphical user interface (GUI) designed to streamline the
 creation and configuration of Community Earth System Model (CESM) experiments.
 Developed at the NSF National Center for Atmospheric Research (NCAR), CESM is a
 leading climate model capable of simulating the Earth's climate system at
-varying levels of complexity. However, configuring custom CESM experiments
+varying levels of complexity. Since configuring custom CESM experiments
 requires intricate knowledge of component compatibility, grid settings,
-parameterization choices, and model hierarchies, making the setup process
+parameterization choices, and model hierarchies, the setup process is
 complex and time-consuming for unique or breakthrough applications.
 visualCaseGen provides a user-friendly interface that simplifies these tasks,
 significantly reducing setup time and improving ease of use for modelers.
@@ -57,15 +57,15 @@ experiment workflow.
 
 # Statement of need
 
-The Community Earth System Model (CESM) is a highly flexible and comprehensive
+CESM is a highly flexible and comprehensive
 climate modeling system that allows researchers to simulate the interactions
 between the atmosphere, ocean, land, ice, and river systems. While this
 flexibility enables a wide range of scientific experiments, it also makes model
-configuration highly complex and time-consuming. Setting up custom CESM experiments
-requires navigating intricate component compatibility constraints, grid
-configurations, and parameterization choices, often demanding extensive
-expertise in the model’s internal structure. For non-standard
-experiments, users must manually modify XML an namelist files, maintain
+configuration highly complex and time-consuming. Setting up custom CESM
+experiments requires navigating intricate component compatibility constraints,
+grid configurations, and parameterization choices, often demanding extensive
+expertise in the model’s internal structure. For non-standard experiments, users
+must manually modify the CESM codebase and runtime paramter files, maintain
 numerical and scientific consistency, and troubleshoot compatibility issues, a
 process that is error-prone, tedious, and time-intensive.
 
@@ -81,12 +81,12 @@ idealized and sophisticated climate modeling studies.
 
 # Constraint Solver
 
-One of the main challenges in configuring Community Earth System Model (CESM)
-experiments is ensuring that different model settings remain compatible. CESM’s
-configuration involves numerous interdependent components, grids, and
-parameterization choices, many of which have strict compatibility constraints.
-visualCaseGen addresses this challenge by integrating an SMT-based constraint
-solver, built using the Z3 solver [@de2008z3]. Z3 was chosen for its ability to
+One of the main challenges in configuring CESM experiments is ensuring that
+different model settings remain compatible. CESM’s configuration involves
+numerous interdependent components, grids, and parameterization choices, many of
+which have strict compatibility constraints. visualCaseGen addresses this
+challenge by integrating an SMT-based constraint solver, built using the Z3
+solver [@de2008z3]. Z3 was chosen for its robust Python API, and its ability to
 efficiently manage complex logical relationships and reason about compatibility
 constraints, making it well-suited for handling CESM’s intricate configuration
 dependencies.
@@ -149,37 +149,31 @@ guiding the user through a structured workflow.
 
 ## Stage Pipeline
 
-All possible stage paths collectively form the stage pipeline,
+All possible stage paths collectively form the stage pipeline as shown in \autoref{fig:pipeline},
 which dictates:
 
  - The sequence in which configuration variables are presented to the user. 
  - The precedence of variables: earlier stages have higher priority over later ones.
 
-![The visualCaseGen stage pipeline, starting from the top node (Component Set) and ending at the bottom node (Launch).\label{fig:pipeline}](stage_pipeline.png)
-
 A key complexity arises when the same variable appears in multiple stages. This
-is allowed as long as the variable is not reachable along the same path within
-the stage pipeline. To prevent cyclic dependencies, therefore, the stage pipeline must form
-a directed acyclic graph (DAG), ensuring:
+is allowed as long as it is not reachable along the same path within the stage
+pipeline. To prevent cyclic dependencies, the stage pipeline must therefore form a
+directed acyclic graph (DAG), enabling a consistent variable precedence
+hierarchy and eliminating the possibility of loops or contradictory variable
+settings.
 
- - A consistent variable precedence hierarchy.
- - No looping or contradictions in variable settings.
+![The visualCaseGen stage pipeline, starting from the top node (1. Component Set) and ending at the bottom node (3. Launch). The user follows a path along this pipeline based on their modeling needs and selections. \label{fig:pipeline}](stage_pipeline.png)
 
 ## Constraint Graph
 
 Using the stage pipeline and specified constraints, visualCaseGen constructs a
-constraint graph, as shown in Figure \autoref{fig:cgraph}. In this graph:
+constraint graph, as shown in \autoref{fig:cgraph}. In this graph:
 
  - Nodes represent configuration variables. 
  - Directed edges represent dependencies or constraints between variables.
  - Edges are directed from higher-precedence variables to lower-precedence variables.
  
-This constraint graph enforces the correct order of
-configuration steps, ensuring that dependencies are resolved before
-lower-priority settings are adjusted.
-
-![The visualCaseGen constraint graph.\label{fig:cgraph}](cgraph.png)
-
+![The visualCaseGen constraint graph. \label{fig:cgraph}](cgraph.png)
 
 ## Interactive Constraint Checking
 
@@ -197,49 +191,49 @@ visualCaseGen's simplified interactive constraint checking algorithm:
 
 | **Algorithm: Interactive Constraint Checking** |
 |------------------------------------------------|
-|### **Input:** |
-|- `selected_var`: The configuration variable modified by the user. |
-|- `selected_val`: The new value chosen for `selected_var`. |
-|- `constr_graph`: The constraint graph. |
-|- `constraints`: A dictionary mapping constraints to their corresponding error messages. |
-|- `valid_options`: A dictionary mapping each variable to its currently valid options. |
-| |
-|### **Output:** |
-|- If `selected_val` is invalid, return the associated **error message(s)**. |
-|- Otherwise, update `valid_options` for all affected variables. |
-| |
-|### **Algorithm:** |
-| |
-|1. **Check for Immediate Constraint Violations**   |
-|   - If `selected_val` is invalid:   |
-|     - **Return the associated error message(s)** to the user.   |
-|     - **Exit the algorithm** without propagating changes.   |
-|   - Evaluate the **constraints** related to `selected_var` using  **Z3**. |
-| |
-|2. **Initialize Traversal**   |
-|   - Create a queue `Q` and enqueue `selected_var`. |
-|   - Initialize a set `visited = {selected_var}` to track processed variables. |
-| |
-|3. **Breadth-First Traversal for Constraint Propagation**   |
-|   - While `Q` is not empty: |
-|     1. **Dequeue** `current_variable` from `Q`. |
-|     2. **Retrieve all dependent variables** `D` from `constr_graph` that have edges from `current_variable`. |
-|     3. **For each dependent variable** `var ∈ D`: |
-|        - If `var` is already in `visited`, **skip it**. |
-|        - **Evaluate constraints** involving `var`: |
-|          - Call the **Z3 solver** to check which options remain valid for `var`. |
-|          - Update `valid_options[var]` accordingly. |
-|        - If `valid_options[var]` has changed: |
-|          - Enqueue `var` into `Q`. |
-|          - Add `var` to `visited`. |
-| |
-|4. **Terminate**   |
-|   - Stop when all affected variables have been updated. |
-|   - If any variable has no remaining valid options, **return an appropriate error message**. |
-| |
-|By dynamically re-evaluating constraints and adjusting available options, |
-|visualCaseGen provides real-time feedback, preventing invalid configurations and |
-|ensuring scientific consistency in CESM setups. |
+### **Input:** |
+- `selected_var`: The configuration variable modified by the user.
+- `selected_val`: The new value chosen for `selected_var`.
+- `constr_graph`: The constraint graph.
+- `constraints`: A dictionary mapping constraints to their corresponding error messages.
+- `valid_options`: A dictionary mapping each variable to its currently valid options.
+
+### **Output:**
+- If `selected_val` is invalid, return the associated **error message(s)**.
+- Otherwise, update `valid_options` for all affected variables.
+
+### **Algorithm:**
+
+1. **Check for Immediate Constraint Violations** 
+   - If `selected_val` is invalid:
+     - **Return the associated error message(s)** to the user.
+     - **Exit the algorithm** without propagating changes.
+   - Evaluate the **constraints** related to `selected_var` using  **Z3**.
+ 
+2. **Initialize Traversal** 
+   - Create a queue `Q` and enqueue `selected_var`.
+   - Initialize a set `visited = {selected_var}` to track processed variables.
+ 
+3. **Breadth-First Traversal for Constraint Propagation**
+   - While `Q` is not empty:
+     1. **Dequeue** `current_variable` from `Q`. 
+     2. **Retrieve all dependent variables** `D` from `constr_graph` that have edges from `current_variable`. 
+     3. **For each dependent variable** `var ∈ D`:
+        - If `var` is already in `visited`, **skip it**. 
+        - **Evaluate constraints** involving `var`: 
+          - Call the **Z3 solver** to check which options remain valid for `var`. 
+          - Update `valid_options[var]` accordingly. 
+        - If `valid_options[var]` has changed: 
+          - Enqueue `var` into `Q`. 
+          - Add `var` to `visited`. 
+
+4. **Terminate** 
+   - Stop when all affected variables have been updated.
+   - If any variable has no remaining valid options, **return an appropriate error message**.
+
+By dynamically re-evaluating constraints and adjusting available options,
+visualCaseGen provides real-time feedback, preventing invalid configurations and
+ensuring scientific consistency in CESM setups.
 
 
 # Frontend 
