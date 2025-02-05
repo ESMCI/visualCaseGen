@@ -49,8 +49,8 @@ further simplifying model customization.
 
 By automating and simplifying CESM configuration, visualCaseGen makes the model
 more accessible and custumizable, particularly for researchers exploring
-hierarchical modeling, idealized experiments, and custom coupled simulations.
-This tool allows users to focus on their scientific objectives rather than
+hierarchical modeling, idealized experiments, or custom coupled simulations.
+As such, the tool allows users to focus on their scientific objectives rather than
 technical setup challenges, ultimately enabling a more efficient and streamlined
 experiment workflow.
 
@@ -61,10 +61,10 @@ The Community Earth System Model (CESM) is a highly flexible and comprehensive
 climate modeling system that allows researchers to simulate the interactions
 between the atmosphere, ocean, land, ice, and river systems. While this
 flexibility enables a wide range of scientific experiments, it also makes model
-configuration highly complex and time-consuming. Setting up CESM experiments
+configuration highly complex and time-consuming. Setting up custom CESM experiments
 requires navigating intricate component compatibility constraints, grid
 configurations, and parameterization choices, often demanding extensive
-expertise in the model’s internal structure. In  particular, for non-standard
+expertise in the model’s internal structure. For non-standard
 experiments, users must manually modify XML an namelist files, maintain
 numerical and scientific consistency, and troubleshoot compatibility issues, a
 process that is error-prone, tedious, and time-intensive.
@@ -82,8 +82,8 @@ idealized and sophisticated climate modeling studies.
 # Constraint Solver
 
 One of the key challenges in configuring CESM is ensuring that different
-component settings are compatible. visualCaseGen addresses this challenge by
-incorporating an SMT-based constraint solver built using the Z3 SMT solver
+model settings are compatible. visualCaseGen addresses this challenge by
+incorporating an SMT-based constraint solver built using the Z3 solver
 [@de2008z3]. Z3 was chosen for its ability to manage complex logical
 relationships and efficiently reasoning about (in)compatibilities.
 
@@ -108,49 +108,140 @@ Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<180.0
 These constraints enforce scientifically valid model configurations, preventing
 users from selecting incompatible options.
 
-
 ## Why Use a Constraint Solver?
 
 Configuring CESM is inherently a constraint satisfaction problem (CSP), which
 can quickly become computationally complex as the number of configuration
 variables increases. Manually enforcing constraints would be impractical, making
-an SMT solver an ideal choice for efficiently managing interdependencies.
+an SMT solver an ideal choice. The benefits of using a solver include:
 
-The benefits of using a solver like Z3 in visualCaseGen include:
-
-- *Detecting Hidden Conflicts:* Individual constraints may be satisfied
+- **Detecting Hidden Conflicts:** Individual constraints may be satisfied
   independently, yet their combination can lead to conflicts that are nontrivial
   to detect manually.
 
-- *Preventing Dead-Ends:* Without a solver, users may unknowingly select
+- **Preventing Dead-Ends:** Without a solver, users may unknowingly select
   settings that lead to an unsatisfiable configuration, forcing them to restart
   their setup. Thanks to the solver, visualCaseGen dynamically guides users
   toward valid options.
 
-- *Enabling Constraint Analysis:* The solver can answer critical questions, such as:
+- **Enabling Constraint Analysis:** The solver can answer critical questions, such as:
   - Are all constraints satisfiable?
   - Are there unreachable options that need adjustment?
   - Are any constraints redundant and can be optimized?
 
-- Scalability and Efficiency: As the number of variables and constraints grows
-  exponentially, manually checking compatibility becomes infeasible. The visualCaseGen
-  constraint solver efficiently handles large-scale constraint resolution, ensuring rapid
-  feedback  even for large number of CESM configuration variables.
+- **Scalability and Efficiency:** As the number of variables and constraints grows
+  exponentially, manually checking compatibility becomes infeasible. The 
+  solver efficiently handles large-scale constraint resolution, ensuring rapid
+  feedback even for large number of configuration variables.
 
+ 
+# The Stage Mechanism
 
+A key backend concept in visualCaseGen is the Stage Mechanism, which structures
+the CESM configuration process into consecutive steps (stages). Each stage
+includes a set of related configuration variables that can be adjusted together.
+Based on the user's selections, different stages are activated dynamically,
+guiding the user through a structured workflow.
 
+## Stage Pipeline
 
+All possible stage paths collectively form the stage pipeline,
+which dictates:
 
+ - The sequence in which configuration variables are presented to the user. 
+ - The precedence of variables: earlier stages have higher priority over later ones.
 
+[Insert Figure: Stage Pipeline]
 
+A key complexity arises when the same variable appears in multiple stages. This
+is allowed as long as the variable is not reachable along the same path within
+the stage pipeline. To prevent cyclic dependencies, therefore, the stage pipeline must form
+a directed acyclic graph (DAG), ensuring:
 
+ - A consistent variable precedence hierarchy.
+ - No looping or contradictions in variable settings.
 
+## Constraint Graph
 
-## The stage mechanism 
+Using the stage pipeline and specified constraints, visualCaseGen constructs a
+constraint graph. In this graph:
+
+ - Nodes represent configuration variables. 
+ - Directed edges represent dependencies or constraints between variables.
+ - Edges are directed from higher-precedence variables to lower-precedence variables.
+ 
+ This constraint graph enforces the correct order of
+configuration steps, ensuring that dependencies are resolved before
+lower-priority settings are adjusted.
+
+[Insert Figure: Constraint Graph]
+
+## Interactive Constraint Checking
+
+During the configuration process, when a user makes a selection, the constraint
+graph is traversed to identify all variables that are affected by the selection.
+This traversal is done in a breadth-first manner, starting from the selected
+variable and following the edges in the direction of the constraints. The
+traversal stops at variables whose options validities are not affected by the
+selection. As such the traversal is limited to the variables that are directly
+or indirectly affected by the user's selection, which in turn depends on the
+the user input, stage hierarchy, and the specified constraints., Below is 
+visualCaseGen's simplified interactive constraint checking algorithm:
+
+--- 
+
+### **Input:**
+- `selected_variable`: The configuration variable modified by the user.
+- `selected_value`: The new value chosen for `selected_variable`.
+- `constraint_graph`: A directed graph where nodes represent configuration variables and edges represent constraints.
+- `constraints`: A dictionary mapping constraints to their corresponding **Z3 logical expressions** and **error messages**.
+- `valid_options`: A dictionary mapping each variable to its currently valid options.
+
+### **Output:**
+- If `selected_value` is invalid, return the associated **error message(s)**.
+- Otherwise, update `valid_options` for all affected variables.
+
+### **Algorithm:**
+
+1. **Check for Immediate Constraint Violations**  
+   - If `selected_value` is invalid:  
+     - **Return the associated error message(s)** to the user.  
+     - **Exit the algorithm** without propagating changes.  
+   - Evaluate the **constraints** related to `selected_variable` using  **Z3**.
+
+2. **Initialize Traversal**  
+   - Create a queue `Q` and enqueue `selected_variable`.
+   - Initialize a set `visited = {selected_variable}` to track processed variables.
+
+3. **Breadth-First Traversal for Constraint Propagation**  
+   - While `Q` is not empty:
+     1. **Dequeue** `current_variable` from `Q`.
+     2. **Retrieve all dependent variables** `D` from `constraint_graph` that have edges from `current_variable`.
+     3. **For each dependent variable** `var ∈ D`:
+        - If `var` is already in `visited`, **skip it**.
+        - **Evaluate constraints** involving `var`:
+          - Call the **Z3 solver** to check which options remain valid for `var`.
+          - Update `valid_options[var]` accordingly.
+        - If `valid_options[var]` has changed:
+          - Enqueue `var` into `Q`.
+          - Add `var` to `visited`.
+
+4. **Terminate**  
+   - Stop when all affected variables have been updated.
+   - If any variable has no remaining valid options, **return an appropriate error message**.
+
+By dynamically re-evaluating constraints and adjusting available options,
+visualCaseGen provides real-time feedback, preventing invalid configurations and
+ensuring scientific consistency in CESM setups.
+
+---
 
 
 # Frontend 
 
+ipywidgets, traitlets, ...
+
+highly portable, robust, familiar to scientists, ...
 
 
 # Workflow 
@@ -161,10 +252,6 @@ detailed descriptions of constraints, guiding users to make informed and
 valid choices in their experiment designs. This framework makes CESM 
 experiment configuration more accessible, significantly reducing setup time
 and expanding the range of modeling applications available to users.
-
-
-# Remarks
-
 
 
 In standard
@@ -178,56 +265,8 @@ unique component sets and resolutions, mixing complexity levels across
 components and generating idealized or sophisticated configurations suited to 
 specific research goals. 
 
-# The visualCaseGen package
+# Remarks
 
-The visualCaseGen project is designed to address the challenges of 
-configuring and running idealized or complex simulations with CESM. As a graphical 
-user interface (GUI), visualCaseGen simplifies the process of model 
-configuration by providing an intuitive platform for users to interact 
-with CESM's model hierarchy. Users can seamlessly browse predefined 
-configurations or create custom setups, adjusting individual 
-components such as the atmosphere, ocean, and land models, as 
-well as associated physics packages and grid resolutions. By 
-guiding users through the setup process, visualCaseGen ensures 
-that all components are compatible and consistent.
-
-This package empowers both novice and expert users to configure CESM 
-in a way that aligns with their specific research needs. With a focus 
-on accessibility, visualCaseGen reduces the time and expertise required 
-to properly configure CESM, making high-level climate simulations more 
-approachable and easier to execute. This flexibility helps to extend 
-the model’s application range, allowing users to experiment with both 
-simple and complex configurations depending on the scientific objectives 
-at hand.
-
-A typical workflow of visualCaseGen, consisting of (1) component set
-configuration, (2) grid selection or construction, and, finally (3)
-launching of the experiemnt, is captured in the screenshot of the GUI
-(Figure ...)
-
-
-# How visualCaseGen Works
-
-...
-
-
-# Software Design
-
-lorem ipsun
-
-## The stage mechanism
-
-lorem ipsum
-
-## Constraint specification and solver
-
-lorem ipsum, SMT-based, z3py, constraint graph, ...
-
-## visual elements and dynamic behavior
-
-ipywidgets, traitlets, ...
-
-highly portable, robust, familiar to scientists, ...
 
 # Figures
 
