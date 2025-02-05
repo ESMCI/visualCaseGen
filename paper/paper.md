@@ -217,14 +217,14 @@ selections, as illustrated in \autoref{fig:Stage1_8}. This feature helps guide
 users through complex configuration dependencies, and helping them make informed
 adjustments.
 
-![Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_7.png)
+![Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_8.png)
 
 As another example of streamlining model customization, \autoref{fig:TopoEditor}
 shows the TopoEditor widget that comes with visualCaseGen. This tool allows users
 to interactively modify ocean bathymetry, enhancing customizability and
 ease of use.
 
-![TopoEditor widget \label{fig:STopoEditor}](TopoEditor.png)
+![TopoEditor widget \label{fig:TopoEditor}](TopoEditor.png)
 
 # Remarks
 
@@ -239,7 +239,7 @@ manually editing CESM, modifying runtime parameters, consulting experts for
 component-specific adjustments, and extensive trial-and-error testing. As a
 result, configuring the model took weeks before achieving a working setup.
 
-![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png)
+![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png){height="250pt"}
 
 
 visualCaseGen can significantly accelerate similar
