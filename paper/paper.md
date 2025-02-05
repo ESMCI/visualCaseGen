@@ -38,7 +38,9 @@ To ensure consistency and compatibility, visualCaseGen incorporates a constraint
 solver based on satisfiability modulo theories (SMT). This solver systematically
 analyzes dependencies between experiment settings, detects conflicts, and
 provides detailed explanations of incompatibilities, allowing users to make
-informed adjustments.
+informed adjustments. the SMT-based approach enables dynamic, real-time
+validation of model settings, significantly reducing setup errors and ensuring
+that only scientifically viable configurations are selected.
 
 On the frontend, visualCaseGen is implemented as a Jupyter-based GUI, offering
 an intuitive, step-by-step interface for browsing standard CESM configurations,
@@ -239,7 +241,7 @@ manually editing CESM, modifying runtime parameters, consulting experts for
 component-specific adjustments, and extensive trial-and-error testing. As a
 result, configuring the model took weeks before achieving a working setup.
 
-![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png){height="250pt"}
+![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png){height="300pt"}
 
 
 visualCaseGen can significantly accelerate similar
