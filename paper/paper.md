@@ -65,28 +65,41 @@ workflow.
 
 
 # Statement of need
-
 CESM is a highly flexible and comprehensive
-climate modeling system that allows researchers to simulate the interactions
+climate modeling system that enables researchers to simulate interactions
 between the atmosphere, ocean, land, ice, and river systems. While this
-flexibility enables a wide range of scientific experiments, it also makes model
-configuration highly complex and time-consuming. Setting up custom CESM
+flexibility supports a wide range of scientific experiments, it also introduces
+significant complexity in model configuration. Setting up custom CESM
 experiments requires navigating intricate component compatibility constraints,
-grid configurations, and parameterization choices, often demanding extensive
+grid configurations, and parameterization choices—often demanding extensive
 expertise in the model’s internal structure. For non-standard experiments, users
-must manually modify the CESM codebase and runtime paramter files, maintain
-numerical and scientific consistency, and troubleshoot compatibility issues, a
-process that is error-prone, tedious, and time-intensive.
+must manually modify CESM’s codebase and runtime parameter files, maintain
+numerical and scientific consistency, and troubleshoot compatibility issues.
+This process is time-intensive, error-prone, and can take weeks before yielding
+a functional setup.
 
-visualCaseGen was developed to overcome these usability barriers and streamline
-the CESM experiment setup process. As a GUI, visualCaseGen eliminates the need
-for manual modifications and provides an intuitive, structured approach to
-constructing new model configurations. It enables users to browse standard CESM
-setups, create custom model configurations, and modify grids with ease,
-significantly reducing setup complexity and time. By automating tedious
-configuration tasks, visualCaseGen empowers researchers to focus on scientific
-exploration rather than technical setup, streamlining model utilization for both
-idealized and sophisticated climate modeling studies.
+A recent study by @wu2021coupled exemplifies these challenges. Their work
+involved configuring an idealized CESM experiment to study atmosphere-ocean
+interactions using two simplified ocean-covered models: one without continents
+and another with a pole-to-pole strip continent. The goal was to investigate how
+these configurations influence Hadley circulation, equatorial upwelling, and
+precipitation patterns (\autoref{fig:wuEtAl}). However, setting up these
+experiments required extensive manual intervention, including modifying CESM
+codebase, adjusting runtime parameters, consulting domain experts for
+component-specific configurations, and conducting numerous trial-and-error
+iterations.
+
+visualCaseGen was developed to address such usability barriers and streamline
+CESM experiment setup. As a graphical user interface (GUI), it eliminates the
+need for manual modifications and provides an intuitive, structured workflow for
+constructing model configurations. visualCaseGen allows users to browse standard
+CESM setups, create custom configurations, and modify grids with
+ease—significantly reducing setup complexity and time.
+
+![Sea surface temperature and precipitable water distribution from Aqua and
+Ridge planet simulations using CESM. Adapted from [@wu2021coupled].
+\label{fig:wuEtAl}](wuEtAl.png){height="300pt"}
+
 
 # Constraint Solver
 
@@ -236,17 +249,6 @@ ease of use.
 
 # Remarks
 
-In a recent study, @wu2021coupled configured an idealized CESM experiment to
-study atmosphere-ocean interactions in simplified climate models
-(\autoref{fig:wuEtAl}). Their approach involved modifying CESM to create two
-idealized ocean-covered models, one without continents and another with a
-pole-to-pole strip continent to investigate how simplified configurations affect
-Hadley circulation, equatorial upwelling, and precipitation patterns. However,
-setting up these experiments was a labor-intensive process that required
-manually editing CESM, modifying runtime parameters, consulting experts for
-component-specific adjustments, and extensive trial-and-error testing. As a
-result, configuring the model took weeks before achieving a working setup.
-
 visualCaseGen can significantly accelerate similar
 studies by automating many aspects of experiment configuration. Instead of
 manually modifying CESM files, modelers can use visualCaseGen’s interactive GUI
@@ -258,7 +260,9 @@ fine-tuning, visualCaseGen allows modelers to generate an initial working
 configuration in a matter of hours rather than weeks, greatly improving
 efficiency and accessibility.
 
-![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png){height="350pt"}
+By automating tedious configuration tasks, visualCaseGen enables researchers to
+focus on scientific exploration rather than technical setup, making CESM more
+accessible for both idealized and complex climate modeling studies.
 
 # Acknowledgements
 
