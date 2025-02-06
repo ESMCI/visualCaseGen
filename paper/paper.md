@@ -27,20 +27,22 @@ visualCaseGen is a graphical user interface (GUI) designed to streamline the
 creation and configuration of Community Earth System Model (CESM) experiments.
 Developed at the NSF National Center for Atmospheric Research (NCAR), CESM is a
 leading climate model capable of simulating the Earth's climate system at
-varying levels of complexity [@danabasoglu2020community]. Since configuring
-custom CESM experiments requires intricate knowledge of component compatibility,
-grid settings, parameterization choices, and model hierarchies, the setup
-process is complex and time-consuming for unique or breakthrough applications.
-visualCaseGen provides a user-friendly interface that simplifies these tasks,
-significantly reducing setup time and improving ease of use for modelers.
+varying levels of complexity [@danabasoglu2020community]. Configuring custom
+CESM experiments demands a deep understanding of component compatibility, grid
+configurations, parameterization schemes, and model hierarchies, making the
+setup process highly complex and time-intensive, particularly for non-standard
+and cutting-edge applications. visualCaseGen addresses these challenges by
+providing an intuitive, interactive interface that automates and simplifies
+experiment setup, significantly reducing configuration time and enhancing
+usability for modelers.
 
 To ensure consistency and compatibility, visualCaseGen incorporates a constraint
-solver based on satisfiability modulo theories (SMT). This solver systematically
-analyzes dependencies between experiment settings, detects conflicts, and
-provides detailed explanations of incompatibilities, allowing users to make
-informed adjustments. the SMT-based approach enables dynamic, real-time
-validation of model settings, significantly reducing setup errors and ensuring
-that only scientifically viable configurations are selected.
+solver based on satisfiability modulo theories (SMT) [@de2011satisfiability].
+This solver systematically analyzes dependencies between experiment settings,
+detects conflicts, and provides detailed explanations of incompatibilities,
+allowing users to make informed adjustments. the SMT-based approach enables
+dynamic, real-time validation of model settings, significantly reducing setup
+errors and ensuring that only scientifically viable configurations are selected.
 
 On the frontend, visualCaseGen is implemented as a Jupyter-based GUI, offering
 an intuitive, step-by-step interface for browsing standard CESM configurations,
@@ -122,7 +124,7 @@ users from selecting incompatible options.
 
 Configuring CESM is inherently a constraint satisfaction problem (CSP), which
 can quickly become computationally complex as the number of configuration
-variables increases. Manually enforcing constraints would be impractical, making
+variables increases [@biere2009handbook]. Manually enforcing constraints would be impractical, making
 an SMT solver an ideal choice. The benefits of using a solver include:
 
 - **Detecting Hidden Conflicts:** Individual constraints may be satisfied
