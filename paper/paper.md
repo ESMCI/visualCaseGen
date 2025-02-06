@@ -81,17 +81,17 @@ a functional setup.
 
 A recent study by @wu2021coupled exemplifies these challenges. Their work
 involved configuring an idealized CESM experiment to study atmosphere-ocean
-interactions using two simplified ocean-covered models: one without continents
-and another with a pole-to-pole strip continent. The goal was to investigate how
+interactions using two simplified aquaplanet models: one without continents and
+another with a pole-to-pole strip continent. The goal was to investigate how
 these configurations influence Hadley circulation, equatorial upwelling, and
 precipitation patterns (\autoref{fig:wuEtAl}). However, setting up these
 experiments required extensive manual intervention, including modifying CESM
-codebase, adjusting runtime parameters, consulting domain experts for
-component-specific configurations, and conducting numerous trial-and-error
-iterations. visualCaseGen was developed to address such usability barriers and
-streamline CESM experiment setup. As a graphical user interface (GUI), it
-eliminates the need for manual modifications and provides an intuitive,
-structured workflow for constructing model configurations. 
+codebase, creating custom input files, adjusting runtime parameters, consulting
+domain experts for component-specific configurations, and conducting numerous
+trial-and-error iterations. visualCaseGen was developed to address such
+usability barriers and streamline CESM experiment setup. As a graphical user
+interface (GUI), it eliminates the need for manual modifications and provides an
+intuitive, structured workflow for constructing model configurations. 
 
 ![Sea surface temperature and precipitable water distribution from Aqua and
 Ridge planet simulations using CESM. Adapted from @wu2021coupled.
@@ -227,7 +227,7 @@ selections, as illustrated in \autoref{fig:Stage1_8}. This feature helps guide
 users through complex configuration dependencies, and helping them make informed
 adjustments.
 
-![Interactive feedback in incompatible choices. \label{fig:Stage1_7}](Stage1_8.png)
+![Interactive feedback in incompatible choices. \label{fig:Stage1_8}](Stage1_8.png)
 
 As another example of streamlining model customization, \autoref{fig:TopoEditor}
 shows the TopoEditor widget that comes with visualCaseGen. This tool allows users
@@ -238,16 +238,16 @@ ease of use.
 
 # Remarks
 
-visualCaseGen can significantly accelerate similar
-studies by automating many aspects of experiment configuration. Instead of
-manually modifying CESM files, modelers can use visualCaseGen’s interactive GUI
-to define custom model setups, mix and match component configurations, and
-automatically resolve compatibility constraints. The SMT-based constraint solver
+visualCaseGen can significantly accelerate CESM experiment setup for a wide
+range of studies by automating many aspects of experiment configuration. Instead
+of manual intervention, modelers can use visualCaseGen’s interactive
+GUI to define model setups, mix and match component configurations,
+generate custom grids and parameters. The SMT-based constraint solver
 ensures that only valid model settings are selected, reducing the need for
 trial-and-error debugging. While complex custom cases may still require
 fine-tuning, visualCaseGen allows modelers to generate an initial working
 configuration in a matter of hours rather than weeks, greatly improving
-efficiency and accessibility.
+efficiency and ease-of-use.
 
 By automating tedious configuration tasks, visualCaseGen enables researchers to
 focus on scientific exploration rather than technical setup, making CESM more
