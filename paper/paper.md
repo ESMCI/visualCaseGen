@@ -95,19 +95,18 @@ structured workflow for constructing model configurations.
 
 ![Sea surface temperature and precipitable water distribution from Aqua and
 Ridge planet simulations using CESM. Adapted from @wu2021coupled.
-\label{fig:wuEtAl}](wuEtAl.png){height="300pt"}
+\label{fig:wuEtAl}](wuEtAl.png){height="270pt"}
 
 # Constraint Solver
 
 One of the main challenges in configuring CESM experiments is ensuring that
 different model settings remain compatible. CESM’s configuration involves
-numerous interdependent components, grids, and parameterization choices, many of
+determining components, physics, grids, and parameterization choices, many of
 which have strict compatibility constraints. visualCaseGen addresses this
 challenge by integrating an SMT-based constraint solver, built using the Z3
 solver [@de2008z3]. Z3 was chosen for its robust Python API, and its ability to
-efficiently manage complex logical relationships and reason about compatibility
-constraints, making it well-suited for handling CESM’s intricate configuration
-dependencies.
+efficiently manage complex logical relationships, making it well-suited for 
+handling CESM’s intricate configuration dependencies.
 
 In visualCaseGen, constraints are specified as key-value pairs, where the key
 represents a Z3 logical expression defining a condition, and the value is the
@@ -129,9 +128,6 @@ Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"),
     "to avoid singularities in open water",
 
 ```
-
-These constraints enforce scientifically consistent model configurations, preventing
-users from selecting incompatible options.
 
 ## Why Use a Constraint Solver?
 
@@ -157,7 +153,7 @@ an SMT solver an ideal choice. The benefits of using a solver include:
 - **Scalability and Efficiency:** As the number of variables and constraints grows
   exponentially, manually checking compatibility becomes infeasible. The 
   solver efficiently handles large-scale constraint resolution, ensuring rapid
-  feedback even for large number of configuration variables.
+  feedback even for large number of variables.
 
  
 # The Stage Mechanism
@@ -170,20 +166,17 @@ guiding the user through a structured workflow.
 
 ## Stage Pipeline
 
-All possible stage paths collectively form the stage pipeline as shown in \autoref{fig:pipeline},
-which dictates:
-
- - The sequence in which configuration variables are presented to the user. 
- - The precedence of variables: earlier stages have higher priority over later ones.
+All possible stage paths collectively form the stage pipeline as shown in
+\autoref{fig:pipeline}, which dictates the sequence in which configuration
+variables are presented to the user, and the *precedence of variables* where
+earlier stages have higher priority over later ones. A complexity arises when
+the same variable appears in multiple stages. This is allowed as long as it is
+not reachable along the same path within the stage pipeline. To prevent cyclic
+dependencies, the stage pipeline must therefore form a directed acyclic graph
+(DAG), enabling a consistent variable precedence hierarchy and eliminating the
+possibility of loops or contradictory variable settings.
 
 ![The visualCaseGen stage pipeline, starting from the top node (1. Component Set) and ending at the bottom node (3. Launch). The user follows a path along this pipeline based on their modeling needs and selections. \label{fig:pipeline}](stage_pipeline.png)
-
-A complexity arises when the same variable appears in multiple stages. This
-is allowed as long as it is not reachable along the same path within the stage
-pipeline. To prevent cyclic dependencies, the stage pipeline must therefore form a
-directed acyclic graph (DAG), enabling a consistent variable precedence
-hierarchy and eliminating the possibility of loops or contradictory variable
-settings.
 
 ## Constraint Graph and its Traversal
 
@@ -194,8 +187,6 @@ constraint graph, as shown in \autoref{fig:cgraph}. In this graph:
  - Directed edges represent dependencies or constraints between variables.
  - Edges are directed from higher-precedence variables to lower-precedence variables.
  
-![The visualCaseGen constraint graph. \label{fig:cgraph}](cgraph.png)
-
 During the configuration process, when a user makes a selection, the constraint
 graph is traversed to identify all variables that are affected by the selection.
 This traversal is done in a breadth-first manner, starting from the selected
@@ -207,6 +198,8 @@ user input, stage hierarchy, and the specified constraints. By dynamically
 re-evaluating constraints and adjusting available options, visualCaseGen
 provides real-time feedback, preventing invalid configurations and ensuring
 scientific consistency in CESM setups.
+
+![The visualCaseGen constraint graph. \label{fig:cgraph}](cgraph.png)
 
 # Frontend 
 
