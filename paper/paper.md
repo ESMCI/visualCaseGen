@@ -47,9 +47,13 @@ errors and ensuring that only scientifically viable configurations are selected.
 On the frontend, visualCaseGen is implemented as a Jupyter-based GUI, offering
 an intuitive, step-by-step interface for browsing standard CESM configurations,
 defining custom experiment setups, and modifying grid and component settings.
-Additionally, the tool features point-and-click utilities for creating and
-modifying ocean bathymetry, along with custom land surface property tools,
-further simplifying model customization.
+Designed with a wizard-like interface, visualCaseGen walks users through each
+stage of the CESM configuration process, ensuring that all necessary settings
+are selected in a logical sequence while dynamically updating available options
+based on user choices. Additionally, the tool features point-and-click utilities
+for creating and modifying ocean bathymetry, along with custom land surface
+property tools, further simplifying model customization and minimizing the need
+for manual file modifications.
 
 By automating and simplifying CESM configuration, visualCaseGen makes the model
 more accessible and custumizable, particularly for researchers exploring
@@ -243,9 +247,6 @@ manually editing CESM, modifying runtime parameters, consulting experts for
 component-specific adjustments, and extensive trial-and-error testing. As a
 result, configuring the model took weeks before achieving a working setup.
 
-![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png){height="300pt"}
-
-
 visualCaseGen can significantly accelerate similar
 studies by automating many aspects of experiment configuration. Instead of
 manually modifying CESM files, modelers can use visualCaseGen’s interactive GUI
@@ -256,6 +257,8 @@ trial-and-error debugging. While complex custom cases may still require
 fine-tuning, visualCaseGen allows modelers to generate an initial working
 configuration in a matter of hours rather than weeks, greatly improving
 efficiency and accessibility.
+
+![Sea surface temperature and precipitable water distribution from Aqua and Ridge planet simulations using CESM. Taken from [@wu2021coupled]. \label{fig:wuEtAl}](wuEtAl.png){height="350pt"}
 
 # Acknowledgements
 
