@@ -95,7 +95,7 @@ structured workflow for constructing model configurations.
 
 ![Sea surface temperature and precipitable water distribution from Aqua and
 Ridge planet simulations using CESM. Adapted from @wu2021coupled.
-\label{fig:wuEtAl}](wuEtAl.png){height="300pt"}
+\label{fig:wuEtAl}](wuEtAl.png){height="280pt"}
 
 # Constraint Solver
 
@@ -199,8 +199,6 @@ re-evaluating constraints and adjusting available options, visualCaseGen
 provides real-time feedback, preventing invalid configurations and ensuring
 scientific consistency in CESM setups.
 
-![The visualCaseGen constraint graph. \label{fig:cgraph}](cgraph.png)
-
 # Frontend 
 
 The visualCaseGen frontend provides an intuitive and interactive interface for
@@ -210,6 +208,8 @@ machines, HPC clusters, and cloud environments. This portability and flexibility
 researchers to configure CESM experiments efficiently, whether prototyping
 lightweight simulations on personal computers or running sophisticated applications on remote supercomputing
 systems.
+
+![The visualCaseGen constraint graph. \label{fig:cgraph}](cgraph.png)
 
 \autoref{fig:Stage1_7} displays an example stage from the visualCaseGen GUI,
 where users can select the individual models to be coupled in their CESM
