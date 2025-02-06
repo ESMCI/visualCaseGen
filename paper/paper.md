@@ -257,8 +257,8 @@ accessible for both idealized and complex climate modeling studies.
 
 This work was supported by the NSF Cyberinfrastructure for Sustained Scientific
 Innovation (CSSI) program under award number 2004575. Special thanks to the
-CESM Software Engineering Group for their support and feedback during the
-development of visualCaseGen.
+CESM Software Engineering Working Group for their support and feedback during
+the development of visualCaseGen.
 
 # References
 
