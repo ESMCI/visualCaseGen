@@ -95,7 +95,7 @@ structured workflow for constructing model configurations.
 
 ![Sea surface temperature and precipitable water distribution from Aqua and
 Ridge planet simulations using CESM. Adapted from @wu2021coupled.
-\label{fig:wuEtAl}](wuEtAl.png){height="270pt"}
+\label{fig:wuEtAl}](wuEtAl.png){height="300pt"}
 
 # Constraint Solver
 
