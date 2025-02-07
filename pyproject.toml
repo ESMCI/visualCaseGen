@@ -26,7 +26,8 @@ dependencies = [
   "netcdf4>=1.6,<1.7",
   "xarray>=2023.12,<2024",
   "black>=24.1,<24.2",
-  "pytest>=8.0,<8.1"
+  "pytest>=8.0,<8.1",
+  "hypothesis>=6.125.1,<6.126"
 ]
 
 [build-system]

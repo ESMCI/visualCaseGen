@@ -6,6 +6,7 @@ import shutil
 from xml.etree.ElementTree import SubElement
 import xml.etree.ElementTree as ET
 import xarray as xr
+import math 
 
 from ProConPy.config_var import cvars
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
@@ -501,6 +502,28 @@ class CaseCreator:
                 xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
+
+        # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
+        num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
+        cores = CaseCreator._calc_cores_based_on_grid(num_points)
+        with self._out:
+            print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
+            xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
+
+    @staticmethod
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
+        """Calculate the number of cores based on the grid size."""
+
+
+        min_cores = math.ceil(num_points/max_points_per_core)
+        max_cores = math.ceil(num_points/min_points_per_core)    
+
+        # Request a multiple of the entire core (ideal_multiple_of_cores_used) starting from the min
+        ideal_cores = ((min_cores + ideal_multiple_of_cores_used - 1) // ideal_multiple_of_cores_used) * ideal_multiple_of_cores_used
+        if ideal_cores <= max_cores:
+            return ideal_cores
+        else:
+            return (max_cores+min_cores)//2
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
