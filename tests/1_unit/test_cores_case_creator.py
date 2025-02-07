@@ -10,15 +10,18 @@ def test_calc_cores_based_on_grid_all_values(num_points):
 
 def test_calc_cores_based_on_grid_cases():
     """Test that the number of cores is calculated correctly based on the number of points"""
-    # Test minimum possible cores is 16
-    assert CaseCreator._calc_cores_based_on_grid(1) == 16
+    # Test minimum possible cores is 1
+    assert CaseCreator._calc_cores_based_on_grid(1) == 1
 
-    # Test arbitrary number of points
-    assert CaseCreator._calc_cores_based_on_grid(32) == 16
+    # Test one under the min pts
+    assert CaseCreator._calc_cores_based_on_grid(33) == 1
 
-    # Test bumping one iteration up from the default (128+16) based on maximum allowed points per core
-    assert CaseCreator._calc_cores_based_on_grid(801*128) == 144
+    # Test ideal cores amount
+    assert CaseCreator._calc_cores_based_on_grid(800*128) == 128
 
-    # Test dropping one iteration up from the default (128-16) based on minimum allowed points per core
-    assert CaseCreator._calc_cores_based_on_grid(128*32 -1 ) == 112
+    assert CaseCreator._calc_cores_based_on_grid(800*32) == 128
+
+    assert CaseCreator._calc_cores_based_on_grid(740 * 780) == 768
+
+
     

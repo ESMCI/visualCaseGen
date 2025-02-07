@@ -6,6 +6,7 @@ import shutil
 from xml.etree.ElementTree import SubElement
 import xml.etree.ElementTree as ET
 import xarray as xr
+import math 
 
 from ProConPy.config_var import cvars
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
@@ -510,24 +511,19 @@ class CaseCreator:
             xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
 
     @staticmethod
-    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800):
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
         """Calculate the number of cores based on the grid size."""
 
 
-        cores = 128 # Start from 128 which is the default 128 cores per node in derecho
-        iteration_amount = 16
-        pts_per_core = num_points/float(cores)
-        
-        while pts_per_core > max_points_per_core:
-            cores = cores + iteration_amount
-            pts_per_core = num_points/cores
+        min_cores = math.ceil(num_points/max_points_per_core)
+        max_cores = math.ceil(num_points/min_points_per_core)    
 
-        while pts_per_core < min_points_per_core and cores > iteration_amount: # Don't let cores get below iteration amount
-            cores = cores - iteration_amount
-            pts_per_core = num_points/cores
-
-
-        return cores
+        # Request a multiple of the entire core (128) starting from the min
+        ideal_cores_amount = (min_cores + 127) //128 * 128
+        if ideal_cores_amount <= max_cores:
+            return ideal_cores_amount
+        else:
+            return (max_cores+min_cores)//2
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
