@@ -19,38 +19,32 @@ jobs:
 
       - name: Install xmllint
         run: sudo apt-get install -y libxml2-utils
-
+      - name: Checkout VisualCaseGen to temp folder
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: VCGTEMP
       # clone CESM
-      - uses: actions/checkout@v4
+      - name: Checkout CESM
+        uses: actions/checkout@v4
         with:
           repository: alperaltuntas/CESM
           ref: cesm3_0_beta03_gui
+          path: CESM
           #submodules: recursive
 
       # Run git-fleximod
-      - name: checkout CESM
+      - name: Checkout CESM submodules
         env:
           GIT_CLONE_PROTECTION_ACTIVE: false
         run: |
+          cd CESM
           ./bin/git-fleximod update
-
-      # Checkout the correct visualCaseGen branch
-      - name: Checkout initial event (Pull Request)
-        if: ${{ github.event_name == 'pull_request' }}
+  
+      # Copy the checked out visualCaseGen branch to the CESM visualCaseGen folder
+      - name: Copy VCG checkout into the correct folder
         run: |
-          echo "Handling pull request"
-          cd visualCaseGen/
-          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
-          git checkout pr-${{ github.event.pull_request.number }}
-          git submodule update --init
-
-      - name: Checkout initial event (Push)
-        if: ${{ github.event_name == 'push' }}
-        run: |
-          echo "Handling push"
-          cd visualCaseGen/
-          git checkout ${{ github.sha }}
-          git submodule update --init
+          cp -r VCGTEMP/* CESM/visualCaseGen/
 
       # set up conda
       - uses: conda-incubator/setup-miniconda@v3
@@ -58,7 +52,7 @@ jobs:
       # visualCaseGen conda env
       - name: Create visualCaseGen conda env
         run: |
-          cd visualCaseGen/
+          cd CESM/visualCaseGen/
           conda env create --file environment.yml
           conda activate visualCaseGen
     
@@ -71,7 +65,7 @@ jobs:
         run: |
           export SRC_PATH="${GITHUB_WORKSPACE}"
           mkdir -p /home/runner/cesm/scratch
-          cd visualCaseGen/
+          cd CESM/visualCaseGen/
           conda activate visualCaseGen
           pytest tests
 
