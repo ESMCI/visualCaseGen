@@ -417,4 +417,4 @@ class MOM6BathyLauncher(VBox):
     @staticmethod
     def cice_grid_file_path():
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"cice_grid.{MOM6BathyLauncher.nc_file_suffix()}"
+        return custom_ocn_grid_path / f"cice_grid_{MOM6BathyLauncher.nc_file_suffix()}"
