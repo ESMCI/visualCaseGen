@@ -1,18 +1,17 @@
 import os
 import logging
-from ipywidgets import VBox, HBox, Button, Output, Text
 from pathlib import Path
 import subprocess
-import time
 import shutil
 from xml.etree.ElementTree import SubElement
 import xml.etree.ElementTree as ET
 import xarray as xr
+import math 
 
-from ProConPy.out_handler import handler as owh
 from ProConPy.config_var import cvars
-from ProConPy.dialog import alert_error
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
+from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl
 
 COMMENT = "\033[01;96m"  # bold, cyan
 SUCCESS = "\033[1;32m"  # bold, green
@@ -21,82 +20,26 @@ RESET = "\033[0m"
 BPOINT = "\u2022"
 
 
-class CaseCreator(VBox):
-    """A widget for creating a new case and applying initial modifications to it."""
+class CaseCreator:
+    """The base class for CaseCreatorWidget. Here, backend functionalities are implemented."""
 
-    def __init__(self, cime, **kwargs):
-        """Initialize the CaseCreator widget."""
+    def __init__(self, cime, output=None, allow_xml_override=False):
+        """Initialize CaseCreator object.
 
-        super().__init__(**kwargs)
+        Parameters
+        ----------
+        cime : CIME
+            The CIME instance.
+        output : Output, optional
+            The output widget to use for displaying log messages.
+        allow_xml_override : bool, optional
+            If True, allow overwriting existing entries in CESM xml files such as modelgrid_aliases_nuopc.xml
+            and component_grids_nuopc.xml. If False, raise an error if an entry with the same name already exists.
+        """
 
-        # A reference to the CIME instance
         self._cime = cime
-
-        self._txt_project = Text(
-            description="Project ID:",
-            layout={"width": "250px", "margin": "10px"},  # If the items' names are long
-            style={"description_width": "80px"},
-        )
-
-        cvars["CASEROOT"].observe(
-            self._on_caseroot_change, names="value", type="change"
-        )
-        cvars["MACHINE"].observe(self._on_machine_change, names="value", type="change")
-
-        self._btn_create_case = Button(
-            description="Create Case",
-            layout={"width": "160px", "margin": "5px"},
-            button_style="success",
-        )
-        self._btn_create_case.on_click(self._create_case)
-
-        self._btn_show_commands = Button(
-            description="Show Commands",
-            layout={"width": "160px", "margin": "5px"},
-        )
-        self._btn_show_commands.on_click(self._create_case)
-
-        self._out = Output()
-
-        self.children = [
-            self._txt_project,
-            HBox(
-                [self._btn_create_case, self._btn_show_commands],
-                layout={"display": "flex", "justify_content": "center"},
-            ),
-            self._out,
-        ]
-
-    @property
-    def disabled(self):
-        return super().disabled
-
-    @disabled.setter
-    def disabled(self, value):
-        # disable/enable all children
-        self._btn_create_case.disabled = value
-        self._btn_show_commands.disabled = value
-        self._txt_project.disabled = value
-        if cvars["CASE_CREATOR_STATUS"].value != "OK":
-            # clear only if the case creator wasn't completed
-            self._out.clear_output()
-
-    def _on_caseroot_change(self, change):
-        """This function is called when the caseroot changes. It resets the output widget."""
-        self._out.clear_output()
-
-    def _on_machine_change(self, change):
-        """This function is called when the machine changes. It resets the output widget.
-        It also shows/hides the project ID text box based on whether the machine requires
-        a project ID."""
-        new_machine = change["new"]
-        self._txt_project.value = ""
-        project_required = self._cime.project_required.get(new_machine, False)
-        if project_required:
-            self._txt_project.layout.display = "flex"
-        else:
-            self._txt_project.layout.display = "none"
-        self._out.clear_output()
+        self._out = DummyOutput() if output is None else output
+        self._allow_xml_override = allow_xml_override
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
@@ -134,47 +77,6 @@ class CaseCreator(VBox):
             and self._cime.machine != cvars["MACHINE"].value
         )
 
-    def _create_case(self, b=None):
-        """The main function that creates the case and applies initial modifications to it.
-        This function is called when the "Create Case" button or the "Show Commands" button
-        is clicked.
-        
-        Parameters
-        ----------
-        b : Button
-            The button that was clicked.
-        """
-        
-        # Determine if the commands should be printed or executed:
-        do_exec = b is not self._btn_show_commands
-
-        self._out.clear_output()
-        try:
-            self._final_checks()
-            self._do_create_case(do_exec)
-        except Exception as e:
-            with owh.out:
-                alert_error(str(e))
-            with self._out:
-                print(f"{ERROR}{str(e)}{RESET}")
-            self.revert_launch(do_exec)
-            return
-
-        if do_exec is True:
-            # Set the case creator status to OK and thus complete all stages.
-            # Remove the backup xml files
-            self._remove_orig_xml_files()
-            with owh.out:
-                cvars["CASE_CREATOR_STATUS"].value = "OK"
-            with self._out:
-                caseroot = cvars["CASEROOT"].value
-                print(
-                    f"{SUCCESS}Case created successfully at {caseroot}.{RESET}\n\n"
-                    f"{COMMENT}To further customize, build, and run the case, "
-                    f"navigate to the case directory in your terminal. To create "
-                    f"another case, restart the notebook.{RESET}\n"                   
-                )
-
     def _final_checks(self):
         """Perform final checks before attempting to create the case."""
 
@@ -186,12 +88,12 @@ class CaseCreator(VBox):
         elif cvars["MACHINE"].value is None:
             raise RuntimeError("No machine specified yet.")
         elif (
-            self._txt_project.value.strip() == ""
+            cvars["PROJECT"].value in [None, ""]
             and self._cime.project_required.get(cvars["MACHINE"].value, False) is True
         ):
             raise RuntimeError("No project specified yet.")
 
-    def _do_create_case(self, do_exec):
+    def create_case(self, do_exec):
         """Create and configure the case by running the necessary tools.
 
         Parameters
@@ -201,6 +103,11 @@ class CaseCreator(VBox):
         do_exec : bool, optional
             If True, print and execute the commands. If False, only print them
         """
+
+        self._out.clear_output()
+
+        # Perform final checks before creating the case:
+        self._final_checks()
 
         # Determine compset:
         if cvars["COMPSET_MODE"].value == "Standard":
@@ -243,17 +150,29 @@ class CaseCreator(VBox):
             print(f"cd {caseroot}\n")
 
         # Apply case modifications, e.g., xmlchanges and user_nl changes
-        self._apply_xmlchanges(caseroot, do_exec)
+        self._apply_all_xmlchanges(do_exec)
 
         # Run case.setup
-        self._run_case_setup(caseroot, do_exec)
+        run_case_setup(do_exec, self._is_non_local(), self._out)
 
         # Apply user_nl changes
-        self._appy_user_nl_changes(caseroot, do_exec)
+        self._apply_all_namelist_changes(do_exec)
 
+        # Clean up:
+        if do_exec:
+            self._remove_orig_xml_files()
+            cvars["CASE_CREATOR_STATUS"].value = "OK"
+            with self._out:
+                caseroot = cvars["CASEROOT"].value
+                print(
+                    f"{SUCCESS}Case created successfully at {caseroot}.{RESET}\n\n"
+                    f"{COMMENT}To further customize, build, and run the case, "
+                    f"navigate to the case directory in your terminal. To create "
+                    f"another case, restart the notebook.{RESET}\n"
+                )
 
     def _update_ccs_config(self, do_exec):
-        """Update the modelgrid_aliases and component_grids xml files with custom grid 
+        """Update the modelgrid_aliases and component_grids xml files with custom grid
         information if needed. This function is called before running create_newcase."""
 
         # If Custom grid is selected, update modelgrid_aliases and component_grids xml files:
@@ -288,7 +207,7 @@ class CaseCreator(VBox):
     def _update_modelgrid_aliases(self, custom_grid_path, ocn_grid, do_exec):
         """Update the modelgrid_aliases xml file with custom resolution information.
         This function is called before running create_newcase.
-        
+
         Parameters
         ----------
         custom_grid_path : Path
@@ -333,12 +252,16 @@ class CaseCreator(VBox):
         grids_tree = ET.parse(modelgrid_aliases_xml, parser=parser)
         grids_root = grids_tree.getroot()
 
-        # check if resolution is already in xml file:
+        # Check if a resp;iton with the same name already exists. If so, remove it or raise an error
+        # depending on the value of self._allow_xml_override:
         for resolution in grids_root.findall("model_grid"):
             if resolution.attrib["alias"] == resolution_name:
-                raise RuntimeError(
-                    f"Resolution {resolution_name} already exists in modelgrid_aliases."
-                )
+                if self._allow_xml_override:
+                    grids_root.remove(resolution)
+                else:
+                    raise RuntimeError(
+                        f"Resolution {resolution_name} already exists in modelgrid_aliases."
+                    )
 
         # Create new resolution entry in xml file:
         new_resolution = SubElement(
@@ -387,7 +310,7 @@ class CaseCreator(VBox):
     ):
         """Update the component_grids xml file with custom ocnice grid information.
         This function is called before running create_newcase.
-        
+
         Parameters
         ----------
         custom_grid_path : Path
@@ -440,12 +363,16 @@ class CaseCreator(VBox):
             # ET.indent(domains_tree, space="  ", level=0)
             domains_root = domains_tree.getroot()
 
-            # check if domain is already in xml file:
+            # Check if a domain with the same name already exists. If so, remove it or raise an error
+            # depending on the value of self._allow_xml_override:
             for domain in domains_root.findall("domain"):
                 if domain.attrib["name"] == ocn_grid:
-                    raise RuntimeError(
-                        f"Ocean grid {ocn_grid} already exists in component_grids."
-                    )
+                    if self._allow_xml_override:
+                        domains_root.remove(domain)
+                    else:
+                        raise RuntimeError(
+                            f"Ocean grid {ocn_grid} already exists in component_grids."
+                        )
 
             # Create new domain entry in xml file:
             new_domain = SubElement(
@@ -494,7 +421,7 @@ class CaseCreator(VBox):
 
     def _run_create_newcase(self, caseroot, compset, resolution, do_exec):
         """Run CIME's create_newcase tool to create a new case instance.
-        
+
         Parameters
         ----------
         caseroot : Path
@@ -521,8 +448,13 @@ class CaseCreator(VBox):
         )
 
         # append project id if needed:
-        if self._txt_project.value.strip() != "":
-            cmd += f"--project {self._txt_project.value.strip()} "
+        if project := cvars["PROJECT"].value:
+            cmd += f"--project {project} "
+
+        # append number of model instances if needed:
+        ninst = 1 if cvars["NINST"].value is None else cvars["NINST"].value
+        if ninst != 1:
+            cmd += f"--ninst {ninst} "
 
         # append --nonlocal if needed:
         if self._is_non_local():
@@ -547,22 +479,7 @@ class CaseCreator(VBox):
             if runout.returncode != 0:
                 raise RuntimeError("Error creating case.")
 
-    def _apply_xmlchanges(self, caseroot, do_exec):
-
-        def exec_xmlchange(var, val):
-
-            cmd = f"./xmlchange {var}={val}"
-            if self._is_non_local() is True:
-                cmd += " --non-local"
-            with self._out:
-                print(f"{cmd}\n")
-
-            if not do_exec:
-                return
-
-            runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
-            if runout.returncode != 0:
-                raise RuntimeError(f"Error running {cmd}.")
+    def _apply_all_xmlchanges(self, do_exec):
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
         if lnd_grid_mode == "Modified":
@@ -574,7 +491,7 @@ class CaseCreator(VBox):
                 # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
 
                 # lnd domain mesh
-                exec_xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value)
+                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, do_exec, self._is_non_local(), self._out)
 
                 # mask mesh (if modified)
                 base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
@@ -582,68 +499,39 @@ class CaseCreator(VBox):
                 lnd_dir = custom_grid_path / "lnd"
                 modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
                 assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
-                exec_xmlchange("MASK_MESH", modified_mask_mesh)
+                xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
-            
-    def _run_case_setup(self, caseroot, do_exec):
-        """Run the case.setup script to set up the case instance.
-        
-        Parameters
-        ----------
-        caseroot : Path
-            The path to the case directory.
-        do_exec : bool
-            If True, execute the commands. If False, only print them.    
-        """
 
-        # Run ./case.setup
-        cmd = "./case.setup"
-        if self._is_non_local():
-            cmd += " --non-local"
+        # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
+        num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
+        cores = CaseCreator._calc_cores_based_on_grid(num_points)
         with self._out:
-            print(
-                f"{COMMENT}Running the case.setup script with the following command:{RESET}\n"
-            )
-            print(f"{cmd}\n")
-        if do_exec:
-            runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
-            if runout.returncode != 0:
-                raise RuntimeError(f"Error running {cmd}.")
+            print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
+            xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
 
-    def _apply_user_nl(self, user_nl_filename, var_val_pairs, do_exec):
-        """Apply changes to a given user_nl file.
-        
-        Parameters
-        ----------
-        user_nl_filename : str
-            The name of the user_nl file to modify.
-        var_val_pairs : list of tuples
-            A list of tuples, where each tuple contains a variable name and its value.
-        do_exec : bool
-            If True, execute the commands. If False, only print them.
-        """
-
-        # confirm var_val_pairs is a list of tuples:
-        assert isinstance(var_val_pairs, list)
-        assert all(isinstance(pair, tuple) for pair in var_val_pairs)
-
-        with self._out:
-            print(f"{COMMENT}Adding parameter changes to {user_nl_filename}:{RESET}\n")
-            for var, val in var_val_pairs:
-                print(f"  {var} = {val}")
-            print("")
-        if not do_exec:
-            return
-        caseroot = cvars["CASEROOT"].value
-        with open(Path(caseroot) / user_nl_filename, "a") as f:
-            for var, val in var_val_pairs:
-                f.write(f"{var} = {val}\n")
+    @staticmethod
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
+        """Calculate the number of cores based on the grid size."""
 
 
-    def _appy_user_nl_changes(self, caseroot, do_exec):
+        min_cores = math.ceil(num_points/max_points_per_core)
+        max_cores = math.ceil(num_points/min_points_per_core)    
+
+        # Request a multiple of the entire core (ideal_multiple_of_cores_used) starting from the min
+        ideal_cores = ((min_cores + ideal_multiple_of_cores_used - 1) // ideal_multiple_of_cores_used) * ideal_multiple_of_cores_used
+        if ideal_cores <= max_cores:
+            return ideal_cores
+        else:
+            return (max_cores+min_cores)//2
+
+    def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
+        """Apply changes to a given user_nl file."""
+        append_user_nl(model, var_val_pairs, do_exec, comment, log_title, self._out)
+
+    def _apply_all_namelist_changes(self, do_exec):
         """Apply all the necessary user_nl changes to the case.
-        
+
         Parameters
         ----------
         caseroot : Path
@@ -659,11 +547,11 @@ class CaseCreator(VBox):
         else:
             assert grid_mode == "Custom", f"Unknown grid mode: {grid_mode}"
 
-        self._apply_user_nl_mom_changes(do_exec)
-        self._apply_user_nl_cice_changes(do_exec)
-        self._apply_user_nl_clm_changes(do_exec)
+        self._apply_mom_namelist_changes(do_exec)
+        self._apply_cice_namelist_changes(do_exec)
+        self._apply_clm_namelist_changes(do_exec)
 
-    def _apply_user_nl_mom_changes(self, do_exec):
+    def _apply_mom_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_mom and user_nl_cice files."""
 
         ocn_grid_mode = cvars["OCN_GRID_MODE"].value
@@ -677,9 +565,8 @@ class CaseCreator(VBox):
             ), f"Unknown ocean grid mode: {ocn_grid_mode}"
 
         supergrid_file_path = MOM6BathyLauncher.supergrid_file_path()
-        supergrid_file_name = supergrid_file_path.name
         topo_file_path = MOM6BathyLauncher.topo_file_path()
-        topo_file_name = topo_file_path.name
+        vgrid_file_path = MOM6BathyLauncher.vgrid_file_path()
         ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
 
         # read in min and max depth from the MOM6 topo file:
@@ -687,9 +574,21 @@ class CaseCreator(VBox):
         min_depth = ds_topo.attrs["min_depth"]
         max_depth = ds_topo.attrs["max_depth"]
 
+        # number of vertical levels:
+        nk = len(xr.open_dataset(vgrid_file_path).dz)
+
+        # Determine timesteps based on the grid resolution (assuming coupling frequency of 1800.0 sec):
+        res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)
+        res_y = float(cvars['OCN_LENY'].value) / int(cvars["OCN_NY"].value)
+        dt = 600.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
+        # Make sure 1800.0 is a multiple of dt and dt is a power of 2 and/or 3:
+        dt = min((1800.0 / n for n in [2**i * 3**j for i in range(10) for j in range(6)] if 1800.0 % n == 0), key=lambda x: abs(dt - x))
+        # Try setting dt_therm to dt*4, or dt*3, or  dt*3, depending on whether 1800.0 becomes a multiple of dt:
+        dt_therm = dt * 4 if 1800.0 % (dt*4) == 0 else dt * 3 if 1800.0 % (dt * 3) == 0 else dt * 2 if 1800.0 % (dt * 2) == 0 else dt
+
         # apply custom MOM6 grid changes:
-        self._apply_user_nl(
-            "user_nl_mom",
+        self._apply_user_nl_changes(
+            "mom",
             [
                 ("INPUTDIR", ocn_grid_path),
                 ("TRIPOLAR_N", "False"),
@@ -698,24 +597,73 @@ class CaseCreator(VBox):
                 ("NIGLOBAL", cvars["OCN_NX"].value),
                 ("NJGLOBAL", cvars["OCN_NY"].value),
                 ("GRID_CONFIG", "mosaic"),
+                ("GRID_FILE", supergrid_file_path.name),
                 ("TOPO_CONFIG", "file"),
+                ("TOPO_FILE", topo_file_path.name),
                 ("MAXIMUM_DEPTH", max_depth),
                 ("MINIMUM_DEPTH", min_depth),
-                ("DT", "900"),  # TODO: generalize this
-                ("NK", "20"),  # TODO: generalize this
+                ("NK", nk),
                 ("COORD_CONFIG", "none"),
+                ("ALE_COORDINATE_CONFIG", f"FILE:{vgrid_file_path.name}"),
                 ("REGRIDDING_COORDINATE_MODE", "Z*"),
-                ("ALE_COORDINATE_CONFIG", "UNIFORM"),
-                ("TS_CONFIG", "fit"),
-                ("T_REF", 5.0),  # TODO: generalize this
-                ("FIT_SALINITY", "True"),
-                ("GRID_FILE", supergrid_file_name),
-                ("TOPO_FILE", topo_file_name),
             ],
             do_exec,
+            comment="Custom Horizonal Grid, Topography, and Vertical Grid",
         )
 
-    def _apply_user_nl_cice_changes(self, do_exec):
+        self._apply_user_nl_changes(
+            "mom",
+            [
+                ("DT", str(dt)),
+                ("DT_THERM", str(dt_therm)),
+            ],
+            do_exec,
+            comment="Timesteps (based on grid resolution)",
+            log_title=False,
+        )
+
+        # Set MOM6 Initial Conditions parameters:
+        if cvars["OCN_IC_MODE"].value == "Simple":
+            self._apply_user_nl_changes(
+                "mom",
+                [
+                    ("TS_CONFIG", "fit"),
+                    ("T_REF", cvars["T_REF"].value),
+                    ("FIT_SALINITY", "True"),
+                ],
+                do_exec,
+                comment="Simple Initial Conditions",
+                log_title=False,
+            )
+        elif cvars["OCN_IC_MODE"].value == "From File":
+            # First, copy the initial conditions file to INPUTDIR:
+            temp_salt_z_init_file = Path(cvars["TEMP_SALT_Z_INIT_FILE"].value)
+            if temp_salt_z_init_file.as_posix() == "TBD":
+                pass # do nothing: TEMP_SALT_Z_INIT_FILE can only be set to TBD when visualCaseGen
+                        # is used as an external tool by another application, in which case setting
+                        # TEMP_SALT_Z_INIT_FILE to TBD is a signal from the external application that
+                        # the initial conditions will be handled by the application itself.
+            else:
+                # Copy the initial conditions file to INPUTDIR:
+                if temp_salt_z_init_file.name not in [f.name for f in ocn_grid_path.glob("*.nc")]:
+                    shutil.copy(temp_salt_z_init_file, ocn_grid_path / temp_salt_z_init_file.name)
+                # Apply the user_nl changes:
+                self._apply_user_nl_changes(
+                    "mom",
+                    [
+                        ("INIT_LAYERS_FROM_Z_FILE", "True"),
+                        ("TEMP_SALT_Z_INIT_FILE", temp_salt_z_init_file.name),
+                        ("Z_INIT_FILE_PTEMP_VAR", cvars["IC_PTEMP_NAME"].value),
+                        ("Z_INIT_FILE_SALT_VAR", cvars["IC_SALT_NAME"].value),
+                    ],
+                    do_exec,
+                    comment="Initial Conditions from File",
+                    log_title=False,
+                )
+        else:
+            raise RuntimeError(f"Unknown ocean initial conditions mode: {cvars['OCN_IC_MODE'].value}")
+
+    def _apply_cice_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_cice file."""
 
         ocn_grid_mode = cvars["OCN_GRID_MODE"].value
@@ -727,8 +675,8 @@ class CaseCreator(VBox):
             return
 
         cice_grid_file_path = MOM6BathyLauncher.cice_grid_file_path()
-        self._apply_user_nl(
-            "user_nl_cice",
+        self._apply_user_nl_changes(
+            "cice",
             [
                 ("grid_format", '"nc"'),
                 ("grid_file", f'"{cice_grid_file_path}"'),
@@ -737,7 +685,7 @@ class CaseCreator(VBox):
             do_exec,
         )
 
-    def _apply_user_nl_clm_changes(self, do_exec):
+    def _apply_clm_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_clm file."""
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
@@ -760,7 +708,7 @@ class CaseCreator(VBox):
         inittime = cvars["INITTIME"].value
         if inittime is None:
             inittime = cvars["COMPSET_LNAME"].value.split("_")[0]
-        
+
         # For transient runs, we need to:
         #  - set check_dynpft_consistency to .false.
         #  - set flanduse_timeseries
@@ -777,5 +725,4 @@ class CaseCreator(VBox):
                 # cft dimensions included in clm namelist xml files don't match the dimensions that clm expects: 64 vs 2.
             ])
 
-        self._apply_user_nl("user_nl_clm", user_nl_clm_changes, do_exec)
-        
+        self._apply_user_nl_changes("clm", user_nl_clm_changes, do_exec)

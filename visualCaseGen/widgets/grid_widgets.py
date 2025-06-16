@@ -136,6 +136,47 @@ def initialize_custom_ocn_grid_widgets(cime):
         style={"description_width": "150px", "background":"lightgray", "text_color":"white"},
     )
 
+    cv_ocn_ic_mode = cvars["OCN_IC_MODE"]
+    cv_ocn_ic_mode.widget = ToggleButtons(
+        description="Ocean Initial Conditions Mode:",
+        layout={"display": "flex", "width": "max-content", "padding": "10px"},
+        style={"button_width": "140px", "description_width": "200px"},
+    )
+
+    cv_t_ref = cvars["T_REF"]
+    cv_t_ref.widget = Text(
+        description="Reference Temperature [degC]:",
+        layout={"width": "370px", "padding": "5px"},
+        style={"description_width": "250px"},
+    )
+
+    cv_temp_salt_z_init = cvars["TEMP_SALT_Z_INIT_FILE"]
+    cv_temp_salt_z_init.widget = FileChooser(
+        path=Path.home(),
+        filename="",
+        title="&#9658; Initial Temperature and Salinity File:",
+        existing_only=True,
+        filename_placeholder="Enter an existing MOM6 i.c. file",
+        filter_pattern="*.nc",
+        layout={'width': '90%', 'margin': '10px'},
+    )
+
+    cv_ic_ptemp_name = cvars["IC_PTEMP_NAME"]
+    cv_ic_ptemp_name.widget = Text(
+        description="P. temperature variable name in IC file:",
+        layout={"width": "370px", "padding": "5px"},
+        style={"description_width": "250px"},
+        continuous_update=False,
+    )
+
+    cv_ic_salt_name = cvars["IC_SALT_NAME"]
+    cv_ic_salt_name.widget = Text(
+        description="Salinity variable name in IC file:",
+        layout={"width": "370px", "padding": "5px"},
+        style={"description_width": "250px"},
+        continuous_update=False,
+    )
+
 def initialize_custom_lnd_grid_widgets(cime):
 
     description_width = "250px"
