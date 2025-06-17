@@ -8,6 +8,8 @@ import subprocess
 from collections import namedtuple
 from pathlib import Path
 
+from ProConPy.dialog import alert_warning
+
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
 Compset = namedtuple("Compset", ["alias", "lname", "model"])
@@ -550,6 +552,7 @@ class CIME_interface:
     def _retrieve_machines(self):
 
         from CIME.XML.machines import Machines
+        from CIME.utils import CIMEError
 
         machs_file = self._files.get_value("MACHINES_SPEC_FILE")
         self.machine = None
@@ -562,7 +565,20 @@ class CIME_interface:
         if (fqdn.startswith("crhtc") or fqdn.startswith("casper")) and fqdn.endswith("hpc.ucar.edu"):
             self.machine = "casper"
 
-        machines_obj = Machines(machs_file, machine=self.machine)
+        try:
+            machines_obj = Machines(machs_file, machine=self.machine)
+        except CIMEError:
+            alert_warning(
+                "The current machine couldn't be found in CESM machines XML file. "
+                "This likely means CESM has not been ported to this system. "
+                "You can still run visualCaseGen as normal, but the final step of "
+                "case creation is disabled. Instead, you will have the option to "
+                "print the necessary steps to manually create the configured "
+                "case on a supported machine.",
+            )
+            self._handle_machine_not_ported()
+            return
+
         self.machine = machines_obj.get_machine_name()
         self.machines = machines_obj.list_available_machines()
 
@@ -628,6 +644,40 @@ class CIME_interface:
                     )
                 except:
                     self.project_required[machine_name] = False
+
+    def _handle_machine_not_ported(self):
+        """Handles the case when CESM is not ported to the current machine.
+        This method sets the machine-specific attributes to dummy values
+        and creates the directories for CIME_OUTPUT_ROOT and DIN_LOC_ROOT if they
+        don't exist. It also logs a warning message to inform the user about
+        the situation."""
+
+        self.machine = "CESM_NOT_PORTED"
+        self.machines = ["CESM_NOT_PORTED"]
+        self.project_required = {"CESM_NOT_PORTED": False}
+        self.cime_output_root = str(Path.home() / "scratch")
+        self.din_loc_root = str(Path.home() / "inputdata")
+
+        # create the directories if they don't exist
+        if not os.path.exists(self.cime_output_root):
+            logger.warning(
+                f"CIME_OUTPUT_ROOT doesn't exist. Creating it at {self.cime_output_root}"
+            )
+            os.makedirs(self.cime_output_root)
+        if not os.path.exists(self.din_loc_root):
+            logger.warning(
+                f"DIN_LOC_ROOT doesn't exist. Creating it at {self.din_loc_root}"
+            )
+            os.makedirs(self.din_loc_root)
+
+        logger.warning(
+            "CIME machine not found. Using default values for CIME_OUTPUT_ROOT and DIN_LOC_ROOT."
+        )
+        logger.warning(
+            "Please set the CIME machine in the visualCaseGen configuration file."
+        )   
+        return
+
 
     def _retrieve_clm_data(self):
 

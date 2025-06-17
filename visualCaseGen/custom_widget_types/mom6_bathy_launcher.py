@@ -314,22 +314,22 @@ class MOM6BathyLauncher(VBox):
         save_files_cmd = (
             "# Do NOT modify this cell!\n\n"
             "# MOM6 supergrid file.\n"
-            f'grid.write_supergrid(f"{custom_ocn_grid_path}/ocean_hgrid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
+            f'grid.write_supergrid(f"{MOM6BathyLauncher.supergrid_file_path()}")\n\n'
             "# Save MOM6 topography file:\n"
-            f'topo.write_topo(f"{custom_ocn_grid_path}/ocean_topog_{ocn_grid_name}_{attempt_id}.nc")\n\n'
+            f'topo.write_topo(f"{MOM6BathyLauncher.topo_file_path()}")\n\n'
             "# Save MOM6 vertical grid file:\n"
-            f'vgrid.write(f"{custom_ocn_grid_path}/ocean_vgrid_{ocn_grid_name}_{attempt_id}.nc")\n\n'
+            f'vgrid.write(f"{MOM6BathyLauncher.vgrid_file_path()}")\n\n'
         )
 
         if "CICE" in cvars["COMP_ICE_PHYS"].value:
             save_files_cmd += (
                 "# CICE grid file:\n"
-                f'topo.write_cice_grid(f"{custom_ocn_grid_path}/cice_grid.{ocn_grid_name}_{attempt_id}.nc")\n\n'
+                f'topo.write_cice_grid(f"{MOM6BathyLauncher.cice_grid_file_path()}")\n\n'
             )
 
         save_files_cmd += (
             "# Save ESMF mesh file:\n"
-            f'topo.write_esmf_mesh(f"{custom_ocn_grid_path}/ESMF_mesh_{ocn_grid_name}_{attempt_id}.nc")'
+            f'topo.write_esmf_mesh(f"{MOM6BathyLauncher.esmf_mesh_file_path()}")'
         )
 
         nb["cells"].extend(

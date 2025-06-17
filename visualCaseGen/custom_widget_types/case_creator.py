@@ -436,6 +436,11 @@ class CaseCreator:
 
         # Determine machine:
         machine = cvars["MACHINE"].value
+        if do_exec and machine in [None, "CESM_NOT_PORTED"]:
+            raise RuntimeError("CESM is not ported to the current machine. "
+                               "Therefore, case creation is disabled. "
+                               "You can instead click 'Show Commands' to see the necessary steps "
+                               "to create a case on a supported machine.")
 
         # create new case command:
         cmd = (
@@ -504,11 +509,12 @@ class CaseCreator:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
 
         # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
-        num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
-        cores = CaseCreator._calc_cores_based_on_grid(num_points)
-        with self._out:
-            print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
-            xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
+        if cvars["COMP_OCN"].value == "mom":
+            num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
+            cores = CaseCreator._calc_cores_based_on_grid(num_points)
+            with self._out:
+                print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
+                xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
 
     @staticmethod
     def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
