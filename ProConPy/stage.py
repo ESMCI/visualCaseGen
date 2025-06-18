@@ -353,7 +353,7 @@ class Stage(Node, HasTraits):
 
         # Display the child stage and its siblings by appending them to the current stage's widget
         if self.has_children():
-            self._widget.append_child_stages(first_child=next_stage)
+            self._widget.add_child_stages(first_child=next_stage)
 
         # Proceed the csp solver before enabling the next stage
         csp.proceed()
@@ -578,8 +578,6 @@ class Stage(Node, HasTraits):
             self._disable()
             csp.revert()
             # If the stage to enable has guards as children, remove them from the widget
-            if previous_stage.children_have_conditions():
-                previous_stage._widget.children = [
-                    var.widget for var in previous_stage._varlist
-                ]
+            if previous_stage.has_children():
+                previous_stage._widget.remove_child_stages()
             previous_stage._enable()
