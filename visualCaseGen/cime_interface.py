@@ -632,18 +632,23 @@ class CIME_interface:
 
         # Keep a record of whether a project id is required for each machine
         for machine in self.machines:
-            machines_obj = Machines(machs_file, machine=machine)
-            for machine_node in machines_obj.get_children("machine"):
-                machine_name = machines_obj.get(machine_node, "MACH")
-                try:
+            self.project_required[machine] = False
+            try:
+                machines_obj = Machines(machs_file, machine=machine)
+                for machine_node in machines_obj.get_children("machine"):
+                    if machine != machines_obj.get(machine_node, "MACH"):
+                        continue
                     project_required_node = machines_obj.get_child(
                         root=machine_node, name="PROJECT_REQUIRED"
                     )
-                    self.project_required[machine_name] = (
+                    self.project_required[machine] = (
                         machines_obj.text(project_required_node).lower() == "true"
                     )
-                except:
-                    self.project_required[machine_name] = False
+            except CIMEError:
+                assert (machine != self.machine), \
+                    f"Couldn't properly retrieve machine metadata for {machine}. " \
+                    "This is likely because the corresponding machine XML file does not "\
+                    "adhere to the CIME XML schema. "
 
     def _handle_machine_not_ported(self):
         """Handles the case when CESM is not ported to the current machine.
