@@ -65,5 +65,6 @@ To verify that visualCaseGen was installed correctly, run the test suite:
     pytest tests/
 
 If the test suite completes successfully, visualCaseGen is ready for use. If any tests fail, please open an
-issue on the visualCaseGen GitHub repository, including error messages and the installation steps you followed.
+issue on the `visualCaseGen GitHub repository <https://github.com/ESMCI/visualCaseGen>`_, including error 
+messages and the installation steps you followed.
 

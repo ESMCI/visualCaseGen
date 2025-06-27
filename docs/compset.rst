@@ -34,7 +34,8 @@ Standard Compsets
 
   .. image:: assets/stage1_3.png
 
-- **Standard Compsets List:** After refining your options, visualCaseGen will display a list of
+- **Standard Compsets List:** After refining your options by making a selection in each column of
+  the matrix, visualCaseGen will display a list of
   matching compsets. Each compset is labeled with an alias and incorporates an initialization time
   and a short description of the included models, providing a snapshot of each configuration.
   To narrow down the list further, you can use the search box above the list. Typing keywords

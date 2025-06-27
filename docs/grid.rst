@@ -50,8 +50,11 @@ Atmosphere Grid
 ~~~~~~~~~~~~~~~
 
 Next, choose an atmosphere grid from the list of compatible options based on the
-compset you selected in the `Compset` stage. Use the search box to filter options if needed.
-This chosen atmosphere grid will be integrated with other model grids to form your custom CESM grid (resolution).
+compset you selected in the `Compset` stage. You may use the search box to filter
+the list further. Note that, currently, visualCaseGen does not support the creation
+of custom atmosphere grids. Therefore, you can only select from the standard atmosphere
+grids available in the list. The selected standard atmosphere grid will then be included
+in the custom resolution that you are building.
 
 .. image:: assets/Stage2_5.png
 
@@ -70,23 +73,102 @@ to launch the `mom6_bathy` tool for final customization.
 .. image:: assets/Stage2_6.png
 
 After specifying all ocean grid parameters, click `Launch mom6_bathy`. This will open an 
-auto-generated Jupyter notebook where you can fine-tune the ocean grid bathymetry and generate
-all necessary input files. For more details on mom6_bathy, refer to its documentation: https://ncar.github.io/mom6_bathy/
+auto-generated Jupyter notebook where you can fine-tune the ocean grid, topography, and vertical grid.
+You can then generate the corresponding MOM6 input files, which will be saved under `ocnice` subdirectory
+within the directory you specified earlier for saving the new grid files.
+For more details on mom6_bathy, refer to its documentation: https://ncar.github.io/mom6_bathy/
 
 .. note:: If the `mom6_bathy` notebook doesn't open automatically, make sure that your browser allows
   pop-ups from visualCaseGen. If the notebook still doesn't open, you can manually launch it by
   navigating to the `mom6_bathy_notebooks/` directory in your visualCaseGen installation and opening
   the notebook corresponding to your custom grid.
 
+Ocean Initial conditions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are creating a new MOM6 grid, you will also need to specify the initial conditions for the ocean model.
+You can either specify a simple initial conditions by providing a uniform reference temperature, (salinity
+will be fit accordingly) or you can provide an initial conditions file including potential temperature and salinity.
+The initial conditions file doesn't need to be defined on the same grid as the one you are creating, since
+MOM6 will interpolate the data to the new grid at runtime. 
+
+Below dialog corresponds to the simple initial conditions specification:
+
+.. image:: assets/Stage2_6_1.png
+
+The alternative dialog allows you to specify an initial conditions file instead:
+
+.. image:: assets/Stage2_6_2.png
+
+.. note:: **MOM6 initial Conditions File:**
+    You can download the standard "World Ocean Atlas" initial conditions file used in CESM
+    simulations from the following link: https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/ocn/mom/tx2_3v2/woa18_04_initial_conditions.nc
+
 
 Land Grid
 ~~~~~~~~~
 
-Following ocean grid selection or creation, you'll move to land grid selection. If CLM is chosen
-as the land model, you can also modify an existing CLM grid. If so, select a base land grid for
-customization.
+Following ocean grid selection or creation, you'll move to land grid selection if CLM is chosen
+as the land model. Here, you can similarly select a standard land grid from the list of
+available options based on your compset, or you can create a new CLM grid by selecting the
+`Modified` land grid mode, which allows you to define a custom land mask and land surface properties for CLM.
+
+
+.. image:: assets/ridge10.png
+
+In case of a `Modified` land grid, you will first need to select a base land grid for customization.
 
 .. image:: assets/Stage2_7.png
+
+Next, you will be prompted specify the land/ocean mask. This is done in the Mesh Mask Modifier
+subsection of the land grid configuration. Note, however, that when an active ocean model
+(i.e., MOM6) is present, the land/ocean mask is set by the ocean model grid. And, hence,
+this stage is skipped in that case. The Mesh Mask Modifier dialog is shown below:
+
+.. image:: assets/fillindian4.png
+
+In this dialog, you will first need to provide a *land mesh file* that contains the coordinates of the land domain.
+This file is typically auto-filled with a default mesh path if found. The second field requires a
+*land mask file*, which is a user-created file that defines the final land mask. This file, which should
+be in NetCDF format, should contain the following variables:
+
+.. list-table:: Custom Land Mask File Variables 
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Variable name
+     - Description
+   * - landmask(lsmlat,lsmlon)
+     - 1's for land, 0's elsewhere
+   * - mod_lnd_props(lsmlat,lsmlon)	
+     - mask where the surface properties will be altered (1's for modification, 0's elsewhere)
+   * - lats(lsmlat)
+     - grid latitudes
+   * - lons(lsmlon)
+     - grid longitudes
+
+If the latitude and longitude variables are not the same as the names specified above,
+make sure to update the corresponding variable and dimension names in the
+`Mesh Mask Modifier` dialog. Finally, click the *Run mesh_mask_modifier* button to generate 
+the new land mask file to be used. This process may take a few minutes to complete.
+
+Once the land mask is set (either by the ocean model grid or by the user), you can proceed to
+configuring the land surface dataset. This is done  in the `fsurdat` file generation dialog, 
+where you will be prompted to configure and run the `fsurdat` tool to modify the surface data of
+the selected land grid. The properties to configure and modify
+include soil properties, vegetation properties, urban areas, etc. (See CLM documentation for more
+information.) visualCaseGen will automatically select the input surface data file (fsurdat)
+if it exists in the CESM input data directory of the system you are using. Otherwise, you will
+need to download and provide the path to the appropriate fsurdat file. Similarly, the tool
+will automatically select the custom land mask file you provided in the previous step for the 
+specification of customized area. Otherwise, manually provide the path to the custom land mask file
+that contains *Custom Land Mask File Variables* as provided in the table above.
+Below is an example of the `fsurdat` file generation dialog:
+
+.. image:: assets/fillindian7.png
+
+Once ready, click the green **Run fsurdat_modifier** button to generate the modified fsurdat file. This
+process may take a few minutes to complete. 
 
 .. note:: **Initialization of Custom Land Points:**
   When users define their own continental geometries, the model initializes land points
@@ -100,8 +182,6 @@ customization.
     can consult the budget tables available in the log files.
     These tables provide detailed information on water budgets and confirm the conservation of water within the model.
 
-
-.. note:: Detailed instructions on customizing an existing CLM grid will be added here shortly.
 
 Once atmosphere, ocean, and land grids have been chosen or created, custom grid setup is complete.
 visualCaseGen will guide you to the final stage, `Launch`, where you can create a CESM case based on

@@ -156,7 +156,7 @@ def initialize_grid_stages(cime):
     stg_new_ocn_grid_ic_file = Stage(
         title="Initial Conditions from File",
         description="Specify the path to the initial temperature and salinity file for the new ocean grid.",
-        widget=StageWidget(VBox),
+        widget=StageWidget(VBox, add_ok_button=True),
         parent=Guard(
             title="File IC",
             parent=stg_new_ocn_grid_ic_mode,

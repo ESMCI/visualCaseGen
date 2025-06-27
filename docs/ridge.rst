@@ -195,11 +195,31 @@ You can plot the bathymetry to see the results by running the cell below:
 
 .. image:: assets/ridge9.png
 
+
+Vertical Grid
+~~~~~~~~~~~~~
+
+Next, you will need to set up the vertical grid. In the `mom6_bathy` notebook, 
+a default vertical grid is provided, which consists of 20 layers, and a ratio of 10,
+which means that the thicknesses of layers gradually increase with depth, and the thickness
+of the bottom layer is 10 times thicker than the top layer.
+
+.. code-block:: python
+
+    # Create a vertical grid
+    vgrid = VGrid.hyperbolic(
+      nk    = 20,             # number of layers 
+      depth = topo.max_depth, # Do NOT modify this argument 
+      ratio = 10.0, # ratio of top to bottom layer thicknesses (=1.0 for uniform layers)
+    )
+    print('layer thicknesses:', vgrid.dz)
+
 Save all grid input files
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Finally, run the cell below to save all the grid input files. These include the MOM6 supergrid and topography files (needed by MOM6),
-CICE grid file (needed by the sea ice model), and the ESMF mesh file (needed by the CESM coupler).
+Finally, run the cell below to save all the grid input files. These include the MOM6 supergrid, topography, and 
+vertical grid files (needed by MOM6), CICE grid file (needed by the sea ice model), and the ESMF mesh file
+(needed by the CESM coupler).
 
 .. warning:: The paths specified in the cell below are for illustrative purposes only. Do not modify the paths
     in your auto-generated `mom6_bathy` notebook. The paths are unique to the user's system and should not be changed,
@@ -217,6 +237,9 @@ CICE grid file (needed by the sea ice model), and the ESMF mesh file (needed by 
     # Save MOM6 topography file:
     topo.write_topo(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_topog_my1deg_grid_f2343a.nc")
 
+    # Save MOM6 vertical grid file:
+    vgrid.write(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_vgrid_my1deg_f2343a.nc")
+
     # CICE grid file:
     topo.write_cice_grid(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/cice_grid.my1deg_grid_f2343a.nc")
 
@@ -224,6 +247,17 @@ CICE grid file (needed by the sea ice model), and the ESMF mesh file (needed by 
     topo.write_esmf_mesh(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ESMF_mesh_my1deg_grid_f2343a.nc")
 
 After running the cell above, return to visualCaseGen and click the **Confirm completion** button to proceed.
+
+
+Ocean Initial Conditions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Next, you will be prompted to specify the initial conditions for the ocean model. For this example, 
+select the `Simple Initial Conditions` options and set the reference temperature to `5` degrees Celsius.
+This will set the initial temperature of the ocean to 5 degrees Celsius, and the salinity will be adjusted
+accordingly. 
+
+.. image:: assets/Stage2_6_1.png
 
 Land Grid
 ~~~~~~~~~
@@ -241,7 +275,11 @@ Based on the selection of the base land grid, you will be prompted to configure 
 the surface data of the selected land grid. The properties to configure and modify include soil properties,
 vegetation properties, urban areas, etc. (See CLM documentation for more information.) visualCaseGen will automatically
 select the input surface data file (fsurdat) if it exists in the CESM input data directory of the system you are using.
-Otherwise, you will need to download and provide the path to the appropriate fsurdat file. Fill in the remaining fields as shown below:
+Otherwise, you can download the following fsurdat file from the CESM input data repository:
+https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/lnd/clm2/surfdata_esmf/ctsm5.3.0/surfdata_0.9x1.25_hist_1850_78pfts_c240908.nc
+
+If the `"Input surface data file (fsurdat)"` is not already auto-filled, download the above file and provide the path to it in the
+`"Input surface data file (fsurdat)"` field.
 
 .. image:: assets/ridge12.png
 
@@ -262,8 +300,16 @@ to choose the case directory and enter a unique casename, then click **Select** 
 
 Then confirm the target machine or select a different machine if needed. If the machine requires a project ID,
 you will be prompted to enter it here. At this point, you are ready to create the case. Before doing so, you can
-click **Show Commands** to view the terminal commands that will be executed. Once ready, click **Create Case** to
+click **Show Commands** to view the terminal commands that will be executed. 
+
+.. important:: If CESM is not installed on your system, the selected machine will appear as `CESM_NOT_PORTED` and the
+  **Create Case** button will be disabled. In this case, you can still print out the commands that would be executed
+  to create the case by clicking the **Show Commands** button. You can then follow the printed commands and instructions
+  on a system where CESM is installed to create the case manually.
+
+Once ready to proceed, click **Create Case** to
 initiate case creation. If the case creation is successful, you will see a completion log detailing all the steps
 taken to create the case and a confirmation of the successful case creation along with the path to the new case directory:
+
 
 .. image:: assets/ridge14.png
