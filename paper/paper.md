@@ -35,7 +35,7 @@ authors:
 affiliations:
  - name: U.S. National Science Foundation National Center for Atmospheric Research (NSF NCAR), Boulder, CO
    index: 1
-date: 13 August 2017
+date: 29 June 2025
 bibliography: paper.bib
 
 ---
@@ -108,8 +108,8 @@ experiments required extensive manual intervention, including modifying CESM
 codebase, creating custom input files, adjusting runtime parameters, consulting
 domain experts for component-specific configurations, and conducting numerous
 trial-and-error iterations. visualCaseGen was developed to address such
-usability barriers and streamline CESM experiment setup. As a graphical user
-interface (GUI), it eliminates the need for manual modifications and provides an
+usability barriers and streamline CESM experiment setup. As an interactive GUI,
+it eliminates the need for manual modifications and provides an
 intuitive, structured workflow for constructing model configurations. 
 
 ![Sea surface temperature and precipitable water distribution from Aqua and
@@ -243,22 +243,22 @@ configurations are presented. This interactive feedback mechanism guides users
 through the configuration process, helping them make informed decisions and
 avoiding incompatible selections.
 
-![The "Components" stage. \label{fig:Stage1_7}](Stage1_7.png)
+![The "Components" stage. \label{fig:Stage1_7}](Stage1_7.png){width="90%"}
 
 At any stage, users can click on crossed-out options to view a
 brief explanation of why a particular choice is incompatible with their current
-selections, as illustrated in \autoref{fig:Stage1_8}. This feature helps guide
-users through complex configuration dependencies, and helping them make informed
+selections, as illustrated in \autoref{fig:Stage1_8}. This helps guide
+users through complex dependencies, and helping them make informed
 adjustments.
 
-![Interactive feedback in incompatible choices. \label{fig:Stage1_8}](Stage1_8.png)
+![Interactive feedback in incompatible choices. \label{fig:Stage1_8}](Stage1_8.png){width="90%"}
 
 As another example of streamlining model customization, \autoref{fig:TopoEditor}
 shows the TopoEditor widget that comes with visualCaseGen. This tool allows users
 to interactively modify ocean bathymetry, enhancing customizability and
 ease of use.
 
-![TopoEditor widget \label{fig:TopoEditor}](TopoEditor.png)
+![TopoEditor widget \label{fig:TopoEditor}](TopoEditor.png){width="90%"}
 
 # Remarks
 
