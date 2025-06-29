@@ -13,10 +13,10 @@ authors:
   - name: Manish Venumuddula
     orcid: 0009-0009-5047-2018
     affiliation: "1"
-  - name: Isla Simpson
+  - name: Isla R. Simpson
     orcid: 0000-0002-2915-1377
     affiliation: "1"
-  - name: Scott Bachman
+  - name: Scott D. Bachman
     orcid: 0000-0002-6479-4300
     affiliation: "1"
   - name:  Samuel Levis
@@ -33,7 +33,7 @@ authors:
     affiliation: "1"
 
 affiliations:
- - name: NSF National Center for Atmospheric Research, Boulder, CO
+ - name: U.S. National Science Foundation National Center for Atmospheric Research (NSF NCAR), Boulder, CO
    index: 1
 date: 13 August 2017
 bibliography: paper.bib
@@ -44,24 +44,24 @@ bibliography: paper.bib
 
 visualCaseGen is a graphical user interface (GUI) designed to streamline the
 creation and configuration of Community Earth System Model (CESM) experiments.
-Developed at the NSF National Center for Atmospheric Research (NCAR), CESM is a
-leading climate model capable of simulating the Earth's climate system at
-varying levels of complexity [@danabasoglu2020community]. Configuring custom
-CESM experiments demands a deep understanding of component compatibility, grid
-configurations, parameterization schemes, and model hierarchies, making the
-setup process highly complex and time-intensive, particularly for non-standard
-or breakthrough applications. visualCaseGen addresses these challenges by
-providing an intuitive, interactive interface that automates and simplifies
-experiment setup, significantly reducing configuration time and enhancing
-usability for modelers.
+CESM is a highly flexible, state-of-the-art climate model that allows researchers
+to simulate the Earth system across a wide range of spatial and temporal scales
+and at varying levels of complexity, depending on scientific objectives [@danabasoglu2020community].
+However, configuring non-standard or idealized CESM experiments is often a technically
+demanding and time-consuming process, requiring detailed knowledge of component
+compatibility, grid definitions, parameterization schemes, and model hierarchies.
+visualCaseGen simplifies this process by guiding users through each stage of
+experiment setup and automating key configuration steps via an intuitive, 
+interactive interface.
 
-To ensure consistency and compatibility, visualCaseGen incorporates a constraint
-solver based on satisfiability modulo theories (SMT) [@de2011satisfiability].
-This solver systematically analyzes dependencies between experiment settings,
-detects conflicts, and provides detailed explanations of incompatibilities,
-allowing users to make informed adjustments. the SMT-based approach enables
-dynamic, real-time validation of model settings, significantly reducing setup
-errors and ensuring that only scientifically viable configurations are selected.
+To ensure consistency and compatibility across various model settings, visualCaseGen
+incorporates a constraint solver based on satisfiability modulo theories (SMT)
+[@de2011satisfiability]. This solver systematically analyzes dependencies between
+configuration parameters, detects conflicts, and provides detailed explanations of
+incompatibilities, allowing users to make informed adjustments. The SMT-based
+approach enables dynamic, real-time validation of model settings, significantly
+reducing setup errors and ensuring that only scientifically viable configurations
+are selected.
 
 On the frontend, visualCaseGen is implemented as a Jupyter-based GUI, offering
 an intuitive, step-by-step interface for browsing standard CESM configurations,
@@ -69,10 +69,10 @@ defining custom experiment setups, and modifying grid and component settings.
 Designed with a wizard-like interface, visualCaseGen walks users through each
 stage of the CESM configuration process, ensuring that all necessary settings
 are selected in a logical sequence while dynamically updating available options
-based on user choices. Additionally, the tool features point-and-click utilities
-for creating and modifying ocean bathymetry, along with custom land surface
-property tools, further simplifying model customization and minimizing the need
-for manual file modifications.
+based on user choices. Additionally, the tool features utilities for creating
+and editing model input files, such as ocean grid, bathymetry, and land
+surface properties, further simplifying model customization and
+minimizing the need for manual file creation and modification.
 
 By automating and simplifying CESM configuration, visualCaseGen makes the model
 more accessible and custumizable, particularly for researchers exploring
@@ -85,9 +85,9 @@ workflow.
 
 # Statement of need
 
-CESM is a highly flexible and comprehensive
-climate modeling system that enables researchers to simulate interactions
-between the atmosphere, ocean, land, ice, and river systems. While this
+CESM is a highly flexible and comprehensive modeling framework that
+encompasses multiple components representing the atmosphere, ocean, land,
+ice, river, biogeochemistry, and other systems. While this
 flexibility supports a wide range of scientific experiments, it also introduces
 significant complexity in model configuration. Setting up custom CESM
 experiments requires navigating intricate component compatibility constraints,
@@ -123,14 +123,19 @@ different model settings remain compatible. CESM’s configuration involves
 determining components, physics, grids, and parameterization choices, many of
 which have strict compatibility constraints. visualCaseGen addresses this
 challenge by integrating an SMT-based constraint solver, built using the Z3
-solver [@de2008z3]. Z3 was chosen for its robust Python API, and its ability to
-efficiently manage complex logical relationships, making it well-suited for 
-handling CESM’s intricate configuration dependencies.
+solver [@de2008z3]. Z3 was chosen for its robust Python API and its efficiency
+in managing complex logical relationships involving multiple parameter types
+such as integers, reals, booleans, and strings. As such, Z3 is well suited 
+to handling the intricate dependencies and constraints inherent in CESM
+configurations.
 
 In visualCaseGen, constraints are specified as key-value pairs, where the key
 represents a Z3 logical expression defining a condition, and the value is the
-error message displayed when the constraint is violated. The following examples
-illustrate constraints of increasing complexity:
+error message displayed when the constraint is violated. These constraints
+enforce compatibility rules and prevent invalid model configurations. Below
+are three examples of visualCaseGen constraints with increasing complexity,
+demonstrating how the SMT solver can enforce simple value bounds, conditional
+dependencies, and more complex multi-component logical rules:
 
 ```python
 
@@ -210,7 +215,7 @@ During the configuration process, when a user makes a selection, the constraint
 graph is traversed to identify all variables that are affected by the selection.
 This traversal is done in a breadth-first manner, starting from the selected
 variable and following the edges in the direction of the constraints. The
-traversal stops at variables whose options validities are not affected by the
+traversal stops at variables whose options' validities are not affected by the
 selection. As such the traversal is limited to the variables that are directly
 or indirectly affected by the user's selection, which in turn depends on the the
 user input, stage hierarchy, and the specified constraints. By dynamically
@@ -278,6 +283,9 @@ This work was supported by the NSF Cyberinfrastructure for Sustained Scientific
 Innovation (CSSI) program under award number 2004575. Special thanks to the
 CESM Software Engineering Working Group for their support and feedback during
 the development of visualCaseGen.
+
+The NSF National Center for Atmospheric Research (NCAR) is a major facility
+sponsored by the NSF under Cooperative Agreement No. 1852977.
 
 # References
 
