@@ -10,9 +10,28 @@ authors:
   - name: Alper Altuntas
     orcid: 0000-0003-1708-9518
     affiliation: "1"
-  - name: et al.
-    orcid: 0000-0000-0000-0000
+  - name: Manish Venumuddula
+    orcid: 0009-0009-5047-2018
     affiliation: "1"
+  - name: Isla Simpson
+    orcid: 0000-0002-2915-1377
+    affiliation: "1"
+  - name: Scott Bachman
+    orcid: 0000-0002-6479-4300
+    affiliation: "1"
+  - name:  Samuel Levis
+    orcid: 0000-0003-4684-6995
+    affiliation: "1"
+  - name:  Brian Dobbins
+    orcid: 0000-0002-3156-0460
+    affiliation: "1"
+  - name: William J. Sacks
+    orcid: 0000-0003-2902-5263
+    affiliation: "1"
+  - name: Gokhan Danabasoglu
+    orcid: 0000-0003-4676-2732
+    affiliation: "1"
+
 affiliations:
  - name: NSF National Center for Atmospheric Research, Boulder, CO
    index: 1
