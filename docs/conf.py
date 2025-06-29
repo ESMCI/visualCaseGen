@@ -18,11 +18,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'visualCaseGen'
-copyright = '2024, Alper Altuntas'
+copyright = '2025, Alper Altuntas'
 author = 'Alper Altuntas'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.18'
+release = '0.0.21'
 
 
 # -- General configuration ---------------------------------------------------

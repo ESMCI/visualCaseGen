@@ -17,13 +17,17 @@ logger = logging.getLogger("\t" + __name__.split(".")[-1])
 class StageWidget(VBox):
     """A specialized VBox widget for a stage in the case configurator."""
 
-    def __init__(self, main_body_type=VBox, title="", layout={}, **kwargs):
+    def __init__(self, main_body_type=VBox, supplementary_widgets=[], add_ok_button=False, title="", layout={}, **kwargs):
         """Initialize the StageWidget.
 
         Parameters
         ----------
         main_body_type : VBox, HBox, or Tab
             The type of the main body of the StageWidget.
+        supplementary_widgets : list
+            A list of supplementary widgets to be added to the StageWidget.
+        add_ok_button : bool
+            Whether to add an OK button to the StageWidget. Defaults to False.
         title : str
             The title of the StageWidget.
         layout : dict
@@ -41,10 +45,13 @@ class StageWidget(VBox):
             HBox,
             Tab,
         ], "StageWidget main_body_type must be VBox, HBox, or Tab"
+        assert isinstance(
+            supplementary_widgets, (list, tuple)
+        ), "StageWidget supplementary_widgets must be a list"
         self._main_body_type = main_body_type
         self._title = title
-        self._main_body = None
-        self._main_body = self._gen_main_body(children=())
+        self._main_body = self._main_body_type()
+        self._supplementary_widgets = supplementary_widgets
         self._top_bar = HBox([])
         self._stage = None  # Reference to the stage object that this widget represents. To be set by the stage object.
         super().__init__(
@@ -55,6 +62,21 @@ class StageWidget(VBox):
             },
             **kwargs,
         )
+        self.children = (
+            self._top_bar,
+            self._main_body,
+        )
+
+        self._ok_button = None  # OK button, if added
+        if add_ok_button:
+            self._ok_button = Button(
+                description="OK",
+                icon="check",
+                tooltip="Confirm the selections in this stage.",
+                layout={"width": "100px", "align_self": "center"},
+                style={"button_color": bg_color_dark, "text_color": font_color_dark},
+            )
+            self._ok_button.on_click(self.attempt_to_proceed)
 
     def _update_top_bar_title(
         self, title_prefix="", font_color="gray", background_color=bg_color_light
@@ -153,59 +175,52 @@ class StageWidget(VBox):
         self._btn_proceed.on_click(self.attempt_to_proceed)
         top_bar_buttons.append(self._btn_proceed)
 
-        self._top_bar = HBox([self._top_bar_title] + top_bar_buttons)
+        self._top_bar.children = [self._top_bar_title] + top_bar_buttons
 
-    def _gen_main_body(self, children):
+    def _set_main_body_children(self, first_child=None):
+        """Set the children of the main body of the StageWidget. If a first_child is provided,
+        it will be added to the main body, followed by all its siblings to the right."""
+
+        main_body_children = [var.widget for var in self._stage._varlist]
+        if self._supplementary_widgets:
+            main_body_children.extend(self._supplementary_widgets)
+        if self._ok_button:
+            main_body_children.append(self._ok_button)
+        if first_child:
+            main_body_children.append(first_child._widget)
+            main_body_children.extend(stage._widget for stage in first_child.siblings_to_right())
+        self._main_body.children = tuple(main_body_children)
+
+    def _refresh_main_body(self):
         """Generate the main body of the StageWidget. This method is called whenever the children attribute is set.
-
-        Parameters
-        ----------
-        children : list
-            The new list of children of the main body.
         """
 
         old_display = ""
         if self._main_body:
             old_display = self._main_body.layout.display
 
-        return self._main_body_type(
-            children=children,
-            layout={
-                "display": old_display,
-                "margin": "0px",
-            },
-        )
+        self._set_main_body_children()
 
-    def __setattr__(self, name, value):
-        """Override the __setattr__ method to handle the children attribute so that the widget
-        always has two children: the top bar and the main body. Any new children, unless they
-        are the top bar or the main body, are added to the main body. If the children attribute
-        is set, the top bar and the main body are updated accordingly.
+        self._main_body.layout = {
+            "display": old_display,
+            "margin": "0px",
+        }
+
+    def add_child_stages(self, first_child):
+        """Append a child stage and all its siblings to the main body, which, by default,
+        has the widgets of the varlist only, but may be extended to include the StageWidget
+        instances of child stages.
 
         Parameters
         ----------
-        name : str
-            The name of the attribute to set.
-        value : any
-            The value to set the attribute to.
+        first_child : Stage
+            The first child stage to append.
         """
-
-        if name == "children":
-            if len(value) > 0 and value[0] is self._top_bar:
-                value = value[1:]
-            if len(value) > 0 and value[0] is self._main_body:
-                value = value[0].children + value[1:]
-            self._main_body = self._gen_main_body(children=value)
-            super().__setattr__(
-                name,
-                (
-                    self._top_bar,
-                    self._main_body,
-                ),
-            )
-        else:
-            # For all other attributes, use the default behavior
-            super().__setattr__(name, value)
+        self._set_main_body_children(first_child)
+    
+    def remove_child_stages(self):
+        """Remove all child stages from the main body, leaving only the widgets of the varlist and supplementary widgets."""
+        self._set_main_body_children()
 
     @property
     def stage(self):
@@ -220,7 +235,7 @@ class StageWidget(VBox):
         # Set the children attribute. This will actually set the children of the StageWidget
         # to the top bar and the main body, and the main body's children to the widgets of the
         # variables in the stage.
-        self.children = [var.widget for var in self._stage._varlist]
+        self._refresh_main_body()
         # Observe StageStat
         self._stage.observe(self._on_stage_status_change, names="status", type="change")
         self._on_stage_status_change(
@@ -241,24 +256,6 @@ class StageWidget(VBox):
                 self._enable()
             self._update_btn_reset(old_state, new_state)
 
-    def append_child_stages(self, first_child):
-        """Append a child stage and all its siblings to the main body, which, by default,
-        has the widgets of the varlist only, but may be extended to include the StageWidget
-        instances of child stages.
-
-        Parameters
-        ----------
-        first_child : Stage
-            The first child stage to append.
-        """
-
-        self._main_body.children = tuple(
-            itertools.chain(
-                [var.widget for var in self._stage._varlist],
-                [first_child._widget],
-                [stage._widget for stage in first_child.siblings_to_right()],
-            )
-        )
 
     def _disable(self):
         """Disable the entire stage widget."""
@@ -345,4 +342,4 @@ class StageWidget(VBox):
         """Reset the stage."""
         logger.debug(f"Resetting stage {self._title}...")
         self._stage.reset()
-        self._main_body.children = self._stage._gen_main_body(children=())
+        self._stage._refresh_main_body()

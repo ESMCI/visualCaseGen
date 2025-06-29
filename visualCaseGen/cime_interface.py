@@ -4,22 +4,11 @@ import re
 import logging
 import socket
 import getpass
+import subprocess
 from collections import namedtuple
 from pathlib import Path
 
-# import CIME -----------------------------------------------------------
-filepath = os.path.dirname(os.path.realpath(__file__))  # path of this module
-CIMEROOT = Path(Path(filepath).parent.parent, "cime").as_posix()
-sys.path.append(os.path.join(CIMEROOT))
-
-from CIME.XML.standard_module_setup import *
-from CIME.XML.generic_xml import GenericXML
-from CIME.XML.machines import Machines
-from CIME.XML.files import Files
-from CIME.XML.component import Component
-from CIME.XML.compsets import Compsets
-from CIME.XML.grids import Grids
-from CIME.case.case import Case
+from ProConPy.dialog import alert_warning
 
 logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
@@ -52,7 +41,17 @@ class CIME_interface:
         List of resolutions (alias, compset, not_compset)
     """
 
-    def __init__(self):
+    def __init__(self, cesmroot=None):
+
+        # Set cimeroot attribute and import CIME modules
+        self._set_cimeroot(cesmroot)
+
+        # Check CIME compatibility
+        self._check_cime_compatibility()
+
+        # Append cime root to sys.path. This is necessary for the CIME modules to be imported.
+        sys.path.append(self.cimeroot.as_posix())
+
         # data members
         self.driver = "nuopc"
         self.comp_classes = None  # ATM, ICE, etc.
@@ -66,21 +65,75 @@ class CIME_interface:
         self._files = None
         self._grids_obj = None
         self.din_loc_root = None
-        self.cimeroot = CIMEROOT
-        self.srcroot = (Path(self.cimeroot).parent).as_posix()
 
         # Call _retrieve* methods to populate the data members defined above
-
         self._retrieve_cime_basics()
         for comp_class in self.comp_classes:
             self._retrieve_models(comp_class)
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class, model)
-
         self._retrieve_domains_and_resolutions()
         self._retrieve_compsets()
         self._retrieve_machines()
         self._retrieve_clm_data()
+    
+    def _set_cimeroot(self, cesmroot=None):
+        """Sets the cimeroot attribute, This method is called by the __init__ method.
+        The cimeroot attribute is set based on the cesmroot argument, which is either
+        passed to the __init__ method or determined from the CESMROOT environment variable.
+        
+        Parameters
+        ----------
+        cesmroot : str | Path | None
+            Path to the CESM root directory. If None, the CESM root directory is determined
+            based on the CESMROOT environment variable or the location of visualCaseGen.
+        """
+
+        # Determine CESM root directory
+        if cesmroot is not None:
+            cesmroot = Path(cesmroot)
+            assert cesmroot.is_dir(), "Given CESM root directory doesn't exist!"
+        elif "CESMROOT" in os.environ:
+            cesmroot = Path(os.environ["CESMROOT"])
+            assert cesmroot.is_dir(), "CESMROOT environment variable is not a directory!"
+        else:
+            filepath = os.path.dirname(os.path.realpath(__file__))
+            cesmroot = Path(Path(filepath).parent.parent)
+            assert cesmroot.is_dir(), "Cannot find CESM root directory!"
+
+        # Set cimeroot attribute 
+        self.cimeroot = cesmroot / "cime"
+        assert self.cimeroot.is_dir(), f"Cannot find CIME directory at {self.cimeroot}"
+
+
+    def _check_cime_compatibility(self):
+        """Checks the compatibility of the CIME version. This method is called by the __init__ method.
+        The CIME version is determined based on the git tag of the CIME repository. The CIME version is
+        checked for compatibility with visualCaseGen."""
+        
+        # cime git tag:
+        cime_git_tag = subprocess.check_output(
+            ["git", "-C", self.cimeroot, "describe", "--tags"]
+        ).decode("utf-8").strip()
+
+        # determine cime version
+        assert cime_git_tag.startswith("cime"), f"Invalid cime git tag: {cime_git_tag}"
+        cime_version = cime_git_tag[4:]
+        assert len(cime_version.split(".")) == 3, f"Invalid cime version: {cime_version}"
+        cime_major, cime_minor, cime_patch = cime_version.split(".")
+        assert cime_major.isdigit() and cime_minor.isdigit() and cime_patch.isdigit(), \
+            f"Invalid cime version (non-numeric): {cime_version}"
+        cime_major = int(cime_major); cime_minor = int(cime_minor); cime_patch = int(cime_patch)
+
+        # check cime version compatibility
+        assert cime_major == 6, f"Unsupported major version: {cime_major} in cime version: {cime_version}"
+        assert cime_minor == 1, f"Unsupported minor version: {cime_minor} in cime version: {cime_version}"
+        assert cime_patch >= 8, f"Unsupported patch version: {cime_patch} in cime version: {cime_version}"
+
+
+    @property
+    def srcroot(self):
+        return self.cimeroot.parent
 
     def _retrieve_cime_basics(self):
         """Determine basic CIME variables and properties, including:
@@ -93,6 +146,9 @@ class CIME_interface:
         -----
             CIME basics variables (driver, files, etc.) are defined as CIME_interface module variables
         """
+
+        from CIME.XML.files import Files
+        from CIME.XML.component import Component
 
         self._files = Files(comp_interface=self.driver)
         drv_config_file = self._files.get_value("CONFIG_CPL_FILE")
@@ -111,6 +167,8 @@ class CIME_interface:
         model : str
             model name excluding version number, e.g., "cam", "cice", "mom", etc.
         """
+
+        from CIME.XML.component import Component
 
         compatt = {"component": model}
         comp_config_file = self._files.get_value(
@@ -349,6 +407,8 @@ class CIME_interface:
         XML files. Retrieved resolutions are stored in self.resolutions list and component grids are
         stored in self.domains dict."""
 
+        from CIME.XML.grids import Grids
+
         self._grids_obj = Grids(comp_interface=self.driver)
 
         # Get the initial (temporary) dict of domains from the component_grids file
@@ -462,6 +522,9 @@ class CIME_interface:
 
 
     def _retrieve_compsets(self):
+
+        from CIME.XML.compsets import Compsets
+
         cc = self._files.get_components("COMPSETS_SPEC_FILE")
 
         self.compsets = {}
@@ -487,6 +550,10 @@ class CIME_interface:
                     self.compsets[alias] = Compset(alias, lname, component)
 
     def _retrieve_machines(self):
+
+        from CIME.XML.machines import Machines
+        from CIME.utils import CIMEError
+
         machs_file = self._files.get_value("MACHINES_SPEC_FILE")
         self.machine = None
         self.cime_output_root = None
@@ -498,7 +565,20 @@ class CIME_interface:
         if (fqdn.startswith("crhtc") or fqdn.startswith("casper")) and fqdn.endswith("hpc.ucar.edu"):
             self.machine = "casper"
 
-        machines_obj = Machines(machs_file, machine=self.machine)
+        try:
+            machines_obj = Machines(machs_file, machine=self.machine)
+        except CIMEError:
+            alert_warning(
+                "The current machine couldn't be found in CESM machines XML file. "
+                "This likely means CESM has not been ported to this system. "
+                "You can still run visualCaseGen as normal, but the final step of "
+                "case creation is disabled. Instead, you will have the option to "
+                "print the necessary steps to manually create the configured "
+                "case on a supported machine.",
+            )
+            self._handle_machine_not_ported()
+            return
+
         self.machine = machines_obj.get_machine_name()
         self.machines = machines_obj.list_available_machines()
 
@@ -552,22 +632,64 @@ class CIME_interface:
 
         # Keep a record of whether a project id is required for each machine
         for machine in self.machines:
-            machines_obj = Machines(machs_file, machine=machine)
-            for machine_node in machines_obj.get_children("machine"):
-                machine_name = machines_obj.get(machine_node, "MACH")
-                try:
+            self.project_required[machine] = False
+            try:
+                machines_obj = Machines(machs_file, machine=machine)
+                for machine_node in machines_obj.get_children("machine"):
+                    if machine != machines_obj.get(machine_node, "MACH"):
+                        continue
                     project_required_node = machines_obj.get_child(
                         root=machine_node, name="PROJECT_REQUIRED"
                     )
-                    self.project_required[machine_name] = (
+                    self.project_required[machine] = (
                         machines_obj.text(project_required_node).lower() == "true"
                     )
-                except:
-                    self.project_required[machine_name] = False
+            except CIMEError:
+                assert (machine != self.machine), \
+                    f"Couldn't properly retrieve machine metadata for {machine}. " \
+                    "This is likely because the corresponding machine XML file does not "\
+                    "adhere to the CIME XML schema. "
+
+    def _handle_machine_not_ported(self):
+        """Handles the case when CESM is not ported to the current machine.
+        This method sets the machine-specific attributes to dummy values
+        and creates the directories for CIME_OUTPUT_ROOT and DIN_LOC_ROOT if they
+        don't exist. It also logs a warning message to inform the user about
+        the situation."""
+
+        self.machine = "CESM_NOT_PORTED"
+        self.machines = ["CESM_NOT_PORTED"]
+        self.project_required = {"CESM_NOT_PORTED": False}
+        self.cime_output_root = str(Path.home() / "scratch")
+        self.din_loc_root = str(Path.home() / "inputdata")
+
+        # create the directories if they don't exist
+        if not os.path.exists(self.cime_output_root):
+            logger.warning(
+                f"CIME_OUTPUT_ROOT doesn't exist. Creating it at {self.cime_output_root}"
+            )
+            os.makedirs(self.cime_output_root)
+        if not os.path.exists(self.din_loc_root):
+            logger.warning(
+                f"DIN_LOC_ROOT doesn't exist. Creating it at {self.din_loc_root}"
+            )
+            os.makedirs(self.din_loc_root)
+
+        logger.warning(
+            "CIME machine not found. Using default values for CIME_OUTPUT_ROOT and DIN_LOC_ROOT."
+        )
+        logger.warning(
+            "Please set the CIME machine in the visualCaseGen configuration file."
+        )   
+        return
+
 
     def _retrieve_clm_data(self):
+
+        from CIME.XML.generic_xml import GenericXML
+
         """Retrieve clm fsurdat and flanduse data from the namelist_defaults_ctsm.xml file."""
-        clm_root = Path(Path(CIMEROOT).parent, "components", "clm")
+        clm_root = self.srcroot / "components" / "clm"
         clm_namelist_defaults_file = Path(
             clm_root, "bld", "namelist_files", "namelist_defaults_ctsm.xml"
         )
@@ -623,3 +745,11 @@ class CIME_interface:
         expr = re.sub(regex, user, expr)
 
         return expr
+
+    def get_case(self, caseroot, read_only=True, record=False, non_local=False):
+        """Returns a CIME case object for a given caseroot. This object
+        provides methods to interact with the case, such as reading and
+        writing xml variables."""
+
+        from CIME.case.case import Case
+        return Case(caseroot, read_only=read_only, record=record, non_local=non_local)

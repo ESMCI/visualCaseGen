@@ -17,7 +17,7 @@ from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
-from visualCaseGen.custom_widget_types.case_creator import CaseCreator
+from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
 from tests.utils import safe_create_case
 
@@ -169,18 +169,27 @@ def construct_custom_res_from_std_grids(cime):
         cvars["CASEROOT"].value = temp_case_path
 
         case_creator = launch_stage._widget._main_body.children[-1]
-        assert isinstance(case_creator, CaseCreator)
+        assert isinstance(case_creator, CaseCreatorWidget)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
-        # *Click* the create_case button
-        safe_create_case(cime.srcroot, case_creator)
+        try:
+            # *Click* the create_case button
+            safe_create_case(cime.srcroot, case_creator)
         
-        # sleep for a bit to allow the case to be created
-        time.sleep(9)
+            # sleep for a bit to allow the case to be created
+            time.sleep(15)
         
+        except RuntimeError as e:
+            if "not ported" in str(e):
+                print("CESM is not ported to the current machine. Skipping case creation.")
+            else:
+                # If the error is not related to machine porting, raise it
+                raise e
+
         # remove the caseroot directory
-        shutil.rmtree(temp_case_path)
+        if os.path.exists(temp_case_path):
+            shutil.rmtree(temp_case_path)
 
 
 def construct_custom_res_from_modified_clm_grid(cime):
@@ -249,9 +258,9 @@ def construct_custom_res_from_modified_clm_grid(cime):
         cvars["CASEROOT"].value = temp_case_path
 
         case_creator = launch_stage._widget._main_body.children[-1]
-        assert isinstance(case_creator, CaseCreator)
+        assert isinstance(case_creator, CaseCreatorWidget)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
         # *Click* the create_case button
         safe_create_case(cime.srcroot, case_creator)
@@ -365,9 +374,9 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
         cvars["CASEROOT"].value = temp_case_path
 
         case_creator = launch_stage._widget._main_body.children[-1]
-        assert isinstance(case_creator, CaseCreator)
+        assert isinstance(case_creator, CaseCreatorWidget)
 
-        case_creator._txt_project.value = "12345"
+        cvars["PROJECT"].value = "12345"
 
         # *Click* the create_case button
         safe_create_case(cime.srcroot, case_creator)

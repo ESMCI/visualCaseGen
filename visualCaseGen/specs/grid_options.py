@@ -176,6 +176,17 @@ def set_custom_ocn_grid_options(cime):
     cv_ocn_cyclic_x.options = ["True", "False"]
     cv_ocn_cyclic_x.tooltips = ["Cyclic in x-direction", "Non-cyclic in x-direction"]
 
+    # OCN_IC_MODE options
+    cv_ocn_ic_mode = cvars["OCN_IC_MODE"]
+    cv_ocn_ic_mode.options = ["Simple", "From File"]
+    cv_ocn_ic_mode.tooltips = [
+        "This corresponds to the MOM6 TS_CONFIG=fit and FIT_SALINITY=True configuration, "
+        "where the surface temperature is set to a constant reference value and salinity "
+        "is fit accordingly. This is rather a simple configuration and users are encouraged "
+        "to further modify the initial conditions in the user_nl_mom6 file once the case is "
+        "created.",
+        "With this option, the initial temperature and salinity fields are read from a file.",
+    ]
 
 def set_custom_lnd_grid_options(cime):
     """Set the options and options specs for the custom LND grid variables."""

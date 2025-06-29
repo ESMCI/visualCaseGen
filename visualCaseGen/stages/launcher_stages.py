@@ -5,7 +5,7 @@ from ProConPy.config_var import cvars
 from ProConPy.stage import Stage
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
-from visualCaseGen.custom_widget_types.case_creator import CaseCreator
+from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -19,6 +19,7 @@ def initialize_launcher_stages(cime):
         cvars["MACHINE"],
         cvars["CASE_CREATOR_STATUS"]
     ]
+    # Note: PROJECT is not included in the launcher_vars list because it is not always required.
 
     stg_launch = Stage(
         title="3. Launch",
@@ -29,8 +30,9 @@ def initialize_launcher_stages(cime):
         "If the machine requires a PROJECT id, you'll be prompted to provide it. When everything "
         "is set, click either the *Create Case* button or *Show Commands* to view the "
         "corresponding terminal commands.",
-        widget=StageWidget(VBox),
+        widget=StageWidget(
+            VBox,
+            supplementary_widgets=[CaseCreatorWidget(cime)]
+        ),
         varlist=launcher_vars,
     )
-
-    stg_launch._widget.children += (CaseCreator(cime),)
