@@ -275,13 +275,11 @@ class FsurdatModifierLauncher(ClmModifierLauncher):
 
             if cvars["FSURDAT_AREA_SPEC"].value.startswith("coords:"):
                 coords = cvars["FSURDAT_AREA_SPEC"].value[7:].split(",")
-                lon_type = "360" if (float(coords[2]) >= 0.0 and float(coords[3])) >= 0.0 else "180" # todo: confirm this logic
                 f.write(
                     f"lnd_lat_1 = {coords[0]}\n"
                     f"lnd_lat_2 = {coords[1]}\n"
                     f"lnd_lon_1 = {coords[2]}\n"
                     f"lnd_lon_2 = {coords[3]}\n"
-                    f"lon_type = {lon_type}\n"
                     f'landmask_file = UNSET\n'
                 )
             elif cvars["FSURDAT_AREA_SPEC"].value.startswith("mask_file:"):
