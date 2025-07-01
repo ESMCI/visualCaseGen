@@ -67,7 +67,7 @@ are selected.  Complementing the solver, the visualCaseGen backend implements a
 This mechanism works in tandem with the solver to manage variable precedence,
 guide user input, and enforce constraints efficiently.
 
-On the frontend, visualCaseGen is implemented as a Jupyter-based GUI, offering
+On the frontend, visualCaseGen is implemented as a Jupyter-based GUI [@ipywidgets], offering
 an intuitive, step-by-step interface for browsing standard CESM configurations,
 defining custom experiment setups, and modifying grid and component settings.
 Designed with a wizard-like interface, visualCaseGen walks users through each
@@ -180,7 +180,7 @@ an SMT solver an ideal choice. The benefits of using a solver include:
 
 - **Scalability and Efficiency:** As the number of variables and constraints grows,
   manually checking compatibility quickly becomes infeasible. The
-  solver efficiently handles large sets of constraints, and as such, the tool
+  solver efficiently handles large sets of constraints, and as such, 
   remains responsive as the complexity of the configuration increases.
  
 # The Stage Mechanism
@@ -242,9 +242,8 @@ systems.
 where users can select the individual models to be coupled in their CESM
 experiment. As the user makes selections, the GUI dynamically updates available
 options by crossing out incompatible choices, ensuring that only valid
-configurations are presented. This interactive feedback mechanism guides users
-through the configuration process, helping them make informed decisions and
-avoiding incompatible selections.
+configurations are selectable. This interactive feedback guides the user
+toward compatible model setups.
 
 ![The "Components" stage. \label{fig:Stage1_7}](Stage1_7.png){width="90%"}
 
