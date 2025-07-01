@@ -76,14 +76,14 @@ are selected in a logical sequence while dynamically updating available options
 based on user choices. Additionally, the tool features utilities for creating
 and editing model input files, such as ocean grid, bathymetry, and land
 surface properties, further simplifying model customization and
-minimizing the need for manual file creation and modification.
+eliminating the need for manual file modifications.
 
 By automating and simplifying CESM configuration, visualCaseGen makes the model
 more accessible and custumizable, particularly for researchers exploring
 hierarchical modeling [@maher2019model], idealized experiments
 [@polvani2017less], or custom coupled simulations. As such, the tool allows
 users to focus on their scientific objectives rather than technical setup
-challenges, ultimately enabling a more efficient and streamlined experiment
+challenges, and ultimately enables a more efficient and streamlined experiment
 workflow.
 
 
@@ -178,11 +178,10 @@ an SMT solver an ideal choice. The benefits of using a solver include:
   - Are there unreachable options that need adjustment?
   - Are any constraints redundant and can be optimized?
 
-- **Scalability and Efficiency:** As the number of variables and constraints grows
-  exponentially, manually checking compatibility becomes infeasible. The 
-  solver efficiently handles large-scale constraint resolution, ensuring rapid
-  feedback even for large number of variables.
-
+- **Scalability and Efficiency:** As the number of variables and constraints grows,
+  manually checking compatibility quickly becomes infeasible. The
+  solver efficiently handles large sets of constraints, and as such, the tool
+  remains responsive as the complexity of the configuration increases.
  
 # The Stage Mechanism
 
@@ -275,7 +274,7 @@ range of studies by automating many aspects of experiment configuration. Instead
 of manual intervention, modelers can use visualCaseGen’s interactive
 GUI to define model setups, mix and match component configurations,
 generate custom grids and parameters. The SMT-based constraint solver
-ensures that only valid model settings are selected, reducing the need for
+ensures that only valid model settings are selected, thereby reducing the need for
 trial-and-error debugging. While complex custom cases may still require
 fine-tuning, visualCaseGen allows modelers to generate an initial working
 configuration in a matter of hours rather than weeks, greatly improving
@@ -283,7 +282,7 @@ efficiency and ease-of-use.
 
 By automating tedious configuration tasks, visualCaseGen enables researchers to
 focus on scientific exploration rather than technical setup, making CESM more
-accessible for both idealized and complex climate modeling studies. To our 
+accessible for both idealized and complex modeling studies. To our 
 knowledge, visualCaseGen is the first tool of its kind to integrate SMT-based
 constraint solving into Earth system model experiment setup, and it exemplifies
 how formal methods can simplify and enhance the configuration process.
