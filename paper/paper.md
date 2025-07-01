@@ -5,6 +5,7 @@ tags:
   - cesm
   - climate modeling
   - constraint solver
+  - product configuration
   - SMT
 authors:
   - name: Alper Altuntas
@@ -44,7 +45,7 @@ bibliography: paper.bib
 
 visualCaseGen is a graphical user interface (GUI) designed to streamline the
 creation and configuration of Community Earth System Model (CESM) experiments.
-CESM is a highly flexible, state-of-the-art climate model that allows researchers
+CESM is a state-of-the-art climate model that allows researchers
 to simulate the Earth system across a wide range of spatial and temporal scales
 and at varying levels of complexity, depending on scientific objectives [@danabasoglu2020community].
 However, configuring non-standard or idealized CESM experiments is often a technically
@@ -61,7 +62,10 @@ configuration parameters, detects conflicts, and provides detailed explanations 
 incompatibilities, allowing users to make informed adjustments. The SMT-based
 approach enables dynamic, real-time validation of model settings, significantly
 reducing setup errors and ensuring that only scientifically viable configurations
-are selected.
+are selected.  Complementing the solver, the visualCaseGen backend implements a
+*Stage Mechanism* that divides the workflow into structured, sequential steps. 
+This mechanism works in tandem with the solver to manage variable precedence,
+guide user input, and enforce constraints efficiently.
 
 On the frontend, visualCaseGen is implemented as a Jupyter-based GUI, offering
 an intuitive, step-by-step interface for browsing standard CESM configurations,
@@ -260,6 +264,10 @@ ease of use.
 
 ![TopoEditor widget \label{fig:TopoEditor}](TopoEditor.png){width="90%"}
 
+These and similar frontend features enhance accessibility and usability by
+providing real-time feedback, clarifying dependencies, and helping users
+understand how their selections shape the experiment configuration.
+
 # Remarks
 
 visualCaseGen can significantly accelerate CESM experiment setup for a wide
@@ -275,7 +283,11 @@ efficiency and ease-of-use.
 
 By automating tedious configuration tasks, visualCaseGen enables researchers to
 focus on scientific exploration rather than technical setup, making CESM more
-accessible for both idealized and complex climate modeling studies.
+accessible for both idealized and complex climate modeling studies. To our 
+knowledge, visualCaseGen is the first tool of its kind to integrate SMT-based
+constraint solving into Earth system model experiment setup, and it exemplifies
+how formal methods can simplify and enhance the configuration process.
+
 
 # Acknowledgements
 
