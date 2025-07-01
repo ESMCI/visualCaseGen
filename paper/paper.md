@@ -11,14 +11,14 @@ authors:
   - name: Alper Altuntas
     orcid: 0000-0003-1708-9518
     affiliation: "1"
-  - name: Manish Venumuddula
-    orcid: 0009-0009-5047-2018
-    affiliation: "1"
   - name: Isla R. Simpson
     orcid: 0000-0002-2915-1377
     affiliation: "1"
   - name: Scott D. Bachman
     orcid: 0000-0002-6479-4300
+    affiliation: "1"
+  - name: Manish Venumuddula
+    orcid: 0009-0009-5047-2018
     affiliation: "1"
   - name:  Samuel Levis
     orcid: 0000-0003-4684-6995
@@ -189,7 +189,9 @@ A key backend concept in visualCaseGen is the Stage Mechanism, which structures
 the CESM configuration process into consecutive steps (stages). Each stage
 includes a set of related configuration variables that can be adjusted together.
 Based on the user's selections, different stages are activated dynamically,
-guiding the user through a structured workflow.
+guiding the user through a structured workflow. The stage mechanism allows
+the constraint solver to operate incrementally, applying only the relevant
+constraints for the current stage, which improves performance and responsiveness.
 
 ## Stage Pipeline
 
@@ -203,7 +205,7 @@ dependencies, the stage pipeline must therefore form a directed acyclic graph
 (DAG), enabling a consistent variable precedence hierarchy and eliminating the
 possibility of loops or contradictory variable settings.
 
-![The visualCaseGen stage pipeline, starting from the top node (1. Component Set) and ending at the bottom node (3. Launch). The user follows a path along this pipeline based on their modeling needs and selections. \label{fig:pipeline}](stage_pipeline.png)
+![The stage pipeline, starting with the "Component Set" stage and ending with the "Launch" stage. The user follows a path along this pipeline based on their modeling needs and selections. \label{fig:pipeline}](stage_pipeline.png)
 
 ## Constraint Graph and its Traversal
 
