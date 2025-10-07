@@ -517,7 +517,7 @@ class CaseCreator:
                 xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
 
     @staticmethod
-    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 300, ideal_multiple_of_cores_used = 128):
         """Calculate the number of cores based on the grid size."""
 
 
@@ -586,7 +586,7 @@ class CaseCreator:
         # Determine timesteps based on the grid resolution (assuming coupling frequency of 1800.0 sec):
         res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)
         res_y = float(cvars['OCN_LENY'].value) / int(cvars["OCN_NY"].value)
-        dt = 600.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
+        dt = 7200.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
         # Make sure 1800.0 is a multiple of dt and dt is a power of 2 and/or 3:
         dt = min((1800.0 / n for n in [2**i * 3**j for i in range(10) for j in range(6)] if 1800.0 % n == 0), key=lambda x: abs(dt - x))
         # Try setting dt_therm to dt*4, or dt*3, or  dt*3, depending on whether 1800.0 becomes a multiple of dt:
