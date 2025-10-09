@@ -292,6 +292,16 @@ class CaseCreator:
         )
         new_ocnice_grid.text = ocn_grid
 
+        # Add grid for data runoff if drof component is selected:
+        if cvars["COMP_ROF"].value == "drof":
+            drof_grid = cvars["COMP_ROF_OPTION"].value
+            new_drof_grid = SubElement(
+                new_resolution,
+                "grid",
+                attrib={"name": "rof"},
+            )
+            new_drof_grid.text = drof_grid
+
         if not do_exec:
             return
 
