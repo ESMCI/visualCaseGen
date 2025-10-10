@@ -522,14 +522,16 @@ class CaseCreator:
 
 
         min_cores = math.ceil(num_points/max_points_per_core)
-        max_cores = math.ceil(num_points/min_points_per_core)    
+        max_cores = math.ceil(num_points/min_points_per_core)  
+
+        # If min_cores is less than the first multiple of ideal cores, just return the min_cores
+        if min_cores < ideal_multiple_of_cores_used:
+            return min_cores  
 
         # Request a multiple of the entire core (ideal_multiple_of_cores_used) starting from the min
         ideal_cores = ((min_cores + ideal_multiple_of_cores_used - 1) // ideal_multiple_of_cores_used) * ideal_multiple_of_cores_used
-        if ideal_cores <= max_cores:
-            return ideal_cores
-        else:
-            return (max_cores+min_cores)//2
+        return ideal_cores
+
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
