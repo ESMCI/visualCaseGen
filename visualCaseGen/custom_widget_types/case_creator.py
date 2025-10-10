@@ -525,7 +525,7 @@ class CaseCreator:
         max_cores = math.ceil(num_points/min_points_per_core)  
 
         # If min_cores is less than the first multiple of ideal cores, just return the min_cores
-        if min_cores < ideal_multiple_of_cores_used:
+        if max_cores < ideal_multiple_of_cores_used:
             return min_cores  
 
         # Request a multiple of the entire core (ideal_multiple_of_cores_used) starting from the min
