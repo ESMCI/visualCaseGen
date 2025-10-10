@@ -517,19 +517,21 @@ class CaseCreator:
                 xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
 
     @staticmethod
-    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 300, ideal_multiple_of_cores_used = 128):
         """Calculate the number of cores based on the grid size."""
 
 
         min_cores = math.ceil(num_points/max_points_per_core)
-        max_cores = math.ceil(num_points/min_points_per_core)    
+        max_cores = math.ceil(num_points/min_points_per_core)  
+
+        # If min_cores is less than the first multiple of ideal cores, just return the min_cores
+        if min_cores < ideal_multiple_of_cores_used:
+            return min_cores  
 
         # Request a multiple of the entire core (ideal_multiple_of_cores_used) starting from the min
         ideal_cores = ((min_cores + ideal_multiple_of_cores_used - 1) // ideal_multiple_of_cores_used) * ideal_multiple_of_cores_used
-        if ideal_cores <= max_cores:
-            return ideal_cores
-        else:
-            return (max_cores+min_cores)//2
+        return ideal_cores
+
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
@@ -586,7 +588,7 @@ class CaseCreator:
         # Determine timesteps based on the grid resolution (assuming coupling frequency of 1800.0 sec):
         res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)
         res_y = float(cvars['OCN_LENY'].value) / int(cvars["OCN_NY"].value)
-        dt = 600.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
+        dt = 7200.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
         # Make sure 1800.0 is a multiple of dt and dt is a power of 2 and/or 3:
         dt = min((1800.0 / n for n in [2**i * 3**j for i in range(10) for j in range(6)] if 1800.0 % n == 0), key=lambda x: abs(dt - x))
         # Try setting dt_therm to dt*4, or dt*3, or  dt*3, depending on whether 1800.0 becomes a multiple of dt:
