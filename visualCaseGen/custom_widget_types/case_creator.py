@@ -138,7 +138,7 @@ class CaseCreator:
 
         # Clean up:
         if do_exec:
-            self._remove_orig_xml_files()
+            
             cvars["CASE_CREATOR_STATUS"].value = "OK"
             with self._out:
                 caseroot = cvars["CASEROOT"].value
