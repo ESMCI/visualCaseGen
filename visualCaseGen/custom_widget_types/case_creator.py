@@ -45,29 +45,7 @@ class CaseCreator:
         """This function is called when the case creation fails. It reverts the changes made
         to the ccs_config xml files."""
 
-        mg = "ccs_config/modelgrid_aliases_nuopc.xml"
-        if (Path(self._cime.srcroot) / f"{mg}.orig").exists():
-            shutil.move(
-                Path(self._cime.srcroot) / f"{mg}.orig",
-                Path(self._cime.srcroot) / f"{mg}"
-            )
-        cg = "ccs_config/component_grids_nuopc.xml"
-        if (Path(self._cime.srcroot) / f"{cg}.orig").exists():
-            shutil.move(
-                Path(self._cime.srcroot) / f"{cg}.orig",
-                Path(self._cime.srcroot) / f"{cg}"
-            )
-
-    def _remove_orig_xml_files(self):
-        """This function is called when the case creation and modification process is successful.
-        It removes the backup xml files created before modifying the ccs_config xml files."""
-
-        mg = "ccs_config/modelgrid_aliases_nuopc.xml"
-        if (Path(self._cime.srcroot) / f"{mg}.orig").exists():
-            os.remove(Path(self._cime.srcroot) / f"{mg}.orig")
-        cg = "ccs_config/component_grids_nuopc.xml"
-        if (Path(self._cime.srcroot) / f"{cg}.orig").exists():
-            os.remove(Path(self._cime.srcroot) / f"{cg}.orig")
+        return # Currently no action is needed 
 
     def _is_non_local(self):
         """Check if the case is being created on a machine different from the one
@@ -138,11 +116,11 @@ class CaseCreator:
         with self._out:
             print(f"{COMMENT}Creating case...{RESET}\n")
 
-        # First, update ccs_config xml files to add custom grid information if needed:
-        self._update_ccs_config(do_exec)
-
         # Run create_newcase
         self._run_create_newcase(caseroot, compset, resolution, do_exec)
+
+        # Add custom grid information to the case if needed:
+        self._update_grids(do_exec)
 
         # Navigate to the case directory:
         with self._out:
@@ -171,11 +149,10 @@ class CaseCreator:
                     f"another case, restart the notebook.{RESET}\n"
                 )
 
-    def _update_ccs_config(self, do_exec):
+    def _update_grids(self, do_exec):
         """Update the modelgrid_aliases and component_grids xml files with custom grid
-        information if needed. This function is called before running create_newcase."""
+        information if needed. This function is called after running create_newcase."""
 
-        # If Custom grid is selected, update modelgrid_aliases and component_grids xml files:
         if cvars["GRID_MODE"].value == "Standard":
             return
         else:
@@ -201,109 +178,8 @@ class CaseCreator:
         if ocn_grid is None:
             raise RuntimeError("No ocean grid specified.")
 
-        self._update_modelgrid_aliases(custom_grid_path, ocn_grid, do_exec)
         self._update_component_grids(custom_grid_path, ocn_grid, ocn_grid_mode, do_exec)
 
-    def _update_modelgrid_aliases(self, custom_grid_path, ocn_grid, do_exec):
-        """Update the modelgrid_aliases xml file with custom resolution information.
-        This function is called before running create_newcase.
-
-        Parameters
-        ----------
-        custom_grid_path : Path
-            The path to the custom grid directory.
-        ocn_grid : str
-            The name of the custom ocean grid.
-        do_exec : bool
-            If True, execute the commands. If False, only print them.
-            """
-
-        resolution_name = custom_grid_path.name
-
-        # Component grid names:
-        atm_grid = cvars["CUSTOM_ATM_GRID"].value
-        lnd_grid = cvars["CUSTOM_LND_GRID"].value
-        # modelgrid_aliases xml file that stores resolutions:
-        srcroot = self._cime.srcroot
-        ccs_config_root = Path(srcroot) / "ccs_config"
-        assert (
-            ccs_config_root.exists()
-        ), f"ccs_config_root {ccs_config_root} does not exist."
-        modelgrid_aliases_xml = ccs_config_root / "modelgrid_aliases_nuopc.xml"
-        assert (
-            modelgrid_aliases_xml.exists()
-        ), f"modelgrid_aliases_xml {modelgrid_aliases_xml} does not exist."
-        modelgrid_aliases_xml = modelgrid_aliases_xml.as_posix()
-
-        # confirm that modelgrid_aliases xml file is writeable:
-        if not os.access(modelgrid_aliases_xml, os.W_OK):
-            raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
-
-        # log the modification of modelgrid_aliases.xml:
-        with self._out:
-            print(
-                f'{BPOINT} Updating ccs_config/modelgrid_aliases_nuopc.xml file to include the new '
-                f'resolution "{resolution_name}" consisting of the following component grids.\n'
-                f' atm grid: "{atm_grid}", lnd grid: "{lnd_grid}", ocn grid: "{ocn_grid}".\n'
-            )
-
-        # Read in xml file and generate grids object file:
-        parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
-        grids_tree = ET.parse(modelgrid_aliases_xml, parser=parser)
-        grids_root = grids_tree.getroot()
-
-        # Check if a resp;iton with the same name already exists. If so, remove it or raise an error
-        # depending on the value of self._allow_xml_override:
-        for resolution in grids_root.findall("model_grid"):
-            if resolution.attrib["alias"] == resolution_name:
-                if self._allow_xml_override:
-                    grids_root.remove(resolution)
-                else:
-                    raise RuntimeError(
-                        f"Resolution {resolution_name} already exists in modelgrid_aliases."
-                    )
-
-        # Create new resolution entry in xml file:
-        new_resolution = SubElement(
-            grids_root,
-            "model_grid",
-            attrib={"alias": resolution_name},
-        )
-
-        # Add component grids to resolution entry:
-        new_atm_grid = SubElement(
-            new_resolution,
-            "grid",
-            attrib={"name": "atm"},
-        )
-        new_atm_grid.text = atm_grid
-
-        new_lnd_grid = SubElement(
-            new_resolution,
-            "grid",
-            attrib={"name": "lnd"},
-        )
-        new_lnd_grid.text = lnd_grid
-
-        new_ocnice_grid = SubElement(
-            new_resolution,
-            "grid",
-            attrib={"name": "ocnice"},
-        )
-        new_ocnice_grid.text = ocn_grid
-
-        if not do_exec:
-            return
-
-        # back up modelgrid_aliases.xml in case case creation fails:
-        shutil.copy(
-            Path(self._cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml",
-            Path(self._cime.srcroot) / "ccs_config/modelgrid_aliases_nuopc.xml.orig",
-        )
-
-        # update modelgrid_aliases.xml to include new resolution:
-        ET.indent(grids_tree)
-        grids_tree.write(modelgrid_aliases_xml, encoding="utf-8", xml_declaration=True)
 
     def _update_component_grids(
         self, custom_grid_path, ocn_grid, ocn_grid_mode, do_exec
@@ -332,92 +208,24 @@ class CaseCreator:
             )
             assert ocn_mesh.exists(), f"Ocean mesh file {ocn_mesh} does not exist."
 
-            # component_grids xml file that stores resolutions:
-            srcroot = self._cime.srcroot
-            ccs_config_root = Path(srcroot) / "ccs_config"
-            assert (
-                ccs_config_root.exists()
-            ), f"ccs_config_root {ccs_config_root} does not exist."
-            component_grids_xml = ccs_config_root / "component_grids_nuopc.xml"
-            assert (
-                component_grids_xml.exists()
-            ), f"component_grids_xml {component_grids_xml} does not exist."
-            component_grids_xml = component_grids_xml.as_posix()
-
-            # confirm that component_grids xml file is writeable:
-            if not os.access(component_grids_xml, os.W_OK):
-                raise RuntimeError(f"Cannot write to {component_grids_xml}.")
 
             # log the modification of component_grids.xml:
             with self._out:
                 print(
-                    f'{BPOINT} Updating ccs_config/component_grids_nuopc.xml file to include '
+                    f'{BPOINT} Updating case xml variables to include '
                     f'newly generated ocean grid "{ocn_grid}" with the following properties:\n'
                     f' nx: {cvars["OCN_NX"].value}, ny: {cvars["OCN_NY"].value}.'
                     f' ocean mesh: {ocn_mesh}.{RESET}\n'
                 )
 
-            # Read in xml file and generate component_grids object file:
-            parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
-            domains_tree = ET.parse(component_grids_xml, parser=parser)
-            # ET.indent(domains_tree, space="  ", level=0)
-            domains_root = domains_tree.getroot()
+            xmlchange("OCN_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
 
-            # Check if a domain with the same name already exists. If so, remove it or raise an error
-            # depending on the value of self._allow_xml_override:
-            for domain in domains_root.findall("domain"):
-                if domain.attrib["name"] == ocn_grid:
-                    if self._allow_xml_override:
-                        domains_root.remove(domain)
-                    else:
-                        raise RuntimeError(
-                            f"Ocean grid {ocn_grid} already exists in component_grids."
-                        )
+            xmlchange("OCN_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
 
-            # Create new domain entry in xml file:
-            new_domain = SubElement(
-                domains_root,
-                "domain",
-                attrib={"name": ocn_grid},
-            )
+            xmlchange("OCN_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
-            nx = SubElement(
-                new_domain,
-                "nx",
-            )
-            nx.text = str(cvars["OCN_NX"].value)
-
-            ny = SubElement(
-                new_domain,
-                "ny",
-            )
-            ny.text = str(cvars["OCN_NY"].value)
-
-            mesh = SubElement(
-                new_domain,
-                "mesh",
-            )
-            mesh.text = ocn_mesh.as_posix()
-
-            desc = SubElement(
-                new_domain,
-                "desc",
-            )
-            desc.text = f"New ocean grid {ocn_grid} generated by mom6_bathy"
-
-            if not do_exec:
-                return
-
-            shutil.copy(
-                Path(self._cime.srcroot) / "ccs_config/component_grids_nuopc.xml",
-                Path(self._cime.srcroot) / "ccs_config/component_grids_nuopc.xml.orig",
-            )
-
-            # write to xml file:
-            ET.indent(domains_tree)
-            domains_tree.write(
-                component_grids_xml, encoding="utf-8", xml_declaration=True
-            )
+            xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
+            
 
     def _run_create_newcase(self, caseroot, compset, resolution, do_exec):
         """Run CIME's create_newcase tool to create a new case instance.
