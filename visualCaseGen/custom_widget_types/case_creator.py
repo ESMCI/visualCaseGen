@@ -108,7 +108,7 @@ class CaseCreator:
         if cvars["GRID_MODE"].value == "Standard":
             resolution = cvars["GRID"].value
         elif cvars["GRID_MODE"].value == "Custom":
-            resolution = Path(cvars["CUSTOM_GRID_PATH"].value).name
+            resolution = "a%" + cvars["CUSTOM_ATM_GRID"].value + "_l%" + cvars["CUSTOM_LND_GRID"].value + "_oi%VisualCaseGen_Custom_r%null_g%null_w%null_z%null_m%VisualCaseGen_Custom"
         else:
             raise RuntimeError(f"Unknown grid mode: {cvars['GRID_MODE'].value}")
 
@@ -226,15 +226,34 @@ class CaseCreator:
 
             xmlchange("ICE_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
-            xmlchange("ATM_GRID", cvars["CUSTOM_ATM_GRID"].value, do_exec, self._is_non_local(), self._out)
-
-            xmlchange("LND_GRID", cvars["CUSTOM_LND_GRID"].value, do_exec, self._is_non_local(), self._out)
-
             xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
-            
-            
+            xmlchange("OCN_GRID", "VCG_Changed", do_exec, self._is_non_local(), self._out)
 
+
+        lnd_grid_mode = cvars["LND_GRID_MODE"].value
+        if lnd_grid_mode == "Modified":
+            if cvars["COMP_OCN"].value != "mom":
+                with self._out:
+                    print(f"{COMMENT}Apply custom land grid xml changes:{RESET}\n")
+
+                # TODO: NO LONGER RELEVANT - OCEAN GRIDS ARE DONE THROUGH XML CHANGES AS WELL:  instead of xmlchanges, these changes should be made via adding the new lnd domain mesh to
+                # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
+
+                # lnd domain mesh
+                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, do_exec, self._is_non_local(), self._out)
+
+                # mask mesh (if modified)
+                base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
+                custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
+                lnd_dir = custom_grid_path / "lnd"
+                modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
+                assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
+                xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
+        else:
+            assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
+
+            
     def _run_create_newcase(self, caseroot, compset, resolution, do_exec):
         """Run CIME's create_newcase tool to create a new case instance.
 
@@ -301,28 +320,7 @@ class CaseCreator:
                 raise RuntimeError("Error creating case.")
 
     def _apply_all_xmlchanges(self, do_exec):
-
-        lnd_grid_mode = cvars["LND_GRID_MODE"].value
-        if lnd_grid_mode == "Modified":
-            if cvars["COMP_OCN"].value != "mom":
-                with self._out:
-                    print(f"{COMMENT}Apply custom land grid xml changes:{RESET}\n")
-
-                # TODO: instead of xmlchanges, these changes should be made via adding the new lnd domain mesh to
-                # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
-
-                # lnd domain mesh
-                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, do_exec, self._is_non_local(), self._out)
-
-                # mask mesh (if modified)
-                base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
-                custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
-                lnd_dir = custom_grid_path / "lnd"
-                modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
-                assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
-                xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
-        else:
-            assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
+        """Apply all the necessary xmlchanges to the case."""
 
         # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
         if cvars["COMP_OCN"].value == "mom":
