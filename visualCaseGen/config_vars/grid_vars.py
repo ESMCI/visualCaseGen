@@ -40,6 +40,9 @@ def initialize_custom_grid_variables(cime):
     # A preexisting ATM grid picked for custom grid
     ConfigVarStrMS("CUSTOM_ATM_GRID", default_value="0.9x1.25")
 
+    # The associated domain mesh
+    ConfigVarStrMS("CUSTOM_ATM_DOMAIN_MESH")
+
     # Custom ocean grid variables
     ConfigVarStr("OCN_GRID_MODE")  # Standard, Modify Existing, Create New
 
@@ -71,6 +74,8 @@ def initialize_custom_grid_variables(cime):
         "CUSTOM_LND_GRID",
         default_value="0.9x1.25"
     )  # A preexisting land grid picked for the custom grid
+    ConfigVarStr("CUSTOM_LND_DOMAIN_MESH")  # The associated domain mesh
+
 
     # Auto-fill the INPUT_MASK_MESH variable based on the CUSTOM_LND_GRID variable
     def default_input_mask_mesh():

@@ -108,7 +108,7 @@ class CaseCreator:
         if cvars["GRID_MODE"].value == "Standard":
             resolution = cvars["GRID"].value
         elif cvars["GRID_MODE"].value == "Custom":
-            resolution = "a%" + cvars["CUSTOM_ATM_GRID"].value + "_l%" + cvars["CUSTOM_LND_GRID"].value + "_oi%VisualCaseGen_Custom_r%null_g%null_w%null_z%null_m%VisualCaseGen_Custom"
+            resolution = "visualCaseGen_Custom"
         else:
             raise RuntimeError(f"Unknown grid mode: {cvars['GRID_MODE'].value}")
 
@@ -117,6 +117,7 @@ class CaseCreator:
             print(f"{COMMENT}Creating case...{RESET}\n")
 
         # Run create_newcase
+        breakpoint()
         self._run_create_newcase(caseroot, compset, resolution, do_exec)
 
         # Add custom grid information to the case if needed:
@@ -229,6 +230,14 @@ class CaseCreator:
             xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
             xmlchange("OCN_GRID", "VCG_Changed", do_exec, self._is_non_local(), self._out)
+
+            xmlchange("ATM_GRID", cvars["CUSTOM_ATM_GRID"].value, do_exec, self._is_non_local(), self._out)
+
+            xmlchange("LND_GRID", cvars["CUSTOM_LND_GRID"].value, do_exec, self._is_non_local(), self._out)
+
+            xmlchange("ATM_DOMAIN_MESH", cvars["CUSTOM_ATM_DOMAIN_MESH"].value, do_exec, self._is_non_local(), self._out)
+
+            xmlchange("LND_DOMAIN_MESH", cvars["CUSTOM_LND_DOMAIN_MESH"].value, do_exec, self._is_non_local(), self._out)
 
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
