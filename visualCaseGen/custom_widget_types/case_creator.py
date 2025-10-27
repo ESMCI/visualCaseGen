@@ -227,15 +227,13 @@ class CaseCreator:
 
             xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
-            xmlchange("OCN_GRID", "VCG_Changed", do_exec, self._is_non_local(), self._out)
-
             xmlchange("ATM_GRID", cvars["CUSTOM_ATM_GRID"].value, do_exec, self._is_non_local(), self._out)
 
             xmlchange("LND_GRID", cvars["CUSTOM_LND_GRID"].value, do_exec, self._is_non_local(), self._out)
 
-            xmlchange("ATM_DOMAIN_MESH", os.path.expandvars(self._cime.domains["atm"][cvars["CUSTOM_ATM_GRID"].value].mesh), do_exec, self._is_non_local(), self._out)
+            xmlchange("ATM_DOMAIN_MESH", (self._cime.domains["atm"][cvars["CUSTOM_ATM_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
 
-            xmlchange("LND_DOMAIN_MESH",  os.path.expandvars(self._cime.domains["lnd"][cvars["CUSTOM_LND_GRID"].value].mesh), do_exec, self._is_non_local(), self._out)
+            xmlchange("LND_DOMAIN_MESH", (self._cime.domains["lnd"][cvars["CUSTOM_LND_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
 
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
