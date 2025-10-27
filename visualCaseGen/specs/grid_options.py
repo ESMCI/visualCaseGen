@@ -125,27 +125,6 @@ def set_custom_atm_grid_options(cime):
         func=custom_atm_grid_options_func, args=(cvars["COMP_ATM"], cvars["GRID_MODE"])
     )
 
-    # CUSTOM_ATM_DOMAIN_MESH options
-    def custom_atm_domain_mesh_options_func(comp_atm, grid_mode):
-        """Return the options and descriptions for the custom ATM grid variable."""
-        compset_lname = cvars["COMPSET_LNAME"].value
-        compatible_atm_grids = []
-        descriptions = []
-        meshes = []
-        for atm_grid in cime.domains["atm"].values():
-            if check_comp_grid("ATM", atm_grid, compset_lname) is False:
-                continue
-            compatible_atm_grids.append(atm_grid.mesh)
-            descriptions.append(atm_grid.desc)
-            meshes.append(atm_grid.mesh)
-        return meshes, descriptions
-
-    cv_custom_atm_domain_mesh = cvars["CUSTOM_ATM_DOMAIN_MESH"]
-    cv_custom_atm_domain_mesh.options_spec = OptionsSpec(
-        func=custom_atm_domain_mesh_options_func, args=(cvars["COMP_ATM"], cvars["GRID_MODE"])
-    )
-
-
 def set_custom_ocn_grid_options(cime):
     """Set the options and options specs for the custom OCN grid variables.
     This function is called at initialization."""
@@ -240,33 +219,6 @@ def set_custom_lnd_grid_options(cime):
     cv_custom_lnd_grid = cvars["CUSTOM_LND_GRID"]
     cv_custom_lnd_grid.options_spec = OptionsSpec(
         func=custom_lnd_grid_options_func,
-        args=(cvars["COMP_LND"], cvars["CUSTOM_ATM_GRID"], cvars["LND_GRID_MODE"]),
-    )
-
-
-    # CUSTOM_LND_DOMAIN_MESH options
-    def custom_lnd_domain_mesh_options_func(comp_lnd, custom_atm_grid, lnd_grid_mode):
-        """Return the options and descriptions for the custom LND grid variable."""
-        if comp_lnd != "clm":
-            return [custom_atm_grid], [
-                "(When CLM is not selected, custom LND grid is automatically set to ATM grid.)"
-            ]
-        else:
-            compset_lname = cvars["COMPSET_LNAME"].value
-            compatible_lnd_grids = []
-            descriptions = []
-            meshes = []
-            for lnd_grid in cime.domains["lnd"].values():
-                if check_comp_grid("LND", lnd_grid, compset_lname) is False:
-                    continue
-                compatible_lnd_grids.append(lnd_grid.name)
-                descriptions.append(lnd_grid.desc)
-                meshes.append(lnd_grid.mesh)
-            return meshes, descriptions
-
-    cv_custom_lnd_domain_mesh = cvars["CUSTOM_LND_DOMAIN_MESH"]
-    cv_custom_lnd_domain_mesh.options_spec = OptionsSpec(
-        func=custom_lnd_domain_mesh_options_func,
         args=(cvars["COMP_LND"], cvars["CUSTOM_ATM_GRID"], cvars["LND_GRID_MODE"]),
     )
 
