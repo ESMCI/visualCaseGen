@@ -42,8 +42,7 @@ class CaseCreator:
         self._allow_xml_override = allow_xml_override
 
     def revert_launch(self, do_exec=True):
-        """This function is called when the case creation fails. It reverts the changes made
-        to the ccs_config xml files."""
+        """This function is called when the case creation fails. It reverts any permanent changes made."""
 
         return # Currently no action is needed 
 
@@ -117,7 +116,6 @@ class CaseCreator:
             print(f"{COMMENT}Creating case...{RESET}\n")
 
         # Run create_newcase
-        breakpoint()
         self._run_create_newcase(caseroot, compset, resolution, do_exec)
 
         # Add custom grid information to the case if needed:
@@ -329,7 +327,7 @@ class CaseCreator:
                 raise RuntimeError("Error creating case.")
 
     def _apply_all_xmlchanges(self, do_exec):
-        """Apply all the necessary xmlchanges to the case."""
+        """Apply all the necessary xmlchanges (non-grid) to the case."""
 
         # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
         if cvars["COMP_OCN"].value == "mom":

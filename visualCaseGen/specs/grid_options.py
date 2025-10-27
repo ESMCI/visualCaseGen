@@ -125,6 +125,7 @@ def set_custom_atm_grid_options(cime):
         func=custom_atm_grid_options_func, args=(cvars["COMP_ATM"], cvars["GRID_MODE"])
     )
 
+
 def set_custom_ocn_grid_options(cime):
     """Set the options and options specs for the custom OCN grid variables.
     This function is called at initialization."""
