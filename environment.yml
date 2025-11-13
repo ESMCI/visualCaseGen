@@ -6,7 +6,7 @@ channels:
   
 dependencies:
   - python>=3.11.10,<3.12
-  #- xesmf
+  - libxml2>=2.13,<2.14
   - pip
   - pip:
     - -e ./external/mom6_bathy/
