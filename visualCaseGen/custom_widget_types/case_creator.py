@@ -508,8 +508,8 @@ class CaseCreator:
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
 
-        # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
-        if cvars["COMP_OCN"].value == "mom":
+        # Set NTASKS based on grid size if custom ocn grid. e.g. NX * NY < max_pts_per_core
+        if cvars["COMP_OCN"].value == "mom" and cvars["OCN_GRID_MODE"].value == "Custom":
             num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
             cores = CaseCreator._calc_cores_based_on_grid(num_points)
             with self._out:
