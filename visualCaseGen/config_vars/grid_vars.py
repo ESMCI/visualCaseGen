@@ -151,3 +151,7 @@ def initialize_custom_grid_variables(cime):
                                     # Note: this var isn't a part of any of the stages.
     ConfigVarStr("FSURDAT_MOD_STATUS", widget_none_val="") # a status variable to prevent the completion of the stage prematurely
 
+    # A preexisting ROF grid to be picked for custom grid
+    ConfigVarStrMS("CUSTOM_ROF_GRID", default_value="0.9x1.25")
+
+

@@ -223,6 +223,8 @@ class CaseCreator:
         # Component grid names:
         atm_grid = cvars["CUSTOM_ATM_GRID"].value
         lnd_grid = cvars["CUSTOM_LND_GRID"].value
+        rof_grid = cvars["CUSTOM_ROF_GRID"].value
+
         # modelgrid_aliases xml file that stores resolutions:
         srcroot = self._cime.srcroot
         ccs_config_root = Path(srcroot) / "ccs_config"
@@ -239,12 +241,19 @@ class CaseCreator:
         if not os.access(modelgrid_aliases_xml, os.W_OK):
             raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
 
+        # Construct the component grids string to be logged:
+        component_grids_str = f' atm grid: "{atm_grid}" \n'
+        component_grids_str += f' lnd grid: "{lnd_grid}" \n'
+        component_grids_str += f' ocn grid: "{ocn_grid}".\n'
+        if rof_grid is not None and rof_grid != "":
+            component_grids_str += f' rof grid: "{rof_grid}".\n'
+
         # log the modification of modelgrid_aliases.xml:
         with self._out:
             print(
                 f'{BPOINT} Updating ccs_config/modelgrid_aliases_nuopc.xml file to include the new '
                 f'resolution "{resolution_name}" consisting of the following component grids.\n'
-                f' atm grid: "{atm_grid}", lnd grid: "{lnd_grid}", ocn grid: "{ocn_grid}".\n'
+                f'{component_grids_str}'
             )
 
         # Read in xml file and generate grids object file:
@@ -278,6 +287,7 @@ class CaseCreator:
         )
         new_atm_grid.text = atm_grid
 
+        # Add lnd grid to resolution entry:
         new_lnd_grid = SubElement(
             new_resolution,
             "grid",
@@ -285,12 +295,23 @@ class CaseCreator:
         )
         new_lnd_grid.text = lnd_grid
 
+        # Add ocn grid to resolution entry:
         new_ocnice_grid = SubElement(
             new_resolution,
             "grid",
             attrib={"name": "ocnice"},
         )
         new_ocnice_grid.text = ocn_grid
+
+        # Add rof grid to resolution entry if it exists:
+        if rof_grid is not None and rof_grid != "":
+            new_rof_grid = SubElement(
+                new_resolution,
+                "grid",
+                attrib={"name": "rof"},
+            )
+            new_rof_grid.text = rof_grid
+
 
         if not do_exec:
             return

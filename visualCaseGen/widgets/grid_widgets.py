@@ -25,13 +25,15 @@ def initialize_grid_widgets(cime):
         disabled=False,
     )
 
-    initialize_standard_grid_widgets(cime)
-    initialize_custom_atm_grid_widgets(cime)
-    initialize_custom_ocn_grid_widgets(cime)
-    initialize_custom_lnd_grid_widgets(cime)
+    initialize_standard_grid_widgets()
+    initialize_custom_grid_path_widget(cime)
+    initialize_custom_atm_grid_widgets()
+    initialize_custom_ocn_grid_widgets()
+    initialize_custom_lnd_grid_widgets()
+    initialize_custom_rof_grid_widgets()
 
-def initialize_standard_grid_widgets(cime):
-    # Standard grid options
+def initialize_standard_grid_widgets():
+    """Initialize the widgets for the standard grid options."""
     cv_grid = cvars["GRID"]
     cv_grid.widget = MultiCheckbox(
         description="Grid:",
@@ -39,8 +41,8 @@ def initialize_standard_grid_widgets(cime):
     )
     cv_grid.valid_opt_char = chr(int("27A4", base=16))
 
-def initialize_custom_atm_grid_widgets(cime):
-
+def initialize_custom_grid_path_widget(cime):
+    """Initialize the widget for the custom grid path variable."""
     default_path = Path.home() 
     if cime.cime_output_root is not None:
         if (p := Path(cime.cime_output_root)).exists():
@@ -56,14 +58,16 @@ def initialize_custom_atm_grid_widgets(cime):
         layout={'width': '90%', 'margin': '10px'},
     )
 
+def initialize_custom_atm_grid_widgets():
+    """Initialize the widgets for the custom ATM grid options."""
     cv_custom_atm_grid = cvars["CUSTOM_ATM_GRID"]
     cv_custom_atm_grid.widget = MultiCheckbox(
         description="Custom ATM Grid:",
         allow_multi_select=False,
     )
 
-def initialize_custom_ocn_grid_widgets(cime):
-
+def initialize_custom_ocn_grid_widgets():
+    """Initialize the widgets for the custom OCN grid options."""
     cv_custom_ocn_grid_mode = cvars["OCN_GRID_MODE"]
     cv_custom_ocn_grid_mode.widget = ToggleButtons(
         description="Ocean Grid Mode:",
@@ -177,10 +181,10 @@ def initialize_custom_ocn_grid_widgets(cime):
         continuous_update=False,
     )
 
-def initialize_custom_lnd_grid_widgets(cime):
+def initialize_custom_lnd_grid_widgets():
+    """Initialize the widgets for the custom LND grid options."""
 
     description_width = "250px"
-
 
     cv_lnd_grid_mode = cvars["LND_GRID_MODE"]
     cv_lnd_grid_mode.widget = ToggleButtons(
@@ -321,3 +325,12 @@ def initialize_custom_lnd_grid_widgets(cime):
 
     cv_fsurdat_mod_status = cvars["FSURDAT_MOD_STATUS"]
     cv_fsurdat_mod_status.widget = DisabledText(value='')
+
+
+def initialize_custom_rof_grid_widgets():
+    """Initialize the widgets for the custom ROF grid options."""
+    cv_custom_rof_grid = cvars["CUSTOM_ROF_GRID"]
+    cv_custom_rof_grid.widget = MultiCheckbox(
+        description="Custom ROF Grid:",
+        allow_multi_select=False,
+    )
