@@ -296,3 +296,14 @@ def initialize_grid_stages(cime):
             cvars["FSURDAT_MOD_STATUS"]
         ],
     )
+
+
+    stg_custom_rof_grid = Stage(
+        title="Runoff Grid",
+        description="From the below list of standard runoff grids, select one to be used as the "
+        "runoff grid within the new, custom CESM grid.",
+        widget=StageWidget(HBox),
+        parent=guard_custom_grid,
+        varlist=[cvars["CUSTOM_ROF_GRID"]],
+        auto_set_default_value=False,
+    )
