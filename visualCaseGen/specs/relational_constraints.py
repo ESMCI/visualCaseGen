@@ -172,9 +172,6 @@ def get_relational_constraints(cvars):
         Implies(In(CUSTOM_ROF_GRID, ["JRA025", "rx1"]), COMP_ROF=="drof"):
             "JRA025 and rx1 runoff grids can only be selected if DROF is the runoff component.",
 
-        Contains(COMP_ROF_OPTION, "JRA") == (CUSTOM_ROF_GRID == "JRA025"):
-            "JRA data runoff forcing can only be used iff the custom runoff grid is set to JRA025.",
-
         #### Assertions to stress-test the CSP solver
 
         ### Implies(COMP_OCN=="docn", COMP_LND_PHYS!="DLND") : "FOO",

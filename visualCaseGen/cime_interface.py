@@ -5,7 +5,7 @@ import logging
 import socket
 import getpass
 import subprocess
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from pathlib import Path
 
 from ProConPy.dialog import alert_warning
@@ -413,6 +413,7 @@ class CIME_interface:
 
         # Get the initial (temporary) dict of domains from the component_grids file
         domains = self._get_domains()
+        domain_found = {domain_name: False for domain_name in domains.keys()}
 
         grids = self._grids_obj.get_child("grids")
 
@@ -453,6 +454,7 @@ class CIME_interface:
                         compset_constr=set(),
                         not_compset_constr=set(),
                     )
+                    domain_found[comp_grid] = True
 
         # Loop through model grids, i.e., resolutions, to populate self.resolutions.
         # Also, for each resolution, loop through the component grids that are part of this resolution 
@@ -493,7 +495,8 @@ class CIME_interface:
                         compset_constr=set(),
                         not_compset_constr=set(),
                     )
-                
+                    domain_found[comp_grid] = True
+
                 # Retrieve the domain object for this component grid and add the compset and not_compset constraints to it.
                 domain = self.domains[comp_name][comp_grid]
                 desc += ' | ' + ' ' + comp_name.upper() + ': ' + domain.desc
@@ -504,6 +507,32 @@ class CIME_interface:
             if all_component_grids_found:
                 self.resolutions.append(Resolution(alias, compset, not_compset, desc))
 
+        # If there are remaining domains that are not found to be belonging to any component, attempt to find out
+        # which component they belong to by looking at the description of the domain.
+        descr_tips ={
+            'rof': ('rof', 'runoff'),
+            'atm': ('atm', 'atmosphere'),
+            'lnd': ('lnd', 'land'),
+            'ocnice': ('ocn', 'ocean', 'ice'),
+            'glc': ('glc', 'glacier'),
+            'wav': ('wav'),
+        }
+        for domain in domains:
+            if not domain_found[domain]:
+                for comp_name, tips in descr_tips.items():
+                    if any(tip in domains[domain].desc.lower() for tip in tips):
+                        self.domains[comp_name][domain] = ComponentGrid(
+                            name=domain,
+                            nx=domains[domain].nx,
+                            ny=domains[domain].ny,
+                            mesh=domains[domain].mesh,
+                            desc=domains[domain].desc,
+                            compset_constr=set(),
+                            not_compset_constr=set(),
+                        )
+                        break
+
+
         # Finally, process the compset and not_compset constraints for each domain (component grid).
         self._process_domain_constraints()
 
@@ -512,18 +541,36 @@ class CIME_interface:
         the self.domains dict. This method is called after the component grids and resolutions have
         been retrieved. It updates the compset and not_compset constraints for each domain: If a domain
         is part of one or more resolutions that have no compset/not_compset constraints, then the domain
-        is deemed unconstrained. Otherwise, the domain is constrained by the disjunction of the
-        compset/not_compset constraints of all the resolutions it is part of.
+        is deemed unconstrained. Otherwise, the domain is constrained by the disjunction of the compset
+        constraints and the conjunction of the not_compset constraints of all the resolutions it is part of. 
         """
 
         for comp_name, domains in self.domains.items():
             for domain_name, domain in domains.items():
-                final_compset_constr = ''
-                if None not in domain.compset_constr and len(domain.compset_constr) >= 0:
+                # compset constraint
+                if None in domain.compset_constr or len(domain.compset_constr) == 0:
+                    final_compset_constr = ''
+                else:
                     final_compset_constr = '|'.join(domain.compset_constr)
-                final_not_compset_constr = ''
-                if None not in domain.not_compset_constr and len(domain.not_compset_constr) >= 0:
-                    final_not_compset_constr = '|'.join(domain.not_compset_constr)
+                
+                # not_compset constraint: collect expressions (i.e., models with or without options) that are
+                # common across all not_compset_constr sets for this domain. If there are no common expressions
+                # across all not_compset_constr sets, then the final not_compset_constr is empty.
+                if None in domain.not_compset_constr or len(domain.not_compset_constr) == 0:
+                    final_not_compset_constr = ''
+                else:
+                    expr_count = defaultdict(int)
+                    for not_compset_constr in domain.not_compset_constr:
+                        exprs = set(not_compset_constr.split('|'))
+                        for expr in exprs:
+                            expr_count[expr] += 1
+                    common_exprs = [expr for expr, count in expr_count.items() if count == len(domain.not_compset_constr)]
+                    if common_exprs:
+                        final_not_compset_constr = '|'.join(common_exprs)
+                    else:
+                        final_not_compset_constr = ''
+
+                # Update the domain object with the final compset and not_compset constraints
                 self.domains[comp_name][domain_name] = domain._replace(
                     compset_constr=final_compset_constr,
                     not_compset_constr=final_not_compset_constr
