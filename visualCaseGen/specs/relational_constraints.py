@@ -172,6 +172,19 @@ def get_relational_constraints(cvars):
         Implies(In(CUSTOM_ROF_GRID, ["JRA025", "rx1"]), COMP_ROF=="drof"):
             "JRA025 and rx1 runoff grids can only be selected if DROF is the runoff component.",
 
+        CUSTOM_ROF_GRID != "r05mz": # mizuroute is no longer available
+            "r05mz runoff grid can only be selected if MIZUROUTE is the runoff component.",
+        
+        In(COMP_ROF_OPTION, ["NYF", "IAF"]) == (CUSTOM_ROF_GRID=="rx1"):
+            "When Core2 forcing is selected for the ocean component, the runoff grid must be set to rx1.",
+
+        (Contains(COMP_ROF_OPTION, "JRA")) == (CUSTOM_ROF_GRID == "JRA025"):
+            "When JRA forcing is selected for the ocean component, the runoff grid must be set to JRA025.",
+
+        (COMP_ROF_OPTION == "GLOFAS") == (CUSTOM_ROF_GRID=="GLOFAS"):
+            "When GLOFAS forcing is selected for the ocean component, the runoff grid must be set to GLOFAS.",
+
+
         #### Assertions to stress-test the CSP solver
 
         ### Implies(COMP_OCN=="docn", COMP_LND_PHYS!="DLND") : "FOO",
