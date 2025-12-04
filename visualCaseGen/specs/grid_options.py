@@ -96,7 +96,7 @@ def check_comp_grid(comp_class, proposed_grid, compset_lname):
         proposed_grid.compset_constr, compset_lname
     ):
         return False
-    if proposed_grid.not_compset_constr and re.search(
+    if (not proposed_grid.is_default) and proposed_grid.not_compset_constr and re.search(
         proposed_grid.not_compset_constr, compset_lname
     ):
         return False

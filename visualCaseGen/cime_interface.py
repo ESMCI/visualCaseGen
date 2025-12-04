@@ -14,7 +14,7 @@ logger = logging.getLogger(f"  {__name__.split('.')[-1]}")
 
 Compset = namedtuple("Compset", ["alias", "lname", "model"])
 Resolution = namedtuple("Resolution", ["alias", "compset", "not_compset", "desc"])
-ComponentGrid = namedtuple("ComponentGrid", ["name", "nx", "ny", "mesh", "desc", "compset_constr", "not_compset_constr"])
+ComponentGrid = namedtuple("ComponentGrid", ["name", "nx", "ny", "mesh", "desc", "compset_constr", "not_compset_constr", "is_default"])
 
 
 class CIME_interface:
@@ -399,6 +399,7 @@ class CIME_interface:
                 desc=desc+support,
                 compset_constr=set(), # to be filled in later
                 not_compset_constr=set(), # to be filled in later
+                is_default=False # to be updated later
             )
 
         return domains
@@ -433,9 +434,8 @@ class CIME_interface:
         self.resolutions = []
 
         # Loop through model grid defaults. i.e., default grids for each model, to populate self.domains
-        # We currently don't make use of the model grid defaults, but we still read them in case any
-        # domain is only listed in the model grid defaults and not in the model grids. In that case,
-        # we want to make sure that the domain is still included in the self.domains dict.
+        # We read them in case any domain is only listed in the model grid defaults and not in the model grids.
+        # In that case, we want to make sure that the domain is still included in the self.domains dict.
         model_grid_defaults = self._grids_obj.get_child("model_grid_defaults", root=grids)
         default_grids = self._grids_obj.get_children("grid", root=model_grid_defaults)
         for default_grid in default_grids:
@@ -454,6 +454,7 @@ class CIME_interface:
                         desc=domains[comp_grid].desc,
                         compset_constr=set(),
                         not_compset_constr=set(),
+                        is_default=True
                     )
                     domain_found[comp_grid] = True
 
@@ -495,6 +496,7 @@ class CIME_interface:
                         desc=domains[comp_grid].desc,
                         compset_constr=set(),
                         not_compset_constr=set(),
+                        is_default=False
                     )
                     domain_found[comp_grid] = True
 
