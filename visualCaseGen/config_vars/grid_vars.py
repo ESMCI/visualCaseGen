@@ -154,4 +154,7 @@ def initialize_custom_grid_variables(cime):
     # A preexisting ROF grid to be picked for custom grid
     ConfigVarStrMS("CUSTOM_ROF_GRID", default_value="0.9x1.25")
 
-
+    # Runoff to ocean mapping status
+    ConfigVarStr("ROF_OCN_MAPPING_STATUS", widget_none_val="")
+    ConfigVarReal("ROF_OCN_MAPPING_RMAX")
+    ConfigVarReal("ROF_OCN_MAPPING_FOLD")

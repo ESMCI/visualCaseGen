@@ -506,6 +506,28 @@ class CaseCreator:
                 raise RuntimeError("Error creating case.")
 
     def _apply_all_xmlchanges(self, do_exec):
+        """Apply all the necessary xmlchanges to the case.
+
+        Parameters
+        ----------
+        do_exec : bool
+            If True, execute the commands. If False, only print them.
+        """
+
+        # If standard grid is selected, no modifications are needed:
+        grid_mode = cvars["GRID_MODE"].value
+        if grid_mode == "Standard":
+            return  # no modifications needed for standard grid
+        else:
+            assert grid_mode == "Custom", f"Unknown grid mode: {grid_mode}"
+
+        self._apply_lnd_grid_xmlchanges(do_exec)
+        self._apply_ocn_grid_xmlchanges(do_exec)
+        self._apply_runoff_ocn_mapping_xmlchanges(do_exec)
+        
+
+    def _apply_lnd_grid_xmlchanges(self, do_exec):
+        """Apply xmlchanges related to custom land grid if needed."""
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
         if lnd_grid_mode == "Modified":
@@ -528,6 +550,9 @@ class CaseCreator:
                 xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
+    
+    def _apply_ocn_grid_xmlchanges(self, do_exec):
+        """Apply xmlchanges related to custom ocean grid if needed."""
 
         # Set NTASKS based on grid size if custom ocn grid. e.g. NX * NY < max_pts_per_core
         if cvars["COMP_OCN"].value == "mom" and cvars["OCN_GRID_MODE"].value == "Custom":
@@ -536,6 +561,19 @@ class CaseCreator:
             with self._out:
                 print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
                 xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
+        
+    def _apply_runoff_ocn_mapping_xmlchanges(self, do_exec):
+        """Apply xmlchanges related to runoff to ocean mapping files if custom mapping is selected."""
+
+        if (rof_ocn_mapping_status := cvars["ROF_OCN_MAPPING_STATUS"].value) is not None:
+            if rof_ocn_mapping_status.startswith("CUSTOM:"):
+                mapping_files = rof_ocn_mapping_status[7:] 
+                nn_map_file, nnsm_map_file = mapping_files.split(",")
+                with self._out:
+                    print(f"{COMMENT}Apply runoff to ocean mapping xml changes:{RESET}\n")
+                    xmlchange("ROF2OCN_ICE_RMAPNAME", nnsm_map_file, do_exec, self._is_non_local(), self._out)
+                    xmlchange("ROF2OCN_LIQ_RMAPNAME", nnsm_map_file, do_exec, self._is_non_local(), self._out)
+
 
     @staticmethod
     def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 300, ideal_multiple_of_cores_used = 128):

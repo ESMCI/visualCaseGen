@@ -25,6 +25,7 @@ def get_relational_constraints(cvars):
     LND_GRID_MODE = cvars['LND_GRID_MODE']; LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']
     LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']; LND_STD_ELEV = cvars['LND_STD_ELEV']
     CUSTOM_ROF_GRID = cvars['CUSTOM_ROF_GRID']
+    ROF_OCN_MAPPING_RMAX = cvars['ROF_OCN_MAPPING_RMAX']; ROF_OCN_MAPPING_FOLD = cvars['ROF_OCN_MAPPING_FOLD']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
@@ -184,6 +185,17 @@ def get_relational_constraints(cvars):
         (COMP_ROF_OPTION == "GLOFAS") == (CUSTOM_ROF_GRID=="GLOFAS"):
             "When GLOFAS forcing is selected for the ocean component, the runoff grid must be set to GLOFAS.",
 
+        ROF_OCN_MAPPING_RMAX > 0:
+            "ROF_OCN_MAPPING_RMAX must be a positive number.",
+        
+        ROF_OCN_MAPPING_FOLD > 0:
+            "ROF_OCN_MAPPING_FOLD must be a positive number.",
+
+        ROF_OCN_MAPPING_RMAX <= 1000:
+            "ROF_OCN_MAPPING_RMAX must be less than or equal to 1000 km.",
+        
+        ROF_OCN_MAPPING_FOLD <= 1000:
+            "ROF_OCN_MAPPING_FOLD must be less than or equal to 1000 km.",
 
         #### Assertions to stress-test the CSP solver
 

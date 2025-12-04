@@ -334,3 +334,20 @@ def initialize_custom_rof_grid_widgets():
         description="Custom ROF Grid:",
         allow_multi_select=False,
     )
+
+    cv_rof_ocn_mapping_status = cvars["ROF_OCN_MAPPING_STATUS"]
+    cv_rof_ocn_mapping_status.widget = DisabledText(value='')
+
+    cv_rof_ocn_mapping_rmax = cvars["ROF_OCN_MAPPING_RMAX"]
+    cv_rof_ocn_mapping_rmax.widget = Text(
+        description="Smoothing Rmax (km):",
+        layout={"width": "370px", "padding": "5px"},
+        style={"description_width": "250px"},
+    )
+
+    cv_rof_ocn_mapping_fold = cvars["ROF_OCN_MAPPING_FOLD"]
+    cv_rof_ocn_mapping_fold.widget = Text(
+        description="Smoothing Fold (km):",
+        layout={"width": "370px", "padding": "5px"},
+        style={"description_width": "250px"},
+    )
