@@ -73,6 +73,7 @@ class CIME_interface:
             for model in self.models[comp_class]:
                 self._retrieve_model_phys_opt(comp_class, model)
         self._retrieve_domains_and_resolutions()
+        self._retrieve_maps()
         self._retrieve_compsets()
         self._retrieve_machines()
         self._retrieve_clm_data()
@@ -535,6 +536,65 @@ class CIME_interface:
 
         # Finally, process the compset and not_compset constraints for each domain (component grid).
         self._process_domain_constraints()
+
+    def get_mesh_path(self, comp_name, domain_name):
+        """Returns the mesh file path for a given component name and domain name.
+
+        Parameters
+        ----------
+        comp_name : str
+            component name, e.g., "atm", "lnd", "ocnice", etc.
+        domain_name : str
+            domain name, e.g., "tx2_3v2", "gx1v7", etc.
+
+        Returns
+        -------
+        str
+            mesh file path for the given component name and domain name.
+            If not found, returns an empty string.
+        """
+
+        if comp_name not in self.domains:
+            logger.error(f"Component {comp_name} not found in domains.")
+            return ''
+        if domain_name not in self.domains[comp_name]:
+            logger.error(f"Domain {domain_name} not found for component {comp_name}.")
+            return ''
+
+        domain = self.domains[comp_name][domain_name]
+        mesh_path = domain.mesh
+
+        if 'DIN_LOC_ROOT' in mesh_path:
+            assert self.din_loc_root is not None, "DIN_LOC_ROOT not set."
+            mesh_path = mesh_path.replace('$DIN_LOC_ROOT', self.din_loc_root)
+            mesh_path = mesh_path.replace('${DIN_LOC_ROOT}', self.din_loc_root)
+
+        return mesh_path
+
+    def _retrieve_maps(self):
+        """Retrieves the grid mapping files from the CIME XML file. The retrieved mapping files are stored
+        in the self.maps attribute, which is a nested dict where keys are source grids and values
+        are dicts where keys are destination grids and values are lists of (name, filepath) tuples.
+        This is currently used only to determine whether a runoff to ocean mapping file needs to be
+        generated or not.
+        """
+
+        assert hasattr(self, '_grids_obj'), "_grids_obj attribute not found. Call _retrieve_domains_and_resolutions() first."
+
+        self.maps = defaultdict(dict) # maps[src_grid][dst_grid] = [(name, filepath), ...]
+
+        gridmaps = self._grids_obj.get_child("gridmaps")
+        gridmap_nodes = self._grids_obj.get_children("gridmap", root=gridmaps)
+        for gridmap_node in gridmap_nodes:
+            comps = list(gridmap_node.attrib.keys()) # not being utilized currently
+            grids = list(gridmap_node.attrib.values())
+            src_grid, dst_grid = grids[0], grids[1]
+            self.maps[src_grid][dst_grid] = []
+            map_nodes = self._grids_obj.get_children("map", root=gridmap_node)
+            for map_node in map_nodes:
+                name = self._grids_obj.get(map_node, "name")
+                path = self._grids_obj.text(map_node)
+                self.maps[src_grid][dst_grid].append( (name, path) )
 
     def _process_domain_constraints(self):
         """Update the compset_constr and not_compset_constr attributes of the ComponentGrid objects in
