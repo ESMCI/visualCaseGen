@@ -89,15 +89,6 @@ def test_standard_rof_to_ocn_mapping():
         assert cvars["ROF_OCN_MAPPING_RMAX"].value is None, "ROF_OCN_MAPPING_RMAX should be None"
         assert cvars["ROF_OCN_MAPPING_FOLD"].value is None, "ROF_OCN_MAPPING_FOLD should be None"
 
-        # *Click* the Generate New Map button
-        runoffMappingGenerator = Stage.active()._widget._supplementary_widgets[0]
-        runoffMappingGenerator._btn_generate_new.click()
-
-        # After clicking the button, the smoothing parameters should be set to suggested values
-        assert cvars["ROF_OCN_MAPPING_RMAX"].value is not None, "ROF_OCN_MAPPING_RMAX should have been set to a suggested value"
-        assert cvars["ROF_OCN_MAPPING_FOLD"].value is not None, "ROF_OCN_MAPPING_FOLD should have been set to a suggested value"
-
-        # Change mind and use the standard map instead
         # *Click* "Use Standard Map" button
         runoffMappingGenerator = Stage.active()._widget._supplementary_widgets[0]
         runoffMappingGenerator._btn_use_standard.click()

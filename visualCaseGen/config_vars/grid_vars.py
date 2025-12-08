@@ -152,7 +152,7 @@ def initialize_custom_grid_variables(cime):
     ConfigVarStr("FSURDAT_MOD_STATUS", widget_none_val="") # a status variable to prevent the completion of the stage prematurely
 
     # A preexisting ROF grid to be picked for custom grid
-    ConfigVarStrMS("CUSTOM_ROF_GRID", default_value="0.9x1.25")
+    ConfigVarStrMS("CUSTOM_ROF_GRID")
 
     # Runoff to ocean mapping status
     ConfigVarStr("ROF_OCN_MAPPING_STATUS", widget_none_val="")
