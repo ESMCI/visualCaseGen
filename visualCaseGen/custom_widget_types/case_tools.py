@@ -94,6 +94,61 @@ def append_user_nl(model, var_val_pairs, do_exec, comment=None, log_title=True, 
         for i in range(1, ninst+1):
             _do_append_user_nl(f"user_nl_{model}_{str(i).zfill(4)}")
 
+def remove_user_nl(model, vars, log_title=True, out=None):
+    """Remove changes to a given user_nl file.
+
+    Parameters
+    ----------
+    model : str
+        The model whose user_nl file will be modified.
+    vars : list 
+        list of variables to remove
+    log_title: bool, optional
+        If True, print the log title "Adding parameter changes to user_nl_filename".
+    out : Output, optional
+        The output widget to use for displaying log messages
+    """
+
+    # confirm var_val_pairs is a list of tuples:
+    assert isinstance(var_val_pairs, list)
+
+    out = DummyOutput() if out is None else out
+
+    caseroot = cvars["CASEROOT"].value
+    ninst = cvars["NINST"].value
+
+    def _do_remove_user_nl(user_nl_filename):
+        # Print the changes to the user_nl file:
+        with out:
+            if log_title:
+                print(f"{COMMENT}Removing parameter changes to {user_nl_filename}:{RESET}\n")
+            for var in vars:
+                print(f"  {var}")
+            print("")
+
+        # Renove the changes to the user_nl file:
+        with open(Path(caseroot) / user_nl_filename, "a") as f:
+            lines = f.readlines()
+
+            # Keep lines that do NOT define any of the variables
+        vars_set = set(vars)
+        new_lines = [
+            line for line in lines
+            if not any(line.strip().startswith(var) for var in vars_set)
+        ]
+
+        # Write back filtered lines
+        with open(user_nl_path, "w") as f:
+            f.writelines(new_lines)
+
+
+    ninst = 1 if ninst is None else ninst
+    if ninst==1:
+        _do_remove_user_nl(f"user_nl_{model}")
+    else:
+        for i in range(1, ninst+1):
+            _do_remove_user_nl(f"user_nl_{model}_{str(i).zfill(4)}")
+
 def xmlchange(var, val, do_exec=True, is_non_local=False, out=None):
     """Apply custom xml changes to the case.
 
@@ -124,3 +179,35 @@ def xmlchange(var, val, do_exec=True, is_non_local=False, out=None):
     runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
     if runout.returncode != 0:
         raise RuntimeError(f"Error running {cmd}.")
+
+def xmlquery(var, do_exec=True, is_non_local=False, out=None):
+    """Query custom xml variables in the case.
+
+    Parameters
+    ----------
+    do_exec : bool
+        If True, execute the commands. If False, only print them.
+    is_non_local : bool
+        If True, the case is being created on a machine different from the one
+        that runs visualCaseGen.
+    out : Output
+        The output widget to use for displaying log messages.
+    """
+
+    caseroot = cvars["CASEROOT"].value
+
+    cmd = f"./xmlquery {var}"
+    if is_non_local is True:
+        cmd += " --non-local"
+
+    out = DummyOutput() if out is None else out
+    with out:
+        print(f"{cmd}\n")
+
+    if not do_exec:
+        return
+
+    runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
+    if runout.returncode != 0:
+        raise RuntimeError(f"Error running {cmd}.")
+    return runout.stdout.strip()
