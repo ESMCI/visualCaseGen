@@ -110,7 +110,7 @@ def remove_user_nl(model, vars, log_title=True, out=None):
     """
 
     # confirm var_val_pairs is a list of tuples:
-    assert isinstance(var_val_pairs, list)
+    assert isinstance(vars, list)
 
     out = DummyOutput() if out is None else out
 
@@ -138,7 +138,7 @@ def remove_user_nl(model, vars, log_title=True, out=None):
         ]
 
         # Write back filtered lines
-        with open(user_nl_path, "w") as f:
+        with open(Path(caseroot) /user_nl_filename, "w") as f:
             f.writelines(new_lines)
 
 
