@@ -223,6 +223,8 @@ class CaseCreator:
         # Component grid names:
         atm_grid = cvars["CUSTOM_ATM_GRID"].value
         lnd_grid = cvars["CUSTOM_LND_GRID"].value
+        rof_grid = cvars["CUSTOM_ROF_GRID"].value
+
         # modelgrid_aliases xml file that stores resolutions:
         srcroot = self._cime.srcroot
         ccs_config_root = Path(srcroot) / "ccs_config"
@@ -239,12 +241,19 @@ class CaseCreator:
         if not os.access(modelgrid_aliases_xml, os.W_OK):
             raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
 
+        # Construct the component grids string to be logged:
+        component_grids_str = f' atm grid: "{atm_grid}" \n'
+        component_grids_str += f' lnd grid: "{lnd_grid}" \n'
+        component_grids_str += f' ocn grid: "{ocn_grid}".\n'
+        if rof_grid is not None and rof_grid != "":
+            component_grids_str += f' rof grid: "{rof_grid}".\n'
+
         # log the modification of modelgrid_aliases.xml:
         with self._out:
             print(
                 f'{BPOINT} Updating ccs_config/modelgrid_aliases_nuopc.xml file to include the new '
                 f'resolution "{resolution_name}" consisting of the following component grids.\n'
-                f' atm grid: "{atm_grid}", lnd grid: "{lnd_grid}", ocn grid: "{ocn_grid}".\n'
+                f'{component_grids_str}'
             )
 
         # Read in xml file and generate grids object file:
@@ -278,6 +287,7 @@ class CaseCreator:
         )
         new_atm_grid.text = atm_grid
 
+        # Add lnd grid to resolution entry:
         new_lnd_grid = SubElement(
             new_resolution,
             "grid",
@@ -285,12 +295,23 @@ class CaseCreator:
         )
         new_lnd_grid.text = lnd_grid
 
+        # Add ocn grid to resolution entry:
         new_ocnice_grid = SubElement(
             new_resolution,
             "grid",
             attrib={"name": "ocnice"},
         )
         new_ocnice_grid.text = ocn_grid
+
+        # Add rof grid to resolution entry if it exists:
+        if rof_grid is not None and rof_grid != "":
+            new_rof_grid = SubElement(
+                new_resolution,
+                "grid",
+                attrib={"name": "rof"},
+            )
+            new_rof_grid.text = rof_grid
+
 
         if not do_exec:
             return
@@ -485,6 +506,28 @@ class CaseCreator:
                 raise RuntimeError("Error creating case.")
 
     def _apply_all_xmlchanges(self, do_exec):
+        """Apply all the necessary xmlchanges to the case.
+
+        Parameters
+        ----------
+        do_exec : bool
+            If True, execute the commands. If False, only print them.
+        """
+
+        # If standard grid is selected, no modifications are needed:
+        grid_mode = cvars["GRID_MODE"].value
+        if grid_mode == "Standard":
+            return  # no modifications needed for standard grid
+        else:
+            assert grid_mode == "Custom", f"Unknown grid mode: {grid_mode}"
+
+        self._apply_lnd_grid_xmlchanges(do_exec)
+        self._apply_ocn_grid_xmlchanges(do_exec)
+        self._apply_runoff_ocn_mapping_xmlchanges(do_exec)
+        
+
+    def _apply_lnd_grid_xmlchanges(self, do_exec):
+        """Apply xmlchanges related to custom land grid if needed."""
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
         if lnd_grid_mode == "Modified":
@@ -507,29 +550,47 @@ class CaseCreator:
                 xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
         else:
             assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
+    
+    def _apply_ocn_grid_xmlchanges(self, do_exec):
+        """Apply xmlchanges related to custom ocean grid if needed."""
 
-        # Set NTASKS based on grid size. e.g. NX * NY < max_pts_per_core
-        if cvars["COMP_OCN"].value == "mom":
+        # Set NTASKS based on grid size if custom ocn grid. e.g. NX * NY < max_pts_per_core
+        if cvars["COMP_OCN"].value == "mom" and cvars["OCN_GRID_MODE"].value == "Custom":
             num_points = int(cvars["OCN_NX"].value) * int(cvars["OCN_NY"].value)
             cores = CaseCreator._calc_cores_based_on_grid(num_points)
             with self._out:
                 print(f"{COMMENT}Apply NTASK grid xml changes:{RESET}\n")
                 xmlchange("NTASKS_OCN",cores, do_exec, self._is_non_local(), self._out)
+        
+    def _apply_runoff_ocn_mapping_xmlchanges(self, do_exec):
+        """Apply xmlchanges related to runoff to ocean mapping files if custom mapping is selected."""
+
+        if (rof_ocn_mapping_status := cvars["ROF_OCN_MAPPING_STATUS"].value) is not None:
+            if rof_ocn_mapping_status.startswith("CUSTOM:"):
+                mapping_files = rof_ocn_mapping_status[7:] 
+                nn_map_file, nnsm_map_file = mapping_files.split(",")
+                with self._out:
+                    print(f"{COMMENT}Apply runoff to ocean mapping xml changes:{RESET}\n")
+                    xmlchange("ROF2OCN_ICE_RMAPNAME", nnsm_map_file, do_exec, self._is_non_local(), self._out)
+                    xmlchange("ROF2OCN_LIQ_RMAPNAME", nnsm_map_file, do_exec, self._is_non_local(), self._out)
+
 
     @staticmethod
-    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 800, ideal_multiple_of_cores_used = 128):
+    def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 300, ideal_multiple_of_cores_used = 128):
         """Calculate the number of cores based on the grid size."""
 
 
         min_cores = math.ceil(num_points/max_points_per_core)
-        max_cores = math.ceil(num_points/min_points_per_core)    
+        max_cores = math.ceil(num_points/min_points_per_core)  
+
+        # If min_cores is less than the first multiple of ideal cores, just return the min_cores
+        if max_cores < ideal_multiple_of_cores_used:
+            return min_cores  
 
         # Request a multiple of the entire core (ideal_multiple_of_cores_used) starting from the min
         ideal_cores = ((min_cores + ideal_multiple_of_cores_used - 1) // ideal_multiple_of_cores_used) * ideal_multiple_of_cores_used
-        if ideal_cores <= max_cores:
-            return ideal_cores
-        else:
-            return (max_cores+min_cores)//2
+        return ideal_cores
+
 
     def _apply_user_nl_changes(self, model, var_val_pairs, do_exec, comment=None, log_title=True):
         """Apply changes to a given user_nl file."""
@@ -586,7 +647,7 @@ class CaseCreator:
         # Determine timesteps based on the grid resolution (assuming coupling frequency of 1800.0 sec):
         res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)
         res_y = float(cvars['OCN_LENY'].value) / int(cvars["OCN_NY"].value)
-        dt = 600.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
+        dt = 7200.0 * min(res_x,res_y) # A 1-deg grid should have ~600 sec tstep (a safe value)
         # Make sure 1800.0 is a multiple of dt and dt is a power of 2 and/or 3:
         dt = min((1800.0 / n for n in [2**i * 3**j for i in range(10) for j in range(6)] if 1800.0 % n == 0), key=lambda x: abs(dt - x))
         # Try setting dt_therm to dt*4, or dt*3, or  dt*3, depending on whether 1800.0 becomes a multiple of dt:

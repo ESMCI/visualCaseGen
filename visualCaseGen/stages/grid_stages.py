@@ -10,6 +10,7 @@ from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
+from visualCaseGen.custom_widget_types.runoff_mapping_generator import RunoffMappingGenerator
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -295,4 +296,32 @@ def initialize_grid_stages(cime):
             cvars["LND_INCLUDE_NONVEG"],
             cvars["FSURDAT_MOD_STATUS"]
         ],
+    )
+
+
+    stg_custom_rof_grid = Stage(
+        title="Runoff Grid",
+        description="From the below list of standard runoff grids, select one to be used as the "
+        "runoff grid within the new, custom CESM grid.",
+        widget=StageWidget(VBox),
+        parent=guard_custom_grid,
+        varlist=[cvars["CUSTOM_ROF_GRID"]],
+        auto_set_default_value=False,
+    )
+
+    stg_custom_rof_ocn_mapping = Stage(
+        title="Runoff to Ocean Mapping",
+        description="If the ocean model is MOM6, and unless there exists a standard mapping between"
+        "the selected runoff grid and the custom ocean grid, a new mapping must be created using "
+        "the mom6_bathy mapping module.",
+        widget=StageWidget(
+            VBox,
+            supplementary_widgets=[RunoffMappingGenerator(cime)]
+        ),
+        parent=Guard(
+            title="ROF to OCN Mapping",
+            parent=stg_custom_rof_grid,
+            condition=cvars["COMP_OCN"] == "mom",
+        ),
+        varlist=[cvars["ROF_OCN_MAPPING_STATUS"]],
     )

@@ -334,6 +334,11 @@ class ConfigVar(HasTraits):
 
         return validities_changed
 
+    @property
+    def valid_options(self):
+        """Returns the list of valid options for this variable."""
+        return [opt for opt in self._options if self._options_validities.get(opt, False)]
+
     def _refresh_widget_options(self):
         """Refresh the widget options list based on information in the current self._options_validities."""
 
