@@ -532,6 +532,7 @@ class CIME_interface:
                             desc=domains[domain].desc,
                             compset_constr=set(),
                             not_compset_constr=set(),
+                            is_default=False
                         )
                         break
 
