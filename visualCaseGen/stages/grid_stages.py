@@ -3,6 +3,7 @@ from ipywidgets import VBox, HBox
 from pathlib import Path
 import time
 import os
+from z3 import And
 
 from ProConPy.config_var import cvars
 from ProConPy.stage import Stage, Guard
@@ -321,7 +322,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="ROF to OCN Mapping",
             parent=stg_custom_rof_grid,
-            condition=cvars["COMP_OCN"] == "mom",
+            condition=And(cvars["COMP_OCN"] == "mom", cvars["COMP_ROF"] != "srof")
         ),
         varlist=[cvars["ROF_OCN_MAPPING_STATUS"]],
     )

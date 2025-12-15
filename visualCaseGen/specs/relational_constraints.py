@@ -191,11 +191,11 @@ def get_relational_constraints(cvars):
         ROF_OCN_MAPPING_FOLD > 0:
             "ROF_OCN_MAPPING_FOLD must be a positive number.",
 
-        ROF_OCN_MAPPING_RMAX <= 1000:
-            "ROF_OCN_MAPPING_RMAX must be less than or equal to 1000 km.",
+        ROF_OCN_MAPPING_RMAX <= 4000:
+            "ROF_OCN_MAPPING_RMAX must be less than or equal to 4000 km.",
         
-        ROF_OCN_MAPPING_FOLD <= 1000:
-            "ROF_OCN_MAPPING_FOLD must be less than or equal to 1000 km.",
+        ROF_OCN_MAPPING_FOLD <= 8000:
+            "ROF_OCN_MAPPING_FOLD must be less than or equal to 8000 km.",
 
         #### Assertions to stress-test the CSP solver
 
