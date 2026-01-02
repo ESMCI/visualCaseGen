@@ -251,7 +251,7 @@ class CaseCreator:
         modelgrid_aliases_xml = modelgrid_aliases_xml.as_posix()
 
         # confirm that modelgrid_aliases xml file is writeable:
-        if not is_ccs_config_writeable(self.cime):
+        if not is_ccs_config_writeable(self._cime):
             raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
 
         # Construct the component grids string to be logged:
