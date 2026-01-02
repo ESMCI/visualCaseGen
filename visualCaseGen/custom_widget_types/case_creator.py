@@ -134,7 +134,7 @@ class CaseCreator:
             if self._assign_grids_through_ccs_config:
                 resolution = Path(cvars["CUSTOM_GRID_PATH"].value).name
             else:
-                resolution = "visualCaseGen_Custom" # Set to a default visualCaseGen Resolution since grids are changed through xml changes
+                resolution = "inputdir" # Set to a default visualCaseGen Resolution since grids are changed through xml changes
         else:
             raise RuntimeError(f"Unknown grid mode: {cvars['GRID_MODE'].value}")
 
@@ -151,7 +151,7 @@ class CaseCreator:
 
         # If we don't pick the grids through ccs_config, use xml changes
         if not self._assign_grids_through_ccs_config: 
-            self._update_grids()
+            self._update_grids(do_exec)
 
         # Navigate to the case directory:
         with self._out:
@@ -833,10 +833,10 @@ class CaseCreator:
         if ocn_grid is None:
             raise RuntimeError("No ocean grid specified.")
 
-        self._update_component_grids(custom_grid_path, ocn_grid, ocn_grid_mode, do_exec)
+        self._update_component_grids_xml(custom_grid_path, ocn_grid, ocn_grid_mode, do_exec)
 
 
-    def _update_component_grids(
+    def _update_component_grids_xml(
         self, custom_grid_path, ocn_grid, ocn_grid_mode, do_exec
     ):
         """Update the component_grids xml file with custom ocnice grid information.
@@ -891,7 +891,7 @@ class CaseCreator:
 
             xmlchange("LND_DOMAIN_MESH", (self._cime.domains["lnd"][cvars["CUSTOM_LND_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
             
-            if cvars["CUSTOM_ROF_GRID"].value is not None:
+            if cvars["CUSTOM_ROF_GRID"].value is not None and cvars["CUSTOM_ROF_GRID"].value != "" and cvars["CUSTOM_ROF_GRID"].value != "null":
                 xmlchange("ROF_GRID", cvars["CUSTOM_ROF_GRID"].value, do_exec, self._is_non_local(), self._out)
                 xmlchange("ROF_DOMAIN_MESH", (self._cime.domains["rof"][cvars["CUSTOM_ROF_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
 
