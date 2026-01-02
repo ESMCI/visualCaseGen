@@ -11,7 +11,7 @@ import math
 from ProConPy.config_var import cvars
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
 from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
-from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl
+from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl, is_ccs_config_writeable
 
 COMMENT = "\033[01;96m"  # bold, cyan
 SUCCESS = "\033[1;32m"  # bold, green
@@ -23,7 +23,7 @@ BPOINT = "\u2022"
 class CaseCreator:
     """The base class for CaseCreatorWidget. Here, backend functionalities are implemented."""
 
-    def __init__(self, cime, output=None, allow_xml_override=False, ccs_config_read_only = False):
+    def __init__(self, cime, output=None, allow_xml_override=False):
         """Initialize CaseCreator object.
 
         Parameters
@@ -40,7 +40,7 @@ class CaseCreator:
         self._cime = cime
         self._out = DummyOutput() if output is None else output
         self._allow_xml_override = allow_xml_override
-        self._assign_grids_through_ccs_config = not ccs_config_read_only # By default, visualCaseGen assigns grids through ccs_config, if not possible (which is possible if the user does not own the sandbox), it applies the change through xml case changes.
+        self._assign_grids_through_ccs_config = is_ccs_config_writeable(cime) # By default, visualCaseGen assigns grids through ccs_config, if not possible (which can happen if the user does not own the sandbox), it applies the change through xml case changes.
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
@@ -248,7 +248,7 @@ class CaseCreator:
         modelgrid_aliases_xml = modelgrid_aliases_xml.as_posix()
 
         # confirm that modelgrid_aliases xml file is writeable:
-        if not os.access(modelgrid_aliases_xml, os.W_OK):
+        if not is_ccs_config_writeable(self.cime):
             raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
 
         # Construct the component grids string to be logged:

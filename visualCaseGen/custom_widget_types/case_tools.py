@@ -8,6 +8,15 @@ COMMENT = "\033[01;96m"  # bold, cyan
 RESET = "\033[0m"
 
 
+def is_ccs_config_writeable(cime):
+    srcroot = cime.srcroot
+    ccs_config_root = Path(srcroot) / "ccs_config"
+    assert (
+        ccs_config_root.exists()
+    ), f"ccs_config_root {ccs_config_root} does not exist."
+    modelgrid_aliases_xml = ccs_config_root / "modelgrid_aliases_nuopc.xml"
+    return os.access(modelgrid_aliases_xml, os.W_OK)
+
 def run_case_setup(do_exec, is_non_local=False, out=None):
     """Run the case.setup script to set up the case instance.
 
