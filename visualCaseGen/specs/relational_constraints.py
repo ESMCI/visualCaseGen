@@ -24,6 +24,8 @@ def get_relational_constraints(cvars):
     OCN_NX = cvars['OCN_NX']; OCN_NY = cvars['OCN_NY']; OCN_LENX = cvars['OCN_LENX']; OCN_LENY = cvars['OCN_LENY']
     LND_GRID_MODE = cvars['LND_GRID_MODE']; LND_SOIL_COLOR = cvars['LND_SOIL_COLOR']; LND_DOM_PFT = cvars['LND_DOM_PFT']
     LND_MAX_SAT_AREA = cvars['LND_MAX_SAT_AREA']; LND_STD_ELEV = cvars['LND_STD_ELEV']
+    CUSTOM_ROF_GRID = cvars['CUSTOM_ROF_GRID']
+    ROF_OCN_MAPPING_RMAX = cvars['ROF_OCN_MAPPING_RMAX']; ROF_OCN_MAPPING_FOLD = cvars['ROF_OCN_MAPPING_FOLD']
 
     # Return a dictionary of constraints where keys are the z3 boolean expressions corresponding to the constraints
     # and values are error messages to be displayed when the constraint is violated.
@@ -165,7 +167,35 @@ def get_relational_constraints(cvars):
             "Max fraction of saturated area must be set to a value between 0 and 1.",
 
         LND_STD_ELEV >= 0.0:
-            "Standard deviation of elevation must be a nonnegative number."
+            "Standard deviation of elevation must be a nonnegative number.",
+
+        # Custom rof grid constraints ------------------
+        Implies(In(CUSTOM_ROF_GRID, ["JRA025", "rx1"]), COMP_ROF=="drof"):
+            "JRA025 and rx1 runoff grids can only be selected if DROF is the runoff component.",
+
+        CUSTOM_ROF_GRID != "r05mz": # mizuroute is no longer available
+            "r05mz runoff grid can only be selected if MIZUROUTE is the runoff component.",
+        
+        In(COMP_ROF_OPTION, ["NYF", "IAF"]) == (CUSTOM_ROF_GRID=="rx1"):
+            "When Core2 forcing is selected for the ocean component, the runoff grid must be set to rx1.",
+
+        (Contains(COMP_ROF_OPTION, "JRA")) == (CUSTOM_ROF_GRID == "JRA025"):
+            "When JRA forcing is selected for the ocean component, the runoff grid must be set to JRA025.",
+
+        (COMP_ROF_OPTION == "GLOFAS") == (CUSTOM_ROF_GRID=="GLOFAS"):
+            "When GLOFAS forcing is selected for the ocean component, the runoff grid must be set to GLOFAS.",
+
+        ROF_OCN_MAPPING_RMAX > 0:
+            "ROF_OCN_MAPPING_RMAX must be a positive number.",
+        
+        ROF_OCN_MAPPING_FOLD > 0:
+            "ROF_OCN_MAPPING_FOLD must be a positive number.",
+
+        ROF_OCN_MAPPING_RMAX <= 4000:
+            "ROF_OCN_MAPPING_RMAX must be less than or equal to 4000 km.",
+        
+        ROF_OCN_MAPPING_FOLD <= 8000:
+            "ROF_OCN_MAPPING_FOLD must be less than or equal to 8000 km.",
 
         #### Assertions to stress-test the CSP solver
 

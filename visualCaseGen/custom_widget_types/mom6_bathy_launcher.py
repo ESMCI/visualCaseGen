@@ -408,6 +408,11 @@ class MOM6BathyLauncher(VBox):
     def vgrid_file_path():
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
         return custom_ocn_grid_path / f"ocean_vgrid_{MOM6BathyLauncher.nc_file_suffix()}"
+    
+    @staticmethod
+    def scrip_grid_file_path():
+        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"scrip_{MOM6BathyLauncher.nc_file_suffix()}"
 
     @staticmethod
     def esmf_mesh_file_path():
