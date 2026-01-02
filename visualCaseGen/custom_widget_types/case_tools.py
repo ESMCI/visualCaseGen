@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import os
 
 from ProConPy.config_var import cvars
 from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
