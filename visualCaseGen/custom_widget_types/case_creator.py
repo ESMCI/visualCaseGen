@@ -41,6 +41,9 @@ class CaseCreator:
         self._out = DummyOutput() if output is None else output
         self._allow_xml_override = allow_xml_override
         self._assign_grids_through_ccs_config = is_ccs_config_writeable(cime) # By default, visualCaseGen assigns grids through ccs_config, if not possible (which can happen if the user does not own the sandbox), it applies the change through xml case changes.
+        if not self._assign_grids_through_ccs_config:
+            with self._out:
+                print(f"{COMMENT}ccs_config is not writeable, so case grids will be assigned through xml changes{RESET}\n")
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
