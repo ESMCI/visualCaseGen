@@ -23,7 +23,7 @@ BPOINT = "\u2022"
 class CaseCreator:
     """The base class for CaseCreatorWidget. Here, backend functionalities are implemented."""
 
-    def __init__(self, cime, output=None, allow_xml_override=False):
+    def __init__(self, cime, output=None, allow_xml_override=False, add_grids_to_ccs_config = True):
         """Initialize CaseCreator object.
 
         Parameters
@@ -40,15 +40,13 @@ class CaseCreator:
         self._cime = cime
         self._out = DummyOutput() if output is None else output
         self._allow_xml_override = allow_xml_override
-        self._assign_grids_through_ccs_config = is_ccs_config_writeable(cime) # By default, visualCaseGen assigns grids through ccs_config, if not possible (which can happen if the user does not own the sandbox), it applies the change through xml case changes.
-        if not self._assign_grids_through_ccs_config:
-            with self._out:
-                print(f"{COMMENT}ccs_config is not writeable, so case grids will be assigned through xml changes{RESET}\n")
+        self._add_grids_to_ccs_config = add_grids_to_ccs_config # By default, visualCaseGen assigns grids through ccs_config, if not possible (which can happen if the user does not own the sandbox), it is possible to apply grid changes through xmlchanges instead.
+        assert is_ccs_config_writeable or not add_grids_to_ccs_config, "Cannot write to ccs_config xml files. Please set add_grids_to_ccs_config to False to apply grid changes through xmlchanges."
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
         to the ccs_config xml files."""
-        if self._assign_grids_through_ccs_config:
+        if self._add_grids_to_ccs_config:
             mg = "ccs_config/modelgrid_aliases_nuopc.xml"
             if (Path(self._cime.srcroot) / f"{mg}.orig").exists():
                 shutil.move(
@@ -134,10 +132,10 @@ class CaseCreator:
         if cvars["GRID_MODE"].value == "Standard":
             resolution = cvars["GRID"].value
         elif cvars["GRID_MODE"].value == "Custom":
-            if self._assign_grids_through_ccs_config:
+            if self._add_grids_to_ccs_config:
                 resolution = Path(cvars["CUSTOM_GRID_PATH"].value).name
             else:
-                resolution = "inputdir" # Set to a default visualCaseGen Resolution since grids are changed through xml changes
+                resolution = "USER_RES" # Set to a default visualCaseGen Resolution since grids are changed through xml changes
         else:
             raise RuntimeError(f"Unknown grid mode: {cvars['GRID_MODE'].value}")
 
@@ -146,15 +144,15 @@ class CaseCreator:
             print(f"{COMMENT}Creating case...{RESET}\n")
 
         # First, update ccs_config xml files to add custom grid information if needed:
-        if self._assign_grids_through_ccs_config:
+        if self._add_grids_to_ccs_config:
             self._update_ccs_config(do_exec)
 
         # Run create_newcase
         self._run_create_newcase(caseroot, compset, resolution, do_exec)
 
         # If we don't pick the grids through ccs_config, use xml changes
-        if not self._assign_grids_through_ccs_config: 
-            self._update_grids(do_exec)
+        if not self._add_grids_to_ccs_config: 
+            self._update_grids_via_xmlchange(do_exec)
 
         # Navigate to the case directory:
         with self._out:
@@ -172,7 +170,7 @@ class CaseCreator:
 
         # Clean up:
         if do_exec:
-            if self._assign_grids_through_ccs_config:
+            if self._add_grids_to_ccs_config:
                 self._remove_orig_xml_files()
             cvars["CASE_CREATOR_STATUS"].value = "OK"
             with self._out:
@@ -543,7 +541,7 @@ class CaseCreator:
         """Apply xmlchanges related to custom land grid if needed."""
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
-        if self._assign_grids_through_ccs_config and lnd_grid_mode == "Modified":
+        if self._add_grids_to_ccs_config and lnd_grid_mode == "Modified":
             if cvars["COMP_OCN"].value != "mom":
                 with self._out:
                     print(f"{COMMENT}Apply custom land grid xml changes:{RESET}\n")
@@ -807,9 +805,9 @@ class CaseCreator:
 
         self._apply_user_nl_changes("clm", user_nl_clm_changes, do_exec)
 
-    def _update_grids(self, do_exec):
-        """Update the modelgrid_aliases and component_grids xml files with custom grid
-        information if needed. This function is called after running create_newcase."""
+    def _update_grids_via_xmlchange(self, do_exec):
+        """Update the case with custom grid information if needed.
+         This function is called after running create_newcase."""
 
         if cvars["GRID_MODE"].value == "Standard":
             return
@@ -889,15 +887,14 @@ class CaseCreator:
             xmlchange("ATM_GRID", cvars["CUSTOM_ATM_GRID"].value, do_exec, self._is_non_local(), self._out)
 
             xmlchange("LND_GRID", cvars["CUSTOM_LND_GRID"].value, do_exec, self._is_non_local(), self._out)
+            
+            xmlchange("ATM_DOMAIN_MESH", self._cime.get_mesh_path("atm",cvars["CUSTOM_ATM_GRID"].value), do_exec, self._is_non_local(), self._out)
 
-            xmlchange("ATM_DOMAIN_MESH", (self._cime.domains["atm"][cvars["CUSTOM_ATM_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
-
-            xmlchange("LND_DOMAIN_MESH", (self._cime.domains["lnd"][cvars["CUSTOM_LND_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
+            xmlchange("LND_DOMAIN_MESH", self._cime.get_mesh_path("lnd",cvars["CUSTOM_LND_GRID"].value), do_exec, self._is_non_local(), self._out)
             
             if cvars["CUSTOM_ROF_GRID"].value is not None and cvars["CUSTOM_ROF_GRID"].value != "" and cvars["CUSTOM_ROF_GRID"].value != "null":
                 xmlchange("ROF_GRID", cvars["CUSTOM_ROF_GRID"].value, do_exec, self._is_non_local(), self._out)
-                xmlchange("ROF_DOMAIN_MESH", (self._cime.domains["rof"][cvars["CUSTOM_ROF_GRID"].value].mesh).replace("$DIN_LOC_ROOT",self._cime.din_loc_root), do_exec, self._is_non_local(), self._out)
-
+                xmlchange("ROF_DOMAIN_MESH", self._cime.get_mesh_path("rof",cvars["CUSTOM_ROF_GRID"].value), do_exec, self._is_non_local(), self._out)
 
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
