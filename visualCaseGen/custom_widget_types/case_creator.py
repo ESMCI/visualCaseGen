@@ -11,7 +11,7 @@ import math
 from ProConPy.config_var import cvars
 from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
 from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
-from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl
+from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl, is_ccs_config_writeable
 
 COMMENT = "\033[01;96m"  # bold, cyan
 SUCCESS = "\033[1;32m"  # bold, green
@@ -23,7 +23,7 @@ BPOINT = "\u2022"
 class CaseCreator:
     """The base class for CaseCreatorWidget. Here, backend functionalities are implemented."""
 
-    def __init__(self, cime, output=None, allow_xml_override=False):
+    def __init__(self, cime, output=None, allow_xml_override=False, add_grids_to_ccs_config = True):
         """Initialize CaseCreator object.
 
         Parameters
@@ -40,23 +40,25 @@ class CaseCreator:
         self._cime = cime
         self._out = DummyOutput() if output is None else output
         self._allow_xml_override = allow_xml_override
+        self._add_grids_to_ccs_config = add_grids_to_ccs_config # By default, visualCaseGen assigns grids through ccs_config, if not possible (which can happen if the user does not own the sandbox), it is possible to apply grid changes through xmlchanges instead.
+        assert is_ccs_config_writeable or not add_grids_to_ccs_config, "Cannot write to ccs_config xml files. Please set add_grids_to_ccs_config to False to apply grid changes through xmlchanges."
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
         to the ccs_config xml files."""
-
-        mg = "ccs_config/modelgrid_aliases_nuopc.xml"
-        if (Path(self._cime.srcroot) / f"{mg}.orig").exists():
-            shutil.move(
-                Path(self._cime.srcroot) / f"{mg}.orig",
-                Path(self._cime.srcroot) / f"{mg}"
-            )
-        cg = "ccs_config/component_grids_nuopc.xml"
-        if (Path(self._cime.srcroot) / f"{cg}.orig").exists():
-            shutil.move(
-                Path(self._cime.srcroot) / f"{cg}.orig",
-                Path(self._cime.srcroot) / f"{cg}"
-            )
+        if self._add_grids_to_ccs_config:
+            mg = "ccs_config/modelgrid_aliases_nuopc.xml"
+            if (Path(self._cime.srcroot) / f"{mg}.orig").exists():
+                shutil.move(
+                    Path(self._cime.srcroot) / f"{mg}.orig",
+                    Path(self._cime.srcroot) / f"{mg}"
+                )
+            cg = "ccs_config/component_grids_nuopc.xml"
+            if (Path(self._cime.srcroot) / f"{cg}.orig").exists():
+                shutil.move(
+                    Path(self._cime.srcroot) / f"{cg}.orig",
+                    Path(self._cime.srcroot) / f"{cg}"
+                )
 
     def _remove_orig_xml_files(self):
         """This function is called when the case creation and modification process is successful.
@@ -130,7 +132,10 @@ class CaseCreator:
         if cvars["GRID_MODE"].value == "Standard":
             resolution = cvars["GRID"].value
         elif cvars["GRID_MODE"].value == "Custom":
-            resolution = Path(cvars["CUSTOM_GRID_PATH"].value).name
+            if self._add_grids_to_ccs_config:
+                resolution = Path(cvars["CUSTOM_GRID_PATH"].value).name
+            else:
+                resolution = "USER_RES" # Set to a default visualCaseGen Resolution since grids are changed through xml changes
         else:
             raise RuntimeError(f"Unknown grid mode: {cvars['GRID_MODE'].value}")
 
@@ -139,10 +144,15 @@ class CaseCreator:
             print(f"{COMMENT}Creating case...{RESET}\n")
 
         # First, update ccs_config xml files to add custom grid information if needed:
-        self._update_ccs_config(do_exec)
+        if self._add_grids_to_ccs_config:
+            self._update_ccs_config(do_exec)
 
         # Run create_newcase
         self._run_create_newcase(caseroot, compset, resolution, do_exec)
+
+        # If we don't pick the grids through ccs_config, use xml changes
+        if not self._add_grids_to_ccs_config: 
+            self._update_grids_via_xmlchange(do_exec)
 
         # Navigate to the case directory:
         with self._out:
@@ -160,7 +170,8 @@ class CaseCreator:
 
         # Clean up:
         if do_exec:
-            self._remove_orig_xml_files()
+            if self._add_grids_to_ccs_config:
+                self._remove_orig_xml_files()
             cvars["CASE_CREATOR_STATUS"].value = "OK"
             with self._out:
                 caseroot = cvars["CASEROOT"].value
@@ -238,7 +249,7 @@ class CaseCreator:
         modelgrid_aliases_xml = modelgrid_aliases_xml.as_posix()
 
         # confirm that modelgrid_aliases xml file is writeable:
-        if not os.access(modelgrid_aliases_xml, os.W_OK):
+        if not is_ccs_config_writeable(self._cime):
             raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
 
         # Construct the component grids string to be logged:
@@ -530,7 +541,7 @@ class CaseCreator:
         """Apply xmlchanges related to custom land grid if needed."""
 
         lnd_grid_mode = cvars["LND_GRID_MODE"].value
-        if lnd_grid_mode == "Modified":
+        if self._add_grids_to_ccs_config and lnd_grid_mode == "Modified":
             if cvars["COMP_OCN"].value != "mom":
                 with self._out:
                     print(f"{COMMENT}Apply custom land grid xml changes:{RESET}\n")
@@ -793,3 +804,117 @@ class CaseCreator:
             ])
 
         self._apply_user_nl_changes("clm", user_nl_clm_changes, do_exec)
+
+    def _update_grids_via_xmlchange(self, do_exec):
+        """Update the case with custom grid information if needed.
+         This function is called after running create_newcase."""
+
+        if cvars["GRID_MODE"].value == "Standard":
+            return
+        else:
+            assert (
+                cvars["GRID_MODE"].value == "Custom"
+            ), f"Unknown grid mode: {cvars['GRID_MODE'].value}"
+
+        # check if custom grid path exists:
+        ocn_grid_mode = cvars["OCN_GRID_MODE"].value
+        lnd_grid_mode = cvars["LND_GRID_MODE"].value
+        custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
+        if not custom_grid_path.exists():
+            if ocn_grid_mode != "Standard" or lnd_grid_mode != "Standard":
+                raise RuntimeError(f"Custom grid path {custom_grid_path} does not exist.")
+
+        ocn_grid = None
+        if ocn_grid_mode == "Standard":
+            ocn_grid = cvars["CUSTOM_OCN_GRID"].value
+        elif ocn_grid_mode in ["Modify Existing", "Create New"]:
+            ocn_grid = cvars["CUSTOM_OCN_GRID_NAME"].value
+        else:
+            raise RuntimeError(f"Unknown ocean grid mode: {ocn_grid_mode}")
+        if ocn_grid is None:
+            raise RuntimeError("No ocean grid specified.")
+
+        self._update_component_grids_xml(custom_grid_path, ocn_grid, ocn_grid_mode, do_exec)
+
+
+    def _update_component_grids_xml(
+        self, custom_grid_path, ocn_grid, ocn_grid_mode, do_exec
+    ):
+        """Update the component_grids xml file with custom ocnice grid information.
+        This function is called before running create_newcase.
+
+        Parameters
+        ----------
+        custom_grid_path : Path
+            The path to the custom grid directory.
+        ocn_grid : str
+            The name of the custom ocean grid.
+        ocn_grid_mode : str
+            The ocean grid mode. It can be "Standard", "Modify Existing", or "Create New".
+        do_exec : bool
+            If True, execute the commands. If False, only print them.
+        """
+
+        if ocn_grid_mode == "Create New":
+            ocn_dir = custom_grid_path / "ocnice"
+            assert ocn_dir.exists(), f"Ocean grid directory {ocn_dir} does not exist."
+
+            ocn_mesh = (
+                ocn_dir / f"ESMF_mesh_{ocn_grid}_{cvars['MB_ATTEMPT_ID'].value}.nc"
+            )
+            assert ocn_mesh.exists(), f"Ocean mesh file {ocn_mesh} does not exist."
+
+
+            # log the modification of component_grids.xml:
+            with self._out:
+                print(
+                    f'{BPOINT} Updating case xml variables to include '
+                    f'newly generated ocean grid "{ocn_grid}" with the following properties:\n'
+                    f' nx: {cvars["OCN_NX"].value}, ny: {cvars["OCN_NY"].value}.'
+                    f' ocean mesh: {ocn_mesh}.{RESET}\n'
+                )
+
+            xmlchange("OCN_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
+
+            xmlchange("OCN_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
+
+            xmlchange("OCN_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
+
+            xmlchange("ICE_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
+
+            xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
+
+            xmlchange("ATM_GRID", cvars["CUSTOM_ATM_GRID"].value, do_exec, self._is_non_local(), self._out)
+
+            xmlchange("LND_GRID", cvars["CUSTOM_LND_GRID"].value, do_exec, self._is_non_local(), self._out)
+            
+            xmlchange("ATM_DOMAIN_MESH", self._cime.get_mesh_path("atm",cvars["CUSTOM_ATM_GRID"].value), do_exec, self._is_non_local(), self._out)
+
+            xmlchange("LND_DOMAIN_MESH", self._cime.get_mesh_path("lnd",cvars["CUSTOM_LND_GRID"].value), do_exec, self._is_non_local(), self._out)
+            
+            if cvars["CUSTOM_ROF_GRID"].value is not None and cvars["CUSTOM_ROF_GRID"].value != "" and cvars["CUSTOM_ROF_GRID"].value != "null":
+                xmlchange("ROF_GRID", cvars["CUSTOM_ROF_GRID"].value, do_exec, self._is_non_local(), self._out)
+                xmlchange("ROF_DOMAIN_MESH", self._cime.get_mesh_path("rof",cvars["CUSTOM_ROF_GRID"].value), do_exec, self._is_non_local(), self._out)
+
+
+        lnd_grid_mode = cvars["LND_GRID_MODE"].value
+        if lnd_grid_mode == "Modified":
+            if cvars["COMP_OCN"].value != "mom":
+                with self._out:
+                    print(f"{COMMENT}Apply custom land grid xml changes:{RESET}\n")
+
+                # TODO: NO LONGER RELEVANT - OCEAN GRIDS ARE DONE THROUGH XML CHANGES AS WELL:  instead of xmlchanges, these changes should be made via adding the new lnd domain mesh to
+                # component_grids_nuopc.xml and modelgrid_aliases_nuopc.xml (just like how we handle new ocean grids)
+
+                # lnd domain mesh
+                xmlchange("LND_DOMAIN_MESH", cvars["INPUT_MASK_MESH"].value, do_exec, self._is_non_local(), self._out)
+
+                # mask mesh (if modified)
+                base_lnd_grid = cvars["CUSTOM_LND_GRID"].value
+                custom_grid_path = Path(cvars["CUSTOM_GRID_PATH"].value)
+                lnd_dir = custom_grid_path / "lnd"
+                modified_mask_mesh = lnd_dir / f"{base_lnd_grid}_mesh_mask_modifier.nc" # TODO: the way we get this filename is fragile
+                assert modified_mask_mesh.exists(), f"Modified mask mesh file {modified_mask_mesh} does not exist."
+                xmlchange("MASK_MESH", modified_mask_mesh, do_exec, self._is_non_local(), self._out)
+        else:
+            assert lnd_grid_mode in [None, "", "Standard"], f"Unknown land grid mode: {lnd_grid_mode}"
