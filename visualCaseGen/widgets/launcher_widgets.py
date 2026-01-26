@@ -35,14 +35,14 @@ def initialize_launcher_widgets(cime):
     #    cv_machine.value = cime.machine
     cv_machine.widget = widgets.Dropdown(
         description='Machine:',
-        layout={'width': '250px', 'margin': '10px'}, # If the items' names are long
+        layout={'width': '260px', 'margin': '10px'}, # If the items' names are long
         style={'description_width': '80px'},
     )
 
     cv_project = cvars["PROJECT"]
     cv_project.widget = widgets.Text(
         description='Project ID:',
-        layout={'width': '250px', 'margin': '10px'},
+        layout={'width': '260px', 'margin': '10px'},
         style={'description_width': '80px'},
     )
 

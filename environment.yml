@@ -5,8 +5,9 @@ channels:
   - anaconda
   
 dependencies:
-  - python>=3.12.7,<3.13
-  #- xesmf
+  - python>=3.11.10,<3.12
+  - libxml2>=2.13,<2.14
+  - xesmf>=0.8.10,<0.9
   - pip
   - pip:
     - -e ./external/mom6_bathy/

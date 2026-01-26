@@ -41,6 +41,11 @@ Typical Workflow
 
 For more information on each step, please refer to the corresponding sections in this user guide.
 
+Video Demo
+----------
+
+ `Click here <https://www.youtube.com/watch?v=YwBqcIlW_fg>`_ to watch a quick video demo of visualCaseGen.
+
 .. toctree::
    :maxdepth: 3
    :caption: User Manual:

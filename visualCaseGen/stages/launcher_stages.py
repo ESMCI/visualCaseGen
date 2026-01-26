@@ -30,8 +30,9 @@ def initialize_launcher_stages(cime):
         "If the machine requires a PROJECT id, you'll be prompted to provide it. When everything "
         "is set, click either the *Create Case* button or *Show Commands* to view the "
         "corresponding terminal commands.",
-        widget=StageWidget(VBox),
+        widget=StageWidget(
+            VBox,
+            supplementary_widgets=[CaseCreatorWidget(cime)]
+        ),
         varlist=launcher_vars,
     )
-
-    stg_launch._widget.children += (CaseCreatorWidget(cime),)

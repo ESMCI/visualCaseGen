@@ -159,6 +159,9 @@ def construct_custom_res_from_std_grids(cime):
         assert Stage.active().title.startswith("Land Grid")
         cvars["CUSTOM_LND_GRID"].value = "0.9x1.25"
 
+        assert Stage.active().title.startswith("Runoff Grid")
+        cvars["CUSTOM_ROF_GRID"].value = "r05"
+
         assert Stage.active().title.startswith("3. Launch")
         launch_stage = Stage.active()
 
@@ -173,14 +176,23 @@ def construct_custom_res_from_std_grids(cime):
 
         cvars["PROJECT"].value = "12345"
 
-        # *Click* the create_case button
-        safe_create_case(cime.srcroot, case_creator)
+        try:
+            # *Click* the create_case button
+            safe_create_case(cime.srcroot, case_creator)
         
-        # sleep for a bit to allow the case to be created
-        time.sleep(9)
+            # sleep for a bit to allow the case to be created
+            time.sleep(15)
         
+        except RuntimeError as e:
+            if "not ported" in str(e):
+                print("CESM is not ported to the current machine. Skipping case creation.")
+            else:
+                # If the error is not related to machine porting, raise it
+                raise e
+
         # remove the caseroot directory
-        shutil.rmtree(temp_case_path)
+        if os.path.exists(temp_case_path):
+            shutil.rmtree(temp_case_path)
 
 
 def construct_custom_res_from_modified_clm_grid(cime):
@@ -238,6 +250,9 @@ def construct_custom_res_from_modified_clm_grid(cime):
 
         # click the "Run Surface Data Modifier" button
         fsurdat_modifier_launcher._on_launch_clicked(b=None)
+
+        assert Stage.active().title.startswith("Runoff Grid")
+        cvars["CUSTOM_ROF_GRID"].value = "r05"
 
         assert Stage.active().title.startswith("3. Launch")
         launch_stage = Stage.active()
@@ -354,6 +369,9 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
 
         # click the "Run Surface Data Modifier" button
         fsurdat_modifier_launcher._on_launch_clicked(b=None)
+
+        assert Stage.active().title.startswith("Runoff Grid")
+        cvars["CUSTOM_ROF_GRID"].value = "r05"
 
         assert Stage.active().title.startswith("3. Launch")
         launch_stage = Stage.active()

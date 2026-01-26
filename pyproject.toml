@@ -1,6 +1,6 @@
 [project]
 name = "visualCaseGen"
-version = "0.1.1"
+version = "0.1.3"
 authors = [
   { name = "Alper Altuntas, NCAR", email = "altuntas@ucar.edu" }
 ]
@@ -9,11 +9,11 @@ readme = "README.md"
 license = { file = "LICENSE.md" }
 classifiers = [
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: LGPL",
+  "License :: OSI Approved :: Apache 2.0 License",
   "Programming Language :: Python",
   "Framework :: Jupyter"
 ]
-requires-python = ">=3.12.7,<3.13"
+requires-python = ">=3.11.10,<3.12"
 dependencies = [
   "ipykernel>=6.29,<6.30",
   "ipython>=8.2,<8.3",
