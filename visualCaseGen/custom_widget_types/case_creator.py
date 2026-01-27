@@ -74,10 +74,7 @@ class CaseCreator:
     def _is_non_local(self):
         """Check if the case is being created on a machine different from the one
         that runs visualCaseGen."""
-        return (
-            self._cime.machine is not None
-            and self._cime.machine != cvars["MACHINE"].value
-        )
+        return False
 
     def _final_checks(self):
         """Perform final checks before attempting to create the case."""
