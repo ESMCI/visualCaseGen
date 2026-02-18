@@ -16,7 +16,10 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-
+      - name: Configure Git Identity
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
       - name: Install xmllint
         run: sudo apt-get install -y libxml2-utils
       - name: Checkout VisualCaseGen to temp folder
