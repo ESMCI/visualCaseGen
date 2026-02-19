@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opening the GUI &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="visualCaseGen Basics" href="basics.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Opening the GUI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#from-the-command-line">From the Command Line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#on-a-remote-machine">On a Remote Machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ncar-jupyterhub">NCAR JupyterHub</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Opening the GUI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/open.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="opening-the-gui">
+<span id="open"></span><h1>Opening the GUI<a class="headerlink" href="#opening-the-gui" title="Link to this heading"></a></h1>
+<p>Once the conda environment is installed, you can launch visualCaseGen by opening the <cite>GUI.ipynb</cite> notebook
+in the <cite>visualCaseGen/</cite> directory. Below are several common methods for launching the notebook. If you are
+using NCAR machines, the JupyterHub interface is recommended.</p>
+<nav class="contents local" id="launch-options">
+<p class="topic-title">Launch Options:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#from-the-command-line" id="id1">From the Command Line</a></p></li>
+<li><p><a class="reference internal" href="#on-a-remote-machine" id="id2">On a Remote Machine</a></p></li>
+<li><p><a class="reference internal" href="#ncar-jupyterhub" id="id3">NCAR JupyterHub</a></p></li>
+</ul>
+</nav>
+<section id="from-the-command-line">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">From the Command Line</a><a class="headerlink" href="#from-the-command-line" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The command-line launch is possible only if you’re running on a local machine or have SSH tunneling
+enabled. For remote access, set up SSH tunneling (described in the next section).</p>
+</div>
+<p>Ensure the <cite>visualCaseGen</cite> Conda environment is activated. If not, activate it with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>visualCaseGen
+</pre></div>
+</div>
+<p>Launch the notebook from the command line by navigating to the <cite>visualCaseGen/</cite> directory
+where <cite>GUI.ipynb</cite> notebook is located and running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jupyter-lab<span class="w"> </span>GUI.ipynb
+</pre></div>
+</div>
+<p>This will open the Jupyter notebook in your default web browser, displaying a cell with the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">visualCaseGen</span> <span class="kn">import</span> <span class="n">gui</span><span class="p">;</span> <span class="n">gui</span>
+</pre></div>
+</div>
+<p>To start the GUI, execute the cell by clicking the <strong>Run</strong> button or pressing <cite>Shift + Enter</cite>. You should
+see the following welcome dialog. Click <strong>Start</strong> to begin using the GUI:</p>
+<img alt="_images/launch5.png" src="_images/launch5.png" />
+<ul class="simple">
+<li><p>Once the <cite>Start</cite> button is clicked, a loadbar will appear, indicating that the GUI is initializing. When the
+GUI is ready, the main interface will be displayed. If the loadbar hangs, click the <cite>Help</cite> button on the top
+right corner of the welcome dialog to see if any error messages are displayed. If you encounter any issues,
+please refer to the Troubleshooting section of this documentation.</p></li>
+</ul>
+</section>
+<section id="on-a-remote-machine">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">On a Remote Machine</a><a class="headerlink" href="#on-a-remote-machine" title="Link to this heading"></a></h2>
+<p>To access the GUI on a remote machine, set up SSH tunneling with port forwarding.</p>
+<ul class="simple">
+<li><p>Establish an SSH connection with port forwarding (the exact command may vary depending on your system):</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-L<span class="w"> </span><span class="m">8888</span>:localhost:8888<span class="w"> </span>username@remote_host
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>After connecting, activate the <cite>visualCaseGen</cite> Conda environment, navigate to the <cite>visualCaseGen/</cite> directory, and run:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>visualCaseGen
+<span class="nb">cd</span><span class="w"> </span><span class="o">[</span>PATH_TO_visualCaseGen<span class="o">]</span><span class="w"> </span><span class="c1"># e.g., ~/cesm3_0_beta03_gui/visualCaseGen</span>
+jupyter-lab<span class="w"> </span>GUI.ipynb<span class="w"> </span>--no-browser
+</pre></div>
+</div>
+<p>If the above steps are successful, the command line will display a URL that you can copy and paste into your web browser
+to access the Jupyter notebook. The URL will look similar to:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>http://localhost:8888/lab/?token<span class="o">=</span>1234567890abcdef1234567890abcdef1234567890abcdef
+</pre></div>
+</div>
+<p>Paste the url <strong>shown in your own terminal</strong> into your web browser to access the visualCaseGen GUI. A Jupyter
+notebook with the following cell will be displayed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">visualCaseGen</span> <span class="kn">import</span> <span class="n">gui</span><span class="p">;</span> <span class="n">gui</span>
+</pre></div>
+</div>
+<p>To start the GUI, execute the cell by clicking the <strong>Run</strong> button or pressing <cite>Shift + Enter</cite>. You should
+see the following welcome dialog. Click <strong>Start</strong> to begin using the GUI:</p>
+<img alt="_images/launch5.png" src="_images/launch5.png" />
+<ul class="simple">
+<li><p>Once the <cite>Start</cite> button is clicked, a loadbar will appear, indicating that the GUI is initializing. When the
+GUI is ready, the main interface will be displayed. If the loadbar hangs, click the <cite>Help</cite> button on the top
+right corner of the welcome dialog to see if any error messages are displayed. If you encounter any issues,
+please refer to the Troubleshooting section of this documentation.</p></li>
+</ul>
+</section>
+<section id="ncar-jupyterhub">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">NCAR JupyterHub</a><a class="headerlink" href="#ncar-jupyterhub" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This method is available only to users with access to NCAR systems like <cite>derecho</cite> or <cite>casper</cite>.</p>
+</div>
+<ul class="simple">
+<li><p>Go to NCAR JupyterHub in your web browser:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>https://jupyterhub.hpc.ucar.edu/
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Log in by selecting “Production” under “Available NCAR Resources,” then enter your NCAR credentials.</p></li>
+<li><p>Start a JupyterHub server by clicking the <strong>“start”</strong> button under the Actions column.</p></li>
+</ul>
+<img alt="_images/launch1.png" src="_images/launch1.png" />
+<ul class="simple">
+<li><p>When prompted, select a resource. Although any resource is acceptable, “Casper Login” is recommended, as visualCaseGen does not require significant computational power.</p></li>
+</ul>
+<img alt="_images/launch2.png" src="_images/launch2.png" />
+<ul class="simple">
+<li><p>After the resource starts, navigate to the <cite>visualCaseGen/</cite> directory from the File Browser tab on the left.</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Create a symbolic link to your CESM directory in your home directory for easier access.</p>
+</div>
+<ul class="simple">
+<li><p>Open the <cite>GUI.ipynb</cite> notebook by double clicking on it,</p></li>
+</ul>
+<img alt="_images/launch3.png" src="_images/launch3.png" />
+<ul class="simple">
+<li><p>When prompted, select the visualCaseGen Conda kernel from the dropdown menu. (If not prompted, select the kernel by clicking
+the kernel name in the top right corner of the notebook.)</p></li>
+</ul>
+<img alt="_images/launch4.png" src="_images/launch4.png" />
+<ul class="simple">
+<li><p>To start the GUI, execute the first cell (with <cite>from visualCaseGen import gui; gui</cite>) by clicking the <strong>Run</strong> button
+or pressing <cite>Shift + Enter</cite>. You should see the following welcome dialog. Click <strong>Start</strong> to begin using the GUI:</p></li>
+</ul>
+<img alt="_images/launch5.png" src="_images/launch5.png" />
+<ul class="simple">
+<li><p>Once the <cite>Start</cite> button is clicked, a loadbar will appear, indicating that the GUI is initializing. When the
+GUI is ready, the main interface will be displayed. If the loadbar hangs, click the <cite>Help</cite> button on the top
+right corner of the welcome dialog to see if any error messages are displayed. If you encounter any issues,
+please refer to the Troubleshooting section of this documentation.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="basics.html" class="btn btn-neutral float-right" title="visualCaseGen Basics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ridge World &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Fill Indian Ocean" href="fillindian.html" />
+    <link rel="prev" title="Troubleshooting" href="troubleshooting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Ridge World</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#stage-0-open-visualcasegen">Stage 0: Open visualCaseGen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-1-select-compset">Stage 1: Select Compset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initialization-time">Initialization time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#models">Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-physics">Model Physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#component-options-modifiers">Component Options (Modifiers)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-2-grid">Stage 2: Grid</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#atmosphere-grid">Atmosphere Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ocean-grid">Ocean Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-mom6-bathy-tool">The mom6_bathy tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vertical-grid">Vertical Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#save-all-grid-input-files">Save all grid input files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ocean-initial-conditions">Ocean Initial Conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#land-grid">Land Grid</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-3-launch">Stage 3: Launch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Ridge World</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ridge.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ridge-world">
+<h1>Ridge World<a class="headerlink" href="#ridge-world" title="Link to this heading"></a></h1>
+<p>This example provides step-by-step guidance on generating a coupled idealized configuration
+consisting of an aquaplanet with polar land caps and a narrow land ridge extending between
+the two poles. This setup is similar to the configuration used in <a class="reference external" href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL093966">Wu et al (2021)</a> .
+The example demonstrates how to use the visualCaseGen GUI to select CESM components, configure
+custom ocean and land input files, and set up the final case.</p>
+<p>Unlike standard CESM cases, this example involves significant modifications, including
+customizations to the ocean grid, bathymetry, and land surface
+properties.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A video demonstration of this example is available <a class="reference external" href="https://www.youtube.com/watch?v=YwBqcIlW_fg">at this link</a>.</p>
+</div>
+<section id="stage-0-open-visualcasegen">
+<h2>Stage 0: Open visualCaseGen<a class="headerlink" href="#stage-0-open-visualcasegen" title="Link to this heading"></a></h2>
+<p>Follow the instructions in the <a class="reference internal" href="open.html#open"><span class="std std-ref">Opening the GUI</span></a> to open visualCaseGen in your Jupyter notebook environment.</p>
+</section>
+<section id="stage-1-select-compset">
+<h2>Stage 1: Select Compset<a class="headerlink" href="#stage-1-select-compset" title="Link to this heading"></a></h2>
+<p>After having executed the cell with the command <cite>from visualCaseGen import gui; gui</cite>,
+and clicking the <strong>Start</strong> button, you will see the main interface of visualCaseGen.</p>
+<p>Click the <strong>Custom</strong> button to proceed with creating a custom compset for our idealized
+Ridge World configuration.</p>
+<img alt="_images/stage1_1.png" src="_images/stage1_1.png" />
+<section id="initialization-time">
+<h3>Initialization time<a class="headerlink" href="#initialization-time" title="Link to this heading"></a></h3>
+<p>Once the <cite>Custom</cite> button is clicked, you will be prompted to select the initialization time.
+For this example, select <cite>1850</cite> as the initialization time.</p>
+<img alt="_images/stage1_5.png" src="_images/stage1_5.png" />
+</section>
+<section id="models">
+<h3>Models<a class="headerlink" href="#models" title="Link to this heading"></a></h3>
+<p>Once you’ve selected the initialization time, visualCaseGen will prompt you to select the
+models for each component class. For this ridge world case, select the following component options:
+<cite>cam</cite> as the atmosphere;
+<cite>clm</cite> as the land component; <cite>cice</cite> as the ice component; <cite>mom</cite> as the ocean component, <cite>srof</cite>
+(i.e., stub run off) as the river component; <cite>sglc</cite> (i.e., stub land ice) as the land ice component;
+and, <cite>swav</cite> (i.e. stub wave) as the wave component. After all the selections are made, the
+model matrix should look like:</p>
+<img alt="_images/ridge1.png" src="_images/ridge1.png" />
+</section>
+<section id="model-physics">
+<h3>Model Physics<a class="headerlink" href="#model-physics" title="Link to this heading"></a></h3>
+<p>Having selected the models, you will proceed to select the physics options for each model. The physics
+settings determine the complexity of each model component and impact computational requirements.
+For this example, select the following physics options which are based on the selections
+made in <a class="reference external" href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL093966">Wu et al (2021)</a> :</p>
+<img alt="_images/ridge2.png" src="_images/ridge2.png" />
+</section>
+<section id="component-options-modifiers">
+<h3>Component Options (Modifiers)<a class="headerlink" href="#component-options-modifiers" title="Link to this heading"></a></h3>
+<p>You are now ready to finalize the compset by selecting optional physics modifiers. Navigate between
+tabs for each component options to select the desired options. For this example, select <cite>(none)</cite> for all the
+components except for the <cite>clm</cite> component, which should be set to the satellite phenology (SP) mode.
+This options enables various aspects of the land model such as
+leaf-area index are prescribed as opposed to being prognosed interactively by the land biogeochemistry.</p>
+<img alt="_images/ridge3.png" src="_images/ridge3.png" />
+</section>
+</section>
+<section id="stage-2-grid">
+<h2>Stage 2: Grid<a class="headerlink" href="#stage-2-grid" title="Link to this heading"></a></h2>
+<p>Having completed the compset configuration, you will now proceed to the <cite>Grid</cite> stage. This can
+either be a “Standard” grid, i.e., a ready-made grid that comes with CESM, or a “Custom” grid
+where you can mix-and-match existing model grids or create new ones.</p>
+<img alt="_images/Stage2_1.png" src="_images/Stage2_1.png" />
+<p>Select the <cite>Custom</cite> grid option to be able to mix-and-match an existing atmosphere grid with a custom
+ocean grid and a modified land grid.</p>
+<img alt="_images/Stage2_3.png" src="_images/Stage2_3.png" />
+<p>When the <cite>Custom</cite> button is clicked, you will be prompted to specify a directory where
+the grid files will be stored and a new, unique grid name, .e.g., <cite>myRidgeGrid</cite> for this example.</p>
+<img alt="_images/ridge4.png" src="_images/ridge4.png" />
+<section id="atmosphere-grid">
+<h3>Atmosphere Grid<a class="headerlink" href="#atmosphere-grid" title="Link to this heading"></a></h3>
+<p>After selecting your grid directory and assigning a name, click the “Select” button to initiate
+the process of constructing your new grid. You will do this by individually selecting the grids
+for the atmosphere, ocean, and land. First, you will be prompted to select the atmosphere
+grid. Note that, unlike the ocean and land grids, the atmosphere grid is not customizable within
+visualCaseGen. Therefore, you must select from the pre-existing options. For this example, choose
+the standard 1-degree resolution grid: “0.9x1.25.”</p>
+<img alt="_images/ridge5.png" src="_images/ridge5.png" />
+</section>
+<section id="ocean-grid">
+<h3>Ocean Grid<a class="headerlink" href="#ocean-grid" title="Link to this heading"></a></h3>
+<p>For the MOM6 model grid, you have the option to either use a standard grid
+or create a custom grid. For this example, select the <cite>Create New</cite>
+option the create a custom, idealized MOM6 grid.</p>
+<img alt="_images/ridge6.png" src="_images/ridge6.png" />
+<p>Selecting the <cite>Create New</cite> option will prompt you to specify several high-level grid properties
+as shown below. Notice the <cite>Regional</cite> and <cite>Zonally Reentrant</cite> options are crossed out.
+You can click on these options to view a message explaining why they are currently unavailable.</p>
+<img alt="_images/Stage2_6.png" src="_images/Stage2_6.png" />
+<p>For the remaining grid properties, configure them as follows: specify 360 cells in the x-direction
+and 180 cells in the y-direction. Set the total grid length to 360 degrees in the x-direction and
+180 degrees in the y-direction. This will result in a 1-degree lat-lon grid. Note that the grid length
+refers to the total extent of the grid across all cells, not the size of an individual cell. Finally,
+assign a unique name to your custom ocean grid.</p>
+<img alt="_images/ridge7.png" src="_images/ridge7.png" />
+<p>After specifying all ocean grid parameters, click the green <strong>Launch mom6_bathy</strong> button. This will open an auto-generated
+Jupyter notebook where you can further customize the ocean bathymetry and generate all necessary grid input files.</p>
+</section>
+<section id="the-mom6-bathy-tool">
+<h3>The mom6_bathy tool<a class="headerlink" href="#the-mom6-bathy-tool" title="Link to this heading"></a></h3>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If the <cite>mom6_bathy</cite> notebook doesn’t open automatically, make sure that your browser allows
+pop-ups from visualCaseGen. If the notebook still doesn’t open, you can manually launch it by
+navigating to the <cite>mom6_bathy_notebooks/</cite> directory in your visualCaseGen installation and opening
+the notebook corresponding to your custom grid.</p>
+</div>
+<p>Once the auto-generated <cite>mom6_bathy</cite> notebook is open, you will see a series of cells that guide you through
+the process of creating your custom ocean bathymetry. Before proceeding, make sure that the appropriate
+kernel is selected in the top right corner of the notebook. Then, execute the first two cells to import
+the necessary libraries and to instantiate the <cite>Grid</cite> object. Notice that the <cite>Grid</cite> object is initialized
+with the parameters you specified in visualCaseGen.</p>
+<img alt="_images/ridge8.png" src="_images/ridge8.png" />
+<p>The third section of mom6_bathy is where a custom bathymetry may be defined. The default option is to produce
+a flat ocean bottom of depth 2000m. We are going to instead generate an ocean that
+resembles the ridge world case of <a class="reference external" href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL093966">Wu et al (2021)</a> ,
+which has a depth 4000m with some sinusoidal fluctuations, a land ridge of width 1 degree longitude and
+the furthest poleward 10 degrees latitude at the poles set to land. We will specify this analytically with python
+code within mom6_bathy.</p>
+<p>First, instantiate the topo object by running the cell below. Note that the <cite>min_depth</cite> parameter, which
+is set to 10.0m by default determines the minimum bathymetric depth for a cell to be considered ocean.
+Cells with depths less than this value will be masked as land.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Instantiate the bathymetry object</span>
+<span class="n">topo</span> <span class="o">=</span> <span class="n">Topo</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">min_depth</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Once the <cite>topo</cite> object is created, remove the contents of the cell below where the bathymetry is by default
+set to a flat ocean of depth 2000m.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set the bathymetry to be a flat bottom with a uniform depth of 2000m</span>
+<span class="n">topo</span><span class="o">.</span><span class="n">set_flat</span><span class="p">(</span><span class="n">D</span><span class="o">=</span><span class="mf">2000.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Replace the content of the above cell with the following code to set the bathymetry to the ridge world configuration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Adding in the bathymetry resembling that in Wu et al (2021)</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># Setting up the 2-Dimensional longitudes and latitudes of the grid</span>
+<span class="n">i</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">tlat</span><span class="o">.</span><span class="n">nx</span><span class="o">.</span><span class="n">data</span>
+<span class="n">j</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">tlat</span><span class="o">.</span><span class="n">ny</span><span class="o">.</span><span class="n">data</span><span class="p">[:</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+<span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span>
+<span class="c1"># Setting up the 4000 m ocean with sinusoidal fluctuations of 500 m height</span>
+<span class="n">custom_depth</span> <span class="o">=</span> <span class="mf">4000.</span> <span class="o">+</span> <span class="mf">400.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">20</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">y</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">20</span><span class="p">)</span>
+<span class="c1"># Set up the ridget at 50 east:</span>
+<span class="n">custom_depth</span><span class="p">[:,</span> <span class="mi">50</span><span class="p">]</span><span class="o">=</span> <span class="mf">0.</span>
+<span class="c1"># Set up polar land caps</span>
+<span class="n">custom_depth</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">,:]</span> <span class="o">=</span> <span class="mf">0.</span>
+<span class="n">custom_depth</span><span class="p">[</span><span class="o">-</span><span class="mi">10</span><span class="p">:,:]</span> <span class="o">=</span> <span class="mf">0.</span>
+<span class="c1"># Update the depth attribute:</span>
+<span class="n">topo</span><span class="o">.</span><span class="n">depth</span> <span class="o">=</span> <span class="n">custom_depth</span>
+</pre></div>
+</div>
+<p>Once the above code is executed, you will have set up the 4000 m deep option, with sinusoidal fluctuations and set the
+depth of the ocean to 0 at all latitudes at 50 degrees east and at all longitudes over the 10 degrees latitude range at the poles.
+You can plot the bathymetry to see the results by running the cell below:</p>
+<img alt="_images/ridge9.png" src="_images/ridge9.png" />
+</section>
+<section id="vertical-grid">
+<h3>Vertical Grid<a class="headerlink" href="#vertical-grid" title="Link to this heading"></a></h3>
+<p>Next, you will need to set up the vertical grid. In the <cite>mom6_bathy</cite> notebook,
+a default vertical grid is provided, which consists of 20 layers, and a ratio of 10,
+which means that the thicknesses of layers gradually increase with depth, and the thickness
+of the bottom layer is 10 times thicker than the top layer.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a vertical grid</span>
+<span class="n">vgrid</span> <span class="o">=</span> <span class="n">VGrid</span><span class="o">.</span><span class="n">hyperbolic</span><span class="p">(</span>
+  <span class="n">nk</span>    <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>             <span class="c1"># number of layers</span>
+  <span class="n">depth</span> <span class="o">=</span> <span class="n">topo</span><span class="o">.</span><span class="n">max_depth</span><span class="p">,</span> <span class="c1"># Do NOT modify this argument</span>
+  <span class="n">ratio</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="c1"># ratio of top to bottom layer thicknesses (=1.0 for uniform layers)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;layer thicknesses:&#39;</span><span class="p">,</span> <span class="n">vgrid</span><span class="o">.</span><span class="n">dz</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="save-all-grid-input-files">
+<h3>Save all grid input files<a class="headerlink" href="#save-all-grid-input-files" title="Link to this heading"></a></h3>
+<p>Finally, run the cell below to save all the grid input files. These include the MOM6 supergrid, topography, and
+vertical grid files (needed by MOM6), CICE grid file (needed by the sea ice model), and the ESMF mesh file
+(needed by the CESM coupler).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The paths specified in the cell below are for illustrative purposes only. Do not modify the paths
+in your auto-generated <cite>mom6_bathy</cite> notebook. The paths are unique to the user’s system and should not be changed,
+since doing so will prevent visualCaseGen from confirming that the grid files have been successfully generated
+and will prevent configuring CESM accurately.</p>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Do NOT modify this cell!</span>
+
+<span class="c1"># MOM6 supergrid file.</span>
+<span class="n">grid</span><span class="o">.</span><span class="n">write_supergrid</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_grid_my1deg_grid_f2343a.nc&quot;</span><span class="p">)</span>
+
+<span class="c1"># Save MOM6 topography file:</span>
+<span class="n">topo</span><span class="o">.</span><span class="n">write_topo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_topog_my1deg_grid_f2343a.nc&quot;</span><span class="p">)</span>
+
+<span class="c1"># Save MOM6 vertical grid file:</span>
+<span class="n">vgrid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_vgrid_my1deg_f2343a.nc&quot;</span><span class="p">)</span>
+
+<span class="c1"># CICE grid file:</span>
+<span class="n">topo</span><span class="o">.</span><span class="n">write_cice_grid</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/cice_grid.my1deg_grid_f2343a.nc&quot;</span><span class="p">)</span>
+
+<span class="c1"># Save ESMF mesh file:</span>
+<span class="n">topo</span><span class="o">.</span><span class="n">write_esmf_mesh</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ESMF_mesh_my1deg_grid_f2343a.nc&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>After running the cell above, return to visualCaseGen and click the <strong>Confirm completion</strong> button to proceed.</p>
+</section>
+<section id="ocean-initial-conditions">
+<h3>Ocean Initial Conditions<a class="headerlink" href="#ocean-initial-conditions" title="Link to this heading"></a></h3>
+<p>Next, you will be prompted to specify the initial conditions for the ocean model. For this example,
+select the <cite>Simple Initial Conditions</cite> options and set the reference temperature to <cite>5</cite> degrees Celsius.
+This will set the initial temperature of the ocean to 5 degrees Celsius, and the salinity will be adjusted
+accordingly.</p>
+<img alt="_images/Stage2_6_1.png" src="_images/Stage2_6_1.png" />
+</section>
+<section id="land-grid">
+<h3>Land Grid<a class="headerlink" href="#land-grid" title="Link to this heading"></a></h3>
+<p>In the final step of the custom grid configuration, you will be prompted to select the land grid. Since the continental
+geometry is idealized in this example, select the <cite>Modified</cite> land grid mode:</p>
+<img alt="_images/ridge10.png" src="_images/ridge10.png" />
+<p>In the <cite>Base Land Grid</cite> selection dialog, choose the <cite>0.9x1.25</cite> grid to be consistent with the atmosphere grid:</p>
+<img alt="_images/ridge11.png" src="_images/ridge11.png" />
+<p>Based on the selection of the base land grid, you will be prompted to configure and run the <cite>fsurdat</cite> tool to modify
+the surface data of the selected land grid. The properties to configure and modify include soil properties,
+vegetation properties, urban areas, etc. (See CLM documentation for more information.) visualCaseGen will automatically
+select the input surface data file (fsurdat) if it exists in the CESM input data directory of the system you are using.
+Otherwise, you can download the following fsurdat file from the CESM input data repository:
+<a class="reference external" href="https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/lnd/clm2/surfdata_esmf/ctsm5.3.0/surfdata_0.9x1.25_hist_1850_78pfts_c240908.nc">https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/lnd/clm2/surfdata_esmf/ctsm5.3.0/surfdata_0.9x1.25_hist_1850_78pfts_c240908.nc</a></p>
+<p>If the <cite>“Input surface data file (fsurdat)”</cite> is not already auto-filled, download the above file and provide the path to it in the
+<cite>“Input surface data file (fsurdat)”</cite> field.</p>
+<img alt="_images/ridge12.png" src="_images/ridge12.png" />
+<p>Now, click the green <strong>Run fsurdat_modifier</strong> button to generate the modified fsurdat file. This can take a few minutes to complete.
+Once it has completed, you will automatically proceed to the final stage.</p>
+</section>
+</section>
+<section id="stage-3-launch">
+<h2>Stage 3: Launch<a class="headerlink" href="#stage-3-launch" title="Link to this heading"></a></h2>
+<p>The final stage of visualCaseGen is the <cite>Launch</cite> stage, where you bring your CESM case to
+life with the selected compset and grid configuration. In this stage, you’ll find tools to
+select the case directory, choose a target machine, and initiate case creation.</p>
+<p>First, click <strong>Select</strong>
+to choose the case directory and enter a unique casename, then click <strong>Select</strong> again to confirm.</p>
+<img alt="_images/ridge13.png" src="_images/ridge13.png" />
+<p>Then confirm the target machine or select a different machine if needed. If the machine requires a project ID,
+you will be prompted to enter it here. At this point, you are ready to create the case. Before doing so, you can
+click <strong>Show Commands</strong> to view the terminal commands that will be executed.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If CESM is not installed on your system, the selected machine will appear as <cite>CESM_NOT_PORTED</cite> and the
+<strong>Create Case</strong> button will be disabled. In this case, you can still print out the commands that would be executed
+to create the case by clicking the <strong>Show Commands</strong> button. You can then follow the printed commands and instructions
+on a system where CESM is installed to create the case manually.</p>
+</div>
+<p>Once ready to proceed, click <strong>Create Case</strong> to
+initiate case creation. If the case creation is successful, you will see a completion log detailing all the steps
+taken to create the case and a confirmation of the successful case creation along with the path to the new case directory:</p>
+<img alt="_images/ridge14.png" src="_images/ridge14.png" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="troubleshooting.html" class="btn btn-neutral float-left" title="Troubleshooting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fillindian.html" class="btn btn-neutral float-right" title="Fill Indian Ocean" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

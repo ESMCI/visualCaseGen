@@ -1,0 +1,157 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Troubleshooting &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Ridge World" href="ridge.html" />
+    <link rel="prev" title="Stage 3/3: Launch" href="launch.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#commonly-encountered-issues">Commonly Encountered Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Troubleshooting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/troubleshooting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="troubleshooting">
+<h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h1>
+<p>Below are some common issues that users may encounter while using visualCaseGen and their solutions.
+If the suggested solutions do not resolve the issue, or if you encounter a different problem, please
+open an issue on the visualCaseGen GitHub repository: <a class="reference external" href="https://github.com/ESMCI/visualCaseGen/issues/new">https://github.com/ESMCI/visualCaseGen/issues/new</a></p>
+<section id="commonly-encountered-issues">
+<h2>Commonly Encountered Issues<a class="headerlink" href="#commonly-encountered-issues" title="Link to this heading"></a></h2>
+<ul>
+<li><p><strong>Error displaying widget: model not found:</strong>
+This message generally appears when a previously run
+<cite>GUI.ipynb</cite> notebook is re-opened. This error message doesn’t generally indicate a problem with the GUI,
+and should dissapear after running the cell with the <cite>from visualCaseGen import gui; gui</cite> code.</p></li>
+<li><p><strong>ModuleNotFoundError:</strong> No module named <cite>z3</cite>, <cite>ipyfilechooser</cite>, etc.: This error indicates that either
+the <cite>visualCaseGen`</cite> conda environment is not installed correctly, it was not chosen as the active environment,
+or it was not chosen as the kernel in the Jupyter notebook. To resolve this issue, ensure that the <cite>visualCaseGen</cite>
+conda environment is installed correctly and activated. If the issue persists, try restarting the Jupyter notebook
+kernel and selecting the <cite>visualCaseGen</cite> environment as the kernel.</p></li>
+<li><p><strong>Hanging Loadbar:</strong> If the loadbar hangs after clicking the <cite>Start</cite> button, click the <cite>Help</cite> button on the top
+right corner of the welcome dialog to see if any error messages are displayed. If so, submit an issue on the
+visualCaseGen GitHub repository with the error messages.</p></li>
+<li><p><strong>mom6_bathy notebook doesn’t open automatically:</strong> If the <cite>mom6_bathy</cite> notebook doesn’t open automatically,
+make sure that your browser allows
+pop-ups from visualCaseGen. If the notebook still doesn’t open, you can manually launch it by
+navigating to the <cite>mom6_bathy_notebooks/</cite> directory in your visualCaseGen installation and opening
+the notebook corresponding to your custom grid.</p></li>
+<li><p><strong>The mom6_bathy interactive point-and-click feature is not working on JupyterHub.</strong>
+If you are experiencing issues with interactive features, such as point-and-click highlighting of individual
+cells, you may need to (re)install the ipympl extension. Steps to (re)install the ipympl extension: (1) Open
+JupyterHub. (2) Locate the <em>Extension Manager</em> tab on the left sidebar: Look for an icon that resembles a puzzle
+piece. (3) Search for ipympl in the search bar. (4) In the search results, click the Install button at the bottom right
+of the ipympl listing. (5) Refresh the page after installation to see the changes.</p>
+<img alt="_images/ipymplExtension.png" src="_images/ipymplExtension.png" />
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="launch.html" class="btn btn-neutral float-left" title="Stage 3/3: Launch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ridge.html" class="btn btn-neutral float-right" title="Ridge World" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

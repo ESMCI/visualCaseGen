@@ -1,0 +1,303 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stage 2/3: Grid &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Stage 3/3: Launch" href="launch.html" />
+    <link rel="prev" title="Stage 1/3: Compset" href="compset.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Stage 2/3: Grid</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#standard-grids">Standard Grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-grids">Custom Grids</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#atmosphere-grid">Atmosphere Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ocean-grid">Ocean Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ocean-initial-conditions">Ocean Initial conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#land-grid">Land Grid</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Stage 2/3: Grid</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/grid.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="stage-2-3-grid">
+<h1>Stage 2/3: Grid<a class="headerlink" href="#stage-2-3-grid" title="Link to this heading"></a></h1>
+<p>The second major step in configuring your CESM case is choosing a resolution, which
+is a specific set of grids for each active and data model in the compset. You may
+select either a standard, out-of-the-box resolution or create a custom one by combining
+existing model grids. In <cite>Custom</cite> mode, you can also generate custom model grids for CLM and/or MOM6
+using auxiliary tools included in visualCaseGen. Begin by selecting between <cite>Standard</cite>
+and <cite>Custom</cite> grid modes.</p>
+<img alt="_images/Stage2_1.png" src="_images/Stage2_1.png" />
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In CESM terminology, <em>resolution</em> and <em>grid</em> are often used interchangeably,
+both referring to the combination of model grids used in a CESM simulation. Unless
+specifically noted as a <em>model grid</em> (i.e., a grid unique to a particular component,
+such as the ocean grid), the term <em>grid</em> in this context should be understood as
+<em>resolution</em>, meaning the full collection of <em>model grids</em> used in a particular CESM case.</p>
+</div>
+<section id="standard-grids">
+<h2>Standard Grids<a class="headerlink" href="#standard-grids" title="Link to this heading"></a></h2>
+<p>Select from the available list of resolutions (combinations of model grids) below.
+Resolutions known to be incompatible with your chosen compset have been omitted
+from this list. Use the search box to refine the list further. For exact matches,
+use double quotes; otherwise, the search will display all grids containing one
+or more of the search terms.</p>
+<img alt="_images/Stage2_2.png" src="_images/Stage2_2.png" />
+<p>After selecting a grid, visualCaseGen will advance to the <cite>Launch</cite> stage, where
+you can create your CESM case using the chosen compset and grid configuration.</p>
+</section>
+<section id="custom-grids">
+<h2>Custom Grids<a class="headerlink" href="#custom-grids" title="Link to this heading"></a></h2>
+<p>In Custom Grid mode, you can build a custom grid by mixing and matching standard
+model grids or generating new MOM6 and/or CLM grids with specialized tools that come with visualCaseGen.
+Start by specifying a path to save the new grid files and a name to refer to this
+new grid in the configuration process and beyond.</p>
+<img alt="_images/Stage2_3.png" src="_images/Stage2_3.png" />
+<p>After clicking <cite>Select</cite>, a file browser will open to help you locate your preferred
+directory for saving the new grid files. Once the directory is selected, enter the
+new grid name in the text box at the top right and click <cite>Select</cite> to proceed.</p>
+<img alt="_images/Stage2_4.png" src="_images/Stage2_4.png" />
+<section id="atmosphere-grid">
+<h3>Atmosphere Grid<a class="headerlink" href="#atmosphere-grid" title="Link to this heading"></a></h3>
+<p>Next, choose an atmosphere grid from the list of compatible options based on the
+compset you selected in the <cite>Compset</cite> stage. You may use the search box to filter
+the list further. Note that, currently, visualCaseGen does not support the creation
+of custom atmosphere grids. Therefore, you can only select from the standard atmosphere
+grids available in the list. The selected standard atmosphere grid will then be included
+in the custom resolution that you are building.</p>
+<img alt="_images/Stage2_5.png" src="_images/Stage2_5.png" />
+</section>
+<section id="ocean-grid">
+<h3>Ocean Grid<a class="headerlink" href="#ocean-grid" title="Link to this heading"></a></h3>
+<p>For the ocean grid, if MOM6 is selected as the ocean model, you can either select a standard
+ocean grid or create a new MOM6 grid. When creating a new MOM6 grid, you’ll specify parameters
+such as grid extent and resolution, after which you’ll be directed to a separate notebook that
+uses the <cite>mom6_bathy</cite> tool to generate the new grid and bathymetry.</p>
+<p>If using a standard ocean grid, select one from the list compatible with your chosen compset
+and atmosphere grid. If creating a new MOM6 grid, complete the required parameters, then proceed
+to launch the <cite>mom6_bathy</cite> tool for final customization.</p>
+<img alt="_images/Stage2_6.png" src="_images/Stage2_6.png" />
+<p>After specifying all ocean grid parameters, click <cite>Launch mom6_bathy</cite>. This will open an
+auto-generated Jupyter notebook where you can fine-tune the ocean grid, topography, and vertical grid.
+You can then generate the corresponding MOM6 input files, which will be saved under <cite>ocnice</cite> subdirectory
+within the directory you specified earlier for saving the new grid files.
+For more details on mom6_bathy, refer to its documentation: <a class="reference external" href="https://ncar.github.io/mom6_bathy/">https://ncar.github.io/mom6_bathy/</a></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <cite>mom6_bathy</cite> notebook doesn’t open automatically, make sure that your browser allows
+pop-ups from visualCaseGen. If the notebook still doesn’t open, you can manually launch it by
+navigating to the <cite>mom6_bathy_notebooks/</cite> directory in your visualCaseGen installation and opening
+the notebook corresponding to your custom grid.</p>
+</div>
+</section>
+<section id="ocean-initial-conditions">
+<h3>Ocean Initial conditions<a class="headerlink" href="#ocean-initial-conditions" title="Link to this heading"></a></h3>
+<p>If you are creating a new MOM6 grid, you will also need to specify the initial conditions for the ocean model.
+You can either specify a simple initial conditions by providing a uniform reference temperature, (salinity
+will be fit accordingly) or you can provide an initial conditions file including potential temperature and salinity.
+The initial conditions file doesn’t need to be defined on the same grid as the one you are creating, since
+MOM6 will interpolate the data to the new grid at runtime.</p>
+<p>Below dialog corresponds to the simple initial conditions specification:</p>
+<img alt="_images/Stage2_6_1.png" src="_images/Stage2_6_1.png" />
+<p>The alternative dialog allows you to specify an initial conditions file instead:</p>
+<img alt="_images/Stage2_6_2.png" src="_images/Stage2_6_2.png" />
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>MOM6 initial Conditions File:</strong>
+You can download the standard “World Ocean Atlas” initial conditions file used in CESM
+simulations from the following link: <a class="reference external" href="https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/ocn/mom/tx2_3v2/woa18_04_initial_conditions.nc">https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/ocn/mom/tx2_3v2/woa18_04_initial_conditions.nc</a></p>
+</div>
+</section>
+<section id="land-grid">
+<h3>Land Grid<a class="headerlink" href="#land-grid" title="Link to this heading"></a></h3>
+<p>Following ocean grid selection or creation, you’ll move to land grid selection if CLM is chosen
+as the land model. Here, you can similarly select a standard land grid from the list of
+available options based on your compset, or you can create a new CLM grid by selecting the
+<cite>Modified</cite> land grid mode, which allows you to define a custom land mask and land surface properties for CLM.</p>
+<img alt="_images/ridge10.png" src="_images/ridge10.png" />
+<p>In case of a <cite>Modified</cite> land grid, you will first need to select a base land grid for customization.</p>
+<img alt="_images/Stage2_7.png" src="_images/Stage2_7.png" />
+<p>Next, you will be prompted specify the land/ocean mask. This is done in the Mesh Mask Modifier
+subsection of the land grid configuration. Note, however, that when an active ocean model
+(i.e., MOM6) is present, the land/ocean mask is set by the ocean model grid. And, hence,
+this stage is skipped in that case. The Mesh Mask Modifier dialog is shown below:</p>
+<img alt="_images/fillindian4.png" src="_images/fillindian4.png" />
+<p>In this dialog, you will first need to provide a <em>land mesh file</em> that contains the coordinates of the land domain.
+This file is typically auto-filled with a default mesh path if found. The second field requires a
+<em>land mask file</em>, which is a user-created file that defines the final land mask. This file, which should
+be in NetCDF format, should contain the following variables:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Custom Land Mask File Variables</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>landmask(lsmlat,lsmlon)</p></td>
+<td><p>1’s for land, 0’s elsewhere</p></td>
+</tr>
+<tr class="row-odd"><td><p>mod_lnd_props(lsmlat,lsmlon)</p></td>
+<td><p>mask where the surface properties will be altered (1’s for modification, 0’s elsewhere)</p></td>
+</tr>
+<tr class="row-even"><td><p>lats(lsmlat)</p></td>
+<td><p>grid latitudes</p></td>
+</tr>
+<tr class="row-odd"><td><p>lons(lsmlon)</p></td>
+<td><p>grid longitudes</p></td>
+</tr>
+</tbody>
+</table>
+<p>If the latitude and longitude variables are not the same as the names specified above,
+make sure to update the corresponding variable and dimension names in the
+<cite>Mesh Mask Modifier</cite> dialog. Finally, click the <em>Run mesh_mask_modifier</em> button to generate
+the new land mask file to be used. This process may take a few minutes to complete.</p>
+<p>Once the land mask is set (either by the ocean model grid or by the user), you can proceed to
+configuring the land surface dataset. This is done  in the <cite>fsurdat</cite> file generation dialog,
+where you will be prompted to configure and run the <cite>fsurdat</cite> tool to modify the surface data of
+the selected land grid. The properties to configure and modify
+include soil properties, vegetation properties, urban areas, etc. (See CLM documentation for more
+information.) visualCaseGen will automatically select the input surface data file (fsurdat)
+if it exists in the CESM input data directory of the system you are using. Otherwise, you will
+need to download and provide the path to the appropriate fsurdat file. Similarly, the tool
+will automatically select the custom land mask file you provided in the previous step for the
+specification of customized area. Otherwise, manually provide the path to the custom land mask file
+that contains <em>Custom Land Mask File Variables</em> as provided in the table above.
+Below is an example of the <cite>fsurdat</cite> file generation dialog:</p>
+<img alt="_images/fillindian7.png" src="_images/fillindian7.png" />
+<p>Once ready, click the green <strong>Run fsurdat_modifier</strong> button to generate the modified fsurdat file. This
+process may take a few minutes to complete.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Initialization of Custom Land Points:</strong>
+When users define their own continental geometries, the model initializes land points
+by reading an initial conditions file (<cite>finidat</cite> specified in the CLM namelist). The model
+interpolates the nearest neighbor information to populate land points that lack existing data.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Runoff Behavior with Idealized Land:</strong>
+In scenarios with idealized land configurations, the new land points do not have an
+updated routing map to direct water downstream. As a result, runoff from these land points
+is routed to the nearest ocean point. To verify that water is not lost in the process, users
+can consult the budget tables available in the log files.
+These tables provide detailed information on water budgets and confirm the conservation of water within the model.</p>
+</div>
+<p>Once atmosphere, ocean, and land grids have been chosen or created, custom grid setup is complete.
+visualCaseGen will guide you to the final stage, <cite>Launch</cite>, where you can create a CESM case based on
+the specified compset and grid.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="compset.html" class="btn btn-neutral float-left" title="Stage 1/3: Compset" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="launch.html" class="btn btn-neutral float-right" title="Stage 3/3: Launch" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
