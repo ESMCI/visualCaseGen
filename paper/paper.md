@@ -104,8 +104,18 @@ are three example constraints with increasing complexity,
 demonstrating how the SMT solver can enforce simple value bounds, conditional
 dependencies, and more complex multi-component rules:
 
-![](constraints.png)
+```
+LND_DOM_PFT >= 0.0:
+    "PFT/CFT must be set to a nonnegative number",
 
+Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="False"):
+    "Regional ocean domain cannot be reentrant (due to an ESMF limitation.)",
+
+Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"),
+        OCN_LENY<180.0):
+    "If LND and ICE are stub, custom MOM6 grid must exclude poles "
+    "to avoid singularities in open water.",
+```
 ## Why Use a Constraint Solver?
 
 Configuring CESM is inherently a constraint satisfaction problem (CSP) that can
