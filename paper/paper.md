@@ -40,12 +40,12 @@ bibliography: paper.bib
 
 # Summary
 
-visualCaseGen is a graphical user interface (GUI) that streamlines the setup of
+`visualCaseGen` is a graphical user interface (GUI) that streamlines the setup of
 Community Earth System Model (CESM) experiments. While CESM supports simulations
 across a wide range of spatial and temporal scales and complexities [@danabasoglu2020community],
 configuring non-standard experiments can be technically demanding and time-consuming.
 
-To simplify this process, visualCaseGen offers a Jupyter-based interface 
+To simplify this process, `visualCaseGen` offers a Jupyter-based interface 
 that guides users through each configuration stage and automates key tasks. 
 It features a constraint solver based on satisfiability modulo theories 
 (SMT) [@de2011satisfiability], which validates settings in real time by analyzing
@@ -55,7 +55,7 @@ constraints in a targeted and efficient manner.
 
 The frontend enables users to explore standard configurations or define custom
 experiments, with tools for editing input files such as ocean grids, bathymetry,
-and land properties. By reducing setup burden and the potential for errors, visualCaseGen
+and land properties. By reducing setup burden and the potential for errors, `visualCaseGen`
 makes CESM more accessible, particularly for hierarchical modeling [@maher2019model],
 idealized experiments [@polvani2017less], and custom coupled simulations, thereby
 allowing researchers to focus on scientific goals rather than technical challenges.
@@ -77,7 +77,7 @@ precipitation (\autoref{fig:wuEtAl}). Achieving this required extensive manual
 effort: modifying the CESM codebase, generating custom inputs, adjusting parameters,
 consulting domain experts, and iterating through trial and error.
 
-visualCaseGen was developed to address these barriers. As an interactive GUI,
+`visualCaseGen` was developed to address these barriers. As an interactive GUI,
 it eliminates manual steps and provides an intuitive workflow for
 building CESM configurations efficiently.
 
@@ -90,14 +90,14 @@ Ridge planet simulations using CESM [@wu2021coupled].
 One of the main challenges in configuring CESM experiments is ensuring
 compatibility among model settings, such as components, physics,
 grids, and parameterizations, which often have strict interdependencies.
-visualCaseGen addresses this
-challenge by integrating an SMT-based constraint solver, built using the Z3
+`visualCaseGen` addresses this
+challenge by integrating an SMT-based constraint solver, built using the `Z3`
 solver [@de2008z3], which offers a robust Python API and supports multiple
 parameter types (integers, reals, booleans, and strings), enabling 
 specification and enforcement of complex constraints in CESM configurations.
 
-In visualCaseGen, constraints are specified as key-value pairs, where the key
-represents a Z3 logical expression defining a condition, and the value is the
+In `visualCaseGen`, constraints are specified as key-value pairs, where the key
+represents a `Z3` logical expression defining a condition, and the value is the
 error message displayed when the constraint is violated. These constraints
 enforce compatibility rules and prevent invalid model configurations. Below
 are three example constraints with increasing complexity,
@@ -127,7 +127,7 @@ For this reason, we use an SMT solver, which offers several advantages:
  
 # The Stage Mechanism
 
-A core backend concept in visualCaseGen is the Stage Mechanism, which breaks the
+A core backend concept in `visualCaseGen` is the Stage Mechanism, which breaks the
 CESM configuration into consecutive stages, each grouping related variables that
 can be adjusted together. Stages activate dynamically based on user selections.
 This mechanism also enables the constraint solver to incrementally apply only relevant
@@ -143,7 +143,7 @@ cycles and inconsistencies.
 
 ## Constraint Graph and its Traversal
 
-Using the stage pipeline and constraints, visualCaseGen builds a constraint graph
+Using the stage pipeline and constraints, `visualCaseGen` builds a constraint graph
 (\autoref{fig:cgraph}) where nodes are configuration variables and directed edges
 represent dependencies, pointing from higher to lower-precedence variables.
 
@@ -159,15 +159,15 @@ consistency.
 
 # Frontend 
 
-The visualCaseGen frontend provides an interactive interface for
-configuring CESM experiments. Built with Jupyter ipywidgets, it
+The `visualCaseGen` frontend provides an interactive interface for
+configuring CESM experiments. Built with Jupyter `ipywidgets`, it
 can operate on local
 machines, HPC clusters, and cloud environments. This portability and flexibility allows
 researchers to configure CESM experiments efficiently, whether prototyping
 lightweight simulations on personal computers or running sophisticated applications
 on remote supercomputing systems.
 
-\autoref{fig:Stage1_7} displays an example stage from the visualCaseGen GUI,
+\autoref{fig:Stage1_7} displays an example stage from the `visualCaseGen` GUI,
 where users can select the individual models to be coupled in their CESM
 experiment. As the user makes selections, the GUI dynamically updates available
 options by crossing out incompatible choices, ensuring that only valid
@@ -182,7 +182,7 @@ of why that choice is incompatible with their current selections (\autoref{fig:S
 ![Interactive feedback in incompatible choices. \label{fig:Stage1_8}](Stage1_8.png){width="90%"}
 
 As another example of streamlining model customization, \autoref{fig:TopoEditor}
-shows the TopoEditor widget that comes with visualCaseGen. This tool allows users
+shows the TopoEditor widget that comes with `visualCaseGen`. This tool allows users
 to interactively modify ocean bathymetry, enhancing customizability and
 ease of use.
 
@@ -190,13 +190,13 @@ ease of use.
 
 # Remarks
 
-visualCaseGen can significantly speed up custom CESM experiment setup by
+`visualCaseGen` can significantly speed up custom CESM experiment setup by
 automating much of the configuration process. Instead of manual edits, 
 users define setups via an interactive GUI, mixing components, physics,
 and parameterizations, and generating custom input files. 
 The SMT-based solver ensures only valid settings are chosen. While
 complex cases may require fine-tuning, initial working configurations 
-can be created in hours rather than weeks. To our knowledge, visualCaseGen
+can be created in hours rather than weeks. To our knowledge, `visualCaseGen`
 is the first tool to integrate SMT-based constraint solving into Earth system
 model configuration, demonstrating how formal methods can aid this process.
 
