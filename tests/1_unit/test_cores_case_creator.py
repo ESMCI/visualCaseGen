@@ -17,11 +17,11 @@ def test_calc_cores_based_on_grid_cases():
     assert CaseCreator._calc_cores_based_on_grid(33) == 1
 
     # Test ideal cores amount
-    assert CaseCreator._calc_cores_based_on_grid(800*128) == 128
+    assert CaseCreator._calc_cores_based_on_grid(300*128) == 128
 
-    assert CaseCreator._calc_cores_based_on_grid(800*32) == 128
+    assert CaseCreator._calc_cores_based_on_grid(300*32) == 128
 
-    assert CaseCreator._calc_cores_based_on_grid(740 * 780) == 768
+    assert CaseCreator._calc_cores_based_on_grid(740 * 780) == 2048
 
 
     

@@ -352,7 +352,7 @@ class Stage(Node, HasTraits):
             return
 
         # Display the child stage and its siblings by appending them to the current stage's widget
-        if self.has_children():
+        if self.has_children() and next_stage.is_descendant_of(self):
             self._widget.add_child_stages(first_child=next_stage)
 
         # Proceed the csp solver before enabling the next stage
@@ -378,20 +378,24 @@ class Stage(Node, HasTraits):
             The next stage to visit, if found. Otherwise, None.
         """
 
-        if self.has_children():
-            return self._get_child_to_enable(full_dfs)
-        elif self._right is not None:
+        # First try to get a child stage to enable
+        if (child_to_enable := self._get_child_to_enable(full_dfs)) is not None:
+            return child_to_enable
+
+        # No child stage to enable. Try to get the right sibling.
+        if self._right is not None:
             return self._right
-        else:  # Backtrack
-            ancestor = self._parent
-            while ancestor is not None:
-                if ancestor._right is not None and (
-                    full_dfs or not ancestor.has_condition()
-                ):
-                    return ancestor._right
-                else:
-                    ancestor = ancestor._parent
-            return None
+
+        # No child or right sibling. Backtrack to find the next stage.
+        ancestor = self._parent
+        while ancestor is not None:
+            if ancestor._right is not None and (
+                full_dfs or not ancestor.has_condition()
+            ):
+                return ancestor._right
+            else:
+                ancestor = ancestor._parent
+        return None
 
     def _get_child_to_enable(self, full_dfs):
         """Determine the child stage to activate.
@@ -401,6 +405,9 @@ class Stage(Node, HasTraits):
         full_dfs : bool
             If True, visit all the stages in the stage tree. Otherwise, skip stages whose guards
             are not satisfied."""
+        
+        if self.has_children() is False:
+            return None
 
         child_to_activate = None
 
@@ -412,6 +419,11 @@ class Stage(Node, HasTraits):
                         child_to_activate is None
                     ), "Only one child stage can be activated at a time."
                     child_to_activate = child
+            
+            if child_to_activate is None:
+                # No child guard's condition is satisfied.
+                # Let the caller handle this case (by backtracking).
+                return None
         else:
             # If children are not guards, the first child is activated.
             # Note the remaining children will be activated in sequence by their siblings.
@@ -419,11 +431,7 @@ class Stage(Node, HasTraits):
 
         # If the child to activate is a Guard, return it's first child
         if child_to_activate.has_condition():
-            return child_to_activate._children[0]
-
-        assert (
-            child_to_activate is not None
-        ), "At least one child stage must be activated."
+            child_to_activate = child_to_activate._children[0]
 
         return child_to_activate
 

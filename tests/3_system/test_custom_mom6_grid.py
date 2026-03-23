@@ -141,7 +141,10 @@ def test_custom_mom6_grid():
         assert Stage.active().title.startswith("Simple Initial Conditions")
         cvars["T_REF"].value = 10.0
 
-        # Since land grid gets set automatically, we should be in the Launch stage:
+        # Since land grid and runoff grid get set automatically, we should be in the runoff to ocn mapping:
+        assert Stage.active().title.startswith("Runoff to Ocean Mapping")
+        cvars["ROF_OCN_MAPPING_STATUS"].value = "skip"
+
         assert Stage.active().title.startswith("3. Launch")
         launch_stage = Stage.active()
 

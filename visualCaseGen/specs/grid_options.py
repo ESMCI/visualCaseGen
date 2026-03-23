@@ -17,6 +17,7 @@ def set_grid_options(cime):
     set_custom_atm_grid_options(cime)
     set_custom_ocn_grid_options(cime)
     set_custom_lnd_grid_options(cime)
+    set_custom_rof_grid_options(cime)
 
 
 def set_standard_grid_options(cime):
@@ -95,7 +96,7 @@ def check_comp_grid(comp_class, proposed_grid, compset_lname):
         proposed_grid.compset_constr, compset_lname
     ):
         return False
-    if proposed_grid.not_compset_constr and re.search(
+    if (not proposed_grid.is_default) and proposed_grid.not_compset_constr and re.search(
         proposed_grid.not_compset_constr, compset_lname
     ):
         return False
@@ -108,8 +109,12 @@ def set_custom_atm_grid_options(cime):
     This function is called at initialization."""
 
     # CUSTOM_ATM_GRID options
-    def custom_atm_grid_options_func(comp_atm, grid_mode):
+    def custom_atm_grid_options_func(grid_mode):
         """Return the options and descriptions for the custom ATM grid variable."""
+
+        if grid_mode != "Custom":
+            return None, None
+
         compset_lname = cvars["COMPSET_LNAME"].value
         compatible_atm_grids = []
         descriptions = []
@@ -122,7 +127,7 @@ def set_custom_atm_grid_options(cime):
 
     cv_custom_atm_grid = cvars["CUSTOM_ATM_GRID"]
     cv_custom_atm_grid.options_spec = OptionsSpec(
-        func=custom_atm_grid_options_func, args=(cvars["COMP_ATM"], cvars["GRID_MODE"])
+        func=custom_atm_grid_options_func, args=(cvars["GRID_MODE"],)
     )
 
 
@@ -228,3 +233,34 @@ def set_custom_lnd_grid_options(cime):
 
     cv_lnd_include_nonveg = cvars["LND_INCLUDE_NONVEG"]
     cv_lnd_include_nonveg.options = ["True", "False"]
+
+
+def set_custom_rof_grid_options(cime):
+    """Set the options and options specs for the custom ROF grid variable.
+    This function is called at initialization."""
+
+    # CUSTOM_ROF_GRID options
+    def custom_rof_grid_options_func(grid_mode):
+        """Return the options and descriptions for the custom ROF grid variable."""
+
+        if grid_mode != "Custom":
+            return None, None
+        
+        if cvars["COMP_ROF"].value == "srof":
+            return ["null"], ["(When stub ROF is selected, custom ROF grid is set to null.)"]
+
+        # Loop through all ROF grids and check if they are compatible with the compset constraints
+        compset_lname = cvars["COMPSET_LNAME"].value
+        compatible_rof_grids = []
+        descriptions = []
+        for rof_grid in cime.domains["rof"].values():
+            if check_comp_grid("ROF", rof_grid, compset_lname) is False:
+                continue
+            compatible_rof_grids.append(rof_grid.name)
+            descriptions.append(rof_grid.desc)
+        return compatible_rof_grids, descriptions
+
+    cv_custom_rof_grid = cvars["CUSTOM_ROF_GRID"]
+    cv_custom_rof_grid.options_spec = OptionsSpec(
+        func=custom_rof_grid_options_func, args=(cvars["GRID_MODE"],)
+    )
