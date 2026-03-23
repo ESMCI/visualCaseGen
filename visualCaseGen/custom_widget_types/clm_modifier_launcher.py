@@ -305,6 +305,7 @@ class FsurdatModifierLauncher(ClmModifierLauncher):
             f.write(
                 f"lat_dimname = UNSET\n"
                 f"lon_dimname = UNSET\n"
+                f"lon_type = 360\n"
                 f'dom_pft = {set_val(cvars["LND_DOM_PFT"].value)}\n'
                 f"evenly_split_cropland = False\n"
                 f"lai = {lai}\n"
