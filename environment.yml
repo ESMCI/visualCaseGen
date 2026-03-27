@@ -10,6 +10,6 @@ dependencies:
   - xesmf>=0.8.10
   - pip
   - pip:
-    - -e ./external/mom6_bathy/
+    - -e ./external/mom6_forge/
     - -e ./external/ipyfilechooser/
     - -e ./ # visualCaseGen
