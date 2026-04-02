@@ -113,7 +113,7 @@ def get_relational_constraints(cvars):
         Implies(In(COMP_ATM_OPTION, ["IAF", "NYF"]), ATM_GRID == "T62"):
             "Core2 forcing can only be used with T62 grid.",
 
-        # mom6_bathy-related constraints ------------------
+        # mom6_forge-related constraints ------------------
         Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<180.0):
             "If LND and ICE are stub, custom MOM6 grid must exclude poles (singularity).",
 

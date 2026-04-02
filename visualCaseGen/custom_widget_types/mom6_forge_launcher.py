@@ -15,15 +15,15 @@ logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
 class MOM6BathyLauncher(VBox):
-    """A widget to create and launch a new mom6_bathy notebook. The widget is enabled when all the
-    required parameters for mom6_bathy are set."""
+    """A widget to create and launch a new mom6_forge notebook. The widget is enabled when all the
+    required parameters for mom6_forge are set."""
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
         cvars['MB_ATTEMPT_ID'].value = None
-        self.required_mom6_bathy_vars = [
+        self.required_mom6_forge_vars = [
             cvars["CUSTOM_GRID_PATH"],
             cvars["OCN_GRID_MODE"],
             cvars["OCN_NX"],
@@ -35,17 +35,17 @@ class MOM6BathyLauncher(VBox):
         ]
 
         # observe changes in the required variables
-        for var in self.required_mom6_bathy_vars:
+        for var in self.required_mom6_forge_vars:
             var._widget.observe(self._on_required_var_change, names="_property_lock", type="change")
 
         # Create the main child widgets: Launcg button, Output, and Confirm button
 
-        self._btn_launch_mom6_bathy = Button(
-            description="Launch mom6_bathy",
+        self._btn_launch_mom6_forge = Button(
+            description="Launch mom6_forge",
             button_style="success",
             layout={"width": "160px", "margin": "10px", "align_self": "center"},
         )
-        self._btn_launch_mom6_bathy.on_click(self._on_btn_launch_clicked)
+        self._btn_launch_mom6_forge.on_click(self._on_btn_launch_clicked)
 
         self._out = Output()
 
@@ -61,7 +61,7 @@ class MOM6BathyLauncher(VBox):
         self._btn_confirm_completion.on_click(self._on_btn_confirm_completion_clicked)
 
         self.children = [
-            self._btn_launch_mom6_bathy,
+            self._btn_launch_mom6_forge,
             self._out,
             self._btn_confirm_completion,
         ]
@@ -73,7 +73,7 @@ class MOM6BathyLauncher(VBox):
     @disabled.setter
     def disabled(self, value):
         self._out.clear_output()
-        self._btn_launch_mom6_bathy.disabled = value
+        self._btn_launch_mom6_forge.disabled = value
         self._btn_confirm_completion.disabled = value
 
     @staticmethod
@@ -83,7 +83,7 @@ class MOM6BathyLauncher(VBox):
         return Path(custom_grid_path) / "ocnice"
 
     def _on_required_var_change(self, change):
-        """If any of the required variables are changed, reset the attempt id and mom6_bathy_status."""
+        """If any of the required variables are changed, reset the attempt id and mom6_forge_status."""
         self._btn_confirm_completion.layout.display = "none"
         cvars['MB_ATTEMPT_ID'].value = None
         cvars["MOM6_BATHY_STATUS"].value = None
@@ -91,22 +91,22 @@ class MOM6BathyLauncher(VBox):
 
     @owh.out.capture()
     def _on_btn_launch_clicked(self, b):
-        """Function to launch the mom6_bathy notebook. The function first checks if all the required
+        """Function to launch the mom6_forge notebook. The function first checks if all the required
         parameters are set. If not, it displays a warning message. If all required parameters are set,
-        it generates a new mom6_bathy notebook and opens it in a new tab. The user is then prompted to
+        it generates a new mom6_forge notebook and opens it in a new tab. The user is then prompted to
         execute the notebook and confirm completion. Once the notebook is executed, the user can click
         the "Confirm completion" button to proceed to the next stage."""
 
-        if any(var.value is None for var in self.required_mom6_bathy_vars):
+        if any(var.value is None for var in self.required_mom6_forge_vars):
             remaining_params = [
-                var.name for var in self.required_mom6_bathy_vars if var.value is None
+                var.name for var in self.required_mom6_forge_vars if var.value is None
             ]
             alert_warning(
-                f"Please specify all the required parameters before launching mom6_bathy: {remaining_params}"
+                f"Please specify all the required parameters before launching mom6_forge: {remaining_params}"
             )
             return
 
-        # Reset the attempt_id and mom6_bathy_status
+        # Reset the attempt_id and mom6_forge_status
         new_attempt_id = str(uuid.uuid1())[:6]
         cvars['MB_ATTEMPT_ID'].value = new_attempt_id
         cvars["MOM6_BATHY_STATUS"].value = None
@@ -114,17 +114,17 @@ class MOM6BathyLauncher(VBox):
         # Determine the path to the new notebook
         custom_ocn_grid_name = cvars["CUSTOM_OCN_GRID_NAME"].value
         nb_path = (
-            Path("mom6_bathy_notebooks") / f"mom6_bathy_{custom_ocn_grid_name}_{new_attempt_id}.ipynb"
+            Path("mom6_forge_notebooks") / f"mom6_forge_{custom_ocn_grid_name}_{new_attempt_id}.ipynb"
         )
 
-        # Launch the mom6_bathy notebook
-        self._launch_mom6_bathy(nb_path)
+        # Launch the mom6_forge notebook
+        self._launch_mom6_forge(nb_path)
 
         # Display a message to the user in the output widget
         with self._out:
             self._out.clear_output()
             print(
-                'Note: Clicking the "Launch mom6_bathy" button generates a new notebook that '
+                'Note: Clicking the "Launch mom6_forge" button generates a new notebook that '
                 "should open in a new tab automatically. If not, try manually opening the notebook "
                 f"at the following location: {nb_path}. Follow the instructions and run all cells "
                 'in the notebook. Once done, click the "Confirm completion" button to proceed.'
@@ -135,21 +135,21 @@ class MOM6BathyLauncher(VBox):
 
     @owh.out.capture()
     def _on_btn_confirm_completion_clicked(self, b):
-        """Function to confirm completion of mom6_bathy. The function checks if all the required
-        files are created. If so, it confirms completion of mom6_bathy. If not, it displays a
+        """Function to confirm completion of mom6_forge. The function checks if all the required
+        files are created. If so, it confirms completion of mom6_forge. If not, it displays a
         warning message."""
 
         custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
         if custom_ocn_grid_path is None:
             alert_warning(
-                "No custom_ocn_grid_path found. Cannot confirm completion of mom6_bathy"
+                "No custom_ocn_grid_path found. Cannot confirm completion of mom6_forge"
             )
             return
 
         attempt_id = cvars['MB_ATTEMPT_ID'].value
         if attempt_id is None:
             alert_warning(
-                "No attempt_id found. Cannot confirm completion of mom6_bathy"
+                "No attempt_id found. Cannot confirm completion of mom6_forge"
             )
             return
 
@@ -157,8 +157,8 @@ class MOM6BathyLauncher(VBox):
         custom_ocn_grid_name = cvars["CUSTOM_OCN_GRID_NAME"].value
 
         warning_msg = (
-            "Cannot confirm completion of mom6_bathy. Make sure you've executed all "
-            + "of the cells in the mom6_bathy notebook. The following file is missing: "
+            "Cannot confirm completion of mom6_forge. Make sure you've executed all "
+            + "of the cells in the mom6_forge notebook. The following file is missing: "
         )
 
         # See if all required files are created:
@@ -176,23 +176,23 @@ class MOM6BathyLauncher(VBox):
                 return
 
         # If all files are found, confirm completion
-        logger.info(f"Confirmed completion of mom6_bathy for {custom_ocn_grid_name}")
+        logger.info(f"Confirmed completion of mom6_forge for {custom_ocn_grid_name}")
         cvars["MOM6_BATHY_STATUS"].value = None
         cvars["MOM6_BATHY_STATUS"].value = "Complete"
 
         # Proceed to the next stage
         Stage.proceed()
 
-    def _launch_mom6_bathy(self, nb_filepath):
-        """Generate a new mom6_bathy notebook and open it in a new tab. This method gets called when
-        the user clicks the "Launch mom6_bathy" button."""
+    def _launch_mom6_forge(self, nb_filepath):
+        """Generate a new mom6_forge notebook and open it in a new tab. This method gets called when
+        the user clicks the "Launch mom6_forge" button."""
         nb = MOM6BathyLauncher._create_notebook_object()
         MOM6BathyLauncher._write_notebook(nb, nb_filepath)
         MOM6BathyLauncher._open_notebook_in_browser(nb_filepath)
 
     @staticmethod
     def _create_notebook_object():
-        """Create a mom6_bathy notebook object based on the current values of the required variables.
+        """Create a mom6_forge notebook object based on the current values of the required variables.
 
         Returns
         -------
@@ -218,18 +218,18 @@ class MOM6BathyLauncher(VBox):
 
         nb["cells"] = [
             nbf.v4.new_markdown_cell(
-                "# mom6_bathy\n"
+                "# mom6_forge\n"
                 "This notebook is auto-generated by visualCaseGen. "
                 "Please review and execute the cells below to create the new MOM6 grid and bathymetry. "
                 "You can modify the cells as needed, unless otherwise noted, to customize the grid "
                 "and bathymetry."
             ),
-            nbf.v4.new_markdown_cell("## 1. Import mom6_bathy"),
+            nbf.v4.new_markdown_cell("## 1. Import mom6_forge"),
             nbf.v4.new_code_cell(
                 "%%capture\n"
-                "from mom6_bathy.grid import Grid\n"
-                "from mom6_bathy.topo import Topo\n"
-                "from mom6_bathy.vgrid import VGrid"
+                "from mom6_forge.grid import Grid\n"
+                "from mom6_forge.topo import Topo\n"
+                "from mom6_forge.vgrid import VGrid"
             ),
             nbf.v4.new_markdown_cell("## 2. Create horizontal grid\n"),
         ]
@@ -260,9 +260,9 @@ class MOM6BathyLauncher(VBox):
             nb["cells"].extend(
                 [
                     nbf.v4.new_markdown_cell(
-                        "***mom6_bathy*** provides several idealized bathymetry options and customization "
+                        "***mom6_forge*** provides several idealized bathymetry options and customization "
                         "methods. Below, we show how to specify the simplest bathymetry configuration, a "
-                        "flat bottom. Customize it as you see fit. See mom6_bathy documentation and "
+                        "flat bottom. Customize it as you see fit. See mom6_forge documentation and "
                         "example notebooks on how to create custom bathymetries. "
                     ),
                     nbf.v4.new_code_cell(
@@ -288,7 +288,7 @@ class MOM6BathyLauncher(VBox):
                 nbf.v4.new_code_cell(
                     "# Manually modify the bathymetry\n"
                     "%matplotlib ipympl\n"
-                    "from mom6_bathy.topo_editor import TopoEditor\n"
+                    "from mom6_forge.topo_editor import TopoEditor\n"
                     "TopoEditor(topo)"
                 ),
             ]
@@ -349,19 +349,19 @@ class MOM6BathyLauncher(VBox):
         return nb
 
     def _write_notebook(nb, nb_filepath):
-        """Write the new mom6_bathy notebook to the specified file path. If the directory doesn't
+        """Write the new mom6_forge notebook to the specified file path. If the directory doesn't
         exist, it is created. The notebook is then written to the file path."""
         os.makedirs(nb_filepath.parent, exist_ok=True)
 
         with open(nb_filepath, "w") as f:
             nbf.write(nb, f)
 
-        logger.info(f"Generated a new mom6_bathy notebook at {nb_filepath}")
+        logger.info(f"Generated a new mom6_forge notebook at {nb_filepath}")
 
         return nb_filepath
 
     def _open_notebook_in_browser(nb_filepath):
-        """Open the new mom6_bathy notebook in the browser. This function is called after the notebook
+        """Open the new mom6_forge notebook in the browser. This function is called after the notebook
         is generated. It opens the notebook in a new tab in the browser."""
 
         # Open the new notebook in the browser

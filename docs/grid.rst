@@ -64,23 +64,23 @@ Ocean Grid
 For the ocean grid, if MOM6 is selected as the ocean model, you can either select a standard
 ocean grid or create a new MOM6 grid. When creating a new MOM6 grid, you'll specify parameters
 such as grid extent and resolution, after which you'll be directed to a separate notebook that
-uses the `mom6_bathy` tool to generate the new grid and bathymetry.
+uses the `mom6_forge` tool to generate the new grid and bathymetry.
 
 If using a standard ocean grid, select one from the list compatible with your chosen compset
 and atmosphere grid. If creating a new MOM6 grid, complete the required parameters, then proceed
-to launch the `mom6_bathy` tool for final customization.
+to launch the `mom6_forge` tool for final customization.
 
 .. image:: assets/Stage2_6.png
 
-After specifying all ocean grid parameters, click `Launch mom6_bathy`. This will open an 
+After specifying all ocean grid parameters, click `Launch mom6_forge`. This will open an 
 auto-generated Jupyter notebook where you can fine-tune the ocean grid, topography, and vertical grid.
 You can then generate the corresponding MOM6 input files, which will be saved under `ocnice` subdirectory
 within the directory you specified earlier for saving the new grid files.
-For more details on mom6_bathy, refer to its documentation: https://ncar.github.io/mom6_bathy/
+For more details on mom6_forge, refer to its documentation: https://ncar.github.io/mom6_forge/
 
-.. note:: If the `mom6_bathy` notebook doesn't open automatically, make sure that your browser allows
+.. note:: If the `mom6_forge` notebook doesn't open automatically, make sure that your browser allows
   pop-ups from visualCaseGen. If the notebook still doesn't open, you can manually launch it by
-  navigating to the `mom6_bathy_notebooks/` directory in your visualCaseGen installation and opening
+  navigating to the `mom6_forge_notebooks/` directory in your visualCaseGen installation and opening
   the notebook corresponding to your custom grid.
 
 Ocean Initial conditions
