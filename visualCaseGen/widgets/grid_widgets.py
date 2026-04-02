@@ -130,11 +130,11 @@ def initialize_custom_ocn_grid_widgets():
         style={"description_width": "250px"},
     )
 
-    cv_mom6_bathy_stat = cvars["MOM6_BATHY_STATUS"]
-    cv_mom6_bathy_stat.widget = DisabledText(
+    cv_mom6_forge_stat = cvars["MOM6_BATHY_STATUS"]
+    cv_mom6_forge_stat.widget = DisabledText(
         value = '',
         disabled = True, 
-        description="mom6_bathy status:",
+        description="mom6_forge status:",
         placeholder = "Incomplete",
         layout={"width": "300px", "padding": "5px", "align_self": "flex-end"},
         style={"description_width": "150px", "background":"lightgray", "text_color":"white"},

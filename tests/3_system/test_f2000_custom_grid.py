@@ -18,7 +18,7 @@ from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
 from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
-from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from tests.utils import safe_create_case
 
 
@@ -308,30 +308,30 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
         cvars["OCN_LENY"].value = 160.0
         cvars["CUSTOM_OCN_GRID_NAME"].value = "custom_ocn_grid"
 
-        # now launch the mom6_bathy notebook
+        # now launch the mom6_forge notebook
 
-        mom6_bathy_launcher_widget = Stage.active()._widget._main_body.children[-1]
-        assert isinstance(mom6_bathy_launcher_widget, MOM6BathyLauncher)
+        mom6_forge_launcher_widget = Stage.active()._widget._main_body.children[-1]
+        assert isinstance(mom6_forge_launcher_widget, MOM6ForgeLauncher)
 
         # After setting all the required parameters, the launch button should be enabled
-        assert mom6_bathy_launcher_widget._btn_launch_mom6_bathy.disabled is False
+        assert mom6_forge_launcher_widget._btn_launch_mom6_forge.disabled is False
 
         # *Click* the launch button
-        mom6_bathy_launcher_widget._on_btn_launch_clicked(b=None)
+        mom6_forge_launcher_widget._on_btn_launch_clicked(b=None)
 
         # The confirm button should be visible:
         assert (
-            mom6_bathy_launcher_widget._btn_confirm_completion.layout.display != "none"
+            mom6_forge_launcher_widget._btn_confirm_completion.layout.display != "none"
         )
 
         # now, programmatically run the notebook
         import nbformat
         from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 
-        # find the only mom6_bathy_*.ipynb file in the mom6_bathy_notebooks directory
+        # find the only mom6_forge_*.ipynb file in the mom6_forge_notebooks directory
         ocn_grid_name = cvars['CUSTOM_OCN_GRID_NAME'].value
-        nb_files = list(Path("mom6_bathy_notebooks").glob(f"mom6_bathy_{ocn_grid_name}*.ipynb"))
-        assert len(nb_files) == 1, "Expected only one mom6_bathy notebook file"
+        nb_files = list(Path("mom6_forge_notebooks").glob(f"mom6_forge_{ocn_grid_name}*.ipynb"))
+        assert len(nb_files) == 1, "Expected only one mom6_forge notebook file"
         nb_path = nb_files[0]
 
         with open(nb_path, "r") as f:
@@ -393,7 +393,7 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
         # sleep for a bit to allow the case to be created
         time.sleep(5)
                 
-        # remove mom6_bathy notebook belonging to the test_grid:
+        # remove mom6_forge notebook belonging to the test_grid:
         os.remove(nb_path)
         
         # remove the caseroot directory

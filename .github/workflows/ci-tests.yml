@@ -10,8 +10,12 @@ on:
 
 jobs:
   ci_tests:
-    name: visualCaseGen CI tests
+    name: visualCaseGen CI tests (Python ${{ matrix.python-version }})
     runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     defaults:
       run:
         shell: bash -el {0}
@@ -56,6 +60,7 @@ jobs:
       - name: Create visualCaseGen conda env
         run: |
           cd CESM/visualCaseGen/
+          sed -i "s/python>=3.11.10/python=${{ matrix.python-version }}.*/" environment.yml
           conda env create --file environment.yml
           conda activate visualCaseGen
     

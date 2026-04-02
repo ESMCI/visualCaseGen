@@ -5,14 +5,14 @@ from pathlib import Path
 from ProConPy.out_handler import handler as owh
 from ProConPy.config_var import cvars
 from ProConPy.dialog import alert_warning
-from mom6_bathy import mapping
-from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from mom6_forge import mapping
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 
 class RunoffMappingGenerator(VBox):
     """Widget to generate runoff to ocean mapping for custom grids.
     The widget first checks if there exists a standard mapping between the selected
     runoff grid and the custom ocean grid. If not, it allows the user to generate
-    a new mapping using the mom6_bathy mapping module.
+    a new mapping using the mom6_forge mapping module.
     """
 
     def __init__(self, cime, **kwargs):
@@ -29,7 +29,7 @@ class RunoffMappingGenerator(VBox):
         self._btn_generate_new = Button(
             description="Generate New Map",
             disabled=False,
-            tooltip="Generate a new mapping file using the mom6_bathy mapping module.",
+            tooltip="Generate a new mapping file using the mom6_forge mapping module.",
         )
         self._btn_generate_new.on_click(self.on_btn_generate_new_clicked)
 
@@ -138,7 +138,7 @@ class RunoffMappingGenerator(VBox):
                 ocn_mesh_path = self.cime.get_mesh_path("ocnice", ocn_grid)
             case "Create New":
                 ocn_grid = cvars["CUSTOM_OCN_GRID_NAME"].value
-                ocn_mesh_path = MOM6BathyLauncher.esmf_mesh_file_path()
+                ocn_mesh_path = MOM6ForgeLauncher.esmf_mesh_file_path()
             case _:
                 assert False, f"Unsupported OCN_GRID_MODE: {ocn_grid_mode}"
 
