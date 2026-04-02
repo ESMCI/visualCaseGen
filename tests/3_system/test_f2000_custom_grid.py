@@ -18,7 +18,7 @@ from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
 from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
-from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6BathyLauncher
+from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from tests.utils import safe_create_case
 
 
@@ -311,7 +311,7 @@ def construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime):
         # now launch the mom6_forge notebook
 
         mom6_forge_launcher_widget = Stage.active()._widget._main_body.children[-1]
-        assert isinstance(mom6_forge_launcher_widget, MOM6BathyLauncher)
+        assert isinstance(mom6_forge_launcher_widget, MOM6ForgeLauncher)
 
         # After setting all the required parameters, the launch button should be enabled
         assert mom6_forge_launcher_widget._btn_launch_mom6_forge.disabled is False

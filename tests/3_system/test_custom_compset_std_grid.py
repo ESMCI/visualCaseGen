@@ -16,7 +16,7 @@ from visualCaseGen.initialize_widgets import initialize_widgets
 from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
-from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6BathyLauncher
+from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 from tests.utils import safe_create_case
 

@@ -9,7 +9,7 @@ import xarray as xr
 import math 
 
 from ProConPy.config_var import cvars
-from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.dummy_output import DummyOutput
 from visualCaseGen.custom_widget_types.case_tools import xmlchange, run_case_setup, append_user_nl, is_ccs_config_writeable
 
@@ -642,10 +642,10 @@ class CaseCreator:
                 ocn_grid_mode == "Create New"
             ), f"Unknown ocean grid mode: {ocn_grid_mode}"
 
-        supergrid_file_path = MOM6BathyLauncher.supergrid_file_path()
-        topo_file_path = MOM6BathyLauncher.topo_file_path()
-        vgrid_file_path = MOM6BathyLauncher.vgrid_file_path()
-        ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        supergrid_file_path = MOM6ForgeLauncher.supergrid_file_path()
+        topo_file_path = MOM6ForgeLauncher.topo_file_path()
+        vgrid_file_path = MOM6ForgeLauncher.vgrid_file_path()
+        ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
 
         # read in min and max depth from the MOM6 topo file:
         ds_topo = xr.open_dataset(topo_file_path)
@@ -752,7 +752,7 @@ class CaseCreator:
         if not comp_ice.startswith("cice"):
             return
 
-        cice_grid_file_path = MOM6BathyLauncher.cice_grid_file_path()
+        cice_grid_file_path = MOM6ForgeLauncher.cice_grid_file_path()
         self._apply_user_nl_changes(
             "cice",
             [

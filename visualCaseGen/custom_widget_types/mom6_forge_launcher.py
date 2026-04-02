@@ -14,7 +14,7 @@ from ProConPy.stage import Stage
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
-class MOM6BathyLauncher(VBox):
+class MOM6ForgeLauncher(VBox):
     """A widget to create and launch a new mom6_forge notebook. The widget is enabled when all the
     required parameters for mom6_forge are set."""
 
@@ -139,7 +139,7 @@ class MOM6BathyLauncher(VBox):
         files are created. If so, it confirms completion of mom6_forge. If not, it displays a
         warning message."""
 
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
         if custom_ocn_grid_path is None:
             alert_warning(
                 "No custom_ocn_grid_path found. Cannot confirm completion of mom6_forge"
@@ -162,10 +162,10 @@ class MOM6BathyLauncher(VBox):
         )
 
         # See if all required files are created:
-        mom6_supergrid_file = MOM6BathyLauncher.supergrid_file_path()
-        mom6_topog_file = MOM6BathyLauncher.topo_file_path()
-        esmf_mesh_file = MOM6BathyLauncher.esmf_mesh_file_path()
-        cice_grid_file = MOM6BathyLauncher.cice_grid_file_path()
+        mom6_supergrid_file = MOM6ForgeLauncher.supergrid_file_path()
+        mom6_topog_file = MOM6ForgeLauncher.topo_file_path()
+        esmf_mesh_file = MOM6ForgeLauncher.esmf_mesh_file_path()
+        cice_grid_file = MOM6ForgeLauncher.cice_grid_file_path()
         required_files = [mom6_supergrid_file, mom6_topog_file, esmf_mesh_file]
         if "CICE" in cvars["COMP_ICE_PHYS"].value:
             required_files.append(cice_grid_file)
@@ -186,9 +186,9 @@ class MOM6BathyLauncher(VBox):
     def _launch_mom6_forge(self, nb_filepath):
         """Generate a new mom6_forge notebook and open it in a new tab. This method gets called when
         the user clicks the "Launch mom6_forge" button."""
-        nb = MOM6BathyLauncher._create_notebook_object()
-        MOM6BathyLauncher._write_notebook(nb, nb_filepath)
-        MOM6BathyLauncher._open_notebook_in_browser(nb_filepath)
+        nb = MOM6ForgeLauncher._create_notebook_object()
+        MOM6ForgeLauncher._write_notebook(nb, nb_filepath)
+        MOM6ForgeLauncher._open_notebook_in_browser(nb_filepath)
 
     @staticmethod
     def _create_notebook_object():
@@ -210,7 +210,7 @@ class MOM6BathyLauncher(VBox):
         attempt_id = cvars['MB_ATTEMPT_ID'].value
 
         # if custom_grid_path doesn't exist, create it:
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
         os.makedirs(custom_ocn_grid_path, exist_ok=True)
 
         # Create a new notebook:
@@ -314,22 +314,22 @@ class MOM6BathyLauncher(VBox):
         save_files_cmd = (
             "# Do NOT modify this cell!\n\n"
             "# MOM6 supergrid file.\n"
-            f'grid.write_supergrid(f"{MOM6BathyLauncher.supergrid_file_path()}")\n\n'
+            f'grid.write_supergrid(f"{MOM6ForgeLauncher.supergrid_file_path()}")\n\n'
             "# Save MOM6 topography file:\n"
-            f'topo.write_topo(f"{MOM6BathyLauncher.topo_file_path()}")\n\n'
+            f'topo.write_topo(f"{MOM6ForgeLauncher.topo_file_path()}")\n\n'
             "# Save MOM6 vertical grid file:\n"
-            f'vgrid.write(f"{MOM6BathyLauncher.vgrid_file_path()}")\n\n'
+            f'vgrid.write(f"{MOM6ForgeLauncher.vgrid_file_path()}")\n\n'
         )
 
         if "CICE" in cvars["COMP_ICE_PHYS"].value:
             save_files_cmd += (
                 "# CICE grid file:\n"
-                f'topo.write_cice_grid(f"{MOM6BathyLauncher.cice_grid_file_path()}")\n\n'
+                f'topo.write_cice_grid(f"{MOM6ForgeLauncher.cice_grid_file_path()}")\n\n'
             )
 
         save_files_cmd += (
             "# Save ESMF mesh file:\n"
-            f'topo.write_esmf_mesh(f"{MOM6BathyLauncher.esmf_mesh_file_path()}")'
+            f'topo.write_esmf_mesh(f"{MOM6ForgeLauncher.esmf_mesh_file_path()}")'
         )
 
         nb["cells"].extend(
@@ -396,30 +396,30 @@ class MOM6BathyLauncher(VBox):
 
     @staticmethod
     def supergrid_file_path():
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"ocean_hgrid_{MOM6BathyLauncher.nc_file_suffix()}"
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ocean_hgrid_{MOM6ForgeLauncher.nc_file_suffix()}"
     
     @staticmethod
     def topo_file_path():
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"ocean_topog_{MOM6BathyLauncher.nc_file_suffix()}"
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ocean_topog_{MOM6ForgeLauncher.nc_file_suffix()}"
 
     @staticmethod
     def vgrid_file_path():
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"ocean_vgrid_{MOM6BathyLauncher.nc_file_suffix()}"
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ocean_vgrid_{MOM6ForgeLauncher.nc_file_suffix()}"
     
     @staticmethod
     def scrip_grid_file_path():
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"scrip_{MOM6BathyLauncher.nc_file_suffix()}"
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"scrip_{MOM6ForgeLauncher.nc_file_suffix()}"
 
     @staticmethod
     def esmf_mesh_file_path():
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"ESMF_mesh_{MOM6BathyLauncher.nc_file_suffix()}"
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"ESMF_mesh_{MOM6ForgeLauncher.nc_file_suffix()}"
     
     @staticmethod
     def cice_grid_file_path():
-        custom_ocn_grid_path = MOM6BathyLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"cice_grid_{MOM6BathyLauncher.nc_file_suffix()}"
+        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        return custom_ocn_grid_path / f"cice_grid_{MOM6ForgeLauncher.nc_file_suffix()}"

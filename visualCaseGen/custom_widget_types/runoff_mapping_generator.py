@@ -6,7 +6,7 @@ from ProConPy.out_handler import handler as owh
 from ProConPy.config_var import cvars
 from ProConPy.dialog import alert_warning
 from mom6_forge import mapping
-from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 
 class RunoffMappingGenerator(VBox):
     """Widget to generate runoff to ocean mapping for custom grids.
@@ -138,7 +138,7 @@ class RunoffMappingGenerator(VBox):
                 ocn_mesh_path = self.cime.get_mesh_path("ocnice", ocn_grid)
             case "Create New":
                 ocn_grid = cvars["CUSTOM_OCN_GRID_NAME"].value
-                ocn_mesh_path = MOM6BathyLauncher.esmf_mesh_file_path()
+                ocn_mesh_path = MOM6ForgeLauncher.esmf_mesh_file_path()
             case _:
                 assert False, f"Unsupported OCN_GRID_MODE: {ocn_grid_mode}"
 

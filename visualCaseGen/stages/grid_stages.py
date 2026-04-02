@@ -9,7 +9,7 @@ from ProConPy.config_var import cvars
 from ProConPy.stage import Stage, Guard
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
-from regional_mom_workflows.CrocoDash.CrocoDash.visualCaseGen.visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
 from visualCaseGen.custom_widget_types.runoff_mapping_generator import RunoffMappingGenerator
 
@@ -109,7 +109,7 @@ def initialize_grid_stages(cime):
         "button to proceed to the next stage.",
         widget=StageWidget(
             VBox,
-            supplementary_widgets=[MOM6BathyLauncher()]
+            supplementary_widgets=[MOM6ForgeLauncher()]
         ),
         parent=Guard(
             title="Custom Ocn Grid",
