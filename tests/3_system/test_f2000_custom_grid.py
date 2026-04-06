@@ -106,8 +106,8 @@ def construct_custom_f2000_compset():
     cvars["COMP_ROF_OPTION"].value = "(none)"
     cvars["COMP_GLC_OPTION"].value = "NOEVOLVE"
 
-def construct_standard_blt1850(cime):
-    """Construct a standard BLT1850 case."""
+def construct_standard_b1850(cime):
+    """Construct a standard B1850C_LTso case."""
     assert os.path.exists(base_temp_dir), "temp testing directory does not exist"
 
     # At initialization, the first stage should be enabled
@@ -131,7 +131,7 @@ def construct_standard_blt1850(cime):
             cvars[f"COMP_{comp_class}_FILTER"].value = "any"
 
     ## Pick a standard compset
-    cvars["COMPSET_ALIAS"].value = "BLT1850"
+    cvars["COMPSET_ALIAS"].value = "B1850C_LTso"
 
 
 def construct_custom_res_from_std_grids(cime):
@@ -444,7 +444,7 @@ def test_custom_f2000_new_mom6_grid_modified_clm_grid():
     if machine not in ["derecho", "casper"]:
         pytest.skip("This test is only for the derecho and casper machines")
 
-    construct_standard_blt1850(cime)
+    construct_standard_b1850(cime)
     construct_custom_res_from_new_mom6_grid_modified_clm_grid(cime)
 
 if __name__ == "__main__":

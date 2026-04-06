@@ -225,6 +225,7 @@ class MeshMaskModifierLauncher(ClmModifierLauncher):
                 f'lon_dimname = {cvars["LON_DIM_NAME"].value}\n'
                 f'lat_varname = {cvars["LAT_VAR_NAME"].value}\n'
                 f'lon_varname = {cvars["LON_VAR_NAME"].value}\n'
+                f'lon_type = 360\n'
             )
 
 
@@ -281,6 +282,7 @@ class FsurdatModifierLauncher(ClmModifierLauncher):
                     f"lnd_lon_1 = {coords[2]}\n"
                     f"lnd_lon_2 = {coords[3]}\n"
                     f'landmask_file = UNSET\n'
+                    f'lon_type = 360\n'
                 )
             elif cvars["FSURDAT_AREA_SPEC"].value.startswith("mask_file:"):
                 f.write(
@@ -289,6 +291,7 @@ class FsurdatModifierLauncher(ClmModifierLauncher):
                     f"lnd_lon_1 = 0.0\n"
                     f"lnd_lon_2 = 360.0\n"
                     f'landmask_file = {cvars["FSURDAT_AREA_SPEC"].value[10:]}\n'
+                    f'lon_type = 360\n'
                 )
             else:
                 raise ValueError("Invalid FSURDAT_AREA_SPEC value")
