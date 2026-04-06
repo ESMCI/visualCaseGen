@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to visualCaseGen! &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Welcome to visualCaseGen!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="welcome-to-visualcasegen">
+<h1>Welcome to visualCaseGen!<a class="headerlink" href="#welcome-to-visualcasegen" title="Link to this heading"></a></h1>
+<p>visualCaseGen is a Jupyter-based graphical user interface (GUI) designed to streamline
+the creation and configuration of Community Earth System Model v.3 (CESM3) cases.
+The visualCaseGen GUI allows users to:</p>
+<ul class="simple">
+<li><p><strong>Browse Standard CESM Configurations:</strong> Easily explore and select from available CESM compsets
+and resolutions.</p></li>
+<li><p><strong>Create Custom Configurations</strong>: Rapidly customize CESM experiments with advanced options for component
+selection, grid generation, and configuration.</p></li>
+</ul>
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Easy Case Setup:</strong> Intuitive interface for configuring experiments.</p></li>
+<li><p><strong>Hierarchical Modeling:</strong> Combine different complexity levels across components.</p></li>
+<li><p><strong>Flexible Configurations:</strong> Mix and match models and grids with compatibility guidance.</p></li>
+<li><p><strong>Automated Case Creation:</strong> Generates input files and handles XML/namelist adjustments.</p></li>
+<li><p><strong>Modify CLM Inputs:</strong> Easily adjust land masks and surface datasets with a form-based interface.</p></li>
+<li><p><strong>MOM6 Grid &amp; Bathymetry Customization:</strong> Create or modify grids and bathymetries with a point-and-click tool.</p></li>
+</ul>
+<img alt="_images/demo3.gif" src="_images/demo3.gif" />
+</section>
+<section id="typical-workflow">
+<h2>Typical Workflow<a class="headerlink" href="#typical-workflow" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Launch:</strong> Open the visualCaseGen GUI within your Jupyter notebook environment.</p></li>
+<li><p><strong>Select Compset:</strong> Choose from available standard CESM compsets or create a custom one by selecting
+models, physics options, and other settings for each component (e.g., atmosphere, ocean, land, ice).</p></li>
+<li><p><strong>Define Resolution:</strong> Select a compatible standard resolution or create a custom one by combining
+different grids for each model component or generating new ones.</p></li>
+<li><p><strong>Generate Case:</strong> Once your compset and resolution are set, visualCaseGen will create the CESM case,
+automatically generating required input files and making all necessary modifications to CESM XML and
+user namelist files.</p></li>
+</ul>
+<p>For more information on each step, please refer to the corresponding sections in this user guide.</p>
+</section>
+<section id="video-demo">
+<h2>Video Demo<a class="headerlink" href="#video-demo" title="Link to this heading"></a></h2>
+<blockquote>
+<div><p><a class="reference external" href="https://www.youtube.com/watch?v=YwBqcIlW_fg">Click here</a> to watch a quick video demo of visualCaseGen.</p>
+</div></blockquote>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#prerequisite">Prerequisite</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#download-cesm-with-visualcasegen">Download CESM with visualCaseGen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#create-the-visualcasegen-conda-environment">Create the visualCaseGen conda environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#verify-installation">Verify Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="open.html#from-the-command-line">From the Command Line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="open.html#on-a-remote-machine">On a Remote Machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="open.html#ncar-jupyterhub">NCAR JupyterHub</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="basics.html#configuration-variable">Configuration Variable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basics.html#stage">Stage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basics.html#standard-vs-custom">Standard vs Custom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basics.html#resolution-vs-grid-vs-model-grid">Resolution vs Grid vs Model Grid</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="compset.html#standard-compsets">Standard Compsets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compset.html#custom-compsets">Custom Compsets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grid.html#standard-grids">Standard Grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid.html#custom-grids">Custom Grids</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid.html#atmosphere-grid">Atmosphere Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid.html#ocean-grid">Ocean Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid.html#ocean-initial-conditions">Ocean Initial conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid.html#land-grid">Land Grid</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="launch.html#chosing-the-case-directory">Chosing the case directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html#selecting-the-target-machine">Selecting the target machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html#creating-the-case">Creating the case</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html#congratulations">Congratulations!</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html#commonly-encountered-issues">Commonly Encountered Issues</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ridge.html#stage-0-open-visualcasegen">Stage 0: Open visualCaseGen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ridge.html#stage-1-select-compset">Stage 1: Select Compset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ridge.html#stage-2-grid">Stage 2: Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ridge.html#stage-3-launch">Stage 3: Launch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fillindian.html#stage-0-open-visualcasegen">Stage 0: Open visualCaseGen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fillindian.html#stage-1-select-compset">Stage 1: Select Compset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fillindian.html#stage-2-grid">Stage 2: Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fillindian.html#stage-3-launch">Stage 3: Launch</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
