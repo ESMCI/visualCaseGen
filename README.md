@@ -1,3 +1,5 @@
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.09130/status.svg)](https://doi.org/10.21105/joss.09130)
+
 # visualCaseGen
 
 Welcome to **visualCaseGen**, an intuitive graphical user interface (GUI) designed to simplify the workflow of creating Community Earth System Model v.3 (CESM3) cases. With visualCaseGen, users can effortlessly explore and define component sets (compsets), select or customize grid resolutions, and prepare their CESM cases, all through an interactive and user-friendly platform that runs on Jupyter notebooks.

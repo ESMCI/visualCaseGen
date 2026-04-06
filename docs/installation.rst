@@ -1,7 +1,7 @@
 Installation
 ======================================
 
-visualCaseGen is presently bundled with a CESM distribution (fork) based on cesm3_0_beta06. The following
+visualCaseGen is presently bundled with a CESM distribution (fork) based on cesm3_0_beta08. The following
 instructions guide you through obtaining and installing this specific CESM distribution with visualCaseGen.
 
 Prerequisite
@@ -31,8 +31,8 @@ CESM may take some time.
 
 .. code-block:: bash
 
-    git clone https://github.com/alperaltuntas/cesm.git -b cesm3_0_beta06_gui cesm3_0_beta06_gui
-    cd cesm3_0_beta06_gui
+    git clone https://github.com/alperaltuntas/cesm.git -b cesm3_0_beta08_gui cesm3_0_beta08_gui
+    cd cesm3_0_beta08_gui
     ./bin/git-fleximod update
 
 This will download the required CESM version, including visualCaseGen.

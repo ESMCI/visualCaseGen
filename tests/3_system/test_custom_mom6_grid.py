@@ -16,7 +16,7 @@ from visualCaseGen.initialize_widgets import initialize_widgets
 from visualCaseGen.initialize_stages import initialize_stages
 from visualCaseGen.specs.options import set_options
 from visualCaseGen.specs.relational_constraints import get_relational_constraints
-from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.case_creator_widget import CaseCreatorWidget
 from tests.utils import safe_create_case
 
@@ -90,24 +90,24 @@ def test_custom_mom6_grid():
         cvars["OCN_LENY"].value = 160.0
         cvars["CUSTOM_OCN_GRID_NAME"].value = "custom_ocn_grid"
 
-        # now launch the mom6_bathy notebook
+        # now launch the mom6_forge notebook
 
-        mom6_bathy_launcher_widget = Stage.active()._widget._main_body.children[-1]
-        assert isinstance(mom6_bathy_launcher_widget, MOM6BathyLauncher)
+        mom6_forge_launcher_widget = Stage.active()._widget._main_body.children[-1]
+        assert isinstance(mom6_forge_launcher_widget, MOM6ForgeLauncher)
 
         # After setting all the required parameters, the launch button should be enabled
-        assert mom6_bathy_launcher_widget._btn_launch_mom6_bathy.disabled is False
+        assert mom6_forge_launcher_widget._btn_launch_mom6_forge.disabled is False
 
         # *Click* the launch button
-        mom6_bathy_launcher_widget._on_btn_launch_clicked(b=None)
+        mom6_forge_launcher_widget._on_btn_launch_clicked(b=None)
 
         # The confirm button should be visible:
         assert (
-            mom6_bathy_launcher_widget._btn_confirm_completion.layout.display != "none"
+            mom6_forge_launcher_widget._btn_confirm_completion.layout.display != "none"
         )
 
         # *Click* the confirm button
-        mom6_bathy_launcher_widget._on_btn_confirm_completion_clicked(b=None)
+        mom6_forge_launcher_widget._on_btn_confirm_completion_clicked(b=None)
 
         # Since the notebook wasn't fully executed, we should remain in the same stage
         assert Stage.active().title.startswith("Custom Ocean")
@@ -116,10 +116,10 @@ def test_custom_mom6_grid():
         import nbformat
         from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 
-        # find the only mom6_bathy_*.ipynb file in the mom6_bathy_notebooks directory
+        # find the only mom6_forge_*.ipynb file in the mom6_forge_notebooks directory
         ocn_grid_name = cvars['CUSTOM_OCN_GRID_NAME'].value
-        nb_files = list(Path("mom6_bathy_notebooks").glob(f"mom6_bathy_{ocn_grid_name}*.ipynb"))
-        assert len(nb_files) == 1, "Expected only one mom6_bathy notebook file"
+        nb_files = list(Path("mom6_forge_notebooks").glob(f"mom6_forge_{ocn_grid_name}*.ipynb"))
+        assert len(nb_files) == 1, "Expected only one mom6_forge notebook file"
         nb_path = nb_files[0]
 
         with open(nb_path, "r") as f:
@@ -141,7 +141,10 @@ def test_custom_mom6_grid():
         assert Stage.active().title.startswith("Simple Initial Conditions")
         cvars["T_REF"].value = 10.0
 
-        # Since land grid gets set automatically, we should be in the Launch stage:
+        # Since land grid and runoff grid get set automatically, we should be in the runoff to ocn mapping:
+        assert Stage.active().title.startswith("Runoff to Ocean Mapping")
+        cvars["ROF_OCN_MAPPING_STATUS"].value = "skip"
+
         assert Stage.active().title.startswith("3. Launch")
         launch_stage = Stage.active()
 
@@ -170,7 +173,7 @@ def test_custom_mom6_grid():
                 # If the error is not related to machine porting, raise it
                 raise e
 
-        # remove mom6_bathy notebook belonging to the test_grid:
+        # remove mom6_forge notebook belonging to the test_grid:
         if os.path.exists(nb_path):
             os.remove(nb_path)
 

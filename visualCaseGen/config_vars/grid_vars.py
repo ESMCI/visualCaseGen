@@ -53,7 +53,7 @@ def initialize_custom_grid_variables(cime):
     ConfigVarInt("OCN_NY")  # number of cells in y-direction
     ConfigVarReal("OCN_LENX")  # grid length in x-direction
     ConfigVarReal("OCN_LENY")  # grid length in y-direction
-    ConfigVarStr('MB_ATTEMPT_ID') # latest mom6_bathy attempt id (auxiliary variable)
+    ConfigVarStr('MB_ATTEMPT_ID') # latest mom6_forge attempt id (auxiliary variable)
     ConfigVarStr(
         "MOM6_BATHY_STATUS", widget_none_val=""
     )  # a status variable to prevent the completion of the stage
@@ -151,3 +151,10 @@ def initialize_custom_grid_variables(cime):
                                     # Note: this var isn't a part of any of the stages.
     ConfigVarStr("FSURDAT_MOD_STATUS", widget_none_val="") # a status variable to prevent the completion of the stage prematurely
 
+    # A preexisting ROF grid to be picked for custom grid
+    ConfigVarStrMS("CUSTOM_ROF_GRID")
+
+    # Runoff to ocean mapping status
+    ConfigVarStr("ROF_OCN_MAPPING_STATUS", widget_none_val="")
+    ConfigVarReal("ROF_OCN_MAPPING_RMAX")
+    ConfigVarReal("ROF_OCN_MAPPING_FOLD")

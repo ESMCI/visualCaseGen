@@ -126,18 +126,18 @@ assign a unique name to your custom ocean grid.
 
 .. image:: assets/ridge7.png
 
-After specifying all ocean grid parameters, click the green **Launch mom6_bathy** button. This will open an auto-generated
+After specifying all ocean grid parameters, click the green **Launch mom6_forge** button. This will open an auto-generated
 Jupyter notebook where you can further customize the ocean bathymetry and generate all necessary grid input files.
 
-The mom6_bathy tool
+The mom6_forge tool
 ~~~~~~~~~~~~~~~~~~~
 
-.. important:: If the `mom6_bathy` notebook doesn't open automatically, make sure that your browser allows
+.. important:: If the `mom6_forge` notebook doesn't open automatically, make sure that your browser allows
   pop-ups from visualCaseGen. If the notebook still doesn't open, you can manually launch it by
-  navigating to the `mom6_bathy_notebooks/` directory in your visualCaseGen installation and opening
+  navigating to the `mom6_forge_notebooks/` directory in your visualCaseGen installation and opening
   the notebook corresponding to your custom grid.
 
-Once the auto-generated `mom6_bathy` notebook is open, you will see a series of cells that guide you through
+Once the auto-generated `mom6_forge` notebook is open, you will see a series of cells that guide you through
 the process of creating your custom ocean bathymetry. Before proceeding, make sure that the appropriate
 kernel is selected in the top right corner of the notebook. Then, execute the first two cells to import
 the necessary libraries and to instantiate the `Grid` object. Notice that the `Grid` object is initialized
@@ -145,12 +145,12 @@ with the parameters you specified in visualCaseGen.
 
 .. image:: assets/ridge8.png
 
-The third section of mom6_bathy is where a custom bathymetry may be defined. The default option is to produce
+The third section of mom6_forge is where a custom bathymetry may be defined. The default option is to produce
 a flat ocean bottom of depth 2000m. We are going to instead generate an ocean that
 resembles the ridge world case of `Wu et al (2021) <https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL093966>`_ ,
 which has a depth 4000m with some sinusoidal fluctuations, a land ridge of width 1 degree longitude and
 the furthest poleward 10 degrees latitude at the poles set to land. We will specify this analytically with python
-code within mom6_bathy.
+code within mom6_forge.
 
 First, instantiate the topo object by running the cell below. Note that the `min_depth` parameter, which
 is set to 10.0m by default determines the minimum bathymetric depth for a cell to be considered ocean.
@@ -199,7 +199,7 @@ You can plot the bathymetry to see the results by running the cell below:
 Vertical Grid
 ~~~~~~~~~~~~~
 
-Next, you will need to set up the vertical grid. In the `mom6_bathy` notebook, 
+Next, you will need to set up the vertical grid. In the `mom6_forge` notebook, 
 a default vertical grid is provided, which consists of 20 layers, and a ratio of 10,
 which means that the thicknesses of layers gradually increase with depth, and the thickness
 of the bottom layer is 10 times thicker than the top layer.
@@ -222,7 +222,7 @@ vertical grid files (needed by MOM6), CICE grid file (needed by the sea ice mode
 (needed by the CESM coupler).
 
 .. warning:: The paths specified in the cell below are for illustrative purposes only. Do not modify the paths
-    in your auto-generated `mom6_bathy` notebook. The paths are unique to the user's system and should not be changed,
+    in your auto-generated `mom6_forge` notebook. The paths are unique to the user's system and should not be changed,
     since doing so will prevent visualCaseGen from confirming that the grid files have been successfully generated
     and will prevent configuring CESM accurately.
 

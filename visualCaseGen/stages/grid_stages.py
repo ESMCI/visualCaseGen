@@ -3,13 +3,15 @@ from ipywidgets import VBox, HBox
 from pathlib import Path
 import time
 import os
+from z3 import And
 
 from ProConPy.config_var import cvars
 from ProConPy.stage import Stage, Guard
 from ProConPy.out_handler import handler as owh
 from visualCaseGen.custom_widget_types.stage_widget import StageWidget
-from visualCaseGen.custom_widget_types.mom6_bathy_launcher import MOM6BathyLauncher
+from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
+from visualCaseGen.custom_widget_types.runoff_mapping_generator import RunoffMappingGenerator
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -79,7 +81,7 @@ def initialize_grid_stages(cime):
         description="You have the option to either use a standard ocean grid or, if you picked "
         "MOM6 as the ocean model, create a new ocean grid. If you choose to create a new ocean grid, "
         "you will be prompted to specify the grid extent, resolution, and other parameters. You "
-        "will then be directed to a new notebook to create the new grid using the mom6_bathy tool.",
+        "will then be directed to a new notebook to create the new grid using the mom6_forge tool.",
         widget=StageWidget(VBox),
         parent=guard_custom_grid,
         varlist=[cvars["OCN_GRID_MODE"]],
@@ -101,13 +103,13 @@ def initialize_grid_stages(cime):
     stg_new_ocn_grid = Stage(
         title="Custom Ocean Grid",
         description="Specify the grid extent, resolution, and other parameters for the new ocean grid. "
-        "Once all the parameters are specified, the Launch mom6_bathy button will be enabled. Clicking "
+        "Once all the parameters are specified, the Launch mom6_forge button will be enabled. Clicking "
         "the button will launch a new notebook. Execute all the cells in the notebook to create the new "
         "grid. Once all the cells are executed, return to this tab and click the Confirm Completion "
         "button to proceed to the next stage.",
         widget=StageWidget(
             VBox,
-            supplementary_widgets=[MOM6BathyLauncher()]
+            supplementary_widgets=[MOM6ForgeLauncher()]
         ),
         parent=Guard(
             title="Custom Ocn Grid",
@@ -295,4 +297,32 @@ def initialize_grid_stages(cime):
             cvars["LND_INCLUDE_NONVEG"],
             cvars["FSURDAT_MOD_STATUS"]
         ],
+    )
+
+
+    stg_custom_rof_grid = Stage(
+        title="Runoff Grid",
+        description="From the below list of standard runoff grids, select one to be used as the "
+        "runoff grid within the new, custom CESM grid.",
+        widget=StageWidget(VBox),
+        parent=guard_custom_grid,
+        varlist=[cvars["CUSTOM_ROF_GRID"]],
+        auto_set_default_value=False,
+    )
+
+    stg_custom_rof_ocn_mapping = Stage(
+        title="Runoff to Ocean Mapping",
+        description="If the ocean model is MOM6, and unless there exists a standard mapping between"
+        "the selected runoff grid and the custom ocean grid, a new mapping must be created using "
+        "the mom6_forge mapping module.",
+        widget=StageWidget(
+            VBox,
+            supplementary_widgets=[RunoffMappingGenerator(cime)]
+        ),
+        parent=Guard(
+            title="ROF to OCN Mapping",
+            parent=stg_custom_rof_grid,
+            condition=And(cvars["COMP_OCN"] == "mom", cvars["COMP_ROF"] != "srof")
+        ),
+        varlist=[cvars["ROF_OCN_MAPPING_STATUS"]],
     )

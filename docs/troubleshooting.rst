@@ -23,13 +23,13 @@ Commonly Encountered Issues
   right corner of the welcome dialog to see if any error messages are displayed. If so, submit an issue on the
   visualCaseGen GitHub repository with the error messages.
 
-- **mom6_bathy notebook doesn't open automatically:** If the `mom6_bathy` notebook doesn't open automatically, 
+- **mom6_forge notebook doesn't open automatically:** If the `mom6_forge` notebook doesn't open automatically, 
   make sure that your browser allows
   pop-ups from visualCaseGen. If the notebook still doesn't open, you can manually launch it by
-  navigating to the `mom6_bathy_notebooks/` directory in your visualCaseGen installation and opening
+  navigating to the `mom6_forge_notebooks/` directory in your visualCaseGen installation and opening
   the notebook corresponding to your custom grid.
 
-- **The mom6_bathy interactive point-and-click feature is not working on JupyterHub.**
+- **The mom6_forge interactive point-and-click feature is not working on JupyterHub.**
   If you are experiencing issues with interactive features, such as point-and-click highlighting of individual 
   cells, you may need to (re)install the ipympl extension. Steps to (re)install the ipympl extension: (1) Open 
   JupyterHub. (2) Locate the *Extension Manager* tab on the left sidebar: Look for an icon that resembles a puzzle
