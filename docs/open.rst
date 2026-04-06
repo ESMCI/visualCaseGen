@@ -64,7 +64,7 @@ To access the GUI on a remote machine, set up SSH tunneling with port forwarding
 .. code-block:: bash
 
     conda activate visualCaseGen
-    cd [PATH_TO_visualCaseGen] # e.g., ~/cesm3_0_beta03_gui/visualCaseGen
+    cd [PATH_TO_visualCaseGen] # e.g., ~/cesm3_0_beta08_gui/visualCaseGen
     jupyter-lab GUI.ipynb --no-browser
 
 If the above steps are successful, the command line will display a URL that you can copy and paste into your web browser

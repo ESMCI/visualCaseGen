@@ -40,13 +40,13 @@ class FsurdatAreaSpecifier(VBox, ValueWidget):
             style={"description_width": "260px"},
         )
         self._west = BoundedFloatText(
-            value=0.0, min=-360.0, max=360.0,
+            value=0.0, min=0.0, max=360.0,
             description="Westernmost longitude for rectangle:",
             layout={"display": "none", "width": "350px", "margin": "5px"},
             style={"description_width": "260px"},
         )
         self._east = BoundedFloatText(
-            value=360.0, min=-360.0, max=360.0,
+            value=360.0, min=-0.0, max=360.0,
             description="Easternmost longitude for rectangle:",
             layout={"display": "none", "width": "350px", "margin": "5px"},
             style={"description_width": "260px"},
