@@ -20,3 +20,25 @@ Welcome to **visualCaseGen**, an intuitive graphical user interface (GUI) design
 ## User Manual
 
 For detailed instructions on how to use visualCaseGen, including setup and configuration guidance, please refer to the [User Manual](https://esmci.github.io/visualCaseGen/).
+
+## Citing 
+
+If you use visualCaseGen in your research, please cite it as follows:
+
+Altuntas, A., Simpson, I.R., Bachman, S.D., Venumuddula, M., Levis, S., Dobbins, B., Sacks, W.J. and
+Danabasoglu, G., 2026. "visualCaseGen: An SMT-based Experiment Configurator for Community Earth System
+Model." Journal of Open Source Software, 11(119), p.9130. doi: [10.21105/joss.09130](https://doi.org/10.21105/joss.09130).
+
+BibTeX entry:
+
+```bibtex
+@article{altuntas2026visualcasegen,
+  title={visualCaseGen: An SMT-based Experiment Configurator for Community Earth System Model},
+  author={Altuntas, Alper and Simpson, Isla R and Bachman, Scott D and Venumuddula, Manish and Levis, Samuel and Dobbins, Brian and Sacks, William J and Danabasoglu, Gokhan},
+  journal={Journal of Open Source Software},
+  volume={11},
+  number={119},
+  pages={9130},
+  year={2026}
+}
+```

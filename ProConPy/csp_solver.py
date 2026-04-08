@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from z3 import Solver, Optimize, sat, unsat, Or
 from z3 import BoolRef, Int
 from z3 import z3util
@@ -69,11 +70,11 @@ class CspSolver:
         be more efficient than the initial approach of using push/pop to manage the solver.
         """
         self._solver.reset()
-        self._solver.add([asrt for asrt, _ in self._relational_constraints.items()])
+        self._solver.add(list(self._relational_constraints))
         for scope in self._past_assignment_assertions:
-            self._solver.add([asrt for _, asrt in scope.items()])
+            self._solver.add(list(scope.values()))
         for scope in self._past_options_assertions:
-            self._solver.add([asrt for _, asrt in scope.items()])
+            self._solver.add(list(scope.values()))
 
     def initialize(self, cvars, relational_constraints, first_stage):
         """Initialize the CSP solver with relational constraints. The relational constraints are
@@ -432,9 +433,9 @@ class CspSolver:
             s.set(":core.minimize", True)
             # apply past assertions
             for stage in self._past_assignment_assertions:
-                s.add([asrt for _, asrt in stage.items()])
+                s.add(list(stage.values()))
             for stage in self._past_options_assertions:
-                s.add([asrt for _, asrt in stage.items()])
+                s.add(list(stage.values()))
             # apply current assertions
             self.apply_assignment_assertions(s, exclude_var=var)
             self.apply_options_assertions(s)
@@ -567,28 +568,23 @@ class CspSolver:
         """
 
         # Queue of variables to be visited
-        queue = [neig for neig in self._cgraph[var] if neig.has_options()]
+        queue = deque([neig for neig in self._cgraph[var] if neig.has_options()])
 
         # Set of all variables that have been queued
         queued = {var} | set(queue)
 
         # Traverse the constraint graph to refresh the options validities of all possibly affected variables
         while queue:
-
-            # Pop the first variable from the queue
-            var = queue.pop(0)
+            var = queue.popleft()
             logger.debug("Refreshing options validities of %s.", var)
 
-            # Update the validities of the variable and extend the queue if necessary
-            validities_changed = var.update_options_validities()
-            if validities_changed:
-                extension = [
-                    neig
-                    for neig in self._cgraph[var]
-                    if neig.has_options() and neig not in queued
-                ]
-                queue.extend(extension)
-                queued.update(extension)
+            if not var.update_options_validities():
+                continue
+            
+            for neig in self._cgraph[var]:
+                if neig.has_options() and neig not in queued:
+                    queue.append(neig)
+                    queued.add(neig)        
 
     def apply_assignment_assertions(self, solver, exclude_var=None, exclude_vars=None):
         """Apply the assignment assertions to the given solver. The assignment assertions are
@@ -611,11 +607,12 @@ class CspSolver:
         ), "Cannot provide both exclude_var and exclude_vars."
 
         if exclude_vars:
+            exclude_ids = {id(v) for v in exclude_vars}
             solver.add(
                 [
                     asrt
                     for var, asrt in self._assignment_assertions.items()
-                    if not any(exclude_var is var for exclude_var in exclude_vars)
+                    if id(var) not in exclude_ids
                 ]
             )
         else:
@@ -627,7 +624,7 @@ class CspSolver:
                 ]
             )
 
-    def apply_options_assertions(self, solver, exclude_vars=[]):
+    def apply_options_assertions(self, solver, exclude_vars=()):
         """Apply the options assertions to the given solver. The options assertions are the
         assertions that are determined at the current stage but are the options for the variables
         of the future stages. The options assertions are added to the temporary assertions container
@@ -641,13 +638,17 @@ class CspSolver:
         exclude_vars : list or set
             A list or set of variables for which the options assertions are not to be applied.
         """
-        solver.add(
-            [
-                asrt
-                for var, asrt in self._options_assertions.items()
-                if not any(exclude_var is var for exclude_var in exclude_vars)
-            ]
-        )
+        if not exclude_vars:
+            solver.add(list(self._options_assertions.values()))
+        else:
+            exclude_ids = {id(v) for v in exclude_vars}
+            solver.add(
+                [
+                    asrt
+                    for var, asrt in self._options_assertions.items()
+                    if id(var) not in exclude_ids
+                ]
+            )
 
     def register_options(self, var, new_options):
         """Register the new options for the given variable. The registry is made to the temporary
