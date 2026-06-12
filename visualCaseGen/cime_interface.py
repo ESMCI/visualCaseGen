@@ -118,13 +118,10 @@ class CIME_interface:
         ).decode("utf-8").strip()
 
         # determine cime version
-        assert cime_git_tag.startswith("cime"), f"Invalid cime git tag: {cime_git_tag}"
-        cime_version = cime_git_tag[4:]
-        assert len(cime_version.split(".")) == 3, f"Invalid cime version: {cime_version}"
-        cime_major, cime_minor, cime_patch = cime_version.split(".")
-        assert cime_major.isdigit() and cime_minor.isdigit() and cime_patch.isdigit(), \
-            f"Invalid cime version (non-numeric): {cime_version}"
-        cime_major = int(cime_major); cime_minor = int(cime_minor); cime_patch = int(cime_patch)
+        match = re.search(r"cime(\d+)\.(\d+)\.(\d+)", cime_git_tag)
+        assert match, f"Invalid cime git tag: {cime_git_tag}"
+       
+        cime_major, cime_minor, cime_patch = map(int, match.groups())
 
         # check cime version compatibility
         assert cime_major == 6, f"Unsupported major version: {cime_major} in cime version: {cime_version}"
