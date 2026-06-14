@@ -132,9 +132,6 @@ def get_relational_constraints(cvars):
         And(OCN_NX<10000, OCN_NY<10000):
             "MOM6 grid dimensions too big.",
         
-        Implies(OCN_GRID_EXTENT=="Regional", COMP_WAV=="swav"):
-            "A regional ocean model cannot be coupled with a wave component.",
-
         Implies(OCN_GRID_EXTENT=="Regional", COMP_ICE!="dice"):
             "A regional ocean model cannot be coupled with a data ice component.",
 
