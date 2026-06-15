@@ -165,6 +165,26 @@ class CaseCreator:
         # Run case.setup
         run_case_setup(do_exec, self._is_non_local(), self._out)
 
+        # Copy ww3 input files to RUNDIR if needed (only for custom grids, which
+        # is where the *.inp files are generated):
+        custom_grid_path_val = cvars["CUSTOM_GRID_PATH"].value
+        if cvars["COMP_WAV"].value == "ww3" and custom_grid_path_val is not None:
+            # copy all *.inp files under the ocnice grid directory to RUNDIR:
+            inp_files = list(Path(custom_grid_path_val).glob("ocnice/*.inp"))
+            if inp_files:
+                print(f"{COMMENT}Copying WW3 input files to the case RUNDIR{RESET}\n")
+                if do_exec:
+                    case = self._cime.get_case(caseroot.as_posix(), non_local=self._is_non_local())
+                    rundir = Path(case.get_value("RUNDIR"))
+                    if not os.access(rundir.as_posix(), os.W_OK):
+                        raise RuntimeError(
+                            f"Cannot write to {rundir}. Please check permissions for the case directory."
+                        )
+                    ww3_moddef_dir = rundir / "ww3_moddef_create"
+                    ww3_moddef_dir.mkdir(parents=True, exist_ok=True)
+                    for inp_file in inp_files:
+                        shutil.copy(inp_file, ww3_moddef_dir / inp_file.name)
+
         # Apply user_nl changes
         self._apply_all_namelist_changes(do_exec)
 
@@ -741,6 +761,22 @@ class CaseCreator:
         else:
             raise RuntimeError(f"Unknown ocean initial conditions mode: {cvars['OCN_IC_MODE'].value}")
 
+        # When coupled to active waves (WW3) in a custom grid,
+        # use the legacy EFACTOR wave coupling method.
+        if ocn_grid_mode != "Standard" and cvars["COMP_WAV"].value == "ww3":
+            self._apply_user_nl_changes(
+                "mom",
+                [
+                    ("WAVE_METHOD", "EFACTOR"),
+                    ("STOKES_DDT", "False"),
+                    ("STOKES_VF", "False"),
+                    ("STOKES_PGF", "False"),
+                ],
+                do_exec,
+                comment="WW3 Legacy Coupling Method for Custom Grids",
+                log_title=False,
+            )
+
     def _apply_cice_namelist_changes(self, do_exec):
         """Apply all necessary changes to user_nl_cice file."""
 
@@ -874,13 +910,11 @@ class CaseCreator:
                     f' ocean mesh: {ocn_mesh}.{RESET}\n'
                 )
 
-            xmlchange("OCN_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
-
-            xmlchange("OCN_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
-
-            xmlchange("OCN_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
-
-            xmlchange("ICE_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
+            # OCN, ICE, and WAV share the custom ocean grid dimensions and mesh:
+            for comp in ("OCN", "ICE", "WAV"):
+                xmlchange(f"{comp}_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
+                xmlchange(f"{comp}_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
+                xmlchange(f"{comp}_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
             xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
