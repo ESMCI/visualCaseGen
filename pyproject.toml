@@ -36,3 +36,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["ProConPy", "visualCaseGen"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "slow: marks tests as slow to run (use --all to include them)",
+]
