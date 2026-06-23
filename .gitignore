@@ -159,3 +159,6 @@ internal/sdb_*.json
 
 # netcdf files
 *.nc
+
+# TopoLibrary files
+mom6_bathy_notebooks/TopoLibrary/
