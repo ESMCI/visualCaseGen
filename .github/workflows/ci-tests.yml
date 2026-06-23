@@ -25,7 +25,9 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       - name: Install xmllint
-        run: sudo apt-get install -y libxml2-utils
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils
       - name: Checkout VisualCaseGen to temp folder
         uses: actions/checkout@v4
         with:
