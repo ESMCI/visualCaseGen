@@ -153,6 +153,7 @@ def initialize_custom_ocn_grid_widgets():
         description="Reference Temperature [degC]:",
         layout={"width": "370px", "padding": "5px"},
         style={"description_width": "250px"},
+        continuous_update=False,
     )
 
     cv_temp_salt_z_init = cvars["TEMP_SALT_Z_INIT_FILE"]

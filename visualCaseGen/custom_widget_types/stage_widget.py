@@ -342,13 +342,19 @@ class StageWidget(VBox):
         """
         if self._stage.status == StageStat.COMPLETE:
             self._stage._proceed()
-        else:
-            alert_warning(
-                "Please complete all of the variables in this stage first. Remaining variable(s): "
-                + ", ".join(
-                    [var.name for var in self._stage._varlist if var.value is None]
-                )
-            )
+            return
+
+        remaining = [var.name for var in self._stage._varlist if var.value is None]
+        if not remaining:
+            # All variables are set but the stage is not COMPLETE -- e.g., it already
+            # auto-proceeded (and is now SEALED). Clicking OK again is a no-op rather than a
+            # confusing "remaining variable(s):" warning with an empty list.
+            return
+
+        alert_warning(
+            "Please complete all of the variables in this stage first. Remaining variable(s): "
+            + ", ".join(remaining)
+        )
 
     @owh.out.capture()
     def reset(self):
