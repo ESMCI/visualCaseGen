@@ -12,6 +12,7 @@ from visualCaseGen.custom_widget_types.stage_widget import StageWidget
 from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
 from visualCaseGen.custom_widget_types.runoff_mapping_generator import RunoffMappingGenerator
+from visualCaseGen.custom_widget_types.ww3_input_generator import WW3InputGenerator
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -333,4 +334,48 @@ def initialize_grid_stages(cime):
             branch_condition=And(cvars["COMP_OCN"] == "mom", cvars["COMP_ROF"] != "srof")
         ),
         varlist=[cvars["ROF_OCN_MAPPING_STATUS"]],
+    )
+
+    stg_custom_wav_grid_mode = Stage(
+        title="Wave Grid Mode",
+        description="Choose the wave grid for the new, custom CESM grid. If you created a custom "
+        "ocean grid and waves are active (WW3), you may reuse that ocean grid as the wave grid; "
+        "otherwise, select an existing (standard) wave grid.",
+        widget=StageWidget(VBox),
+        parent=guard_custom_grid,
+        varlist=[cvars["WAV_GRID_MODE"]],
+        # Only relevant when a wave component is present. For stub waves (swav) there is no wave
+        # grid to configure, so this stage (and its branches) are skipped.
+        relevance_condition=cvars["COMP_WAV"] != "swav",
+    )
+
+    stg_custom_wav_grid_standard = Stage(
+        title="Wave Grid",
+        description="Select an existing (standard) wave grid to use within the new, custom CESM grid.",
+        widget=StageWidget(VBox),
+        parent=Guard(
+            title="Std Wav Grid",
+            parent=stg_custom_wav_grid_mode,
+            branch_condition=cvars["WAV_GRID_MODE"] == "Standard",
+        ),
+        varlist=[cvars["CUSTOM_WAV_GRID"]],
+        auto_set_default_value=False,
+        relevance_condition=cvars["COMP_WAV"] != "swav",
+    )
+
+    stg_custom_wav_ocn_sharing = Stage(
+        title="Wave Input Files",
+        description="Reusing the custom ocean grid as the wave grid requires generating the WW3 "
+        "grid-preprocessor input files from the ocean grid. Click the button below to generate "
+        "them, then click Confirm to proceed.",
+        widget=StageWidget(
+            VBox,
+            supplementary_widgets=[WW3InputGenerator()]
+        ),
+        parent=Guard(
+            title="WAV uses OCN grid",
+            parent=stg_custom_wav_grid_mode,
+            branch_condition=cvars["WAV_GRID_MODE"] == "Custom Ocean Grid",
+        ),
+        varlist=[cvars["WW3_INPUT_STATUS"]],
     )

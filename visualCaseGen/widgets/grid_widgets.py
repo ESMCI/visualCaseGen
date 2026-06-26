@@ -31,6 +31,7 @@ def initialize_grid_widgets(cime):
     initialize_custom_ocn_grid_widgets()
     initialize_custom_lnd_grid_widgets()
     initialize_custom_rof_grid_widgets()
+    initialize_custom_wav_grid_widgets()
 
 def initialize_standard_grid_widgets():
     """Initialize the widgets for the standard grid options."""
@@ -351,3 +352,22 @@ def initialize_custom_rof_grid_widgets():
         layout={"width": "370px", "padding": "5px"},
         style={"description_width": "250px"},
     )
+
+
+def initialize_custom_wav_grid_widgets():
+    """Initialize the widgets for the custom wave grid options."""
+    cv_wav_grid_mode = cvars["WAV_GRID_MODE"]
+    cv_wav_grid_mode.widget = ToggleButtons(
+        description="Wave Grid:",
+        layout={"display": "flex", "width": "max-content", "padding": "10px"},
+        style={"button_width": "160px", "description_width": description_width},
+    )
+
+    cv_custom_wav_grid = cvars["CUSTOM_WAV_GRID"]
+    cv_custom_wav_grid.widget = MultiCheckbox(
+        description="Custom Wave Grid:",
+        allow_multi_select=False,
+    )
+
+    cv_ww3_input_status = cvars["WW3_INPUT_STATUS"]
+    cv_ww3_input_status.widget = DisabledText(value='')

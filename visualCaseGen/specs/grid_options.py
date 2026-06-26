@@ -18,6 +18,7 @@ def set_grid_options(cime):
     set_custom_ocn_grid_options(cime)
     set_custom_lnd_grid_options(cime)
     set_custom_rof_grid_options(cime)
+    set_custom_wav_grid_options(cime)
 
 
 def set_standard_grid_options(cime):
@@ -263,4 +264,53 @@ def set_custom_rof_grid_options(cime):
     cv_custom_rof_grid = cvars["CUSTOM_ROF_GRID"]
     cv_custom_rof_grid.options_spec = OptionsSpec(
         func=custom_rof_grid_options_func, args=(cvars["GRID_MODE"],)
+    )
+
+
+def set_custom_wav_grid_options(cime):
+    """Set the options and options specs for the custom wave grid variables.
+    This function is called at initialization."""
+
+    # WAV_GRID_MODE options: whether to reuse the custom ocean grid as the wave grid or pick a
+    # standard wave grid. The "Custom Ocean Grid" option is only offered for an active wave model
+    # (WW3) coupled to a newly created custom ocean grid; otherwise only "Standard" applies.
+    def wav_grid_mode_options_func(grid_mode, comp_wav, ocn_grid_mode):
+        if grid_mode != "Custom":
+            return None, None
+        if comp_wav == "ww3" and ocn_grid_mode == "Create New":
+            return ["Custom Ocean Grid", "Standard"], [
+                "Use the newly created custom ocean grid as the wave grid.",
+                "Pick an existing (standard) wave grid.",
+            ]
+        return ["Standard"], ["Pick an existing (standard) wave grid."]
+
+    cv_wav_grid_mode = cvars["WAV_GRID_MODE"]
+    cv_wav_grid_mode.options_spec = OptionsSpec(
+        func=wav_grid_mode_options_func,
+        args=(cvars["GRID_MODE"], cvars["COMP_WAV"], cvars["OCN_GRID_MODE"]),
+    )
+
+    # CUSTOM_WAV_GRID options: the existing wave grid to use when WAV_GRID_MODE == "Standard".
+    def custom_wav_grid_options_func(grid_mode, wav_grid_mode, comp_wav):
+        if grid_mode != "Custom":
+            return None, None
+        if wav_grid_mode == "Custom Ocean Grid":
+            return ["null"], ["(The custom ocean grid is used as the wave grid.)"]
+        if comp_wav == "swav":
+            return ["null"], ["(When stub WAV is selected, custom wave grid is set to null.)"]
+        # WAV_GRID_MODE == "Standard": list compatible standard wave grids.
+        compset_lname = cvars["COMPSET_LNAME"].value
+        compatible_wav_grids = []
+        descriptions = []
+        for wav_grid in cime.domains["wav"].values():
+            if check_comp_grid("WAV", wav_grid, compset_lname) is False:
+                continue
+            compatible_wav_grids.append(wav_grid.name)
+            descriptions.append(wav_grid.desc)
+        return compatible_wav_grids, descriptions
+
+    cv_custom_wav_grid = cvars["CUSTOM_WAV_GRID"]
+    cv_custom_wav_grid.options_spec = OptionsSpec(
+        func=custom_wav_grid_options_func,
+        args=(cvars["GRID_MODE"], cvars["WAV_GRID_MODE"], cvars["COMP_WAV"]),
     )

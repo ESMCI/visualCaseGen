@@ -133,8 +133,61 @@ def test_regional_mom6_couples_with_ww3():
     assert cvars['OCN_CYCLIC_X'].value == "False"
 
 
+def _drive_custom_mom6_to_ocn_mode(comp_wav="ww3", ocn_grid_mode="Create New"):
+    """Set up a custom CAM/CLM/CICE/MOM/MOSART/SGLC compset with the given wave component and
+    advance through the custom-grid flow up to assigning the ocean grid mode. The Wave Grid
+    stage's options are determined by COMP_WAV and OCN_GRID_MODE, so they are available once
+    OCN_GRID_MODE is set (the stage itself comes later in the flow)."""
+    _fresh_csp()
+    cvars['COMPSET_MODE'].value = 'Custom'
+    cvars['INITTIME'].value = '2000'
+    cvars['COMP_ATM'].value = "cam"
+    cvars['COMP_LND'].value = "clm"
+    cvars['COMP_ICE'].value = "cice"
+    cvars['COMP_OCN'].value = "mom"
+    cvars['COMP_ROF'].value = "mosart"
+    cvars['COMP_GLC'].value = "sglc"
+    cvars['COMP_WAV'].value = comp_wav
+    cvars['COMP_ATM_PHYS'].value = "CAM60"
+    cvars['COMP_LND_PHYS'].value = "CLM50"
+    cvars['COMP_ATM_OPTION'].value = "(none)"
+    cvars['COMP_LND_OPTION'].value = "SP"
+    cvars['COMP_ICE_OPTION'].value = "(none)"
+    cvars['COMP_OCN_OPTION'].value = "(none)"
+    cvars['COMP_ROF_OPTION'].value = "(none)"
+    cvars['GRID_MODE'].value = 'Custom'
+    cvars['CUSTOM_GRID_PATH'].value = str(Path(temp_dir) / "custom_grid")
+    cvars['CUSTOM_ATM_GRID'].value = "TL319"
+    cvars['OCN_GRID_MODE'].value = ocn_grid_mode
+
+
+def test_wav_grid_options_ww3_custom_ocean():
+    """WW3 + a custom (Create New) ocean grid: the user may reuse the custom ocean grid as the
+    wave grid OR pick a standard wave grid."""
+    _drive_custom_mom6_to_ocn_mode(comp_wav="ww3", ocn_grid_mode="Create New")
+    assert set(cvars['WAV_GRID_MODE'].options) == {"Custom Ocean Grid", "Standard"}
+
+
+def test_wav_grid_options_ww3_standard_ocean():
+    """WW3 + a standard ocean grid: there is no custom ocean grid to reuse, so only a standard
+    wave grid is offered."""
+    _drive_custom_mom6_to_ocn_mode(comp_wav="ww3", ocn_grid_mode="Standard")
+    assert list(cvars['WAV_GRID_MODE'].options) == ["Standard"]
+
+
+def test_wav_grid_options_stub_wave():
+    """Stub waves (swav): the 'Custom Ocean Grid' option is not offered (only the placeholder
+    Standard option), and -- being a single valid option -- it auto-resolves so the relevance-
+    gated Wave Grid stage can be skipped without user interaction."""
+    _drive_custom_mom6_to_ocn_mode(comp_wav="swav", ocn_grid_mode="Create New")
+    assert list(cvars['WAV_GRID_MODE'].options) == ["Standard"]
+
+
 if __name__ == "__main__":
     test_regional_wave_and_dice_constraints_removed()
     test_dwav_option_constraint_is_live()
     test_regional_mom6_couples_with_ww3()
+    test_wav_grid_options_ww3_custom_ocean()
+    test_wav_grid_options_ww3_standard_ocean()
+    test_wav_grid_options_stub_wave()
     print("All tests passed!")
