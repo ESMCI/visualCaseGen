@@ -14,10 +14,25 @@ from ProConPy.stage_stat import StageStat
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
 
+def condition_holds(condition):
+    """Return True if a stage-tree condition is satisfied under the current CSP assignments.
+
+    This is the shared primitive behind the two kinds of condition in the stage tree, which
+    are duals of one another rather than one being a parent of the other:
+      - a Guard's ``branch_condition`` selects one branch among mutually-exclusive children, and
+      - a Stage's ``relevance_condition`` includes or excludes a single stage in a sequence.
+    Both are z3 boolean expressions evaluated the same way. A condition of None (or the literal
+    True) is always satisfied.
+    """
+    if condition is None or condition is True:
+        return True
+    return csp.check_expression(condition)
+
+
 class Node:
     """A class to represent a node in the stage hierarchy tree. A node can be a stage or a guard.
-    The node can have children and a parent. The node can have a condition that must be satisfied
-    for the node to be enabled. The node can have a left and right sibling."""
+    A guard node carries a ``branch_condition`` that must be satisfied for the node (and its
+    children) to be visited. The node can have children, a parent, and a left and right sibling."""
 
     # Top level nodes, i.e., nodes that have no parent
     _top_level = []
@@ -25,7 +40,7 @@ class Node:
     # Set of titles of all the nodes in the stage tree
     _titles = set()
 
-    def __init__(self, title, parent=None, condition=None):
+    def __init__(self, title, parent=None):
         """Initialize a node.
 
         Parameters
@@ -34,8 +49,6 @@ class Node:
             The title of the node.
         parent : Node, optional
             The parent node of the node.
-        condition : z3.BoolRef, optional
-            The logical condition that must be satisfied for the node to be enabled.
         """
 
         if title in Node._titles:
@@ -45,7 +58,8 @@ class Node:
         self._title = title
         self._children = []
         self._parent = parent
-        self._condition = condition
+        # Only Guard nodes carry a branch condition; for all other nodes this stays None.
+        self._branch_condition = None
 
         if self._parent is None:
             Node._top_level.append(self)
@@ -93,13 +107,13 @@ class Node:
         """Return True if the node has children."""
         return len(self._children) > 0
 
-    def has_condition(self):
-        """Return True if the node has an associated condition."""
-        return self._condition is not None
+    def has_branch_condition(self):
+        """Return True if the node is a guard, i.e., it has an associated branch condition."""
+        return self._branch_condition is not None
 
-    def children_have_conditions(self):
-        """Return True if any of the children of the node have conditions."""
-        return any([child.has_condition() for child in self._children])
+    def children_have_branch_conditions(self):
+        """Return True if the children of the node are guards (i.e., have branch conditions)."""
+        return any([child.has_branch_condition() for child in self._children])
     
     def is_sibling_of(self, node):
         """Return True if the node is a sibling of the given node."""
@@ -130,10 +144,10 @@ class Node:
             stage = stage._right
         return right_siblings
 
-    def check_condition(self):
-        """Check if the condition of the node is satisfied."""
-        logger.debug("Checking condition of %s: %s", self._title, self._condition)
-        return csp.check_expression(self._condition)
+    def check_branch_condition(self):
+        """Check if the guard's branch condition is satisfied under the current assignments."""
+        logger.debug("Checking branch condition of %s: %s", self._title, self._branch_condition)
+        return condition_holds(self._branch_condition)
 
     def get_next(self, full_dfs=False):
         """Return the next node in the stage tree. This method must be implemented in the subclass
@@ -151,11 +165,16 @@ class Node:
 
 
 class Guard(Node):
-    """A class to represent a guard node in the stage hierarchy tree. A guard node is a node that
-    has a condition that must be satisfied for the node (and its children) to be visited.
+    """A class to represent a guard node in the stage hierarchy tree. A guard node selects one
+    branch among its parent's mutually-exclusive children: its ``branch_condition`` must be
+    satisfied for the guard (and its child subtree) to be visited. Among the guard children of a
+    given parent, exactly one branch_condition may hold at a time.
+
+    A guard's branch_condition is the subtree-level, exclusive-branching counterpart of a Stage's
+    single-stage ``relevance_condition``; both are evaluated by :func:`condition_holds`.
     """
 
-    def __init__(self, title, parent, condition):
+    def __init__(self, title, parent, branch_condition):
         """Initialize a guard.
 
         Parameters
@@ -164,23 +183,23 @@ class Guard(Node):
             The title of the guard.
         parent : Stage
             The parent stage of the guard.
-        condition : z3.BoolRef
-            The logical guard expression."""
+        branch_condition : z3.BoolRef
+            The logical guard expression selecting this branch."""
 
         assert (
-            isinstance(condition, BoolRef) or condition is True
-        ), "The guard expression must be a z3.BoolRef."
+            isinstance(branch_condition, BoolRef) or branch_condition is True
+        ), "The guard branch_condition must be a z3.BoolRef."
         assert isinstance(
             parent, Stage
         ), "The parent must be an instance of the Stage class."
 
         if parent.has_children():
             assert (
-                parent.children_have_conditions()
+                parent.children_have_branch_conditions()
             ), f"The {title} guard's siblings must all be guards."
 
         super().__init__(title, parent)
-        self._condition = condition
+        self._branch_condition = branch_condition
 
     def get_next(self, full_dfs=None):
         """Return the next node in the stage tree, which is always the first child for a guard node."""
@@ -220,6 +239,7 @@ class Stage(Node, HasTraits):
         auto_proceed=True,
         auto_set_default_value=True,
         auto_set_valid_option=True,
+        relevance_condition=None,
     ):
         """Initialize a stage.
 
@@ -248,11 +268,21 @@ class Stage(Node, HasTraits):
         auto_set_valid_option : bool, optional
             If True, automatically set the value of the variables in the stage to the
             valid option if the variable has only one valid option.
+        relevance_condition : z3.BoolRef, optional
+            A logical condition that determines whether this stage is relevant under the
+            current configuration. When it evaluates to False at the time the stage would be
+            entered, the stage is skipped: its variables are resolved automatically (to their
+            default or single valid option, keeping downstream logic well-defined) and no UI
+            is shown for it. When None (the default), the stage is always relevant.
         """
+
+        assert relevance_condition is None or isinstance(relevance_condition, BoolRef), (
+            f'The relevance_condition of the "{title}" stage must be a z3.BoolRef or None.'
+        )
 
         if parent is not None:  # This is a child stage, i.e., it has a parent stage
             if parent.has_children():
-                assert not parent.children_have_conditions(), (
+                assert not parent.children_have_branch_conditions(), (
                     f"Attempted to add a child stage, {title}, to a parent stage, "
                     + f"{parent}, that has guards as children."
                 )
@@ -277,6 +307,8 @@ class Stage(Node, HasTraits):
         self._auto_proceed = auto_proceed
         self._auto_set_default_value = auto_set_default_value
         self._auto_set_valid_option = auto_set_valid_option
+        self._relevance_condition = relevance_condition
+        self._skipped = False  # True when the stage was auto-skipped as irrelevant
 
         self._construct_observances()
 
@@ -390,7 +422,7 @@ class Stage(Node, HasTraits):
         ancestor = self._parent
         while ancestor is not None:
             if ancestor._right is not None and (
-                full_dfs or not ancestor.has_condition()
+                full_dfs or not ancestor.has_branch_condition()
             ):
                 return ancestor._right
             else:
@@ -411,17 +443,17 @@ class Stage(Node, HasTraits):
 
         child_to_activate = None
 
-        if self.children_have_conditions() and not full_dfs:
-            # Children are guards. Pick the child whose condition is satisfied.
+        if self.children_have_branch_conditions() and not full_dfs:
+            # Children are guards. Pick the child whose branch condition is satisfied.
             for child in self._children:
-                if child.check_condition() is True:
+                if child.check_branch_condition() is True:
                     assert (
                         child_to_activate is None
                     ), "Only one child stage can be activated at a time."
                     child_to_activate = child
-            
+
             if child_to_activate is None:
-                # No child guard's condition is satisfied.
+                # No child guard's branch condition is satisfied.
                 # Let the caller handle this case (by backtracking).
                 return None
         else:
@@ -430,7 +462,7 @@ class Stage(Node, HasTraits):
             child_to_activate = self._children[0]
 
         # If the child to activate is a Guard, return it's first child
-        if child_to_activate.has_condition():
+        if child_to_activate.has_branch_condition():
             child_to_activate = child_to_activate._children[0]
 
         return child_to_activate
@@ -484,11 +516,39 @@ class Stage(Node, HasTraits):
 
         Stage._active_stage = self
         self._disabled = False
+
+        # Determine, up front, whether this stage is relevant under the current configuration.
+        # (Set before refresh_status so the stage widget can suppress display of skipped stages.)
+        self._skipped = not self.is_relevant()
+
         self.refresh_status()
 
         # if the stage doesn't have any ConfigVars, it is already complete
         if len(self._varlist) == 0:
             self._proceed()
+            return
+
+        # If the stage is irrelevant under the current configuration, skip it: resolve its
+        # variables automatically (so downstream logic remains well-defined) and proceed
+        # without showing any UI.
+        if self._skipped:
+            self.set_vars_to_defaults()
+            self.set_vars_to_single_valid_option()
+            # Setting the variables above may have already triggered auto-proceed (via the
+            # value-change observer). If so, the stage is no longer active and we are done.
+            if Stage._active_stage is not self:
+                return
+            # Otherwise proceed explicitly. This covers stages with auto_proceed=False, as well
+            # as the (unexpected) case where a variable could not be resolved -- a skipped stage
+            # must always advance, so warn and move on.
+            if any(var.value is None for var in self._varlist):
+                logger.warning(
+                    "Skipped (irrelevant) stage %s has unresolved variable(s): %s",
+                    self._title,
+                    [var.name for var in self._varlist if var.value is None],
+                )
+            self._proceed()
+            return
 
         # If a default vaulue is assigned, set the value of the ConfigVar to the default value
         # Otherwise, set the value of the ConfigVar to the valid option if there is only one.
@@ -496,6 +556,15 @@ class Stage(Node, HasTraits):
             self.set_vars_to_defaults()
         if self._auto_set_valid_option is True:
             self.set_vars_to_single_valid_option()
+
+    def is_relevant(self):
+        """Return True if this stage is relevant under the current variable assignments.
+
+        A stage with no relevance_condition is always relevant. Otherwise, the stage is
+        relevant if and only if its relevance_condition holds under the current assignments.
+        This is the single-stage counterpart of a Guard's branch selection; both delegate to
+        :func:`condition_holds`."""
+        return condition_holds(self._relevance_condition)
 
     def set_vars_to_defaults(self, b=None):
         """Set the value of the ConfigVars to their default values (if valid).
@@ -581,10 +650,17 @@ class Stage(Node, HasTraits):
         if len(Stage._completed_stages) == 0:
             logger.info("No stage to revert to.")
         else:
-            previous_stage = Stage._completed_stages.pop()
-            logger.info("Reverting to stage %s.", previous_stage._title)
             self._disable()
+            previous_stage = Stage._completed_stages.pop()
             csp.revert()
+            # Skip back over any stages that were auto-skipped (as irrelevant) on the way
+            # forward, so the user lands on the previous *relevant* stage. Each such stage
+            # committed its own csp checkpoint, so it must be reverted in turn.
+            while previous_stage._skipped and len(Stage._completed_stages) > 0:
+                previous_stage.reset()
+                previous_stage = Stage._completed_stages.pop()
+                csp.revert()
+            logger.info("Reverting to stage %s.", previous_stage._title)
             # If the stage to enable has guards as children, remove them from the widget
             if previous_stage.has_children():
                 previous_stage._widget.remove_child_stages()

@@ -187,8 +187,12 @@ class StageWidget(VBox):
         if self._ok_button:
             main_body_children.append(self._ok_button)
         if first_child:
-            main_body_children.append(first_child._widget)
-            main_body_children.extend(stage._widget for stage in first_child.siblings_to_right())
+            # Add the first child stage and all of its right siblings. Proactively hide the
+            # widgets of stages that are irrelevant under the current configuration so they
+            # don't briefly appear as empty boxes before traversal reaches (and skips) them.
+            for stage in [first_child, *first_child.siblings_to_right()]:
+                stage._widget.layout.display = "" if stage.is_relevant() else "none"
+                main_body_children.append(stage._widget)
         self._main_body.children = tuple(main_body_children)
 
     def _refresh_main_body(self):
@@ -244,6 +248,15 @@ class StageWidget(VBox):
 
     def _on_stage_status_change(self, change):
         """Handle the change of the stage status."""
+
+        # A stage that was auto-skipped (as irrelevant under the current configuration) is
+        # not shown to the user at all: hide the entire stage widget. If the stage later
+        # becomes relevant again (e.g., after a revert), restore its visibility.
+        if getattr(self._stage, "_skipped", False):
+            self.layout.display = "none"
+            return
+        elif self.layout.display == "none":
+            self.layout.display = ""
 
         old_state = change["old"]
         new_state = change["new"]
