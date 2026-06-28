@@ -347,6 +347,21 @@ class CaseCreator:
             )
             new_rof_grid.text = rof_grid
 
+        # Add wav grid to resolution entry for an active wave component.
+        wav_grid = None
+        if cvars["COMP_WAV"].value != "swav":
+            if self._wav_uses_custom_ocn_grid():
+                wav_grid = ocn_grid
+            elif (custom_wav_grid := cvars["CUSTOM_WAV_GRID"].value) not in (None, "", "null"):
+                wav_grid = custom_wav_grid
+        if wav_grid is not None:
+            new_wav_grid = SubElement(
+                new_resolution,
+                "grid",
+                attrib={"name": "wav"},
+            )
+            new_wav_grid.text = wav_grid
+
 
         if not do_exec:
             return
