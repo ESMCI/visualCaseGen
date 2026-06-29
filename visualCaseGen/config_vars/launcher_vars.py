@@ -12,12 +12,19 @@ logger = logging.getLogger("\t" + __name__.split(".")[-1])
 @owh.out.capture()
 def initialize_launcher_variables(cime):
 
-    ConfigVarStr("CASEROOT") # Path where the case will be created
+    ConfigVarStr("CASEROOT")  # Path where the case will be created
     ConfigVarStr(
         "MACHINE",
-        default_value = cime.machine,
+        default_value=cime.machine,
     )
-    ConfigVarStr("PROJECT", widget_none_val="") # Project ID for the machine
-    ConfigVarStr("CASE_CREATOR_STATUS", widget_none_val="") # a status variable to prevent the completion of the stage
-    ConfigVarInt("NINST", default_value=1) # Number of model instances (Currently, can only be controlled in the backend,
-                                           # particularly when visualCaseGen is used as an external library)
+    ConfigVarStr("PROJECT", widget_none_val="")  # Project ID for the machine
+    ConfigVarStr(
+        "CASE_CREATOR_STATUS", widget_none_val=""
+    )  # a status variable to prevent the completion of the stage
+    ConfigVarInt(
+        "NINST", default_value=1
+    )  # Number of model instances (Currently, can only be controlled in the backend,
+    # particularly when visualCaseGen is used as an external library)
+    ConfigVarStr(
+        "PECOUNT"
+    )  # PE layout size hint for create_newcase (S, M, L, X1, X2, NxM, or integer); None uses CIME default (M)

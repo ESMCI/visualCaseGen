@@ -523,6 +523,10 @@ class CaseCreator:
             + "--run-unsupported "
         )
 
+        # append pecount if provided:
+        if pecount := cvars["PECOUNT"].value:
+            cmd += f"--pecount {pecount} "
+
         # append project id if needed:
         if project := cvars["PROJECT"].value:
             cmd += f"--project {project} "
