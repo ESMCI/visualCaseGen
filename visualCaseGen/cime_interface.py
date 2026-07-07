@@ -5,6 +5,7 @@ import logging
 import socket
 import getpass
 import subprocess
+import xml.etree.ElementTree as ET
 from collections import namedtuple, defaultdict
 from pathlib import Path
 
@@ -120,13 +121,13 @@ class CIME_interface:
         # determine cime version
         match = re.search(r"cime(\d+)\.(\d+)\.(\d+)", cime_git_tag)
         assert match, f"Invalid cime git tag: {cime_git_tag}"
-       
+
         cime_major, cime_minor, cime_patch = map(int, match.groups())
 
-        # check cime version compatibility
-        assert cime_major == 6, f"Unsupported major version: {cime_major} in cime version: {cime_version}"
-        assert cime_minor == 1, f"Unsupported minor version: {cime_minor} in cime version: {cime_version}"
-        assert cime_patch >= 8, f"Unsupported patch version: {cime_patch} in cime version: {cime_version}"
+        # check cime version compatibility (cesm3_0_alpha09d ships cime6.2.2)
+        assert cime_major == 6, f"Unsupported major version: {cime_major} in cime git tag: {cime_git_tag}"
+        assert cime_minor == 2, f"Unsupported minor version: {cime_minor} in cime git tag: {cime_git_tag}"
+        assert cime_patch >= 2, f"Unsupported patch version: {cime_patch} in cime git tag: {cime_git_tag}"
 
 
     @property
@@ -783,25 +784,40 @@ class CIME_interface:
 
                 break
 
-        # Keep a record of whether a project id is required for each machine
+        # Keep a record of whether a project id is required for each machine.
+        # The per-machine config files are read with a plain XML parse rather than by
+        # constructing a CIME Machines object per machine: when a machine file fails CIME's
+        # schema validation, Machines() merges the file's nodes into CIME's shared
+        # GenericXML._FILEMAP cache *before* validation raises, so each subsequent
+        # construction duplicates those nodes and the cached machines tree (and thus every
+        # later CIME_interface instantiation) grows exponentially.
+        machines_dir = Path(machines_obj.machines_dir)
         for machine in self.machines:
             self.project_required[machine] = False
+            machine_config = machines_dir / machine / "config_machines.xml"
+            if not machine_config.exists():
+                logger.debug("No per-machine config file for %s", machine)
+                continue
             try:
-                machines_obj = Machines(machs_file, machine=machine)
-                for machine_node in machines_obj.get_children("machine"):
-                    if machine != machines_obj.get(machine_node, "MACH"):
-                        continue
-                    project_required_node = machines_obj.get_child(
-                        root=machine_node, name="PROJECT_REQUIRED"
-                    )
+                machine_root = ET.parse(machine_config).getroot()
+            except ET.ParseError as err:
+                logger.warning(
+                    "Couldn't parse machine config file %s: %s. Assuming no project id "
+                    "is required for %s.", machine_config, err, machine
+                )
+                continue
+            machine_nodes = (
+                [machine_root] if machine_root.tag == "machine"
+                else machine_root.findall("machine")
+            )
+            for machine_node in machine_nodes:
+                if machine_node.get("MACH") != machine:
+                    continue
+                project_required_node = machine_node.find("PROJECT_REQUIRED")
+                if project_required_node is not None and project_required_node.text:
                     self.project_required[machine] = (
-                        machines_obj.text(project_required_node).lower() == "true"
+                        project_required_node.text.strip().lower() == "true"
                     )
-            except CIMEError:
-                assert (machine != self.machine), \
-                    f"Couldn't properly retrieve machine metadata for {machine}. " \
-                    "This is likely because the corresponding machine XML file does not "\
-                    "adhere to the CIME XML schema. "
 
     def _handle_machine_not_ported(self):
         """Handles the case when CESM is not ported to the current machine.

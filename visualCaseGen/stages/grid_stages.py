@@ -12,6 +12,7 @@ from visualCaseGen.custom_widget_types.stage_widget import StageWidget
 from visualCaseGen.custom_widget_types.mom6_forge_launcher import MOM6ForgeLauncher
 from visualCaseGen.custom_widget_types.clm_modifier_launcher import MeshMaskModifierLauncher, FsurdatModifierLauncher
 from visualCaseGen.custom_widget_types.runoff_mapping_generator import RunoffMappingGenerator
+from visualCaseGen.custom_widget_types.ww3_input_generator import WW3InputGenerator
 
 logger = logging.getLogger("\t" + __name__.split(".")[-1])
 
@@ -42,7 +43,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Standard ",
             parent=stg_grid,
-            condition=cvars["GRID_MODE"] == "Standard",
+            branch_condition=cvars["GRID_MODE"] == "Standard",
         ),
         varlist=[cvars["GRID"]],
         auto_set_valid_option=False,
@@ -51,7 +52,7 @@ def initialize_grid_stages(cime):
     guard_custom_grid = Guard(
         title="Custom ",
         parent=stg_grid,
-        condition=cvars["GRID_MODE"] == "Custom",
+        branch_condition=cvars["GRID_MODE"] == "Custom",
     )
 
     stg_custom_grid_selector = Stage(
@@ -95,7 +96,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Std Ocn Grid",
             parent=stg_custom_ocn_grid_mode,
-            condition=cvars["OCN_GRID_MODE"] == "Standard",
+            branch_condition=cvars["OCN_GRID_MODE"] == "Standard",
         ),
         varlist=[cvars["CUSTOM_OCN_GRID"]],
     )
@@ -114,7 +115,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Custom Ocn Grid",
             parent=stg_custom_ocn_grid_mode,
-            condition=cvars["OCN_GRID_MODE"] != "Standard",
+            branch_condition=cvars["OCN_GRID_MODE"] != "Standard",
         ),
         auto_proceed=False,
         varlist=[
@@ -150,7 +151,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Std IC",
             parent=stg_new_ocn_grid_ic_mode,
-            condition=cvars["OCN_IC_MODE"] == "Simple",
+            branch_condition=cvars["OCN_IC_MODE"] == "Simple",
         ),
         varlist=[cvars["T_REF"]],
     )
@@ -162,7 +163,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="File IC",
             parent=stg_new_ocn_grid_ic_mode,
-            condition=cvars["OCN_IC_MODE"] == "From File",
+            branch_condition=cvars["OCN_IC_MODE"] == "From File",
         ),
         varlist=[
             cvars["TEMP_SALT_Z_INIT_FILE"],
@@ -177,6 +178,9 @@ def initialize_grid_stages(cime):
         widget=StageWidget(VBox),
         parent=guard_custom_grid,
         varlist=[cvars["LND_GRID_MODE"]],
+        # Only relevant for an active land model (CLM). For stub/data land, the land grid is
+        # fully determined (LND_GRID_MODE is forced to "Standard"), so this stage is skipped.
+        relevance_condition=cvars["COMP_LND"] == "clm",
     )
 
     stg_standard_custom_lnd_grid = Stage(
@@ -186,10 +190,12 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Std Lnd Grid",
             parent=stg_custom_lnd_grid_mode,
-            condition=cvars["LND_GRID_MODE"] == "Standard",
+            branch_condition=cvars["LND_GRID_MODE"] == "Standard",
         ),
         varlist=[cvars["CUSTOM_LND_GRID"]],
         auto_set_default_value=False,
+        # For stub/data land the land grid is auto-set to the ATM grid; skip this stage.
+        relevance_condition=cvars["COMP_LND"] == "clm",
     )
 
     stg_base_lnd_grid = Stage(
@@ -200,7 +206,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Modified Lnd Grid",
             parent=stg_custom_lnd_grid_mode,
-            condition=cvars["LND_GRID_MODE"] == "Modified",
+            branch_condition=cvars["LND_GRID_MODE"] == "Modified",
         ),
         varlist=[cvars["CUSTOM_LND_GRID"]],
         auto_set_default_value=False,
@@ -224,7 +230,7 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="Custom w/ mom",
             parent=stg_base_lnd_grid,
-            condition=cvars["COMP_OCN"] == "mom",
+            branch_condition=cvars["COMP_OCN"] == "mom",
         ),
         varlist=[
             cvars["INPUT_FSURDAT"],
@@ -242,7 +248,7 @@ def initialize_grid_stages(cime):
     guard_custom_clm_grid_wo_mom = Guard(
         title="Custom w/o mom",
         parent=stg_base_lnd_grid,
-        condition=cvars["COMP_OCN"] != "mom",
+        branch_condition=cvars["COMP_OCN"] != "mom",
     )
 
     stg_mesh_mask_modifier = Stage(
@@ -308,6 +314,9 @@ def initialize_grid_stages(cime):
         parent=guard_custom_grid,
         varlist=[cvars["CUSTOM_ROF_GRID"]],
         auto_set_default_value=False,
+        # Only relevant when a runoff model is present. For stub runoff (srof) the runoff grid
+        # is forced to "null", so this stage is skipped.
+        relevance_condition=cvars["COMP_ROF"] != "srof",
     )
 
     stg_custom_rof_ocn_mapping = Stage(
@@ -322,7 +331,51 @@ def initialize_grid_stages(cime):
         parent=Guard(
             title="ROF to OCN Mapping",
             parent=stg_custom_rof_grid,
-            condition=And(cvars["COMP_OCN"] == "mom", cvars["COMP_ROF"] != "srof")
+            branch_condition=And(cvars["COMP_OCN"] == "mom", cvars["COMP_ROF"] != "srof")
         ),
         varlist=[cvars["ROF_OCN_MAPPING_STATUS"]],
+    )
+
+    stg_custom_wav_grid_mode = Stage(
+        title="Wave Grid Mode",
+        description="Choose the wave grid for the new, custom CESM grid. If you created a custom "
+        "ocean grid and waves are active (WW3), you may reuse that ocean grid as the wave grid; "
+        "otherwise, select an existing (standard) wave grid.",
+        widget=StageWidget(VBox),
+        parent=guard_custom_grid,
+        varlist=[cvars["WAV_GRID_MODE"]],
+        # Only relevant when a wave component is present. For stub waves (swav) there is no wave
+        # grid to configure, so this stage (and its branches) are skipped.
+        relevance_condition=cvars["COMP_WAV"] != "swav",
+    )
+
+    stg_custom_wav_grid_standard = Stage(
+        title="Wave Grid",
+        description="Select an existing (standard) wave grid to use within the new, custom CESM grid.",
+        widget=StageWidget(VBox),
+        parent=Guard(
+            title="Std Wav Grid",
+            parent=stg_custom_wav_grid_mode,
+            branch_condition=cvars["WAV_GRID_MODE"] == "Standard",
+        ),
+        varlist=[cvars["CUSTOM_WAV_GRID"]],
+        auto_set_default_value=False,
+        relevance_condition=cvars["COMP_WAV"] != "swav",
+    )
+
+    stg_custom_wav_ocn_sharing = Stage(
+        title="Wave Input Files",
+        description="Reusing the custom ocean grid as the wave grid requires generating the WW3 "
+        "grid-preprocessor input files from the ocean grid. Click the button below to generate "
+        "them, then click Confirm to proceed.",
+        widget=StageWidget(
+            VBox,
+            supplementary_widgets=[WW3InputGenerator()]
+        ),
+        parent=Guard(
+            title="WAV uses OCN grid",
+            parent=stg_custom_wav_grid_mode,
+            branch_condition=cvars["WAV_GRID_MODE"] == "Custom Ocean Grid",
+        ),
+        varlist=[cvars["WW3_INPUT_STATUS"]],
     )

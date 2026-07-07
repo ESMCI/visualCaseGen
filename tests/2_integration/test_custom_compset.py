@@ -137,7 +137,9 @@ def configure_custom_compset():
     cvars['COMP_LND_OPTION'].value = "SP"
     cvars['COMP_ICE_OPTION'].value = "PRES"
     cvars['COMP_OCN_OPTION'].value = "DOM"
-    cvars['COMP_WAV_OPTION'].value = "(none)"
+    with pytest.raises(ConstraintViolation):
+        cvars['COMP_WAV_OPTION'].value = "(none)"
+    cvars['COMP_WAV_OPTION'].value = "CLIMO"
     cvars['COMP_ROF_OPTION'].value = "FLOOD"
 
     for comp_class in ['ATM', 'LND', 'ICE', 'OCN', 'ROF', 'GLC', 'WAV']:

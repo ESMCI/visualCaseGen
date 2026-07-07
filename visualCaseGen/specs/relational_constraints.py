@@ -82,7 +82,7 @@ def get_relational_constraints(cvars):
         Implies(COMP_ROF=="drof", COMP_ROF_OPTION != "(none)"):
             "Must pick a valid DROF option.",
 
-        Implies(COMP_WAV=="phys", COMP_WAV_OPTION != "(none)"):
+        Implies(COMP_WAV=="dwav", COMP_WAV_OPTION != "(none)"):
             "Must pick a valid DWAV option.",
 
         Implies(In(COMP_LND, ["clm", "dlnd"]), COMP_LND_OPTION != "(none)"):
@@ -132,12 +132,6 @@ def get_relational_constraints(cvars):
         And(OCN_NX<10000, OCN_NY<10000):
             "MOM6 grid dimensions too big.",
         
-        Implies(OCN_GRID_EXTENT=="Regional", COMP_WAV=="swav"):
-            "A regional ocean model cannot be coupled with a wave component.",
-
-        Implies(OCN_GRID_EXTENT=="Regional", COMP_ICE!="dice"):
-            "A regional ocean model cannot be coupled with a data ice component.",
-
         Implies(OCN_GRID_EXTENT=="Regional", OCN_CYCLIC_X=="False"):
             "Regional ocean domain cannot be reentrant (due to an ESMF limitation.)",
 

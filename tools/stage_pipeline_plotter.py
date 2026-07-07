@@ -42,7 +42,7 @@ def gen_stage_pipeline(stage):
 
     # Traverse the entire stage tree using depth-first search
     while (next := stage.get_next(full_dfs=True)) is not None:
-        if stage.children_have_conditions():
+        if stage.children_have_branch_conditions():
             for child in stage._children:
                 G.add_edge(stage, child)
                 G.add_edge(child, child._children[0])

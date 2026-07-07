@@ -36,7 +36,7 @@ def initialize_compset_stages(cime):
         parent=Guard(
             title= "Standard",
             parent=stg_compset,
-            condition=cvars["COMPSET_MODE"] == "Standard",
+            branch_condition=cvars["COMPSET_MODE"] == "Standard",
         ),
         varlist=[cvars["SUPPORT_LEVEL"]],
     )
@@ -44,7 +44,7 @@ def initialize_compset_stages(cime):
     guard_support_level_all = Guard(
         title="All",
         parent=stg_support_level,
-        condition=cvars["SUPPORT_LEVEL"] == "All",
+        branch_condition=cvars["SUPPORT_LEVEL"] == "All",
     )
 
     stg_comp_filter = Stage(
@@ -92,7 +92,7 @@ def initialize_compset_stages(cime):
         parent=Guard(
             title="Supported",
             parent=stg_support_level,
-            condition=cvars["SUPPORT_LEVEL"] == "Supported",
+            branch_condition=cvars["SUPPORT_LEVEL"] == "Supported",
         ),
         varlist=[
             cvars["COMPSET_ALIAS"],
@@ -109,7 +109,7 @@ def initialize_compset_stages(cime):
     guard_custom_compset = Guard(
         title="Custom",
         parent=stg_compset,
-        condition=cvars["COMPSET_MODE"] == "Custom",
+        branch_condition=cvars["COMPSET_MODE"] == "Custom",
     )
 
     stg_inittime = Stage(

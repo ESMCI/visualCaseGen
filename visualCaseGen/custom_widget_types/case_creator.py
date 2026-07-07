@@ -165,6 +165,30 @@ class CaseCreator:
         # Run case.setup
         run_case_setup(do_exec, self._is_non_local(), self._out)
 
+        # Copy ww3 input files to RUNDIR if needed (only when the custom ocean grid is reused as
+        # the wave grid, which is where the *.inp files are generated):
+        custom_grid_path_val = cvars["CUSTOM_GRID_PATH"].value
+        if (
+            cvars["COMP_WAV"].value == "ww3"
+            and custom_grid_path_val is not None
+            and self._wav_uses_custom_ocn_grid()
+        ):
+            # copy all *.inp files under the ocnice grid directory to RUNDIR:
+            inp_files = list(Path(custom_grid_path_val).glob("ocnice/*.inp"))
+            if inp_files:
+                print(f"{COMMENT}Copying WW3 input files to the case RUNDIR{RESET}\n")
+                if do_exec:
+                    case = self._cime.get_case(caseroot.as_posix(), non_local=self._is_non_local())
+                    rundir = Path(case.get_value("RUNDIR"))
+                    if not os.access(rundir.as_posix(), os.W_OK):
+                        raise RuntimeError(
+                            f"Cannot write to {rundir}. Please check permissions for the case directory."
+                        )
+                    ww3_moddef_dir = rundir / "ww3_moddef_create"
+                    ww3_moddef_dir.mkdir(parents=True, exist_ok=True)
+                    for inp_file in inp_files:
+                        shutil.copy(inp_file, ww3_moddef_dir / inp_file.name)
+
         # Apply user_nl changes
         self._apply_all_namelist_changes(do_exec)
 
@@ -322,6 +346,21 @@ class CaseCreator:
                 attrib={"name": "rof"},
             )
             new_rof_grid.text = rof_grid
+
+        # Add wav grid to resolution entry for an active wave component.
+        wav_grid = None
+        if cvars["COMP_WAV"].value != "swav":
+            if self._wav_uses_custom_ocn_grid():
+                wav_grid = ocn_grid
+            elif (custom_wav_grid := cvars["CUSTOM_WAV_GRID"].value) not in (None, "", "null"):
+                wav_grid = custom_wav_grid
+        if wav_grid is not None:
+            new_wav_grid = SubElement(
+                new_resolution,
+                "grid",
+                attrib={"name": "wav"},
+            )
+            new_wav_grid.text = wav_grid
 
 
         if not do_exec:
@@ -539,7 +578,8 @@ class CaseCreator:
         self._apply_lnd_grid_xmlchanges(do_exec)
         self._apply_ocn_grid_xmlchanges(do_exec)
         self._apply_runoff_ocn_mapping_xmlchanges(do_exec)
-        
+        self._apply_wav_coupling_xmlchanges(do_exec)
+
 
     def _apply_lnd_grid_xmlchanges(self, do_exec):
         """Apply xmlchanges related to custom land grid if needed."""
@@ -588,6 +628,28 @@ class CaseCreator:
                     print(f"{COMMENT}Apply runoff to ocean mapping xml changes:{RESET}\n")
                     xmlchange("ROF2OCN_ICE_RMAPNAME", nnsm_map_file, do_exec, self._is_non_local(), self._out)
                     xmlchange("ROF2OCN_LIQ_RMAPNAME", nnsm_map_file, do_exec, self._is_non_local(), self._out)
+
+    def _wav_uses_custom_ocn_grid(self):
+        """Return True if the wave component should use the newly created custom ocean grid as its
+        grid (rather than a selected standard wave grid). This is the case for a custom ocean grid
+        unless the user explicitly picked a standard wave grid in the Wave Grid stage."""
+        if cvars["OCN_GRID_MODE"].value != "Create New":
+            return False  # no custom ocean grid exists to reuse
+        wav_grid = cvars["CUSTOM_WAV_GRID"].value
+        picked_standard_wav_grid = (
+            cvars["WAV_GRID_MODE"].value == "Standard"
+            and wav_grid not in (None, "", "null")
+        )
+        return not picked_standard_wav_grid
+
+    def _apply_wav_coupling_xmlchanges(self, do_exec):
+        """Use the legacy MOM6-WW3 wave coupling method when the custom ocean grid is reused as
+        the wave grid."""
+
+        if cvars["COMP_WAV"].value == "ww3" and self._wav_uses_custom_ocn_grid():
+            with self._out:
+                print(f"{COMMENT}Set wave coupling mode to legacy:{RESET}\n")
+                xmlchange("MOM6_WW3_CPL_METHOD", "legacy", do_exec, self._is_non_local(), self._out)
 
 
     @staticmethod
@@ -878,13 +940,21 @@ class CaseCreator:
                     f' ocean mesh: {ocn_mesh}.{RESET}\n'
                 )
 
-            xmlchange("OCN_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
+            # OCN and ICE share the custom ocean grid dimensions and mesh. WAV shares them too,
+            # unless the user picked a standard wave grid (handled separately below).
+            comps_sharing_ocn_grid = ["OCN", "ICE"]
+            if self._wav_uses_custom_ocn_grid():
+                comps_sharing_ocn_grid.append("WAV")
+            for comp in comps_sharing_ocn_grid:
+                xmlchange(f"{comp}_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
+                xmlchange(f"{comp}_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
+                xmlchange(f"{comp}_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 
-            xmlchange("OCN_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
-
-            xmlchange("OCN_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
-
-            xmlchange("ICE_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
+            # If a standard wave grid was selected instead, set the wave grid and its mesh.
+            wav_grid = cvars["CUSTOM_WAV_GRID"].value
+            if not self._wav_uses_custom_ocn_grid() and wav_grid not in (None, "", "null"):
+                xmlchange("WAV_GRID", wav_grid, do_exec, self._is_non_local(), self._out)
+                xmlchange("WAV_DOMAIN_MESH", self._cime.get_mesh_path("wav", wav_grid), do_exec, self._is_non_local(), self._out)
 
             xmlchange("MASK_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
 

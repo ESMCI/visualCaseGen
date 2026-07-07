@@ -158,3 +158,11 @@ def initialize_custom_grid_variables(cime):
     ConfigVarStr("ROF_OCN_MAPPING_STATUS", widget_none_val="")
     ConfigVarReal("ROF_OCN_MAPPING_RMAX")
     ConfigVarReal("ROF_OCN_MAPPING_FOLD")
+
+    # Custom wave grid variables (relevant when an active/data wave component is present)
+    # Whether to use the custom ocean grid for waves or pick a standard wave grid:
+    ConfigVarStr("WAV_GRID_MODE")  # "Custom Ocean Grid" or "Standard"
+    # A preexisting wave grid picked when WAV_GRID_MODE == "Standard":
+    ConfigVarStrMS("CUSTOM_WAV_GRID")
+    # Status variable gating completion of the WW3 input-file generation sub-stage:
+    ConfigVarStr("WW3_INPUT_STATUS", widget_none_val="")

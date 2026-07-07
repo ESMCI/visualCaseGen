@@ -150,8 +150,8 @@ class CspSolver:
             dfs_next_stage = stage.get_next(full_dfs=True)
             if dfs_next_stage is None:
                 break
-            elif dfs_next_stage.has_condition():
-                condition = dfs_next_stage._condition
+            elif dfs_next_stage.has_branch_condition():
+                condition = dfs_next_stage._branch_condition
                 # Skip the guard and move on to its first child as the next stage
                 dfs_next_stage = dfs_next_stage.get_next(full_dfs=True)
                 # Now, process the guard variables.
@@ -176,7 +176,7 @@ class CspSolver:
             ):
                 ancestor = stage._parent
                 while ancestor is not None:
-                    if (not ancestor.has_condition()) and ancestor._right is not None:
+                    if (not ancestor.has_branch_condition()) and ancestor._right is not None:
                         true_next_stage = ancestor._right
                         break
                     ancestor = ancestor._parent
