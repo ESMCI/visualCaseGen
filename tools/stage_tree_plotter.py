@@ -41,7 +41,7 @@ def gen_stage_tree(stage):
     G = nx.Graph()
 
     while (next := stage.get_next(full_dfs=True)) is not None:
-        if stage._parent is not None and stage._parent.has_condition():
+        if stage._parent is not None and stage._parent.has_branch_condition():
             G.add_edge(stage._parent, stage)
         for child in stage._children:
             G.add_edge(stage, child)
@@ -81,7 +81,7 @@ def plot_stage_tree(stage):
         t.set_verticalalignment("center")
 
     # Set the color of Guard nodes
-    guard_nodes = [node for node in G.nodes if node.has_condition()]
+    guard_nodes = [node for node in G.nodes if node.has_branch_condition()]
     nx.draw_networkx_nodes(G, pos, nodelist=guard_nodes, node_color="wheat")
 
     plt.show()

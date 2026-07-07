@@ -33,12 +33,13 @@ jobs:
         with:
           submodules: recursive
           path: VCGTEMP
-      # clone CESM
+      # clone CESM (upstream, at the release tag; visualCaseGen is not bundled upstream,
+      # so the checked-out PR code is copied into the CESM tree below)
       - name: Checkout CESM
         uses: actions/checkout@v4
         with:
-          repository: alperaltuntas/CESM
-          ref: cesm3_0_beta08_gui
+          repository: ESCOMP/CESM
+          ref: cesm3_0_alpha09d
           path: CESM
           #submodules: recursive
 
@@ -49,10 +50,11 @@ jobs:
         run: |
           cd CESM
           ./bin/git-fleximod update
-  
+
       # Copy the checked out visualCaseGen branch to the CESM visualCaseGen folder
       - name: Copy VCG checkout into the correct folder
         run: |
+          mkdir -p CESM/visualCaseGen
           cp -r VCGTEMP/* CESM/visualCaseGen/
 
       # set up conda

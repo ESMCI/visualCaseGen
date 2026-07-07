@@ -1,8 +1,8 @@
 Installation
 ======================================
 
-visualCaseGen is presently bundled with a CESM distribution (fork) based on cesm3_0_beta08. The following
-instructions guide you through obtaining and installing this specific CESM distribution with visualCaseGen.
+visualCaseGen presently works with the cesm3_0_alpha09d version of CESM. The following
+instructions guide you through obtaining this CESM version and installing visualCaseGen within it.
 
 Prerequisite
 -------------
@@ -22,20 +22,24 @@ Prerequisite
     can run visualCaseGen as normal, and the final step of "case creation" will be enabled.
 
 
-Download CESM with visualCaseGen
---------------------------------
+Download CESM and visualCaseGen
+-------------------------------
 
-To download the specific CESM distribution bundled with visualCaseGen, clone the CESM GitHub repository and
-use the `git-fleximod` script that comes with CESM as a package manager, as follows. Note that downloading
+To download CESM, clone the CESM GitHub repository at the supported release tag and use the
+`git-fleximod` script that comes with CESM as a package manager, as follows. Note that downloading
 CESM may take some time.
 
 .. code-block:: bash
 
-    git clone https://github.com/alperaltuntas/cesm.git -b cesm3_0_beta08_gui cesm3_0_beta08_gui
-    cd cesm3_0_beta08_gui
+    git clone https://github.com/ESCOMP/CESM.git -b cesm3_0_alpha09d cesm3_0_alpha09d
+    cd cesm3_0_alpha09d
     ./bin/git-fleximod update
 
-This will download the required CESM version, including visualCaseGen.
+Then, clone visualCaseGen (with its submodules) inside the CESM directory:
+
+.. code-block:: bash
+
+    git clone --recurse-submodules https://github.com/ESMCI/visualCaseGen.git
 
 Create the visualCaseGen conda environment
 ------------------------------------------
