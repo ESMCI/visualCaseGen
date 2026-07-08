@@ -1,0 +1,171 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>visualCaseGen Basics &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Stages of Creating a Case" href="creating_case.html" />
+    <link rel="prev" title="Opening the GUI" href="open.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">visualCaseGen Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-variable">Configuration Variable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stage">Stage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#standard-vs-custom">Standard vs Custom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#resolution-vs-grid-vs-model-grid">Resolution vs Grid vs Model Grid</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fillindian.html">Fill Indian Ocean</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">visualCaseGen Basics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/basics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="visualcasegen-basics">
+<h1>visualCaseGen Basics<a class="headerlink" href="#visualcasegen-basics" title="Link to this heading"></a></h1>
+<p>This section defines key concepts in visualCaseGen that will be referenced throughout the documentation.</p>
+<section id="configuration-variable">
+<h2>Configuration Variable<a class="headerlink" href="#configuration-variable" title="Link to this heading"></a></h2>
+<p>Configuration variables are essential CESM settings that must be defined before creating a case.
+These include choices like the model, model physics, resolution, and grid options that are set in
+CESM XML and user namelist files. visualCaseGen provides an intuitive, form-based interface for
+configuring these variables, ensuring compatibility and completeness. Only the variables required
+for case instantiation are included in visualCaseGen; other settings that can be adjusted after
+case creation, such as simulation duration, are not included in the GUI.</p>
+</section>
+<section id="stage">
+<h2>Stage<a class="headerlink" href="#stage" title="Link to this heading"></a></h2>
+<p>In visualCaseGen, a stage represents a group of related CESM configuration variables that can be
+set together. Examples of stages include models, physics options, and resolutions. Stages introduce
+a logical hierarchy, where those listed earlier hold higher precedence. For instance, model selection
+is a prerequisite for defining model physics, so the model stage takes precedence. visualCaseGen
+guides users through each stage in the proper order, ensuring that configurations are compatible
+at each step.</p>
+<p>A stage is deemed complete when all of its configuration variables have been set. When a stage is
+complete, visualCaseGen will automatically advance to the next stage. Users can also navigate
+between stages by clicking the <cite>Revert</cite> button on the top bar of each Stage to return to the previous
+stage or the <cite>Proceed</cite> button to advance to the next stage, but if there are any incomplete configuration
+variables, visualCaseGen will prompt users to fill them in before proceeding. The <cite>Defaults</cite> button on
+the top bar of each stage allows users to quickly set all configuration variables to their default
+values, if available. The <cite>Info</cite> button provides additional information about the stage and its
+configuration variables.</p>
+</section>
+<section id="standard-vs-custom">
+<h2>Standard vs Custom<a class="headerlink" href="#standard-vs-custom" title="Link to this heading"></a></h2>
+<p>During configuration, users can choose between standard and custom options for certain settings,
+like compsets, resolutions, and model grids. Standard options are predefined CESM configurations
+that are generally easier and safer to use, while custom options allow for greater flexibility.
+visualCaseGen assists users through the custom configuration process to maximize compatibility,
+but custom setups may require additional troubleshooting. For any issues with custom configurations,
+please refer to the Troubleshooting section of this guide.</p>
+</section>
+<section id="resolution-vs-grid-vs-model-grid">
+<h2>Resolution vs Grid vs Model Grid<a class="headerlink" href="#resolution-vs-grid-vs-model-grid" title="Link to this heading"></a></h2>
+<p>In CESM terminology, <em>resolution</em> and <em>grid</em> are often used interchangeably,
+both referring to the combination of model grids used in a CESM simulation. Unless
+specifically noted as a <em>model grid</em> (i.e., a grid unique to a particular component,
+such as the ocean grid), the term <em>grid</em> in the context of visualCaseGen should be understood as
+<em>resolution</em>, meaning the full collection of <em>model grids</em> used in a particular CESM case.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="open.html" class="btn btn-neutral float-left" title="Opening the GUI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="creating_case.html" class="btn btn-neutral float-right" title="Stages of Creating a Case" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
