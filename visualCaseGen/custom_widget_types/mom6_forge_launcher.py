@@ -80,7 +80,19 @@ class MOM6ForgeLauncher(VBox):
     def get_custom_ocn_grid_path():
         """Return the path to the directory where the custom ocean grid files are to be stored."""
         custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
-        return Path(custom_grid_path) / "ocnice"
+        return Path(custom_grid_path) / "ocean"
+
+    @staticmethod
+    def get_custom_ice_grid_path():
+        """Return the path to the directory where the custom CICE grid file is to be stored."""
+        custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
+        return Path(custom_grid_path) / "sea_ice"
+
+    @staticmethod
+    def get_custom_wave_grid_path():
+        """Return the path to the directory where the custom WW3 input files are to be stored."""
+        custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
+        return Path(custom_grid_path) / "wave"
 
     def _on_required_var_change(self, change):
         """If any of the required variables are changed, reset the attempt id and mom6_forge_status."""
@@ -421,5 +433,5 @@ class MOM6ForgeLauncher(VBox):
     
     @staticmethod
     def cice_grid_file_path():
-        custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
-        return custom_ocn_grid_path / f"cice_grid_{MOM6ForgeLauncher.nc_file_suffix()}"
+        custom_ice_grid_path = MOM6ForgeLauncher.get_custom_ice_grid_path()
+        return custom_ice_grid_path / f"cice_grid_{MOM6ForgeLauncher.nc_file_suffix()}"
