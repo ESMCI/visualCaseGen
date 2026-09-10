@@ -14,7 +14,7 @@ class WW3InputGenerator(VBox):
 
     When the user opts to use the newly created custom ocean grid as the wave grid (WW3), this
     widget reconstructs the mom6_forge Grid/Topo from the already-saved ocean grid files and
-    writes the WW3 ``*.inp`` files into the custom grid's ``wave`` directory. Those files are
+    writes the WW3 ``*.inp`` files into the custom grid's ``wav`` directory. Those files are
     later copied into the case RUNDIR by the case creator."""
 
     def __init__(self, **kwargs):

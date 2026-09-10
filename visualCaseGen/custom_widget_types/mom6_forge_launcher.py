@@ -80,19 +80,19 @@ class MOM6ForgeLauncher(VBox):
     def get_custom_ocn_grid_path():
         """Return the path to the directory where the custom ocean grid files are to be stored."""
         custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
-        return Path(custom_grid_path) / "ocean"
+        return Path(custom_grid_path) / "ocn"
 
     @staticmethod
     def get_custom_ice_grid_path():
         """Return the path to the directory where the custom CICE grid file is to be stored."""
         custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
-        return Path(custom_grid_path) / "sea_ice"
+        return Path(custom_grid_path) / "ice"
 
     @staticmethod
     def get_custom_wave_grid_path():
         """Return the path to the directory where the custom WW3 input files are to be stored."""
         custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
-        return Path(custom_grid_path) / "wave"
+        return Path(custom_grid_path) / "wav"
 
     def _on_required_var_change(self, change):
         """If any of the required variables are changed, reset the attempt id and mom6_forge_status."""
@@ -224,6 +224,11 @@ class MOM6ForgeLauncher(VBox):
         # if custom_grid_path doesn't exist, create it:
         custom_ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
         os.makedirs(custom_ocn_grid_path, exist_ok=True)
+
+        # The CICE grid file goes in its own directory, and Topo.write_cice_grid
+        # doesn't create parent directories, so create it up front here.
+        if "CICE" in cvars["COMP_ICE_PHYS"].value:
+            os.makedirs(MOM6ForgeLauncher.get_custom_ice_grid_path(), exist_ok=True)
 
         # Create a new notebook:
         nb = nbf.v4.new_notebook()

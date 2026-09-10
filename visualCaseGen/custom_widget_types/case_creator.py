@@ -174,7 +174,7 @@ class CaseCreator:
             and self._wav_uses_custom_ocn_grid()
         ):
             # copy all *.inp files under the wave grid directory to RUNDIR:
-            inp_files = list(Path(custom_grid_path_val).glob("wave/*.inp"))
+            inp_files = list(Path(custom_grid_path_val).glob("wav/*.inp"))
             if inp_files:
                 print(f"{COMMENT}Copying WW3 input files to the case RUNDIR{RESET}\n")
                 if do_exec:
@@ -395,7 +395,7 @@ class CaseCreator:
         """
 
         if ocn_grid_mode == "Create New":
-            ocn_dir = custom_grid_path / "ocean"
+            ocn_dir = custom_grid_path / "ocn"
             assert ocn_dir.exists(), f"Ocean grid directory {ocn_dir} does not exist."
 
             ocn_mesh = (
@@ -922,7 +922,7 @@ class CaseCreator:
         """
 
         if ocn_grid_mode == "Create New":
-            ocn_dir = custom_grid_path / "ocean"
+            ocn_dir = custom_grid_path / "ocn"
             assert ocn_dir.exists(), f"Ocean grid directory {ocn_dir} does not exist."
 
             ocn_mesh = (
