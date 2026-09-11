@@ -232,19 +232,19 @@ vertical grid files (needed by MOM6), CICE grid file (needed by the sea ice mode
     # Do NOT modify this cell!
 
     # MOM6 supergrid file.
-    grid.write_supergrid(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_grid_my1deg_grid_f2343a.nc")
+    grid.write_supergrid(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocn/ocean_grid_my1deg_grid_f2343a.nc")
 
     # Save MOM6 topography file:
-    topo.write_topo(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_topog_my1deg_grid_f2343a.nc")
+    topo.write_topo(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocn/ocean_topog_my1deg_grid_f2343a.nc")
 
     # Save MOM6 vertical grid file:
-    vgrid.write(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ocean_vgrid_my1deg_f2343a.nc")
+    vgrid.write(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocn/ocean_vgrid_my1deg_f2343a.nc")
 
     # CICE grid file:
-    topo.write_cice_grid(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/cice_grid.my1deg_grid_f2343a.nc")
+    topo.write_cice_grid(f"/Users/altuntas/projects/scratch/myRidgeGrid/ice/cice_grid.my1deg_grid_f2343a.nc")
 
     # Save ESMF mesh file:
-    topo.write_esmf_mesh(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocnice/ESMF_mesh_my1deg_grid_f2343a.nc")
+    topo.write_esmf_mesh(f"/Users/altuntas/projects/scratch/myRidgeGrid/ocn/ESMF_mesh_my1deg_grid_f2343a.nc")
 
 After running the cell above, return to visualCaseGen and click the **Confirm completion** button to proceed.
 
