@@ -418,7 +418,7 @@ class CIME_interface:
         grids = self._grids_obj.get_child("grids")
 
         # Domains, i.e., component grids, are stored in self.domains dict. The keys of 
-        # self.domains are component names, e.g., "ocn". The values are dicts where keys are domain names, 
+        # self.domains are component names, e.g., "ocnice". The values are dicts where keys are domain names,
         # e.g., "tx2_3v2", and values are ComponentGrid named tuples with attributes name, nx, ny, mesh, desc, 
         # compset_constr, and not_compset_constr. Since these constraints are resolution-specific, and
         # not domain-specific, they are initially inserted into sets and then processed appropriately 
@@ -437,7 +437,7 @@ class CIME_interface:
         model_grid_defaults = self._grids_obj.get_child("model_grid_defaults", root=grids)
         default_grids = self._grids_obj.get_children("grid", root=model_grid_defaults)
         for default_grid in default_grids:
-            comp_name = self._grids_obj.get(default_grid, "name")  # e.g., atm, lnd, ocn, ice, etc.
+            comp_name = self._grids_obj.get(default_grid, "name")  # e.g., atm, lnd, ocnice, etc.
             compset = self._grids_obj.get(default_grid, "compset")
             comp_grid = self._grids_obj.text(default_grid)
             if comp_grid == "null":
@@ -471,7 +471,7 @@ class CIME_interface:
             all_component_grids_found = True
             grid_nodes = self._grids_obj.get_children("grid", root=model_grid_node)
             for grid_node in grid_nodes:
-                comp_name = self._grids_obj.get(grid_node, "name") # e.g., atm, lnd, ocn, ice, etc.
+                comp_name = self._grids_obj.get(grid_node, "name") # e.g., atm, lnd, ocnice, etc.
                 comp_grid = self._grids_obj.text(grid_node)
 
                 # Skip if the component grid is null. This means that this component is not part of this resolution.
