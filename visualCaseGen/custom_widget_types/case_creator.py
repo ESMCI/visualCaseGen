@@ -906,7 +906,7 @@ class CaseCreator:
     def _update_component_grids_xml(
         self, custom_grid_path, ocn_grid, ocn_grid_mode, do_exec
     ):
-        """Update the component_grids xml file with custom ocnice grid information.
+        """Update the component_grids xml file with custom ocn, ice, wave grid information.
         This function is called before running create_newcase.
 
         Parameters

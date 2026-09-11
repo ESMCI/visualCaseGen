@@ -89,7 +89,7 @@ class MOM6ForgeLauncher(VBox):
         return Path(custom_grid_path) / "ice"
 
     @staticmethod
-    def get_custom_wave_grid_path():
+    def get_custom_wav_grid_path():
         """Return the path to the directory where the custom WW3 input files are to be stored."""
         custom_grid_path = cvars["CUSTOM_GRID_PATH"].value
         return Path(custom_grid_path) / "wav"

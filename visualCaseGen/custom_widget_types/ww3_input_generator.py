@@ -64,7 +64,7 @@ class WW3InputGenerator(VBox):
         grid_alias = cvars["CUSTOM_OCN_GRID_NAME"].value
         supergrid_file = MOM6ForgeLauncher.supergrid_file_path()
         topo_file = MOM6ForgeLauncher.topo_file_path()
-        wave_dir = MOM6ForgeLauncher.get_custom_wave_grid_path()
+        wave_dir = MOM6ForgeLauncher.get_custom_wav_grid_path()
 
         # The custom ocean grid files must already exist (created via the mom6_forge notebook).
         for f in (supergrid_file, topo_file):
