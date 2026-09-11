@@ -124,10 +124,10 @@ class CIME_interface:
 
         cime_major, cime_minor, cime_patch = map(int, match.groups())
 
-        # check cime version compatibility (cesm3_0_alpha09d ships cime6.2.2)
+        # check cime version compatibility (cesm3_0_alpha09g ships cime6.4.1)
         assert cime_major == 6, f"Unsupported major version: {cime_major} in cime git tag: {cime_git_tag}"
-        assert cime_minor == 2, f"Unsupported minor version: {cime_minor} in cime git tag: {cime_git_tag}"
-        assert cime_patch >= 2, f"Unsupported patch version: {cime_patch} in cime git tag: {cime_git_tag}"
+        assert cime_minor == 4, f"Unsupported minor version: {cime_minor} in cime git tag: {cime_git_tag}"
+        assert cime_patch >= 1, f"Unsupported patch version: {cime_patch} in cime git tag: {cime_git_tag}"
 
 
     @property

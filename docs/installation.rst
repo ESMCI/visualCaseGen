@@ -1,7 +1,7 @@
 Installation
 ======================================
 
-visualCaseGen presently works with the cesm3_0_alpha09d version of CESM. The following
+visualCaseGen presently works with the cesm3_0_alpha09g version of CESM. The following
 instructions guide you through obtaining this CESM version and installing visualCaseGen within it.
 
 Prerequisite
@@ -31,8 +31,8 @@ CESM may take some time.
 
 .. code-block:: bash
 
-    git clone https://github.com/ESCOMP/CESM.git -b cesm3_0_alpha09d cesm3_0_alpha09d
-    cd cesm3_0_alpha09d
+    git clone https://github.com/ESCOMP/CESM.git -b cesm3_0_alpha09g cesm3_0_alpha09g
+    cd cesm3_0_alpha09g
     ./bin/git-fleximod update
 
 Then, clone visualCaseGen (with its submodules) inside the CESM directory:
