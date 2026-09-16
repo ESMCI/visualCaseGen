@@ -74,8 +74,9 @@ to launch the `mom6_forge` tool for final customization.
 
 After specifying all ocean grid parameters, click `Launch mom6_forge`. This will open an 
 auto-generated Jupyter notebook where you can fine-tune the ocean grid, topography, and vertical grid.
-You can then generate the corresponding MOM6 input files, which will be saved under `ocnice` subdirectory
-within the directory you specified earlier for saving the new grid files.
+You can then generate the corresponding MOM6 input files, which will be saved under the `ocn` subdirectory
+(with the CICE grid file saved under the `ice` subdirectory), within the directory you specified earlier
+for saving the new grid files.
 For more details on mom6_forge, refer to its documentation: https://ncar.github.io/mom6_forge/
 
 .. note:: If the `mom6_forge` notebook doesn't open automatically, make sure that your browser allows
