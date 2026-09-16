@@ -14,7 +14,7 @@ class WW3InputGenerator(VBox):
 
     When the user opts to use the newly created custom ocean grid as the wave grid (WW3), this
     widget reconstructs the mom6_forge Grid/Topo from the already-saved ocean grid files and
-    writes the WW3 ``*.inp`` files into the custom grid's ``ocnice`` directory. Those files are
+    writes the WW3 ``*.inp`` files into the custom grid's ``wav`` directory. Those files are
     later copied into the case RUNDIR by the case creator."""
 
     def __init__(self, **kwargs):
@@ -64,7 +64,7 @@ class WW3InputGenerator(VBox):
         grid_alias = cvars["CUSTOM_OCN_GRID_NAME"].value
         supergrid_file = MOM6ForgeLauncher.supergrid_file_path()
         topo_file = MOM6ForgeLauncher.topo_file_path()
-        ocnice_dir = MOM6ForgeLauncher.get_custom_ocn_grid_path()
+        wave_dir = MOM6ForgeLauncher.get_custom_wav_grid_path()
 
         # The custom ocean grid files must already exist (created via the mom6_forge notebook).
         for f in (supergrid_file, topo_file):
@@ -94,8 +94,9 @@ class WW3InputGenerator(VBox):
                     min_depth = float(ds_topo.attrs["min_depth"])
                 grid = Grid.from_supergrid(supergrid_file.as_posix())
                 topo = Topo.from_topo_file(grid, topo_file.as_posix(), min_depth=min_depth)
-                topo.write_ww3_input(ocnice_dir.as_posix(), grid_alias=grid_alias)
-                print(f"WW3 input files written to {ocnice_dir} (min_depth={min_depth}).")
+                wave_dir.mkdir(parents=True, exist_ok=True)
+                topo.write_ww3_input(wave_dir.as_posix(), grid_alias=grid_alias)
+                print(f"WW3 input files written to {wave_dir} (min_depth={min_depth}).")
             cvars["WW3_INPUT_STATUS"].value = "Complete"
         except Exception as e:
             alert_warning(f"An error occurred while generating the WW3 input files: {e}")
