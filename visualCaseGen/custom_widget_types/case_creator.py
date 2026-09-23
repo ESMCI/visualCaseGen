@@ -578,7 +578,6 @@ class CaseCreator:
         self._apply_lnd_grid_xmlchanges(do_exec)
         self._apply_ocn_grid_xmlchanges(do_exec)
         self._apply_runoff_ocn_mapping_xmlchanges(do_exec)
-        self._apply_wav_coupling_xmlchanges(do_exec)
 
 
     def _apply_lnd_grid_xmlchanges(self, do_exec):
@@ -641,16 +640,6 @@ class CaseCreator:
             and wav_grid not in (None, "", "null")
         )
         return not picked_standard_wav_grid
-
-    def _apply_wav_coupling_xmlchanges(self, do_exec):
-        """Use the legacy MOM6-WW3 wave coupling method when the custom ocean grid is reused as
-        the wave grid."""
-
-        if cvars["COMP_WAV"].value == "ww3" and self._wav_uses_custom_ocn_grid():
-            with self._out:
-                print(f"{COMMENT}Set wave coupling mode to legacy:{RESET}\n")
-                xmlchange("MOM6_WW3_CPL_METHOD", "legacy", do_exec, self._is_non_local(), self._out)
-
 
     @staticmethod
     def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 300, ideal_multiple_of_cores_used = 128):
