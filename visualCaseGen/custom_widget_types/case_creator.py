@@ -946,6 +946,7 @@ class CaseCreator:
             if self._wav_uses_custom_ocn_grid():
                 comps_sharing_ocn_grid.append("WAV")
             for comp in comps_sharing_ocn_grid:
+                xmlchange(f"{comp}_GRID", ocn_grid, do_exec, self._is_non_local(), self._out)
                 xmlchange(f"{comp}_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
                 xmlchange(f"{comp}_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
                 xmlchange(f"{comp}_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)
