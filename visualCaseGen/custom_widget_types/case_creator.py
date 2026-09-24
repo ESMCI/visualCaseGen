@@ -521,6 +521,7 @@ class CaseCreator:
             + f"--case {caseroot} "
             + f"--machine {machine} "
             + "--run-unsupported "
+            + "--handle-preexisting-dirs a "
         )
 
         # append pecount if provided:
@@ -549,7 +550,9 @@ class CaseCreator:
 
         # Run the create_newcase command:
         if do_exec:
-            runout = subprocess.run(cmd, shell=True, capture_output=True)
+            runout = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, stdin=subprocess.DEVNULL
+            )
             with self._out:
                 if runout.returncode == 0:
                     print(f"{COMMENT}The create_newcase command was successful.{RESET}\n")
@@ -557,6 +560,12 @@ class CaseCreator:
                     print(f"{ERROR}Error creating case.{RESET}\n")
                     print(f"{runout.stderr}\n")
             if runout.returncode != 0:
+                if "Aborting by user request" in runout.stderr:
+                    raise RuntimeError(
+                        "Error creating case: a previous case with the same name left its "
+                        "build/run directories behind (see the message above). Remove them, "
+                        "or choose a different case name."
+                    )
                 raise RuntimeError("Error creating case.")
 
     def _apply_all_xmlchanges(self, do_exec):
