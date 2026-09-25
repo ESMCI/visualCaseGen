@@ -126,7 +126,7 @@ def xmlchange(var, val, do_exec=True, is_non_local=False, out=None):
 
     out = DummyOutput() if out is None else out
     with out:
-        print(f"{cmd}\n")
+        print(cmd)
 
     if not do_exec:
         return

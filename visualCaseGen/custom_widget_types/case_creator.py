@@ -521,6 +521,7 @@ class CaseCreator:
             + f"--case {caseroot} "
             + f"--machine {machine} "
             + "--run-unsupported "
+            + "--handle-preexisting-dirs a "
         )
 
         # append pecount if provided:
@@ -549,7 +550,9 @@ class CaseCreator:
 
         # Run the create_newcase command:
         if do_exec:
-            runout = subprocess.run(cmd, shell=True, capture_output=True)
+            runout = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, stdin=subprocess.DEVNULL
+            )
             with self._out:
                 if runout.returncode == 0:
                     print(f"{COMMENT}The create_newcase command was successful.{RESET}\n")
@@ -557,6 +560,12 @@ class CaseCreator:
                     print(f"{ERROR}Error creating case.{RESET}\n")
                     print(f"{runout.stderr}\n")
             if runout.returncode != 0:
+                if "Aborting by user request" in runout.stderr:
+                    raise RuntimeError(
+                        "Error creating case: a previous case with the same name left its "
+                        "build/run directories behind (see the message above). Remove them, "
+                        "or choose a different case name."
+                    )
                 raise RuntimeError("Error creating case.")
 
     def _apply_all_xmlchanges(self, do_exec):
@@ -578,7 +587,6 @@ class CaseCreator:
         self._apply_lnd_grid_xmlchanges(do_exec)
         self._apply_ocn_grid_xmlchanges(do_exec)
         self._apply_runoff_ocn_mapping_xmlchanges(do_exec)
-        self._apply_wav_coupling_xmlchanges(do_exec)
 
 
     def _apply_lnd_grid_xmlchanges(self, do_exec):
@@ -641,16 +649,6 @@ class CaseCreator:
             and wav_grid not in (None, "", "null")
         )
         return not picked_standard_wav_grid
-
-    def _apply_wav_coupling_xmlchanges(self, do_exec):
-        """Use the legacy MOM6-WW3 wave coupling method when the custom ocean grid is reused as
-        the wave grid."""
-
-        if cvars["COMP_WAV"].value == "ww3" and self._wav_uses_custom_ocn_grid():
-            with self._out:
-                print(f"{COMMENT}Set wave coupling mode to legacy:{RESET}\n")
-                xmlchange("MOM6_WW3_CPL_METHOD", "legacy", do_exec, self._is_non_local(), self._out)
-
 
     @staticmethod
     def _calc_cores_based_on_grid( num_points, min_points_per_core = 32, max_points_per_core = 300, ideal_multiple_of_cores_used = 128):
@@ -946,6 +944,7 @@ class CaseCreator:
             if self._wav_uses_custom_ocn_grid():
                 comps_sharing_ocn_grid.append("WAV")
             for comp in comps_sharing_ocn_grid:
+                xmlchange(f"{comp}_GRID", ocn_grid, do_exec, self._is_non_local(), self._out)
                 xmlchange(f"{comp}_NX", cvars["OCN_NX"].value, do_exec, self._is_non_local(), self._out)
                 xmlchange(f"{comp}_NY", cvars["OCN_NY"].value, do_exec, self._is_non_local(), self._out)
                 xmlchange(f"{comp}_DOMAIN_MESH", ocn_mesh.as_posix(), do_exec, self._is_non_local(), self._out)

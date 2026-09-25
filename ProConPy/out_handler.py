@@ -1,9 +1,35 @@
 """ Logging Output Handler Module """
 
 import logging
+import sys
 import ipywidgets as widgets
 
 logger = logging.getLogger(__name__)
+
+
+class _NameStrippingFormatter(logging.Formatter):
+    """Formatter that drops the whitespace some logger names are padded with."""
+
+    def format(self, record):
+        name = record.name
+        record.name = name.strip()
+        try:
+            return super().format(record)
+        finally:
+            record.name = name
+
+
+def _console_handlers():
+    """INFO and below to stdout, WARNING and above to stderr, so that notebooks
+    (which show stderr on a red background) only flag actual warnings."""
+    formatter = _NameStrippingFormatter("%(levelname)s [%(name)s] %(message)s")
+    to_stdout = logging.StreamHandler(sys.stdout)
+    to_stdout.addFilter(lambda record: record.levelno < logging.WARNING)
+    to_stderr = logging.StreamHandler(sys.stderr)
+    to_stderr.setLevel(logging.WARNING)
+    for handler in (to_stdout, to_stderr):
+        handler.setFormatter(formatter)
+    return [to_stdout, to_stderr]
 
 
 class OutHandler(logging.Handler):
@@ -17,7 +43,7 @@ class OutHandler(logging.Handler):
             "border": "1px solid black"
         }
         self.out = widgets.Output(layout=layout)
-        logging.basicConfig(level=logging.DEBUG, datefmt="%I:%M:%S")
+        logging.basicConfig(level=logging.DEBUG, handlers=_console_handlers())
         self.set_verbosity(verbose=False)
 
     def emit(self, record):
