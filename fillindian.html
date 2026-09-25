@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fill Indian Ocean &mdash; visualCaseGen 0.0.21 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a11416ff"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Ridge World" href="ridge.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            visualCaseGen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="open.html">Opening the GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">visualCaseGen Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating_case.html">Stages of Creating a Case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compset.html">Stage 1/3: Compset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="grid.html">Stage 2/3: Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch.html">Stage 3/3: Launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="ridge.html">Ridge World</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fill Indian Ocean</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#stage-0-open-visualcasegen">Stage 0: Open visualCaseGen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-1-select-compset">Stage 1: Select Compset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initialization-time">Initialization time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#models">Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-physics">Model Physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#component-options-modifiers">Component Options (Modifiers)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-2-grid">Stage 2: Grid</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#atmosphere-grid">Atmosphere Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ocean-grid">Ocean Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#land-grid">Land Grid</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#stage-3-launch">Stage 3: Launch</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">visualCaseGen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Fill Indian Ocean</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/fillindian.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fill-indian-ocean">
+<h1>Fill Indian Ocean<a class="headerlink" href="#fill-indian-ocean" title="Link to this heading"></a></h1>
+<p>In this tutorial, we’ll walk through the process of modifying the continental geometry
+in an uncoupled CESM case, where we’ll fill the Indian Ocean with land and these new
+land points will be specified as c4-grass.</p>
+<section id="stage-0-open-visualcasegen">
+<h2>Stage 0: Open visualCaseGen<a class="headerlink" href="#stage-0-open-visualcasegen" title="Link to this heading"></a></h2>
+<p>Follow the instructions in the <a class="reference internal" href="open.html#open"><span class="std std-ref">Opening the GUI</span></a> to open visualCaseGen in your Jupyter notebook
+environment.</p>
+</section>
+<section id="stage-1-select-compset">
+<h2>Stage 1: Select Compset<a class="headerlink" href="#stage-1-select-compset" title="Link to this heading"></a></h2>
+<p>After having executed the cell with the command <cite>from visualCaseGen import gui; gui</cite>,
+and clicking the <strong>Start</strong> button, you will see the main interface of visualCaseGen.</p>
+<p>Click the <strong>Custom</strong> button to proceed with creating a custom compset.</p>
+<img alt="assets/Stage1_1.png" src="assets/Stage1_1.png" />
+<section id="initialization-time">
+<h3>Initialization time<a class="headerlink" href="#initialization-time" title="Link to this heading"></a></h3>
+<p>Select <cite>2000</cite> as the initialization time period. This selection is appropriate for
+fixed-time-period runs with present-day conditions.</p>
+<img alt="_images/stage1_5.png" src="_images/stage1_5.png" />
+</section>
+<section id="models">
+<h3>Models<a class="headerlink" href="#models" title="Link to this heading"></a></h3>
+<p>Once you’ve selected the initialization time, visualCaseGen will prompt you to select the
+models for each component class. For this ridge world case, select the following component
+options: <cite>cam</cite> as the atmosphere model, <cite>clm</cite> as the land model, <cite>cice</cite> as the ice model,
+<cite>docn</cite> (data ocean) as the ocean model, rtm as the river transport model, sglc (stub land ice)
+as the land ice model, and <cite>swav</cite> (stub wave) as the wave model. After all the selections are
+made, the model matrix should look like:</p>
+<img alt="_images/fillindian1.png" src="_images/fillindian1.png" />
+</section>
+<section id="model-physics">
+<h3>Model Physics<a class="headerlink" href="#model-physics" title="Link to this heading"></a></h3>
+<p>Having selected the models, you will proceed to select the physics options for each model. The physics
+settings determine the complexity of each model component and impact computational requirements.
+For this example, select the <cite>CAM60</cite> physics option for the atmosphere model and <cite>CLM50</cite> as
+the land physics. For the remaining models, there are no multiple physics options available, so
+the default physics settings are automatically selected.</p>
+<img alt="_images/fillindian2.png" src="_images/fillindian2.png" />
+</section>
+<section id="component-options-modifiers">
+<h3>Component Options (Modifiers)<a class="headerlink" href="#component-options-modifiers" title="Link to this heading"></a></h3>
+<p>You are now ready to finalize the compset by selecting optional physics modifiers. Navigate between
+tabs for each component options to select the desired options. For this example, make the
+following selections:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>ATM</strong>: <cite>(none)</cite></p></li>
+<li><p><strong>LND</strong>: <cite>SP</cite> (satellite phenology)</p></li>
+<li><p><strong>ICE</strong>: <cite>PRES</cite> (prescribed)</p></li>
+<li><p><strong>OCN</strong>: <cite>DOM</cite> (prescribed)</p></li>
+<li><p><strong>ROF</strong>: <cite>(none)</cite></p></li>
+<li><p><strong>WAV</strong>: <cite>(none)</cite></p></li>
+<li><p><strong>RTM</strong>: <cite>(none)</cite></p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+<section id="stage-2-grid">
+<h2>Stage 2: Grid<a class="headerlink" href="#stage-2-grid" title="Link to this heading"></a></h2>
+<p>Having completed the compset configuration, you will now proceed to the <cite>Grid</cite> stage.
+To be able to fill the Indian Ocean with land, you will need to create a custom grid,
+so click the <strong>Custom</strong> button to proceed.</p>
+<img alt="_images/Stage2_1.png" src="_images/Stage2_1.png" />
+<p>When the <cite>Custom</cite> button is clicked, you will be prompted to specify a directory where
+the grid files will be stored and a new, unique grid name, .e.g., <cite>fillIndian</cite> for this example.</p>
+<img alt="_images/fillindian3.png" src="_images/fillindian3.png" />
+<section id="atmosphere-grid">
+<h3>Atmosphere Grid<a class="headerlink" href="#atmosphere-grid" title="Link to this heading"></a></h3>
+<p>After selecting your grid directory and assigning a name, click the “Select” button to initiate
+the process of constructing your new grid. You will do this by individually selecting the grids
+for the atmosphere, ocean, and land. First, you will be prompted to select the atmosphere
+grid. Note that, unlike the ocean and land grids, the atmosphere grid is not customizable within
+visualCaseGen. Therefore, you must select from the pre-existing options. For this example, choose
+the standard 1-degree resolution grid: “0.9x1.25.”</p>
+<img alt="_images/ridge5.png" src="_images/ridge5.png" />
+</section>
+<section id="ocean-grid">
+<h3>Ocean Grid<a class="headerlink" href="#ocean-grid" title="Link to this heading"></a></h3>
+<p>Since DOCN (data ocean) is the ocean model selected for this compset, the ocean grid will be
+automatically set to the same grid as the atmosphere model. Therefore, you do not need to make
+any selections for the ocean grid. However, you will have the option to customize the
+land/ocean mask in the land grid section.</p>
+</section>
+<section id="land-grid">
+<h3>Land Grid<a class="headerlink" href="#land-grid" title="Link to this heading"></a></h3>
+<p>In the final step of the custom grid configuration, you will be prompted to select the land grid.
+Since the continental geometry is to be modified, select the <cite>Modified</cite> land grid mode:</p>
+<img alt="_images/ridge10.png" src="_images/ridge10.png" />
+<p>In the <cite>Base Land Grid</cite> selection dialog, choose the <cite>0.9x1.25</cite> grid to be consistent with
+the atmosphere grid:</p>
+<img alt="_images/ridge11.png" src="_images/ridge11.png" />
+<p>Having selected the base land grid, you will now be prompted specify the land/ocean mask.
+This is done in the <cite>Mesh Mask Modifier</cite> subsection of the land grid configuration.
+When an active ocean model (i.e., MOM6) is present, the land/ocean mask is set by the ocean
+model grid. However, since the ocean model for this compset is DOCN, you will need to specify
+the land/ocean via the <cite>Mesh Mask Modifier</cite> dialog, which should initially look like:</p>
+<img alt="_images/fillindian4.png" src="_images/fillindian4.png" />
+<p>The visualCaseGen tool auto-completes the (default) mesh file, if available. Otherwise, you can
+download the <cite>fv0.9x1.25</cite> mesh file from the CESM input data repository:
+<a class="reference external" href="https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/share/meshes/fv0.9x1.25_141008_polemod_ESMFmesh.nc">https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/share/meshes/fv0.9x1.25_141008_polemod_ESMFmesh.nc</a></p>
+<p>After downloading the mesh file (if necessary), and providing the path to it (unless already auto-filled),
+you will need to specify the custom <em>Land mask file</em> path. This file is to be pre-generated by the user,
+and it should contain the following variables:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Custom Land Mask File Variables</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>landmask(lsmlat,lsmlon)</p></td>
+<td><p>1’s for land, 0’s elsewhere</p></td>
+</tr>
+<tr class="row-odd"><td><p>mod_lnd_props(lsmlat,lsmlon)</p></td>
+<td><p>mask where the surface properties will be altered (1’s for modification, 0’s elsewhere)</p></td>
+</tr>
+<tr class="row-even"><td><p>lats(lsmlat)</p></td>
+<td><p>grid latitudes</p></td>
+</tr>
+<tr class="row-odd"><td><p>lons(lsmlon)</p></td>
+<td><p>grid longitudes</p></td>
+</tr>
+</tbody>
+</table>
+<p>If the latitude and longitude variables are not the same as the names specified above,
+make sure to update the corresponding variable and dimension names in the
+<cite>Mesh Mask Modifier</cite> dialog.</p>
+<p>For this example, we provide a custom land mask file named <cite>mask_fillIO.nc</cite> where the Indian Ocean
+is filled with land.
+Download the following tar file containing this custom land mask file and the Jupyter notebook
+that was used to generate it, along with the original land mask file:
+<a class="reference download external" download="" href="https://files.cesm.ucar.edu/models/simple/tar/modifylandmask_scripts.tar"><code class="xref download docutils literal notranslate"><span class="pre">modifylandmask_scripts.tar</span></code></a></p>
+<p>After downloading the tar file, you may extract the contents as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tar<span class="w"> </span>-xf<span class="w"> </span>modifylandmask_scripts.tar
+</pre></div>
+</div>
+<p>If successfully extracted, you will find the following files under the <cite>modifylandmask_scripts</cite> directory:</p>
+<ul class="simple">
+<li><p><cite>mask_fillIO.nc</cite>: The custom land mask file with the Indian Ocean filled with land.</p></li>
+<li><p><cite>default_mask.nc</cite>: The original land mask file.</p></li>
+<li><p><cite>modifylandmask.ipynb</cite>: The Jupyter notebook used to generate the custom land mask file.</p></li>
+</ul>
+<p>Set the <em>Land mask file</em> path to the <cite>mask_fillIO.nc</cite> under the <cite>modifylandmask_scripts</cite> directory.</p>
+<img alt="_images/fillindian5.png" src="_images/fillindian5.png" />
+<p>This custom land mask is shown in the below figure where the first image shows the original land mask,
+the second image shows the custom land mask with the Indian Ocean filled with land, and the third
+image shows the difference between the two masks:</p>
+<img alt="_images/fillindian6.png" src="_images/fillindian6.png" />
+<p>Once the modified land mask file path is specified and the variables are correctly set, click the
+<strong>“Run mesh mask modifier”</strong> button to apply the custom land mask to the mesh file. This may
+take a few minutes to complete. Once the process is finished, you will automatically proceed to
+the second and final step of the custom land grid configuration: <cite>fsurdat</cite> file generation.</p>
+<p>In the <cite>fsurdat</cite> file generation dialog, you will be prompted to configure and run the <cite>fsurdat</cite>
+tool to modify the surface data of the selected land grid. The properties to configure and modify
+include soil properties, vegetation properties, urban areas, etc. (See CLM documentation for more
+information.) visualCaseGen will automatically select the input surface data file (fsurdat)
+if it exists in the CESM input data directory of the system you are using.
+Otherwise, you can download the following fsurdat file from the CESM input data repository:
+<a class="reference external" href="https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/lnd/clm2/surfdata_esmf/ctsm5.3.0/surfdata_0.9x1.25_hist_1850_78pfts_c240908.nc">https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/lnd/clm2/surfdata_esmf/ctsm5.3.0/surfdata_0.9x1.25_hist_1850_78pfts_c240908.nc</a></p>
+<p>If the <cite>“Input surface data file (fsurdat)”</cite> is not already auto-filled, download the above file and provide the path to it in the
+<cite>“Input surface data file (fsurdat)”</cite> field.</p>
+<p>Next, make sure that <em>“Via mask file”</em> is chosen as the <em>“Specify area of customization”</em> option. If not already auto-filled,
+select the path to the <cite>mask_fillIO.nc</cite> file you provided in the previous step as the <em>“Land mask file designating area of customization”</em>.</p>
+<p>Fill in the remaining fields as shown below:</p>
+<img alt="_images/fillindian7.png" src="_images/fillindian7.png" />
+<p>Now, click the green <strong>Run fsurdat_modifier</strong> button to generate the modified fsurdat file. This
+process may take a few minutes to complete. Once the process is finished, you will automatically
+proceed to the <cite>Launch</cite> stage.</p>
+</section>
+</section>
+<section id="stage-3-launch">
+<h2>Stage 3: Launch<a class="headerlink" href="#stage-3-launch" title="Link to this heading"></a></h2>
+<p>The final stage of visualCaseGen is the <cite>Launch</cite> stage, where you bring your CESM case to
+life with the selected compset and grid configuration. In this stage, you’ll find tools to
+select the case directory, choose a target machine, and initiate case creation.</p>
+<img alt="_images/Stage3_1.png" src="_images/Stage3_1.png" />
+<p>First, click <strong>Select</strong>
+to choose the case directory and enter a unique casename, then click <strong>Select</strong> again to confirm.</p>
+<img alt="_images/fillindian8.png" src="_images/fillindian8.png" />
+<p>Then confirm the target machine or select a different machine if needed. If the machine requires a project ID,
+you will be prompted to enter it here. At this point, you are ready to create the case. Before doing so, you can
+click <strong>Show Commands</strong> to view the terminal commands that will be executed.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If CESM is not installed on your system, the selected machine will appear as <cite>CESM_NOT_PORTED</cite> and the
+<strong>Create Case</strong> button will be disabled. In this case, you can still print out the commands that would be executed
+to create the case by clicking the <strong>Show Commands</strong> button. You can then follow the printed commands and instructions
+on a system where CESM is installed to create the case manually.</p>
+</div>
+<p>Once ready to proceed, click <strong>Create Case</strong> to
+initiate case creation. If the case creation is successful, you will see a completion log detailing all the steps
+taken to create the case and a confirmation of the successful case creation along with the path to the new case directory:</p>
+<img alt="_images/fillindian9.png" src="_images/fillindian9.png" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ridge.html" class="btn btn-neutral float-left" title="Ridge World" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alper Altuntas.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
