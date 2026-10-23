@@ -154,7 +154,12 @@ def xmlchange(var, val, do_exec=True, is_non_local=False, out=None, *, caseroot=
     if not do_exec:
         return
 
-    runout = subprocess.run(cmd, capture_output=True, text=True, cwd=caseroot)
+    # Without a shell, a missing ./xmlchange raises OSError rather than
+    # returning a nonzero code; report both the same way.
+    try:
+        runout = subprocess.run(cmd, capture_output=True, text=True, cwd=caseroot)
+    except OSError as e:
+        raise RuntimeError(f"Error running {shlex.join(cmd)} in {caseroot}: {e}") from e
     if runout.returncode != 0:
         raise RuntimeError(
             f"Error running {shlex.join(cmd)} in {caseroot}:\n{runout.stderr}"
