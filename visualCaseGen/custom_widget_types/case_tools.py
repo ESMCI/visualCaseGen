@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import shlex
 import os
 
 from ProConPy.config_var import cvars
@@ -48,7 +49,17 @@ def run_case_setup(do_exec, is_non_local=False, out=None):
         if runout.returncode != 0:
             raise RuntimeError(f"Error running {cmd}.")
 
-def append_user_nl(model, var_val_pairs, do_exec, comment=None, log_title=True, out=None):
+def append_user_nl(
+    model,
+    var_val_pairs,
+    do_exec,
+    comment=None,
+    log_title=True,
+    out=None,
+    *,
+    caseroot=None,
+    ninst=None,
+):
     """Apply changes to a given user_nl file.
 
     Parameters
@@ -65,6 +76,11 @@ def append_user_nl(model, var_val_pairs, do_exec, comment=None, log_title=True, 
         If True, print the log title "Adding parameter changes to user_nl_filename".
     out : Output, optional
         The output widget to use for displaying log messages
+    caseroot : str or Path, optional
+        The case directory. Defaults to the CASEROOT config variable.
+    ninst : int, optional
+        The number of instances, which decides between user_nl_<model> and
+        user_nl_<model>_NNNN. Defaults to the NINST config variable.
     """
 
     # confirm var_val_pairs is a list of tuples:
@@ -73,8 +89,8 @@ def append_user_nl(model, var_val_pairs, do_exec, comment=None, log_title=True, 
 
     out = DummyOutput() if out is None else out
 
-    caseroot = cvars["CASEROOT"].value
-    ninst = cvars["NINST"].value
+    caseroot = cvars["CASEROOT"].value if caseroot is None else caseroot
+    ninst = cvars["NINST"].value if ninst is None else ninst
 
     def _do_append_user_nl(user_nl_filename):
         # Print the changes to the user_nl file:
@@ -104,11 +120,16 @@ def append_user_nl(model, var_val_pairs, do_exec, comment=None, log_title=True, 
         for i in range(1, ninst+1):
             _do_append_user_nl(f"user_nl_{model}_{str(i).zfill(4)}")
 
-def xmlchange(var, val, do_exec=True, is_non_local=False, out=None):
+def xmlchange(var, val, do_exec=True, is_non_local=False, out=None, *, caseroot=None):
     """Apply custom xml changes to the case.
 
     Parameters
     ----------
+    var : str
+        The xml variable to change.
+    val
+        The new value. It reaches ./xmlchange as part of a single argument,
+        so it is never interpreted by a shell.
     do_exec : bool
         If True, execute the commands. If False, only print them.
     is_non_local : bool
@@ -116,21 +137,30 @@ def xmlchange(var, val, do_exec=True, is_non_local=False, out=None):
         that runs visualCaseGen.
     out : Output
         The output widget to use for displaying log messages.
+    caseroot : str or Path, optional
+        The case directory. Defaults to the CASEROOT config variable.
     """
 
-    caseroot = cvars["CASEROOT"].value
+    caseroot = cvars["CASEROOT"].value if caseroot is None else caseroot
 
-    cmd = f"./xmlchange {var}={val}"
+    cmd = ["./xmlchange", f"{var}={val}"]
     if is_non_local is True:
-        cmd += " --non-local"
+        cmd.append("--non-local")
 
     out = DummyOutput() if out is None else out
     with out:
-        print(cmd)
+        print(shlex.join(cmd))
 
     if not do_exec:
         return
 
-    runout = subprocess.run(cmd, shell=True, capture_output=True, cwd=caseroot)
+    # Without a shell, a missing ./xmlchange raises OSError rather than
+    # returning a nonzero code; report both the same way.
+    try:
+        runout = subprocess.run(cmd, capture_output=True, text=True, cwd=caseroot)
+    except OSError as e:
+        raise RuntimeError(f"Error running {shlex.join(cmd)} in {caseroot}: {e}") from e
     if runout.returncode != 0:
-        raise RuntimeError(f"Error running {cmd}.")
+        raise RuntimeError(
+            f"Error running {shlex.join(cmd)} in {caseroot}:\n{runout.stderr}"
+        )
