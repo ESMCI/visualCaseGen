@@ -1,6 +1,8 @@
 """Unit tests for visualCaseGen.user_nl_blocks: a tool's rerun replaces its own
 user_nl entries and leaves everything else alone."""
 
+import pytest
+
 from visualCaseGen import user_nl_blocks
 
 TAG = "my_tool setup"
@@ -25,7 +27,12 @@ def test_a_rerun_replaces_the_block(tmp_path):
     def run(*groups):
         edited = user_nl_blocks.strip(tmp_path, TAG)
         user_nl_blocks.write(
-            "ic", "mom", list(groups), caseroot=tmp_path, ninst=1, tag=TAG
+            "initial conditions",
+            "mom",
+            list(groups),
+            caseroot=tmp_path,
+            ninst=1,
+            tag=TAG,
         )
         return edited
 
@@ -79,6 +86,18 @@ def test_strip_removes_only_this_tags_blocks(tmp_path):
     assert path.read_text() == rest
 
 
+def test_two_blocks_cannot_set_the_same_variable(tmp_path):
+    path = tmp_path / "user_nl_mom"
+    path.write_text(CREATION)
+    case = dict(caseroot=tmp_path, ninst=1, tag=TAG)
+    user_nl_blocks.write("tides", "mom", [TIDES], **case)
+    before = path.read_text()
+
+    with pytest.raises(ValueError):
+        user_nl_blocks.write("obc", "mom", [(None, [("tides", "False")])], **case)
+    assert path.read_text() == before
+
+
 def test_each_instance_file_gets_its_own_block(tmp_path):
     (tmp_path / "user_nl_mom_0002").write_text("INIT_LAYERS_FROM_Z_FILE = False\n")
     for _ in range(2):
@@ -94,14 +113,17 @@ def test_each_instance_file_gets_its_own_block(tmp_path):
     assert not (tmp_path / "user_nl_mom").exists()
 
 
-def test_restore_puts_back_what_snapshot_saw(tmp_path):
+def test_restore_puts_back_what_snapshot_saw(tmp_path, monkeypatch):
+    """Even when the caseroot is relative and the working directory moves."""
     (tmp_path / "user_nl_mom").write_text(CREATION)
-    saved = user_nl_blocks.snapshot(tmp_path)
+    monkeypatch.chdir(tmp_path.parent)
+    saved = user_nl_blocks.snapshot(tmp_path.name)
     case = dict(caseroot=tmp_path, ninst=1, tag=TAG)
     user_nl_blocks.write("ic", "mom", [IC], **case)
     user_nl_blocks.write("ice", "cice", [(None, [("ice_ic", "'default'")])], **case)
 
-    user_nl_blocks.restore(tmp_path, saved)
+    monkeypatch.chdir(tmp_path)
+    user_nl_blocks.restore(".", saved)
     assert {p.name: p.read_text() for p in tmp_path.glob("user_nl_*")} == {
         "user_nl_mom": CREATION
     }

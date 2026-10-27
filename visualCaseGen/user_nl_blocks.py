@@ -59,7 +59,9 @@ def _files(caseroot, model, ninst):
 
 def _parse(lines, path, tag):
     """[(owner, sha, begin, end)] line indices of the blocks in ``lines``."""
-    begin_re = re.compile(re.escape(_begin(tag)) + r"(\S+) \[sha:([0-9a-f]+)\]")
+    # Any owner write() accepts, spaces included, so that strip() finds every
+    # block write() wrote.
+    begin_re = re.compile(re.escape(_begin(tag)) + r"(.*?) \[sha:([0-9a-f]+)\]")
     blocks = []
     i = 0
     while i < len(lines):
@@ -68,7 +70,11 @@ def _parse(lines, path, tag):
             owner, sha = match.groups()
             end_line = f"{_end(tag)}{owner}"
             end = next(
-                (j for j in range(i + 1, len(lines)) if lines[j].rstrip() == end_line),
+                (
+                    j
+                    for j in range(i + 1, len(lines))
+                    if lines[j].rstrip("\n") == end_line
+                ),
                 None,
             )
             if end is None:
@@ -89,18 +95,23 @@ def _key(name):
     return "".join(name.split()).lower()
 
 
-def _keys_outside_blocks(lines, path, tag):
-    """The (normalized) variables set outside the ``tag`` blocks."""
-    inside = set()
-    for _, _, begin, end in _parse(lines, path, tag):
-        inside.update(range(begin, end + 1))
-    keys = set()
-    for i, line in enumerate(lines):
+def _set_keys(lines, path, tag):
+    """The (normalized) variables set outside the ``tag`` blocks, and
+    {variable: owner} for those set inside them."""
+    owners = [None] * len(lines)
+    for owner, _, begin, end in _parse(lines, path, tag):
+        owners[begin : end + 1] = [owner] * (end + 1 - begin)
+    outside, inside = set(), {}
+    for line, owner in zip(lines, owners):
         text = line.strip()
-        if i in inside or text.startswith("!") or "=" not in text:
+        if text.startswith("!") or "=" not in text:
             continue
-        keys.add(_key(text.split("=", 1)[0]))
-    return keys
+        key = _key(text.split("=", 1)[0])
+        if owner is None:
+            outside.add(key)
+        else:
+            inside[key] = owner
+    return outside, inside
 
 
 def _read_lines(path):
@@ -126,10 +137,14 @@ def _log(path, kept, skipped, tag):
 
 
 def snapshot(caseroot):
-    """The contents of every user_nl file in ``caseroot``, for ``restore``."""
+    """The contents of every user_nl file in ``caseroot``, for ``restore``.
+
+    Keyed by absolute path, so that ``restore`` matches them however its
+    caseroot is spelled, and wherever the working directory has moved to.
+    """
     return {
         path: path.read_text()
-        for path in Path(caseroot).glob("user_nl_*")
+        for path in Path(caseroot).resolve().glob("user_nl_*")
         if path.is_file()
     }
 
@@ -137,7 +152,7 @@ def snapshot(caseroot):
 def restore(caseroot, contents):
     """Put the user_nl files back as ``snapshot`` found them, so that a run
     that fails part-way leaves them as they were."""
-    for path in Path(caseroot).glob("user_nl_*"):
+    for path in Path(caseroot).resolve().glob("user_nl_*"):
         if path.is_file() and path not in contents:
             path.unlink()
     for path, text in contents.items():
@@ -179,12 +194,22 @@ def write(owner, model, groups, *, caseroot, ninst, tag):
     ``groups`` is ``[(comment or None, [(var, val), ...]), ...]``; the block
     holds them as consecutive append_user_nl calls would write them, and the
     log shows them the same way. Variables the file already sets outside the
-    blocks are left out (see the module docstring).
+    blocks are left out (see the module docstring). A variable another of the
+    ``tag`` blocks already sets raises a ValueError: the file would list it
+    twice, and which of the two values wins would depend on the call order.
     """
     per_file = []
     for path in _files(Path(caseroot), model, ninst):
         lines = _read_lines(path)
-        outside = _keys_outside_blocks(lines, path, tag)
+        outside, inside = _set_keys(lines, path, tag)
+        for _, pairs in groups:
+            for var, _ in pairs:
+                if _key(var) in inside:
+                    raise ValueError(
+                        f"{path}: '{owner}' sets {var}, which the "
+                        f"'{inside[_key(var)]}' block already sets. A variable "
+                        f"can be in only one of the '{tag}' blocks."
+                    )
         kept = []
         for comment, pairs in groups:
             pairs = [(var, val) for var, val in pairs if _key(var) not in outside]
