@@ -502,6 +502,7 @@ class CspSolver:
             # or the variable has no dependent variables.
             if self._cgraph[var] or var.is_guard_var:
                 if new_value is not None:
+                    self._allow_joined_value(var, new_value)
                     self._assignment_assertions[var] = var == new_value
                 else:
                     self._assignment_assertions.pop(var, None)
@@ -514,6 +515,18 @@ class CspSolver:
 
             # record the assignment
             self._assignment_history.append((var, new_value))
+
+    def _allow_joined_value(self, var, new_value):
+        """Add a value that joins several options, e.g., "REGIONAL%MARBL-BIO", as one of the
+        options of a multi-select variable. Each joined option is already checked separately in
+        _check_assignment_of_finite_domain_var. Relational constraints that use Contains, e.g.,
+        Contains(COMP_OCN_OPTION, "MARBL-BIO"), still match the joined value."""
+        if var._value_delimiter is None or var._value_delimiter not in new_value:
+            return
+        for scope in [self._options_assertions, *self._past_options_assertions]:
+            if var in scope:
+                scope[var] = Or(scope[var], var == new_value)
+        self._refresh_solver()
 
     @staticmethod
     def _update_options_of_dependent_vars(var, new_value):
