@@ -517,10 +517,10 @@ class CspSolver:
             self._assignment_history.append((var, new_value))
 
     def _allow_joined_value(self, var, new_value):
-        """An options assertion allows single options only. If new_value joins several options of
-        a multi-select variable, e.g., "REGIONAL%MARBL-BIO", extend the options assertion of the
-        variable (in whichever stage it was registered) to allow new_value as well. Each of the
-        joined options has already been checked in _check_assignment_of_finite_domain_var."""
+        """Add a value that joins several options, e.g., "REGIONAL%MARBL-BIO", as one of the
+        options of a multi-select variable. Each joined option is already checked separately in
+        _check_assignment_of_finite_domain_var. Relational constraints that use Contains, e.g.,
+        Contains(COMP_OCN_OPTION, "MARBL-BIO"), still match the joined value."""
         if var._value_delimiter is None or var._value_delimiter not in new_value:
             return
         for scope in [self._options_assertions, *self._past_options_assertions]:
