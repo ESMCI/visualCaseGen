@@ -69,11 +69,13 @@ def _parse(lines, path, tag):
         if match:
             owner, sha = match.groups()
             end_line = f"{_end(tag)}{owner}"
+            # Trailing whitespace is ignored on both sides: an editor may add
+            # or drop it, and an owner may end in it (or be empty).
             end = next(
                 (
                     j
                     for j in range(i + 1, len(lines))
-                    if lines[j].rstrip("\n") == end_line
+                    if lines[j].rstrip() == end_line.rstrip()
                 ),
                 None,
             )
@@ -194,22 +196,26 @@ def write(owner, model, groups, *, caseroot, ninst, tag):
     ``groups`` is ``[(comment or None, [(var, val), ...]), ...]``; the block
     holds them as consecutive append_user_nl calls would write them, and the
     log shows them the same way. Variables the file already sets outside the
-    blocks are left out (see the module docstring). A variable another of the
-    ``tag`` blocks already sets raises a ValueError: the file would list it
-    twice, and which of the two values wins would depend on the call order.
+    blocks are left out (see the module docstring). A variable that another of
+    the ``tag`` blocks already sets, or that ``groups`` lists twice, raises a
+    ValueError: the file would list it twice, and which of the two values wins
+    would depend on the order they were written in.
     """
     per_file = []
     for path in _files(Path(caseroot), model, ninst):
         lines = _read_lines(path)
         outside, inside = _set_keys(lines, path, tag)
+        # Who already sets each variable: another block, or this call.
+        set_by = {key: f"the '{other}' block" for key, other in inside.items()}
         for _, pairs in groups:
             for var, _ in pairs:
-                if _key(var) in inside:
+                if _key(var) in set_by:
                     raise ValueError(
-                        f"{path}: '{owner}' sets {var}, which the "
-                        f"'{inside[_key(var)]}' block already sets. A variable "
-                        f"can be in only one of the '{tag}' blocks."
+                        f"{path}: '{owner}' sets {var}, which {set_by[_key(var)]} "
+                        f"already sets. A variable can be set only once in the "
+                        f"'{tag}' blocks."
                     )
+                set_by[_key(var)] = f"'{owner}'"
         kept = []
         for comment, pairs in groups:
             pairs = [(var, val) for var, val in pairs if _key(var) not in outside]

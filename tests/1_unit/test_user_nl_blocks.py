@@ -67,13 +67,14 @@ def test_a_variable_set_outside_the_blocks_is_left_out(tmp_path):
 
 def test_strip_removes_only_this_tags_blocks(tmp_path):
     """The block below is laid out as write() lays it out; files that already
-    hold blocks depend on that layout still being read."""
+    hold blocks depend on that layout still being read. Its end line has the
+    trailing space an editor may leave."""
     ours = (
         "\n"
         "! >>> my_tool setup: ic [sha:b56ae51b] (rewritten on every call; "
         "set your own values outside this block)\n"
         "INIT_LAYERS_FROM_Z_FILE = True\n"
-        "! <<< my_tool setup: ic\n"
+        "! <<< my_tool setup: ic \n"
     )
     path = tmp_path / "user_nl_mom"
     path.write_text(CREATION + ours)
@@ -86,7 +87,8 @@ def test_strip_removes_only_this_tags_blocks(tmp_path):
     assert path.read_text() == rest
 
 
-def test_two_blocks_cannot_set_the_same_variable(tmp_path):
+def test_the_blocks_cannot_set_a_variable_twice(tmp_path):
+    """Not from two blocks, nor from two groups of one write call."""
     path = tmp_path / "user_nl_mom"
     path.write_text(CREATION)
     case = dict(caseroot=tmp_path, ninst=1, tag=TAG)
@@ -95,6 +97,10 @@ def test_two_blocks_cannot_set_the_same_variable(tmp_path):
 
     with pytest.raises(ValueError):
         user_nl_blocks.write("obc", "mom", [(None, [("tides", "False")])], **case)
+    with pytest.raises(ValueError):
+        user_nl_blocks.write(
+            "obc", "mom", [IC, (None, [("init_layers_from_z_file", "False")])], **case
+        )
     assert path.read_text() == before
 
 
