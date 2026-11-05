@@ -110,7 +110,7 @@ def test_constraint_violation_detection():
 
     # Set the atmosphere grid
     assert Stage.active().title.startswith('Atm')
-    cvars['CUSTOM_ATM_GRID'].value = "TL319"
+    cvars['CUSTOM_ATM_GRID'].value = "0.9x1.25"  # CAM has no Gaussian (TL319/T62) grids
 
     # Set the custom ocean grid mode
     assert Stage.active().title.startswith('Ocean')

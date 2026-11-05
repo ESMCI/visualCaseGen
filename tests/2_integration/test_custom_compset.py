@@ -48,7 +48,7 @@ def test_custom_compset_configuration():
         revert_to_first_stage()
 
 def configure_custom_compset():
-    """Configure a custom compset: 2000_DATM%JRA_SLND_CICE%PRES_MOM6_SROF_SGLC_WW3. Progress through the stages
+    """Configure a custom compset: 2000_DATM%JRA_SLND_CICE_MOM6_SROF_SGLC_WW3. Progress through the stages
     until the standard grid selector stage is reached."""
     # At initialization, the first stage should be enabled
     assert Stage.first().enabled
@@ -84,10 +84,10 @@ def configure_custom_compset():
     assert Stage.active().title.startswith('Component Options')
     cvars['COMP_ATM_OPTION'].value = "JRA"
     cvars['COMP_OCN_OPTION'].value = "(none)"
-    cvars['COMP_ICE_OPTION'].value = "PRES"
+    cvars['COMP_ICE_OPTION'].value = "(none)"  # prescribed ice (%PRES) requires DOCN, not MOM6
 
     # check if COMPSET_LNAME is set to the correct value
-    assert cvars['COMPSET_LNAME'].value == "2000_DATM%JRA_SLND_CICE%PRES_MOM6_SROF_SGLC_WW3"
+    assert cvars['COMPSET_LNAME'].value == "2000_DATM%JRA_SLND_CICE_MOM6_SROF_SGLC_WW3"
 
     # The remaining COMP_?_OPTIONS variables have single available options only, so all 
     # COMP_?_OPTIONS variables have been set, so the next stage is Grid:

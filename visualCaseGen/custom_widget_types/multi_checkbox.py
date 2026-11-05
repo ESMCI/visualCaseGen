@@ -69,6 +69,9 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
         self._disabled = disabled
         self._allow_multi_select = allow_multi_select
         self._multi_select = False
+        # True while _on_options_change rebuilds the checkboxes; suppresses the per-checkbox
+        # backend signals so that only the final value (if changed) is sent to the backend.
+        self._refreshing_options = False
         self._display_less = display_mode == "less"
         self._filter = filter
 
@@ -477,7 +480,8 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
                 else:
                     self.value = ()
 
-        self._signal_value_to_backend()
+        if not self._refreshing_options:
+            self._signal_value_to_backend()
 
     def _refresh_tooltips(self):
         """Update the tooltips widget. This method should be called whenever the (filtered)
@@ -497,6 +501,7 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
 
         # save old value and reset value
         old_value = self.value
+        self._refreshing_options = True
         self.value = ()
 
         # update options
@@ -546,9 +551,11 @@ class MultiCheckbox(widgets.VBox, widgets.ValueWidget):
             self._refresh_options_widgets()
             self.tooltips = ["" for _ in new_options]
 
-        if self.value != old_value:
-            # value reset, inform backend
-            self._signal_value_to_backend()
+        self._refreshing_options = False
+        # Note: the options trait is only ever set by the backend (ConfigVar.update_options_validities),
+        # which restores the widget value itself when only validities changed and resets the backend value
+        # when the options changed. Signalling the (possibly reset) value back to the backend here would
+        # register a nested assignment while the CSP solver is traversing the constraint graph.
 
     def _refresh_checkbox_descriptions(self):
         """Update the descriptions of the checkboxes. This method should be called whenever the

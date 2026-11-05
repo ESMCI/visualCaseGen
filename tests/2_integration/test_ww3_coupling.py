@@ -114,7 +114,7 @@ def test_regional_mom6_couples_with_ww3():
     cvars['CUSTOM_GRID_PATH'].value = str(custom_grid_path)
 
     assert Stage.active().title.startswith('Atm')
-    cvars['CUSTOM_ATM_GRID'].value = "TL319"
+    cvars['CUSTOM_ATM_GRID'].value = "0.9x1.25"  # CAM has no Gaussian (TL319/T62) grids
 
     assert Stage.active().title.startswith('Ocean')
     cvars['OCN_GRID_MODE'].value = "Create New"
@@ -157,7 +157,7 @@ def _drive_custom_mom6_to_ocn_mode(comp_wav="ww3", ocn_grid_mode="Create New"):
     cvars['COMP_ROF_OPTION'].value = "(none)"
     cvars['GRID_MODE'].value = 'Custom'
     cvars['CUSTOM_GRID_PATH'].value = str(Path(temp_dir) / "custom_grid")
-    cvars['CUSTOM_ATM_GRID'].value = "TL319"
+    cvars['CUSTOM_ATM_GRID'].value = "0.9x1.25"  # CAM has no Gaussian (TL319/T62) grids
     cvars['OCN_GRID_MODE'].value = ocn_grid_mode
 
 
