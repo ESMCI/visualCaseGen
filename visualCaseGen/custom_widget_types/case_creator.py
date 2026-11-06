@@ -41,7 +41,6 @@ class CaseCreator:
         self._out = DummyOutput() if output is None else output
         self._allow_xml_override = allow_xml_override
         self._add_grids_to_ccs_config = add_grids_to_ccs_config # By default, visualCaseGen assigns grids through ccs_config, if not possible (which can happen if the user does not own the sandbox), it is possible to apply grid changes through xmlchanges instead.
-        assert is_ccs_config_writeable or not add_grids_to_ccs_config, "Cannot write to ccs_config xml files. Please set add_grids_to_ccs_config to False to apply grid changes through xmlchanges."
 
     def revert_launch(self, do_exec=True):
         """This function is called when the case creation fails. It reverts the changes made
@@ -274,7 +273,10 @@ class CaseCreator:
 
         # confirm that modelgrid_aliases xml file is writeable:
         if not is_ccs_config_writeable(self._cime):
-            raise RuntimeError(f"Cannot write to {modelgrid_aliases_xml}.")
+            raise RuntimeError(
+                f"Cannot write to {modelgrid_aliases_xml}. Set add_grids_to_ccs_config "
+                "to False to apply the grid changes through xmlchanges instead."
+            )
 
         # Construct the component grids string to be logged:
         component_grids_str = f' atm grid: "{atm_grid}" \n'
@@ -712,12 +714,13 @@ class CaseCreator:
         ocn_grid_path = MOM6ForgeLauncher.get_custom_ocn_grid_path()
 
         # read in min and max depth from the MOM6 topo file:
-        ds_topo = xr.open_dataset(topo_file_path)
-        min_depth = ds_topo.attrs["min_depth"]
-        max_depth = ds_topo.attrs["max_depth"]
+        with xr.open_dataset(topo_file_path) as ds_topo:
+            min_depth = ds_topo.attrs["min_depth"]
+            max_depth = ds_topo.attrs["max_depth"]
 
         # number of vertical levels:
-        nk = len(xr.open_dataset(vgrid_file_path).dz)
+        with xr.open_dataset(vgrid_file_path) as ds_vgrid:
+            nk = len(ds_vgrid.dz)
 
         # Determine timesteps based on the grid resolution (assuming coupling frequency of 1800.0 sec):
         res_x = float(cvars['OCN_LENX'].value) / int(cvars["OCN_NX"].value)

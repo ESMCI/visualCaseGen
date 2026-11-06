@@ -50,6 +50,8 @@ class WW3InputGenerator(VBox):
         """Reset the widget output and the WW3_INPUT_STATUS variable."""
         self._out.clear_output()
         cvars["WW3_INPUT_STATUS"].value = None
+        # A successful run leaves the button disabled; it must work again.
+        self.disabled = False
 
     @owh.out.capture()
     def on_btn_generate_clicked(self, b):
