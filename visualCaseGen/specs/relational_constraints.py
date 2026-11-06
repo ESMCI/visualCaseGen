@@ -117,11 +117,11 @@ def get_relational_constraints(cvars):
         Implies(And(COMP_OCN=="mom", COMP_LND=="slnd", COMP_ICE=="sice"), OCN_LENY<180.0):
             "If LND and ICE are stub, custom MOM6 grid must exclude poles (singularity).",
 
-        Implies(And(COMP_OCN != "mom", COMP_LND!="clm"), GRID_MODE=="Standard"):
-            "Custom grids can only be generated when MOM6 and/or CLM are selected.",
+        Implies(And(COMP_OCN != "mom", COMP_OCN != "docn", COMP_LND!="clm"), GRID_MODE=="Standard"):
+            "Custom grids can only be generated when MOM6, DOCN and/or CLM are selected.",
 
-        Implies(COMP_OCN!="mom", OCN_GRID_MODE=="Standard"):
-            "Custom OCN grids can only be generated for MOM6.",
+        Implies(And(COMP_OCN!="mom", COMP_OCN != "docn"), OCN_GRID_MODE=="Standard"):
+            "Custom OCN grids can only be generated for MOM6 or DOCN.",
     
          #todo OCN_GRID_MODE!="Modify Existing":
          #todo     "This feature (Modify Existing) not implemented yet.",

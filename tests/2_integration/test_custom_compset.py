@@ -160,6 +160,40 @@ def revert_to_first_stage():
     Stage.first().reset()
 
 
+def test_a_data_ocean_can_take_a_custom_ocean_grid():
+    """CICE over a data ocean on a new ocean grid, with no CLM."""
+    ConfigVar.reboot()
+    Stage.reboot()
+    cime = CIME_interface()
+    initialize_configvars(cime)
+    initialize_widgets(cime)
+    initialize_stages(cime)
+    set_options(cime)
+    csp.initialize(cvars, get_relational_constraints(cvars), Stage.first())
+
+    cvars['COMPSET_MODE'].value = 'Custom'
+    cvars['INITTIME'].value = '2000'
+    cvars['COMP_ATM'].value = "datm"
+    cvars['COMP_LND'].value = "slnd"
+    cvars['COMP_ICE'].value = "cice"
+    cvars['COMP_OCN'].value = "docn"
+    cvars['COMP_ROF'].value = "srof"
+    cvars['COMP_GLC'].value = "sglc"
+    cvars['COMP_WAV'].value = "swav"
+    cvars['COMP_ATM_OPTION'].value = "JRA"
+    cvars['COMP_OCN_OPTION'].value = "SOM"
+    cvars['COMP_ICE_OPTION'].value = "PRES"
+    assert cvars['COMPSET_LNAME'].value == "2000_DATM%JRA_SLND_CICE%PRES_DOCN%SOM_SROF_SGLC_SWAV"
+
+    cvars['GRID_MODE'].value = 'Custom'
+    cvars['CUSTOM_GRID_PATH'].value = "/tmp/docn_custom_grid"
+    if Stage.active().title == "Atmosphere Grid":
+        cvars['CUSTOM_ATM_GRID'].value = "TL319"
+    assert Stage.active().title == "Ocean Grid Mode"
+    cvars['OCN_GRID_MODE'].value = 'Create New'
+    assert Stage.active().title == "Custom Ocean Grid"
+
+
 if __name__ == "__main__":
     test_custom_compset_configuration()
     print("All tests passed!")

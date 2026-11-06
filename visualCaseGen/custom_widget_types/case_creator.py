@@ -697,8 +697,8 @@ class CaseCreator:
         """Apply all necessary changes to user_nl_mom and user_nl_cice files."""
 
         ocn_grid_mode = cvars["OCN_GRID_MODE"].value
-        if ocn_grid_mode == "Standard":
-            return # no modifications needed for standard ocean grid
+        if ocn_grid_mode == "Standard" or cvars["COMP_OCN"].value != "mom":
+            return # no modifications needed for standard ocean grid, or for a data ocean
         elif ocn_grid_mode == "Modify Existing":
             raise NotImplementedError("Modify Existing Ocean Grid not yet implemented.")
         else:
