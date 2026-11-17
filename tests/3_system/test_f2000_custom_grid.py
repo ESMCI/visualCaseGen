@@ -152,7 +152,10 @@ def construct_custom_res_from_std_grids(cime):
         # Set CAM grid
         cvars["CUSTOM_ATM_GRID"].value = "0.9x1.25"
 
-        # Since the ocean component is DOCN, we should directly skip to the land grid stage
+        # A data ocean can take a custom ocean grid too; keep the standard one
+        assert Stage.active().title.startswith("Ocean Grid Mode")
+        cvars["OCN_GRID_MODE"].value = "Standard"
+
         assert Stage.active().title.startswith("Land Grid Mode")
         cvars["LND_GRID_MODE"].value = "Standard"
 
@@ -213,7 +216,10 @@ def construct_custom_res_from_modified_clm_grid(cime):
         # Set CAM grid
         cvars["CUSTOM_ATM_GRID"].value = "4x5"
 
-        # Since the ocean component is DOCN, we should directly skip to the land grid stage
+        # A data ocean can take a custom ocean grid too; keep the standard one
+        assert Stage.active().title.startswith("Ocean Grid Mode")
+        cvars["OCN_GRID_MODE"].value = "Standard"
+
         assert Stage.active().title.startswith("Land Grid Mode")
         cvars["LND_GRID_MODE"].value = "Modified"
 
